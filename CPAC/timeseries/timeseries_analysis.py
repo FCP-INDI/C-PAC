@@ -50,7 +50,7 @@ def get_voxel_timeseries(wf_name="voxel_timeseries"):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/timeseries/timeseries_analysis.py>`_
 
     Workflow Inputs::
 
@@ -210,7 +210,7 @@ def get_roi_timeseries(wf_name="roi_timeseries"):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/timeseries/timeseries_analysis.py>`_
 
     Workflow Inputs::
 
@@ -315,7 +315,7 @@ def get_spatial_map_timeseries(wf_name="spatial_map_timeseries"):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/timeseries/timeseries_analysis.py>`_
 
     Workflow Inputs::
 
@@ -395,7 +395,7 @@ def get_vertices_timeseries(wf_name="vertices_timeseries"):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/timeseries/timeseries_analysis.py>`_
 
     Workflow Inputs::
 
@@ -463,7 +463,7 @@ def get_normalized_moments(wf_name="normalized_moments"):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/timeseries/timeseries_analysis.py>`_
 
     Workflow Inputs::
 

@@ -23,7 +23,7 @@ def create_reho(wf_name):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/reho/reho.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/reho/reho.py>`_
 
     Workflow Inputs: ::
 

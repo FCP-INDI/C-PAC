@@ -51,7 +51,7 @@ def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/seg_preproc/seg_preproc.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/seg_preproc/seg_preproc.py>`_
 
 
     Workflow Inputs::

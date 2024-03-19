@@ -48,7 +48,7 @@ def run_surface(
         freesurfer_folder = recon_all_path
 
     # DCAN-HCP PostFreeSurfer
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/7927754/PostFreeSurfer/PostFreeSurferPipeline.sh
     cmd = [
         "bash",
         "/code/CPAC/surface/PostFreeSurfer/run.sh",
@@ -85,7 +85,7 @@ def run_surface(
     log_subprocess(cmd)
 
     # DCAN-HCP fMRISurface
-    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRISurface/GenericfMRISurfaceProcessingPipeline.sh
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/6466b78/fMRISurface/GenericfMRISurfaceProcessingPipeline.sh
     cmd = [
         "bash",
         "/code/CPAC/surface/fMRISurface/run.sh",

@@ -16,6 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 # pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
 """Workflows for registration."""
+
 from typing import Optional
 
 from voluptuous import RequiredFieldInvalid
@@ -818,8 +819,8 @@ def create_register_func_to_anat_use_T2(config, name="register_func_to_anat_use_
     Notes
     -----
     for monkey data
-    ref: https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L287-L295
-    https://github.com/HechengJin0/dcan-macaque-pipeline/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L524-L535
+    ref: https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/90e7e3f/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L287-L295
+    https://github.com/HechengJin0/dcan-macaque-pipeline/blob/9f69302/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L524-L535
 
     Workflow Inputs::
 
@@ -2908,7 +2909,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
     if opt.lower() == "fsl" and reg_tool.lower() == "ants":
         # Apply head-to-head transforms on brain using ABCD-style registration
         # Convert ANTs warps to FSL warps to be consistent with the functional registration
-        # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/scripts/AtlasRegistrationToMNI152_ANTsbased.sh#L134-L172
+        # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/e8d373d/PostFreeSurfer/scripts/AtlasRegistrationToMNI152_ANTsbased.sh#L134-L172
 
         # antsApplyTransforms -d 3 -i ${T1wRestore}.nii.gz -r ${Reference} \
         # -t ${WD}/xfms/T1w_to_MNI_3Warp.nii.gz \
@@ -3279,7 +3280,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             cfg, f"func_to_anat_FLIRT_" f"{pipe_num}"
         )
 
-        # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L177
+        # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/90e7e3f/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L177
         # fslmaths "$fMRIFolder"/"$NameOffMRI"_mc -Tmean "$fMRIFolder"/"$ScoutName"_gdc
         func_mc_mean = pe.Node(
             interface=afni_utils.TStat(), name=f"func_motion_corrected_mean_{pipe_num}"
@@ -4119,9 +4120,9 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     ...on raw functional timeseries using ABCD-style registration.
 
-    Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L168-L197
+    Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/1d90814/fMRIVolume/scripts/OneStepResampling.sh#L168-L197
 
-    https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh#L548
+    https://github.com/DCAN-Labs/DCAN-HCP/blob/a8d495a/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh#L548
     convertwarp --relout --rel -m ${WD}/fMRI2str.mat --ref=${T1wImage} --out=${WD}/fMRI2str.nii.gz
     """
     convert_func_to_anat_linear_warp = pe.Node(
@@ -4144,7 +4145,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data("from-bold_to-T1w_mode-image_desc-linear_xfm")
         wf.connect(node, out, convert_func_to_anat_linear_warp, "premat")
 
-    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L140
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/1d90814/fMRIVolume/scripts/OneStepResampling.sh#L140
     # convertwarp --relout --rel --warp1=${fMRIToStructuralInput} --warp2=${StructuralToStandard} --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --out=${OutputTransform}
     convert_func_to_standard_warp = pe.Node(
         interface=fsl.ConvertWarp(), name=f"convert_func_to_standard_warp_{pipe_num}"
@@ -4167,7 +4168,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, convert_func_to_standard_warp, "reference")
 
     # TODO add condition: if no gradient distortion
-    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L283-L284
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/6466b78/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L283-L284
     # fslroi "$fMRIFolder"/"$NameOffMRI"_gdc "$fMRIFolder"/"$NameOffMRI"_gdc_warp 0 3
     extract_func_roi = pe.Node(
         interface=fsl.ExtractROI(), name=f"extract_func_roi_{pipe_num}"
@@ -4188,7 +4189,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(extract_func_roi, "roi_file", multiply_func_roi_by_zero, "in_file")
 
-    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L168-L193
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/1d90814/fMRIVolume/scripts/OneStepResampling.sh#L168-L193
     # fslsplit ${InputfMRI} ${WD}/prevols/vol -t
     split_func = pe.Node(interface=fsl.Split(), name=f"split_func_{pipe_num}")
 
@@ -4360,7 +4361,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(convert_dc_warp, "out_file", applywarp_scout, "field_file")
 
-    # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/IntensityNormalization.sh#L124-L127
+    # https://github.com/DCAN-Labs/DCAN-HCP/blob/1214767/fMRIVolume/scripts/IntensityNormalization.sh#L124-L127
     # fslmaths ${InputfMRI} -mas ${BrainMask} -mas ${InputfMRI}_mask -thr 0 -ing 10000 ${OutputfMRI} -odt float
     merge_func_mask = pe.Node(util.Merge(2), name=f"merge_func_mask_{pipe_num}")
 
@@ -4434,9 +4435,9 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
 
     ...on raw functional timeseries.
 
-    Ref: https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/scripts/OneStepResampling.sh
+    Ref: https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/8fe9f61/fMRIVolume/scripts/OneStepResampling.sh
 
-    https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L131
+    https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/8fe9f61/fMRIVolume/scripts/OneStepResampling.sh#L131
     ${FSLDIR}/bin/flirt -interp spline -in ${T1wImage} -ref ${T1wImage} -applyisoxfm $FinalfMRIResolution -out ${WD}/${T1wImageFile}.${FinalfMRIResolution}
     """
     anat_resample = pe.Node(
@@ -4468,7 +4469,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     wf.connect(node, out, applywarp_anat_res, "in_file")
     wf.connect(anat_resample, "out_file", applywarp_anat_res, "ref_file")
 
-    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L136-L138
+    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/8fe9f61/fMRIVolume/scripts/OneStepResampling.sh#L136-L138
     # Create brain masks in this space (changing resolution)
     # ${FSLDIR}/bin/applywarp --rel --interp=nn -i ${FreeSurferBrainMask}.nii.gz -r ${WD}/${T1wImageFile}.${FinalfMRIResolution} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${FreeSurferBrainMaskFile}.${FinalfMRIResolution}.nii.gz
     applywarp_anat_mask_res = pe.Node(
@@ -4516,7 +4517,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
 
     wf.connect(applywarp_bias_field_res, "out_file", biasfield_thr, "in_file")
 
-    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L144-L146
+    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/8fe9f61/fMRIVolume/scripts/OneStepResampling.sh#L144-L146
     # convertwarp --relout --rel --warp1=${fMRIToStructuralInput} --warp2=${StructuralToStandard} --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --out=${OutputTransform}
     convert_func_to_standard_warp = pe.Node(
         interface=fsl.ConvertWarp(), name=f"convert_func_to_standard_warp_{pipe_num}"
@@ -4535,7 +4536,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
         applywarp_anat_res, "out_file", convert_func_to_standard_warp, "reference"
     )
 
-    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L157-L158
+    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/90e7e3f/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L157-L158
     # fslroi "$fMRIFolder"/"$NameOffMRI"_gdc "$fMRIFolder"/"$NameOffMRI"_gdc_warp 0 3
     extract_func_roi = pe.Node(
         interface=fsl.ExtractROI(), name=f"extract_func_roi_{pipe_num}"
@@ -4556,7 +4557,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
 
     wf.connect(extract_func_roi, "roi_file", multiply_func_roi_by_zero, "in_file")
 
-    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L173
+    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/8fe9f61/fMRIVolume/scripts/OneStepResampling.sh#L173
     # fslsplit ${InputfMRI} ${WD}/prevols/vol -t
     split_func = pe.Node(interface=fsl.Split(), name=f"split_func_{pipe_num}")
 
@@ -4695,7 +4696,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
 
     wf.connect(merge_func_mask_to_standard, "merged_file", find_min_mask, "in_file")
 
-    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/fMRIVolume/scripts/IntensityNormalization.sh#L113-L119
+    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/8fe9f61/fMRIVolume/scripts/IntensityNormalization.sh#L113-L119
     # fslmaths ${InputfMRI} -div ${BiasField} $jacobiancom -mas ${BrainMask} -mas ${InputfMRI}_mask -ing 10000 ${OutputfMRI} -odt float
 
     merge_func_mask = pe.Node(util.Merge(3), name=f"merge_operand_files_{pipe_num}")

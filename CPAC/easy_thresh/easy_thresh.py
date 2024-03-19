@@ -26,7 +26,7 @@ def easy_thresh(wf_name):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/easy_thresh/easy_thresh.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/easy_thresh/easy_thresh.py>`_
 
     Workflow Inputs::
 

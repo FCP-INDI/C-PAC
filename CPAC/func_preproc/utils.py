@@ -132,8 +132,7 @@ def notch_filter_motion(
     filter_order=4,
 ):
     # Adapted from DCAN Labs:
-    #   https://github.com/DCAN-Labs/dcan_bold_processing/blob/master/
-    #       ...matlab_code/filtered_movement_regressors.m
+    #   https://github.com/DCAN-Labs/dcan_bold_processing/blob/c120097/matlab_code/filtered_movement_regressors.m
 
     if "ms" in TR:
         TR = float(TR.replace("ms", "")) / 1000

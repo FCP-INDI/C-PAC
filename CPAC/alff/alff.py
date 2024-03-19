@@ -28,7 +28,7 @@ def create_alff(wf_name="alff_workflow"):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/alff/alff.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/alff/alff.py>`_
 
     Workflow Inputs::
 

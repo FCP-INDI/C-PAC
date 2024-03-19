@@ -49,7 +49,7 @@ def create_sca(name_sca="sca"):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/sca/sca.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/sca/sca.py>`_
 
     Workflow Inputs::
         inputspec.rest_res_filt : string (existing nifti file)
@@ -180,7 +180,7 @@ def create_temporal_reg(wflow_name="temporal_reg", which="SR"):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/sca/sca.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/sca/sca.py>`_
 
     Workflow Inputs::
 

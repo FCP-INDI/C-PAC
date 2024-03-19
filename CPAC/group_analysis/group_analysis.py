@@ -87,7 +87,7 @@ def create_fsl_flame_wf(ftest=False, wf_name="groupAnalysis"):
 
     Notes
     -----
-    `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/group_analysis/group_analysis_preproc.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/group_analysis/group_analysis.py>`_
 
     Workflow Inputs::
 

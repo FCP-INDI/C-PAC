@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """General-purpose utilities for C-PAC."""
+
 import collections.abc
 from copy import deepcopy
 import fnmatch
@@ -245,7 +246,7 @@ def get_zscore(map_node=False, wf_name="z_score"):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/network_centrality/z_score.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/network_centrality/z_score.py>`_
 
     Workflow Inputs::
 

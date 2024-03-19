@@ -21,7 +21,7 @@ def create_scrubbing_preproc(wf_name="scrubbing"):
 
     Notes
     -----
-    `Source <https://github.com/openconnectome/C-PAC/blob/master/CPAC/scrubbing/scrubbing.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/scrubbing/scrubbing.py>`_
 
     Workflow Inputs::
 

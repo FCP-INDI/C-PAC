@@ -177,7 +177,7 @@ def anat_refined_mask(init_bold_mask=True, wf_name="init_bold_mask"):
 def anat_based_mask(wf_name="bold_mask"):
     """Generate a functional mask from anatomical data.
 
-    Reference `DCAN lab BOLD mask <https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh>`_.
+    Reference `DCAN lab BOLD mask <https://github.com/DCAN-Labs/DCAN-HCP/blob/a8d495a/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh>`_.
     """
     wf = pe.Workflow(name=wf_name)
 
@@ -1394,7 +1394,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
     """Generate the BOLD mask by basing it off of the anatomical brain mask.
 
-    Adapted from `DCAN Lab's BOLD mask method from the ABCD pipeline <https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh>`_.
+    Adapted from `DCAN Lab's BOLD mask method from the ABCD pipeline <https://github.com/DCAN-Labs/DCAN-HCP/blob/a8d495a/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh>`_.
     """
     # 0. Take single volume of func
     func_single_volume = pe.Node(interface=afni.Calc(), name="func_single_volume")
@@ -1488,7 +1488,7 @@ def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
 def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
     """Resample anatomical brain mask to get BOLD brain mask in standard space.
 
-    Adapted from `DCAN Lab's BOLD mask method from the ABCD pipeline <https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L121-L132>`_.
+    Adapted from `DCAN Lab's BOLD mask method from the ABCD pipeline <https://github.com/DCAN-Labs/DCAN-HCP/blob/1d90814/fMRIVolume/scripts/OneStepResampling.sh#L121-L132>`_.
     """
     # applywarp --rel --interp=spline -i ${T1wImage} -r ${ResampRefIm} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${T1wImageFile}.${FinalfMRIResolution}
     anat_brain_to_func_res = pe.Node(
@@ -1569,7 +1569,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
 def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     """Generate the BOLD mask by basing it off of the anatomical brain.
 
-    Adapted from `the BOLD mask method from the CCS pipeline <https://github.com/TingsterX/CCS/blob/master/ccs_01_funcpreproc.sh#L89-L110>`_.
+    Adapted from `the BOLD mask method from the CCS pipeline <https://github.com/TingsterX/CCS/blob/c5433fc/H1/ccs_01_funcpreproc.sh#L89-L110>`_.
     """
     # Run 3dAutomask to generate func initial mask
     func_tmp_brain_mask = pe.Node(

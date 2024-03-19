@@ -85,7 +85,7 @@ def acpc_alignment(
     elif config.anatomical_preproc["acpc_alignment"]["FOV_crop"] == "flirt":
         # robustfov doesn't work on some monkey data. prefer using flirt.
         # ${FSLDIR}/bin/flirt -in "${Input}" -applyxfm -ref "${Input}" -omat "$WD"/roi2full.mat -out "$WD"/robustroi.nii.gz
-        # adopted from DCAN NHP https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/PreFreeSurfer/scripts/ACPCAlignment.sh#L80-L81
+        # adopted from DCAN NHP https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/8fe9f61/PreFreeSurfer/scripts/ACPCAlignment.sh#L80-L81
         flirt_fov = pe.Node(interface=fsl.FLIRT(), name="anat_acpc_1_fov")
         flirt_fov.inputs.args = "-applyxfm"
 
@@ -197,7 +197,7 @@ def acpc_alignment(
 
 def T2wToT1wReg(wf_name="T2w_to_T1w_reg"):
     # Adapted from DCAN lab
-    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/PreFreeSurfer/scripts/T2wToT1wReg.sh
+    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/8fe9f61/PreFreeSurfer/scripts/T2wToT1wReg.sh
 
     preproc = pe.Workflow(name=wf_name)
 
@@ -239,7 +239,7 @@ def T2wToT1wReg(wf_name="T2w_to_T1w_reg"):
 
 def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name="biasfield_correction_t1t2"):
     # Adapted from DCAN lab
-    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/PreFreeSurfer/scripts/BiasFieldCorrection_sqrtT1wXT1w.sh
+    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/8fe9f61/PreFreeSurfer/scripts/BiasFieldCorrection_sqrtT1wXT1w.sh
 
     preproc = pe.Workflow(name=wf_name)
 
@@ -1069,7 +1069,7 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     """
     ABCD harmonization - anatomical brain mask generation.
 
-    Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L156
+    Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/7927754/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L156
     """
     wmparc_to_nifti = pe.Node(
         util.Function(
@@ -1337,7 +1337,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
 def mask_T2(wf_name="mask_T2"):
     # create T2 mask based on T1 mask
-    # reference https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/PreliminaryMasking/macaque_masking.py
+    # reference https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/83512b0/PreliminaryMasking/macaque_masking.py
 
     preproc = pe.Workflow(name=wf_name)
 
@@ -2781,7 +2781,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     )
 
     ### ABCD Harmonization ###
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/FreeSurfer/FreeSurferPipeline.sh#L140-L144
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/9a02c47/FreeSurfer/FreeSurferPipeline.sh#L140-L144
 
     # flirt -interp spline -in "$T1wImage" -ref "$T1wImage" -applyisoxfm 1 -out "$T1wImageFile"_1mm.nii.gz
     resample_head_1mm = pe.Node(
@@ -2932,7 +2932,7 @@ def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
 
 def fnirt_based_brain_extraction(config=None, wf_name="fnirt_based_brain_extraction"):
     ### ABCD Harmonization - FNIRT-based brain extraction ###
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PreFreeSurfer/scripts/BrainExtraction_FNIRTbased.sh
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/4d9996b/PreFreeSurfer/scripts/BrainExtraction_FNIRTbased.sh
 
     preproc = pe.Workflow(name=wf_name)
 
@@ -3053,7 +3053,7 @@ def fnirt_based_brain_extraction(config=None, wf_name="fnirt_based_brain_extract
 
 def fast_bias_field_correction(config=None, wf_name="fast_bias_field_correction"):
     ### ABCD Harmonization - FAST bias field correction ###
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PreFreeSurfer/PreFreeSurferPipeline.sh#L688-L694
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/9291324/PreFreeSurfer/PreFreeSurferPipeline.sh#L688-L694
 
     preproc = pe.Workflow(name=wf_name)
 
@@ -3138,7 +3138,7 @@ def fast_bias_field_correction(config=None, wf_name="fast_bias_field_correction"
 )
 def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     ### ABCD Harmonization - Myelin Map ###
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PreFreeSurfer/PreFreeSurferPipeline.sh#L655-L656
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/9291324/PreFreeSurfer/PreFreeSurferPipeline.sh#L655-L656
     # fslmerge -t ${T1wFolder}/xfms/${T1wImage}_dc ${T1wFolder}/${T1wImage}_acpc ${T1wFolder}/${T1wImage}_acpc ${T1wFolder}/${T1wImage}_acpc
     merge_t1_acpc_to_list = pe.Node(
         util.Merge(3), name=f"merge_t1_acpc_to_list_{pipe_num}"
@@ -3164,7 +3164,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
 
     wf.connect(merge_t1_acpc, "merged_file", multiply_t1_acpc_by_zero, "in_file")
 
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L157
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/7927754/PostFreeSurfer/PostFreeSurferPipeline.sh#L157
     # convertwarp --relout --rel --ref="$T1wFolder"/"$T1wImageBrainMask" --premat="$T1wFolder"/xfms/"$InitialT1wTransform" \
     # --warp1="$T1wFolder"/xfms/"$dcT1wTransform" --out="$T1wFolder"/xfms/"$OutputOrigT1wToT1w"
     convertwarp_orig_t1_to_t1 = pe.Node(
@@ -3181,7 +3181,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     wf.connect(node, out, convertwarp_orig_t1_to_t1, "premat")
     wf.connect(multiply_t1_acpc_by_zero, "out_file", convertwarp_orig_t1_to_t1, "warp1")
 
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/scripts/CreateMyelinMaps.sh#L72-L73
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/a8d495a/PostFreeSurfer/scripts/CreateMyelinMaps.sh#L72-L73
     # applywarp --rel --interp=spline -i "$BiasField" -r "$T1wImageBrain" -w "$AtlasTransform" -o "$BiasFieldOutput"
     applywarp_biasfield = pe.Node(
         interface=fsl.ApplyWarp(), name=f"applywarp_biasfield_{pipe_num}"
@@ -3207,7 +3207,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     threshold_biasfield.inputs.op_string = "-thr 0.1"
     wf.connect(applywarp_biasfield, "out_file", threshold_biasfield, "in_file")
 
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/scripts/CreateMyelinMaps.sh#L67-L70
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/a8d495a/PostFreeSurfer/scripts/CreateMyelinMaps.sh#L67-L70
     # applywarp --rel --interp=spline -i "$OrginalT1wImage" -r "$T1wImageBrain" -w "$OutputOrigT1wToT1w" -o "$OutputT1wImage"
     applywarp_t1 = pe.Node(interface=fsl.ApplyWarp(), name=f"applywarp_t1_{pipe_num}")
 
