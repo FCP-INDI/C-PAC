@@ -1060,7 +1060,7 @@ class ResourcePool:
                          self.rpool[resource]]
             unlabelled = set(key for json_info in all_jsons for key in
                              json_info.get('CpacVariant', {}).keys() if
-                             key not in (*MOVEMENT_FILTER_KEYS, 'regressors'))
+                             key not in (*MOVEMENT_FILTER_KEYS, 'timeseries'))
             if 'bold' in unlabelled:
                 all_bolds = list(
                     chain.from_iterable(json_info['CpacVariant']['bold'] for
