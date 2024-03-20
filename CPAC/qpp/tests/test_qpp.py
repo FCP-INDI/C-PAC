@@ -1,28 +1,21 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pytest
-import scipy.io
 
 from CPAC.qpp.qpp import detect_qpp
 
-np.random.seed(10)
+RNG = np.random.default_rng(10)
 
 
-@pytest.mark.skip(reason="No such file or directory: 'CPAC/qpp/tests/matlab/qpp.mat'")
 def test_qpp():
     voxels, trs = 600, 200
     window_length = 15
 
     x1 = np.sin(2 * np.pi * 10 * np.linspace(0, 1, trs))
-    x = np.tile(x1, (voxels, 1)) + np.random.uniform(0, 1, (voxels, trs))
+    x = np.tile(x1, (voxels, 1)) + RNG.uniform(0, 1, (voxels, trs))
     x -= x.mean()
     x /= x.std()
 
-    scipy.io.savemat(
-        "CPAC/qpp/tests/matlab/qpp.mat", mdict={"B": x, "msk": np.ones((voxels))}
-    )
-
-    best_template_segment, best_selected_peaks, best_template_metrics = detect_qpp(
+    best_template_segment, best_selected_peaks, _best_template_metrics = detect_qpp(
         data=x,
         num_scans=4,
         window_length=window_length,
