@@ -1194,7 +1194,7 @@ class ResourcePool:
                 # not any(not) because all is overloaded as a parameter here
                 if not any(
                     not re.match(
-                        r"apply_(phasediff|blip)_to_" r"timeseries_separately_.*", _bold
+                        r"apply_(phasediff|blip)_to_timeseries_separately_.*", _bold
                     )
                     for _bold in all_bolds
                 ):

@@ -16,6 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 
 """Validation schema for C-PAC pipeline configurations."""
+
 # pylint: disable=too-many-lines
 from itertools import chain, permutations
 import re
@@ -56,7 +57,7 @@ SCIENTIFIC_NOTATION_STR_REGEX = r"^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$"
 # ('x',
 #  1 or more digits, optional decimal, 0 or more lowercase characters (units)
 # ) 0 or more times
-RESOLUTION_REGEX = r"^[0-9]+(\.[0-9]*){0,1}[a-z]*" r"(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*$"
+RESOLUTION_REGEX = r"^[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*$"
 
 Number = Any(float, int, All(str, Match(SCIENTIFIC_NOTATION_STR_REGEX)))
 

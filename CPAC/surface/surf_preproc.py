@@ -110,7 +110,7 @@ def run_surface(
 
     dtseries = os.path.join(
         post_freesurfer_folder,
-        "MNINonLinear/Results/task-rest01/" "task-rest01_Atlas.dtseries.nii",
+        "MNINonLinear/Results/task-rest01/task-rest01_Atlas.dtseries.nii",
     )
     aparc = {
         "desikan_killiany": {
@@ -278,12 +278,12 @@ def surface_connector(wf, cfg, strat_pool, pipe_num, opt):
     outputs = {
         "atlas-DesikanKilliany_space-fsLR_den-32k_dlabel": (
             surf,
-            "desikan_" "killiany_32",
+            "desikan_killiany_32",
         ),
         "atlas-Destrieux_space-fsLR_den-32k_dlabel": (surf, "destrieux_32"),
         "atlas-DesikanKilliany_space-fsLR_den-164k_dlabel": (
             surf,
-            "desikan_" "killiany_164",
+            "desikan_killiany_164",
         ),
         "atlas-Destrieux_space-fsLR_den-164k_dlabel": (surf, "destrieux_164"),
         "space-fsLR_den-32k_bold-dtseries": (surf, "dtseries"),

@@ -35,7 +35,7 @@ def configuration_strategy_mock(method="FSL"):
                 "functional_registration": {
                     "EPI_registration": {
                         "FSL-FNIRT": {
-                            "identity_matrix": f"{fsldir}/etc/flirtsch/" "ident.mat",
+                            "identity_matrix": f"{fsldir}/etc/flirtsch/ident.mat",
                             "interpolation": "sinc",
                         }
                     },
@@ -105,11 +105,11 @@ def configuration_strategy_mock(method="FSL"):
         ),
         "anatomical_brain": os.path.join(
             c["pipeline_setup", "output_directory", "path"],
-            "anatomical_brain/" "sub-M10978008_ses-NFB3_acq-ao_brain_resample.nii.gz",
+            "anatomical_brain/sub-M10978008_ses-NFB3_acq-ao_brain_resample.nii.gz",
         ),
         "ants_initial_xfm": os.path.join(
             c["pipeline_setup", "output_directory", "path"],
-            "ants_initial_xfm/" "transform0DerivedInitialMovingTranslation.mat",
+            "ants_initial_xfm/transform0DerivedInitialMovingTranslation.mat",
         ),
         "ants_affine_xfm": os.path.join(
             c["pipeline_setup", "output_directory", "path"],
@@ -132,7 +132,7 @@ def configuration_strategy_mock(method="FSL"):
         ),
         "ants_symm_warp_field": os.path.join(
             c["pipeline_setup", "output_directory", "path"],
-            "anatomical_to_symmetric_mni_nonlinear_xfm/" "transform3Warp.nii.gz",
+            "anatomical_to_symmetric_mni_nonlinear_xfm/transform3Warp.nii.gz",
         ),
         "ants_symm_affine_xfm": os.path.join(
             c["pipeline_setup", "output_directory", "path"],
