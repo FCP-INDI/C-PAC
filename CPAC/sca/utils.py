@@ -135,7 +135,7 @@ def map_to_roi(timeseries, maps):
           (which = 'RT') unless you provide a timeseries.txt file with a header
           containing the names of the timeseries.
 
-    Parameters.
+    Parameters
     ----------
     timeseries : string
         Input timeseries.txt file

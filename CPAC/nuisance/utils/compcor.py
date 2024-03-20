@@ -141,9 +141,9 @@ def cosine_filter(
 # _cosine_drift and _full_rank copied from nipype 'https://github.com/nipy/nipype/blob/d353f0d879826031334b09d33e9443b8c9b3e7fe/nipype/algorithms/confounds.py'
 def _cosine_drift(period_cut, frametimes):
     """
-     Create a cosine drift matrix with periods greater or equals to period_cut.
+    Create a cosine drift matrix with periods greater or equals to period_cut.
 
-    Parameters.
+    Parameters
     ----------
     period_cut : float
          Cut period of the low-pass filter (in sec)
@@ -177,10 +177,10 @@ def _cosine_drift(period_cut, frametimes):
 
 def _full_rank(X, cmax=1e15):
     """
-    This function possibly adds a scalar matrix to X
-    to guarantee that the condition number is smaller than a given threshold.
+    This function possibly adds a scalar matrix to X to guarantee that the condition
+    number is smaller than a given threshold.
 
-    Parameters.
+    Parameters
     ----------
     X : array of shape(nrows, ncols)
     cmax=1.e-15, float tolerance for condition number

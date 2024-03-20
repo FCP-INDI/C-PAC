@@ -48,6 +48,7 @@ for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine.html
 for Nipype's documentation.
 """  # pylint: disable=line-too-long
+
 from copy import deepcopy
 from inspect import Parameter, Signature, signature
 import os
@@ -485,7 +486,7 @@ class Workflow(pe.Workflow):
     def __init__(self, name, base_dir=None, debug=False):
         """Create a workflow object.
 
-        Parameters.
+        Parameters
         ----------
         name : alphanumeric string
             unique identifier for the workflow
@@ -584,15 +585,14 @@ class Workflow(pe.Workflow):
                         "shape=box3d, style=filled, color=black, "
                         "colorscheme=greys7 fillcolor=2];"
                     )
+                elif colored:
+                    dotlist.append(
+                        f'"{nodename}"[label="'
+                        f'{node_class_name}", style=filled,'
+                        f' fillcolor="{colorset[level]}"];'
+                    )
                 else:
-                    if colored:
-                        dotlist.append(
-                            f'"{nodename}"[label="'
-                            f'{node_class_name}", style=filled,'
-                            f' fillcolor="{colorset[level]}"];'
-                        )
-                    else:
-                        dotlist.append(f'"{nodename}"[label="' f'{node_class_name}"];')
+                    dotlist.append(f'"{nodename}"[label="' f'{node_class_name}"];')
 
         for node in nx.topological_sort(self._graph):
             if isinstance(node, Workflow):
@@ -787,11 +787,12 @@ def export_graph(
     format="png",
     simple_form=True,
 ):
-    """Displays the graph layout of the pipeline
+    """Displays the graph layout of the pipeline.
+
     This function requires that pygraphviz and matplotlib are available on
     the system.
 
-    Parameters.
+    Parameters
     ----------
     show : boolean
     Indicate whether to generate pygraphviz output fromn

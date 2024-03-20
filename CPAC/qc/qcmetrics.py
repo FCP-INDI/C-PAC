@@ -2,6 +2,7 @@
 
 Ref: https://github.com/PennLINC/xcp_d/tree/0.0.9
 """
+
 # pylint: disable=invalid-name, redefined-outer-name
 import numpy as np
 import nibabel as nib
@@ -74,10 +75,11 @@ def dc(input1, input2):
 
 def jc(input1, input2):
     r"""
-    Jaccard coefficient
+    Jaccard coefficient.
+
     Computes the Jaccard coefficient between the binary objects in two images.
 
-    Parameters.
+    Parameters
     ----------
     input1: array_like
             Input data containing objects. Can be any type but will be

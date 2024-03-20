@@ -85,7 +85,7 @@ def motion_scrub(_ms_filename, _motion_threshold):
     """
     Determines volumes with high motion artifact.
 
-    Parameters.
+    Parameters
     ----------
     _ms_filename : string
         Pathname of the CSV file containing the framewise displacement per time point for a given fMRI scan

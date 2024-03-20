@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Utlities for NIfTI images."""
+
 import os
 from typing import Union
 
@@ -27,7 +28,7 @@ def nifti_image_input(
 ) -> nib.nifti1.Nifti1Image:
     """Test if an input is a path or a nifti.image and the image loaded through nibabel.
 
-    Parameters.
+    Parameters
     ----------
     image : str or nibabel.nifti1.Nifti1Image
         path to the nifti file or the image already loaded through nibabel
@@ -55,7 +56,7 @@ def more_zeros_than_ones(image):
     """
     Return True if there are more zeros than other values in a given nifti image.
 
-    Parameters.
+    Parameters
     ----------
     image : str or nibabel.nifti1.Nifti1Image
         path to the nifti file to be inverted or
@@ -76,7 +77,7 @@ def inverse_nifti_values(image):
     """
     Replace zeros by ones and non-zero values by 1.
 
-    Parameters.
+    Parameters
     ----------
     image : str or nibabel.nifti1.Nifti1Image
         path to the nifti file to be inverted or

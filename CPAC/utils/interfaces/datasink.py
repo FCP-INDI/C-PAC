@@ -152,11 +152,10 @@ class DataSink(IOBase):
             dst = os.path.sep.join(folders)
             if fname:
                 dst = os.path.join(dst, fname)
+        elif fname:
+            dst = fname
         else:
-            if fname:
-                dst = fname
-            else:
-                dst = path.split(os.path.sep)[-1]
+            dst = path.split(os.path.sep)[-1]
         if dst[0] == os.path.sep:
             dst = dst[1:]
         return dst
@@ -199,7 +198,7 @@ class DataSink(IOBase):
         S3 bucket path; if it does, it parses the path for the bucket
         name in the form 's3://bucket_name/...' and returns it.
 
-        Parameters.
+        Parameters
         ----------
 
         Returns
@@ -244,7 +243,7 @@ class DataSink(IOBase):
         Method to return AWS access key id and secret access key using
         credentials found in a local file.
 
-        Parameters.
+        Parameters
         ----------
         self : nipype.interfaces.io.DataSink
             self for instance method
@@ -300,7 +299,7 @@ class DataSink(IOBase):
         Method to return a bucket object which can be used to interact
         with an AWS S3 bucket using credentials found in a local file.
 
-        Parameters.
+        Parameters
         ----------
         self : nipype.interfaces.io.DataSink
             self for instance method

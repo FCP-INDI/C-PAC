@@ -35,9 +35,9 @@ def ideal_bandpass(data, sample_period, bandpass_freqs):
 
     freq_mask = np.zeros_like(data_p, dtype="bool")
     freq_mask[low_cutoff_i : high_cutoff_i + 1] = True
-    freq_mask[
-        data_p.shape[0] - high_cutoff_i : data_p.shape[0] + 1 - low_cutoff_i
-    ] = True
+    freq_mask[data_p.shape[0] - high_cutoff_i : data_p.shape[0] + 1 - low_cutoff_i] = (
+        True
+    )
 
     f_data = fft(data_p)
     f_data[freq_mask is not True] = 0.0
@@ -145,7 +145,7 @@ def afni_1dBandpass(in_file, highpass, lowpass, tr=1):
     """
     Perform AFNI 1dBandpass.
 
-    Parameters.
+    Parameters
     ----------
     in_file : string
         Path of an input 1D file
