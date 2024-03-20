@@ -82,7 +82,6 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
     return regressor_file
 
 
-# cosine_filter adapted from nipype 'https://github.com/nipy/nipype/blob/d353f0d879826031334b09d33e9443b8c9b3e7fe/nipype/algorithms/confounds.py'
 def cosine_filter(
     input_image_path,
     timestep,
@@ -92,15 +91,48 @@ def cosine_filter(
     failure_mode="error",
 ):
     """
-    input_image_path: string
-            Bold image to be filtered.
-    timestep: float
-            'Repetition time (TR) of series (in sec) - derived from image header if unspecified'
-    period_cut: float
-            Minimum period (in sec) for DCT high-pass filter, nipype default value: 128.
+    `cosine_filter` adapted from Nipype.
 
+    https://github.com/nipy/nipype/blob/d353f0d/nipype/algorithms/confounds.py#L1086-L1107
+
+    Parameters
+    ----------
+    input_image_path : string
+            Bold image to be filtered.
+    timestep : float
+            'Repetition time (TR) of series (in sec) - derived from image header if unspecified'
+    period_cut : float
+            Minimum period (in sec) for DCT high-pass filter, nipype default value: 128.
     """
-    from CPAC.nuisance.utils.compcor import _cosine_drift, _full_rank
+    # STATEMENT OF CHANGES:
+    #     This function is derived from sources licensed under the Apache-2.0 terms,
+    #     and this function has been changed.
+
+    # CHANGES:
+    #     * Refactored to take and return filepaths instead of loaded data
+    #     * Removed caluclation and return of `non_constant_regressors`
+    #     * Modified docstring to reflect local changes
+    #     * Updated style to match C-PAC codebase
+
+    # ORIGINAL WORK'S ATTRIBUTION NOTICE:
+    #    Copyright (c) 2009-2016, Nipype developers
+
+    #    Licensed under the Apache License, Version 2.0 (the "License");
+    #    you may not use this file except in compliance with the License.
+    #    You may obtain a copy of the License at
+
+    #        http://www.apache.org/licenses/LICENSE-2.0
+
+    #    Unless required by applicable law or agreed to in writing, software
+    #    distributed under the License is distributed on an "AS IS" BASIS,
+    #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    #    See the License for the specific language governing permissions and
+    #    limitations under the License.
+
+    #    Prior to release 0.12, Nipype was licensed under a BSD license.
+
+    # Modifications copyright (C) 2019 - 2024  C-PAC Developers
+    from nipype.algorithms.confounds import _cosine_drift, _full_rank
 
     input_img = nib.load(input_image_path)
     input_data = input_img.get_fdata()
@@ -114,7 +146,6 @@ def cosine_filter(
 
     frametimes = timestep * np.arange(timepoints)
     X = _full_rank(_cosine_drift(period_cut, frametimes))[0]
-    X[:, :-1] if X.shape[1] > 1 else np.array([])
 
     betas = np.linalg.lstsq(X, input_data.T)[0]
 
@@ -136,70 +167,6 @@ def cosine_filter(
     output_img.to_filename(cosfiltered_img)
 
     return cosfiltered_img
-
-
-# _cosine_drift and _full_rank copied from nipype 'https://github.com/nipy/nipype/blob/d353f0d879826031334b09d33e9443b8c9b3e7fe/nipype/algorithms/confounds.py'
-def _cosine_drift(period_cut, frametimes):
-    """
-    Create a cosine drift matrix with periods greater or equals to period_cut.
-
-    Parameters
-    ----------
-    period_cut : float
-         Cut period of the low-pass filter (in sec)
-    frametimes : array of shape(nscans)
-         The sampling times (in sec)
-
-    Returns
-    -------
-    cdrift :  array of shape(n_scans, n_drifts)
-             cosin drifts plus a constant regressor at cdrift[:,0]
-    Ref: http://en.wikipedia.org/wiki/Discrete_cosine_transform DCT-II
-    """
-    len_tim = len(frametimes)
-    n_times = np.arange(len_tim)
-    hfcut = 1.0 / period_cut  #  input parameter is the period
-
-    # frametimes.max() should be (len_tim-1)*dt
-    dt = frametimes[1] - frametimes[0]
-    # hfcut = 1/(2*dt) yields len_time
-    # If series is too short, return constant regressor
-    order = max(int(np.floor(2 * len_tim * hfcut * dt)), 1)
-    cdrift = np.zeros((len_tim, order))
-    nfct = np.sqrt(2.0 / len_tim)
-
-    for k in range(1, order):
-        cdrift[:, k - 1] = nfct * np.cos((np.pi / len_tim) * (n_times + 0.5) * k)
-
-    cdrift[:, order - 1] = 1.0  #  or 1./sqrt(len_tim) to normalize
-    return cdrift
-
-
-def _full_rank(X, cmax=1e15):
-    """
-    This function possibly adds a scalar matrix to X to guarantee that the condition
-    number is smaller than a given threshold.
-
-    Parameters
-    ----------
-    X : array of shape(nrows, ncols)
-    cmax=1.e-15, float tolerance for condition number
-
-    Returns
-    -------
-    X : array of shape(nrows, ncols) after regularization
-    cmax=1.e-15, float tolerance for condition number
-    """
-    U, s, V = fallback_svd(X, full_matrices=False)
-    smax, smin = s.max(), s.min()
-    c = smax / smin
-    if c < cmax:
-        return X, c
-    IFLOGGER.warning("Matrix is singular at working precision, regularizing...")
-    lda = (smax - cmax * smin) / (cmax - 1)
-    s = s + lda
-    X = np.dot(U, np.dot(np.diag(s), V))
-    return X, cmax
 
 
 def fallback_svd(a, full_matrices=True, compute_uv=True):
