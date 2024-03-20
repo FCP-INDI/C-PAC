@@ -25,21 +25,17 @@ import re
 from typing import Optional, Union
 import warnings
 
-from nipype import config, logging  # pylint: disable=wrong-import-order
-from nipype.interfaces.utility import Rename  # pylint: disable=wrong-import-order
+from nipype import config
+from nipype.interfaces.utility import Rename
 
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import (
     fisher_z_score_standardize,
     z_score_standardize,
 )
-from CPAC.pipeline import (
-    nipype_pipeline_engine as pe,  # pylint: disable=ungrouped-imports
-)
+from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
-from CPAC.pipeline.nodeblock import (
-    NodeBlockFunction,  # pylint: disable=ungrouped-imports
-)
+from CPAC.pipeline.nodeblock import NodeBlockFunction
 from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
 from CPAC.registration.registration import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
@@ -351,43 +347,36 @@ class ResourcePool:
             raise IndexError(msg)
         if not json_info:
             json_info = {
-                "RawSources": [resource]
-            }  # <---- this will be repopulated to the full file path at the end of the pipeline building, in gather_pipes()
+                "RawSources": [
+                    resource  # <---- this will be repopulated to the full file path at the end of the pipeline building, in gather_pipes()
+                ]
+            }
         json_info["CpacProvenance"] = new_prov_list
 
         if resource not in self.rpool.keys():
             self.rpool[resource] = {}
-        else:
-            if not fork:  # <--- in the event of multiple strategies/options, this will run for every option; just keep in mind
-                search = False
-                if self.get_resource_from_prov(current_prov_list) == resource:
-                    pipe_idx = self.generate_prov_string(current_prov_list)[
-                        1
-                    ]  # CHANGING PIPE_IDX, BE CAREFUL DOWNSTREAM IN THIS FUNCTION
-                    if pipe_idx not in self.rpool[resource].keys():
-                        search = True
-                else:
+        elif not fork:  # <--- in the event of multiple strategies/options, this will run for every option; just keep in mind
+            search = False
+            if self.get_resource_from_prov(current_prov_list) == resource:
+                # CHANGING PIPE_IDX, BE CAREFUL DOWNSTREAM IN THIS FUNCTION
+                pipe_idx = self.generate_prov_string(current_prov_list)[1]
+                if pipe_idx not in self.rpool[resource].keys():
                     search = True
-                if search:
-                    for idx in current_prov_list:
-                        if self.get_resource_from_prov(idx) == resource:
-                            if isinstance(idx, list):
-                                pipe_idx = self.generate_prov_string(
-                                    idx
-                                )[
-                                    1
-                                ]  # CHANGING PIPE_IDX, BE CAREFUL DOWNSTREAM IN THIS FUNCTION
-                            elif isinstance(idx, str):
-                                pipe_idx = idx
-                            break
-                if (
-                    pipe_idx in self.rpool[resource].keys()
-                ):  # <--- in case the resource name is now new, and not the original
-                    del self.rpool[
-                        resource
-                    ][
-                        pipe_idx
-                    ]  # <--- remove old keys so we don't end up with a new strat for every new node unit (unless we fork)
+            else:
+                search = True
+            if search:
+                for idx in current_prov_list:
+                    if self.get_resource_from_prov(idx) == resource:
+                        if isinstance(idx, list):
+                            # CHANGING PIPE_IDX, BE CAREFUL DOWNSTREAM IN THIS FUNCTION
+                            pipe_idx = self.generate_prov_string(idx)[1]
+                        elif isinstance(idx, str):
+                            pipe_idx = idx
+                        break
+            if pipe_idx in self.rpool[resource].keys():
+                # in case the resource name is now new, and not the original
+                # remove old keys so we don't end up with a new strat for every new node unit (unless we fork)
+                del self.rpool[resource][pipe_idx]
         if new_pipe_idx not in self.rpool[resource]:
             self.rpool[resource][new_pipe_idx] = {}
         if new_pipe_idx not in self.pipe_list:
@@ -404,12 +393,11 @@ class ResourcePool:
         optional: Optional[bool] = False,
     ) -> Union[TUPLE[Optional[dict], Optional[str]], Optional[dict]]:
         # NOTE!!!
-        #   if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
-        #   BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
+        # if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
+        # BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
         if not isinstance(resource, list):
             resource = [resource]
-        # if a list of potential inputs are given, pick the first one
-        # found
+        # if a list of potential inputs are given, pick the first one found
         for label in resource:
             if label in self.rpool.keys():
                 _found = self.rpool[label]
@@ -508,7 +496,7 @@ class ResourcePool:
     def generate_prov_string(prov):
         # this will generate a string from a SINGLE RESOURCE'S dictionary of
         # MULTIPLE PRECEDING RESOURCES (or single, if just one)
-        #   NOTE: this DOES NOT merge multiple resources!!! (i.e. for merging-strat pipe_idx generation)
+        # NOTE: this DOES NOT merge multiple resources!!! (i.e. for merging-strat pipe_idx generation)
         if not isinstance(prov, list):
             msg = (
                 "\n[!] Developer info: the CpacProvenance "
@@ -600,11 +588,14 @@ class ResourcePool:
             verbose_logger.debug("linked_resources: %s", linked_resources)
             verbose_logger.debug("resource_list: %s", resource_list)
         for resource in resource_list:
-            rp_dct, fetched_resource = self.get(
+            (
+                rp_dct,  # <---- rp_dct has the strats/pipe_idxs as the keys on first level, then 'data' and 'json' on each strat level underneath
+                fetched_resource,
+            ) = self.get(
                 resource,
-                report_fetched=True,  # <---- rp_dct has the strats/pipe_idxs as the keys on first level, then 'data' and 'json' on each strat level underneath
-                optional=True,
-            )  # oh, and we make the resource fetching in get_strats optional so we can have optional inputs, but they won't be optional in the node block unless we want them to be
+                report_fetched=True,
+                optional=True,  # oh, and we make the resource fetching in get_strats optional so we can have optional inputs, but they won't be optional in the node block unless we want them to be
+            )
             if not rp_dct:
                 len_inputs -= 1
                 continue
@@ -752,11 +743,8 @@ class ResourcePool:
                 # make the merged strat label from the multiple inputs
                 # strat_list is actually the merged CpacProvenance lists
                 pipe_idx = str(strat_list)
-                new_strats[
-                    pipe_idx
-                ] = (
-                    ResourcePool()
-                )  # <----- new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
+                new_strats[pipe_idx] = ResourcePool()
+                # new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
                 # placing JSON info at one level higher only for copy convenience
                 new_strats[pipe_idx].rpool["json"] = {}
                 new_strats[pipe_idx].rpool["json"]["subjson"] = {}
@@ -765,12 +753,10 @@ class ResourcePool:
                 # now just invert resource:strat to strat:resource for each resource:strat
                 for cpac_prov in strat_list:
                     resource, strat = self.generate_prov_string(cpac_prov)
-                    resource_strat_dct = self.rpool[resource][
-                        strat
-                    ]  # <----- remember, this is the dct of 'data' and 'json'.
-                    new_strats[pipe_idx].rpool[
-                        resource
-                    ] = resource_strat_dct  # <----- new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS! each one is a new slice of the resource pool combined together.
+                    resource_strat_dct = self.rpool[resource][strat]
+                    # remember, `resource_strat_dct` is the dct of 'data' and 'json'.
+                    new_strats[pipe_idx].rpool[resource] = resource_strat_dct
+                    # `new_strats` is A DICTIONARY OF RESOURCEPOOL OBJECTS! each one is a new slice of the resource pool combined together.
                     self.pipe_list.append(pipe_idx)
                     if "CpacVariant" in resource_strat_dct["json"]:
                         if "CpacVariant" not in new_strats[pipe_idx].rpool["json"]:
@@ -794,21 +780,18 @@ class ResourcePool:
                     )
         else:
             new_strats = {}
-            for resource_strat_list in (
-                total_pool
-            ):  # total_pool will have only one list of strats, for the one input
+            for resource_strat_list in total_pool:
+                # total_pool will have only one list of strats, for the one input
                 for cpac_prov in resource_strat_list:  # <------- cpac_prov here doesn't need to be modified, because it's not merging with other inputs
                     resource, pipe_idx = self.generate_prov_string(cpac_prov)
-                    resource_strat_dct = self.rpool[resource][
-                        pipe_idx
-                    ]  # <----- remember, this is the dct of 'data' and 'json'.
+                    resource_strat_dct = self.rpool[resource][pipe_idx]
+                    # remember, `resource_strat_dct` is the dct of 'data' and 'json'.
                     new_strats[pipe_idx] = ResourcePool(
                         rpool={resource: resource_strat_dct}
                     )  # <----- again, new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
                     # placing JSON info at one level higher only for copy convenience
-                    new_strats[pipe_idx].rpool["json"] = resource_strat_dct[
-                        "json"
-                    ]  # TODO: WARNING- THIS IS A LEVEL HIGHER THAN THE ORIGINAL 'JSON' FOR EASE OF ACCESS IN CONNECT_BLOCK WITH THE .GET(JSON)
+                    new_strats[pipe_idx].rpool["json"] = resource_strat_dct["json"]
+                    # TODO: WARNING- THIS IS A LEVEL HIGHER THAN THE ORIGINAL 'JSON' FOR EASE OF ACCESS IN CONNECT_BLOCK WITH THE .GET(JSON)
                     new_strats[pipe_idx].rpool["json"]["subjson"] = {}
                     new_strats[pipe_idx].rpool["json"]["CpacProvenance"] = cpac_prov
                     # preserve each input's JSON info also
@@ -824,8 +807,7 @@ class ResourcePool:
         if label in self.xfm:
             json_info = dict(json_info)
 
-            # get the bold-to-template transform from the current strat_pool
-            # info
+            # get the bold-to-template transform from the current strat_pool info
             xfm_idx = None
             xfm_label = "from-bold_to-template_mode-image_xfm"
             for entry in json_info["CpacProvenance"]:
@@ -1060,8 +1042,7 @@ class ResourcePool:
                         connection[0], connection[1], zstd, "inputspec.correlation_file"
                     )
 
-                    # if the output is 'space-template_desc-MeanSCA_correlations', we want
-                    # 'desc-MeanSCA_timeseries'
+                    # if the output is 'space-template_desc-MeanSCA_correlations', we want 'desc-MeanSCA_timeseries'
                     oned = label.replace("correlations", "timeseries")
 
                     node, out = outs[oned]
@@ -1329,7 +1310,7 @@ class ResourcePool:
                         # need the single quote and the colon inside the double
                         # quotes - it's the encoded pipe_idx
                         # atlas_idx = new_idx.replace(f"'{temp_rsc}:",
-                        #                            "'atlas_name:")
+                        #                             "'atlas_name:")
                         if atlas_idx in self.rpool["atlas_name"]:
                             node, out = self.rpool["atlas_name"][atlas_idx]["data"]
                             wf.connect(node, out, id_string, "atlas_id")
@@ -1428,7 +1409,7 @@ class NodeBlock:
                     self.input_interface = [self.input_interface]
 
             if not isinstance(node_block_function, NodeBlockFunction):
-                # If the object is a plain function `__name__` will be more useful then `str()`
+                # If the object is a plain function `__name__` will be more useful than `str()`
                 obj_str = (
                     node_block_function.__name__
                     if hasattr(node_block_function, "__name__")
@@ -1451,10 +1432,9 @@ class NodeBlock:
                                 list_tup.append(interface[1])
                                 node_block_function.inputs.remove(orig_input)
                                 node_block_function.inputs.append(tuple(list_tup))
-                        else:
-                            if orig_input == interface[0]:
-                                node_block_function.inputs.remove(interface[0])
-                                node_block_function.inputs.append(interface[1])
+                        elif orig_input == interface[0]:
+                            node_block_function.inputs.remove(interface[0])
+                            node_block_function.inputs.append(interface[1])
 
             for key, val in node_block_function.legacy_nodeblock_dict().items():
                 self.node_blocks[name][key] = val
@@ -1531,9 +1511,8 @@ class NodeBlock:
                 else:
                     for option in option_val:
                         try:
-                            if (
-                                option in self.grab_tiered_dct(cfg, key_list)
-                            ):  # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
+                            if option in self.grab_tiered_dct(cfg, key_list):
+                                # goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
                                 opts.append(option)
                         except AttributeError as err:
                             msg = f"{err}\nNode Block: {name}"
@@ -1563,7 +1542,7 @@ class NodeBlock:
                     option_val = option_config[-1]
                     if option_val in self.grab_tiered_dct(cfg, key_list[:-1]):
                         opts.append(option_val)
-            else:  #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
+            else:  # AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
                 opts = [None]
             all_opts += opts
 
@@ -1579,10 +1558,8 @@ class NodeBlock:
                 "output_directory"
             ]["user_defined"]
 
-        for (
-            name,
-            block_dct,
-        ) in self.node_blocks.items():  # <--- iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
+        for name, block_dct in self.node_blocks.items():
+            # iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
             switch = self.check_null(block_dct["switch"])
             config = self.check_null(block_dct["config"])
             option_key = self.check_null(block_dct["option_key"])
@@ -1607,14 +1584,12 @@ class NodeBlock:
                     opts = self.grab_tiered_dct(cfg, key_list)
                 else:
                     for option in option_val:
-                        if (
-                            option in self.grab_tiered_dct(cfg, key_list)
-                        ):  # <---- goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
+                        if option in self.grab_tiered_dct(cfg, key_list):
+                            # goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
                             opts.append(option)
-            else:  #         AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
-                opts = [
-                    None
-                ]  #         THIS ALSO MEANS the multiple option-val's in docstring node blocks can be entered once in the entire node-block sequence, not in a list of multiples
+            else:  # AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
+                opts = [None]
+                # THIS ALSO MEANS the multiple option-val's in docstring node blocks can be entered once in the entire node-block sequence, not in a list of multiples
             if not opts:
                 # for node blocks where the options are split into different
                 # block functions - opts will be empty for non-selected
@@ -1635,43 +1610,42 @@ class NodeBlock:
                         )
                         raise Exception(msg)
                     switch = self.grab_tiered_dct(cfg, key_list)
-                else:
-                    if isinstance(switch[0], list):
-                        # we have multiple switches, which is designed to only work if
-                        # config is set to "None"
-                        switch_list = []
-                        for key_list in switch:
-                            val = self.grab_tiered_dct(cfg, key_list)
-                            if isinstance(val, list):
-                                # fork switches
-                                if True in val:
-                                    switch_list.append(True)
-                                if False in val:
-                                    switch_list.append(False)
-                            else:
-                                switch_list.append(val)
-                        if False in switch_list:
-                            switch = [False]
+                elif isinstance(switch[0], list):
+                    # we have multiple switches, which is designed to only work if
+                    # config is set to "None"
+                    switch_list = []
+                    for key_list in switch:
+                        val = self.grab_tiered_dct(cfg, key_list)
+                        if isinstance(val, list):
+                            # fork switches
+                            if True in val:
+                                switch_list.append(True)
+                            if False in val:
+                                switch_list.append(False)
                         else:
-                            switch = [True]
+                            switch_list.append(val)
+                    if False in switch_list:
+                        switch = [False]
                     else:
-                        # if config is set to "None"
-                        key_list = switch
-                        switch = self.grab_tiered_dct(cfg, key_list)
+                        switch = [True]
+                else:
+                    # if config is set to "None"
+                    key_list = switch
+                    switch = self.grab_tiered_dct(cfg, key_list)
                 if not isinstance(switch, list):
                     switch = [switch]
             if True in switch:
-                for pipe_idx, strat_pool in rpool.get_strats(
-                    inputs, debug
-                ).items():  # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
-                    fork = (
-                        False in switch
-                    )  #   keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
-                    for opt in opts:  #   it's a dictionary of ResourcePools called strat_pools, except those sub-ResourcePools only have one level! no pipe_idx strat keys.
+                for (
+                    pipe_idx,
+                    strat_pool,  # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
+                ) in rpool.get_strats(inputs, debug).items():
+                    # keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
+                    fork = False in switch
+                    for opt in opts:  # it's a dictionary of ResourcePools called strat_pools, except those sub-ResourcePools only have one level! no pipe_idx strat keys.
                         # remember, you can get 'data' or 'json' from strat_pool with member functions
                         # strat_pool has all of the JSON information of all the inputs!
                         # so when we set_data below for the TOP-LEVEL MAIN RPOOL (not the strat_pool), we can generate new merged JSON information for each output.
-                        #    particularly, our custom 'CpacProvenance' field.
+                        # particularly, our custom 'CpacProvenance' field.
                         node_name = name
                         pipe_x = rpool.get_pipe_number(pipe_idx)
 
@@ -1730,7 +1704,7 @@ class NodeBlock:
                             new_json_info = copy.deepcopy(strat_pool.get("json"))
 
                             # transfer over data-specific json info
-                            #   for example, if the input data json is _bold and the output is also _bold
+                            # for example, if the input data json is _bold and the output is also _bold
                             data_type = label.split("_")[-1]
                             if data_type in new_json_info["subjson"]:
                                 if (
@@ -2463,9 +2437,9 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
             # the set_data below is set up a little differently, because we are
             # injecting and also over-writing already-existing entries
-            #   other alternative would have been to ingress into the
-            #   resampled_template node from the already existing entries, but we
-            #   didn't do that here
+            # other alternative would have been to ingress into the
+            # resampled_template node from the already existing entries, but we
+            # didn't do that here
             rpool.set_data(
                 key,
                 resampled_template,
@@ -2473,25 +2447,24 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 json_info,
                 "",
                 "template_resample",
-            )  # , inject=True)   # pipe_idx (after the blank json {}) should be the previous strat that you want deleted! because you're not connecting this the regular way, you have to do it manually
+            )  # pipe_idx (after the blank json {}) should be the previous strat that you want deleted! because you're not connecting this the regular way, you have to do it manually
 
-        else:
-            if val:
-                config_ingress = create_general_datasource(f"gather_{key}")
-                config_ingress.inputs.inputnode.set(
-                    unique_id=unique_id,
-                    data=val,
-                    creds_path=creds_path,
-                    dl_dir=cfg.pipeline_setup["working_directory"]["path"],
-                )
-                rpool.set_data(
-                    key,
-                    config_ingress,
-                    "outputspec.data",
-                    json_info,
-                    "",
-                    f"{key}_config_ingress",
-                )
+        elif val:
+            config_ingress = create_general_datasource(f"gather_{key}")
+            config_ingress.inputs.inputnode.set(
+                unique_id=unique_id,
+                data=val,
+                creds_path=creds_path,
+                dl_dir=cfg.pipeline_setup["working_directory"]["path"],
+            )
+            rpool.set_data(
+                key,
+                config_ingress,
+                "outputspec.data",
+                json_info,
+                "",
+                f"{key}_config_ingress",
+            )
     # templates, resampling from config
     """
     template_keys = [
@@ -2699,16 +2672,15 @@ def run_node_blocks(blocks, data_paths, cfg=None):
 
 
 class NodeData:
-    r"""Class to hold outputs of
-    CPAC.pipeline.engine.ResourcePool().get_data(), so one can do.
+    r"""Attribute access for ResourcePool.get_data outputs.
 
-    ``node_data = strat_pool.node_data(resource)`` and have
-    ``node_data.node`` and ``node_data.out`` instead of doing
-    ``node, out = strat_pool.get_data(resource)`` and needing two
-    variables (``node`` and ``out``) to store that information.
+    Class to hold outputs of CPAC.pipeline.engine.ResourcePool().get_data(), so one can
+    do ``node_data = strat_pool.node_data(resource)`` and have ``node_data.node`` and
+    ``node_data.out`` instead of doing ``node, out = strat_pool.get_data(resource)``
+    and needing two variables (``node`` and ``out``) to store that information.
 
-    Also includes ``variant`` attribute providing the resource's self-
-    keyed value within its ``CpacVariant`` dictionary.
+    Also includes ``variant`` attribute providing the resource's self-keyed value
+    within its ``CpacVariant`` dictionary.
 
     Examples
     --------
@@ -2738,5 +2710,5 @@ class NodeData:
         if strat_pool is not None and resource is not None:
             self.node, self.out = strat_pool.get_data(resource, **kwargs)
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         return f'{getattr(self.node, "name", str(self.node))} ({self.out})'
