@@ -23,6 +23,8 @@ from typing import BinaryIO, Optional
 
 import yaml
 
+from CPAC.utils.typing import PATHSTR
+
 logger = logging.getLogger("extract_data_logs")
 if logger.handlers:
     for handler in logger.handlers:
@@ -37,13 +39,13 @@ logging.basicConfig(
 
 def extract_data(c, param_map):
     """
-    Method to generate a CPAC input subject list
-    python file. The method extracts anatomical
-    and functional data for each site( if multiple site)
-    and/or scan parameters for each site and put it into
-    a data structure read by python.
+    Generate a CPAC input subject list Python file.
 
-    Example:
+    The method extracts anatomical and functional data for each site (if multiple site)
+    and/or scan parameters for each site and put it into a data structure read by Python.
+
+    Examples
+    --------
     subjects_list =[
        {
         'subject_id' : '0050386',
@@ -79,9 +81,8 @@ def extract_data(c, param_map):
 
     """
 
-    # method to read each line of the file into list
-    # returns list
-    def get_list(arg):
+    def get_list(arg) -> list:
+        """Read each line of the file into list."""
         if isinstance(arg, list):
             ret_list = arg
         else:
@@ -97,8 +98,8 @@ def extract_data(c, param_map):
     if c.subjectList is not None:
         subject_list = get_list(c.subjectList)
 
-    # check if Template is correct
-    def checkTemplate(template):
+    def checkTemplate(template) -> None:
+        """Check if `template` is correct."""
         if template.count("%s") != 2:
             msg = (
                 "Please provide '%s' in the template"
@@ -146,7 +147,7 @@ def extract_data(c, param_map):
             raise Exception(msg)
 
     def create_site_subject_mapping(base, relative):
-        # mapping between site and subject
+        """Create mapping between site and subject."""
         site_subject_map = {}
         base_path_list = []
 
@@ -170,10 +171,11 @@ def extract_data(c, param_map):
 
         return base_path_list, site_subject_map
 
-    # method to split the input template path
-    # into base, path before subject directory
-    # and relative, path after subject directory
     def getPath(template):
+        """Split the input template path...
+
+        ...into base, path before subject directory and relative, path after subject directory.
+        """
         checkTemplate(template)
         base, relative = template.rsplit("%s", 1)
         base, subject_map = create_site_subject_mapping(base, relative)
@@ -222,18 +224,18 @@ def extract_data(c, param_map):
     anat_relative_len = len(anat_relative.split("/"))
 
     def check_for_sessions(relative_path, path_length):
-        """Method to check if there are sessions present."""
+        """Check if there are sessions present."""
         # default
         session_present = False
         session_path = "session_1"
 
         # session present if path_length is equal to 3
-        if path_length == 3:
+        if path_length == 3:  # noqa: PLR2004
             relative_path_list = relative_path.split("/")
             session_path = relative_path_list[0]
             relative_path = string.join(relative_path_list[1:], "/")
             session_present = True
-        elif path_length > 3:
+        elif path_length > 3:  # noqa: PLR2004
             msg = (
                 "extract_data script currently doesn't support this directory structure."
                 "Please provide the subjects_list file to run CPAC."
@@ -260,8 +262,7 @@ def extract_data(c, param_map):
 
     def fetch_path(i, anat_sub, func_sub, session_id):
         """
-        Method to extract anatomical and functional
-        path for a session and print to file.
+        Extract anatomical and functional path for a session and print to file.
 
         Parameters
         ----------
@@ -349,17 +350,17 @@ def extract_data(c, param_map):
                 print("    rest: ", file=f)
 
                 # iterate for each rest session
-                for iter in func:
+                for _iter in func:
                     # get scan_id
                     iterable = os.path.splitext(
-                        os.path.splitext(iter.replace(func_base_path, "").lstrip("/"))[
+                        os.path.splitext(_iter.replace(func_base_path, "").lstrip("/"))[
                             0
                         ]
                     )[0]
                     iterable = iterable.replace("/", "_")
-                    check_length(iterable, os.path.basename(os.path.realpath(iter)))
+                    check_length(iterable, os.path.basename(os.path.realpath(_iter)))
                     print(
-                        "      " + iterable + ": '" + os.path.realpath(iter) + "'",
+                        "      " + iterable + ": '" + os.path.realpath(_iter) + "'",
                         file=f,
                     )
 
@@ -383,8 +384,7 @@ def extract_data(c, param_map):
 
     def walk(index, sub):
         """
-        Method which walks across each subject
-        path in the data site path.
+        Walk across each subject path in the data site path.
 
         Parameters
         ----------
@@ -462,10 +462,10 @@ def extract_data(c, param_map):
                     logger.debug("extracting data for subject: %s", sub)
                     walk(i, sub)
 
-        os.path.join(c.outputSubjectListLocation, "CPAC_subject_list.yml")
+        _name = os.path.join(c.outputSubjectListLocation, "CPAC_subject_list.yml")
         logger.info(
             "Extraction Successfully Completed...Input Subjects_list for CPAC - %s",
-            name,
+            _name,
         )
 
     except Exception:
@@ -477,10 +477,7 @@ def extract_data(c, param_map):
 
 
 def generate_supplementary_files(data_config_outdir, data_config_name):
-    """
-    Method to generate phenotypic template file
-    and subject list for group analysis.
-    """
+    """Generate phenotypic template file and subject list for group analysis."""
     import csv
     import os
 
@@ -489,9 +486,7 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
     try:
         subjects_list = yaml.safe_load(open(data_config_path, "r"))
     except:
-        "\n\n[!] Data configuration file couldn't be read!\nFile path: {0}\n".format(
-            data_config_path
-        )
+        f"\n\n[!] Data configuration file couldn't be read!\nFile path: {data_config_path}\n"
 
     subject_scan_set = set()
     subID_set = set()
@@ -660,13 +655,12 @@ def generate_supplementary_files(data_config_outdir, data_config_name):
 
 
 def read_csv(csv_input):
-    """
-    Method to read csv file
-     'Acquisition'
-     'Reference'
-     'Site'
-     'TR (seconds)'.
+    """Read CSV file.
 
+    'Acquisition'
+    'Reference'
+    'Site'
+    'TR (seconds)'
     """
     from collections import defaultdict
     import csv
@@ -701,7 +695,7 @@ def read_csv(csv_input):
 
 
 def _sassy_oserror(file_name: str) -> None:
-    """Open a file in 'wb' mode or raise a sassy OSError if a file can't be saved."""
+    """Raise a sassy OSError."""
     msg = (
         f"\n\nCPAC says: I couldn't save this file to your drive:\n {file_name}"
         "\n\nMake sure you have write access? Then come back. Don't worry.. I'll"
@@ -711,6 +705,7 @@ def _sassy_oserror(file_name: str) -> None:
 
 
 def _sassy_try_open_wb(file_name: str) -> Optional[BinaryIO]:
+    """Open a file in 'wb' mode or raise a sassy OSError if a file can't be saved."""
     f = None
     try:
         f = open(file_name, "wb")
@@ -729,10 +724,13 @@ class Configuration(object):
             setattr(self, key, config_map[key])
 
 
-def run(data_config):
-    """
-    Run method takes data_config
-    file as the input argument.
+def run(data_config: PATHSTR) -> None:
+    """Run a data config.
+
+    Parameters
+    ----------
+    data_config : ~pathlib.Path or str
+        path to data_config file
     """
     logger.info(
         "For any errors or messages check the log file - %s",
@@ -754,7 +752,7 @@ def run(data_config):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 2:  # noqa: PLR2004
         print("Usage: python extract_data.py data_config.yml")  # noqa T201
         sys.exit()
     else:
