@@ -1,17 +1,57 @@
-from builtins import open, range, str
+# STATEMENT OF CHANGES:
+#     This file is derived from sources licensed under the Apache-2.0 terms,
+#     and this file has been changed.
+
+# CHANGES:
+#     * Removes interfaces and functions we're not using in C-PAC
+#     * Removes Python 2 imports
+#     * Adjusts imports for C-PAC
+#     * Modifies logic for S3 with global `RETRY` and `RETRY_WAIT`
+#     * Logs a debugging message instead of crashing if src == dst for copyfile
+#     * Explicitly lowercases "s3"
+#     * Handles empty file lists
+#     * Docstrings updated accordingly
+#     * Style modifications
+
+# ORIGINAL WORK'S ATTRIBUTION NOTICE:
+#     Copyright (c) 2009-2016, Nipype developers
+
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+
+#         http://www.apache.org/licenses/LICENSE-2.0
+
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+
+#     Prior to release 0.12, Nipype was licensed under a BSD license.
+
+# Modifications Copyright (C) 2019-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+"""Interface that allow interaction with data.
+
+Currently only available interface is:
+
+    DataSink: Generic named output from interfaces to data store
+
+Modified from https://github.com/nipy/nipype/blob/f64bf33/nipype/interfaces/io.py
+"""
+
 import os
-import re
 import shutil
 from shutil import SameFileError
 import time
 
 from nipype import config
-from nipype.interfaces.base import isdefined, traits, Undefined
+from nipype.interfaces.base import isdefined
 from nipype.interfaces.io import (
     copytree,
-    DataSinkInputSpec,
-    DataSinkOutputSpec,
-    IOBase,
+    DataSink as NipypeDataSink,
     ProgressPercentage,
 )
 from nipype.utils.filemanip import copyfile, ensure_list
@@ -24,9 +64,7 @@ RETRY_WAIT = 5
 
 
 def _get_head_bucket(s3_resource, bucket_name):
-    """Try to get the header info of a bucket, in order to
-    check if it exists and its permissions.
-    """
+    """Try to get the header info of a bucket to check if it exists & its permissions."""
     import botocore
 
     # Try fetch the bucket with the name argument
@@ -67,149 +105,8 @@ def _get_head_bucket(s3_resource, bucket_name):
         raise Exception(err_msg)
 
 
-class DataSink(IOBase):
-    """Generic datasink module to store structured outputs
-    Primarily for use within a workflow. This interface allows arbitrary
-    creation of input attributes. The names of these attributes define the
-    directory structure to create for storage of the files or directories.
-    The attributes take the following form:
-    string[[.[@]]string[[.[@]]string]] ...
-    where parts between [] are optional.
-    An attribute such as contrasts.@con will create a 'contrasts' directory
-    to store the results linked to the attribute. If the @ is left out, such
-    as in 'contrasts.con', a subdirectory 'con' will be created under
-    'contrasts'.
-    the general form of the output is::
-       'base_directory/container/parameterization/destloc/filename'
-       destloc = string[[.[@]]string[[.[@]]string]] and
-       filename comesfrom the input to the connect statement.
-    .. warning::
-        This is not a thread-safe node because it can write to a common
-        shared location. It will not complain when it overwrites a file.
-    .. note::
-        If both substitutions and regexp_substitutions are used, then
-        substitutions are applied first followed by regexp_substitutions.
-        This interface **cannot** be used in a MapNode as the inputs are
-        defined only when the connect statement is executed.
-    Examples.
-    --------
-    >>> ds = DataSink()
-    >>> ds.inputs.base_directory = 'results_dir'
-    >>> ds.inputs.container = 'subject'
-    >>> ds.inputs.structural = 'structural.nii'
-    >>> setattr(ds.inputs, 'contrasts.@con', ['cont1.nii', 'cont2.nii'])
-    >>> setattr(ds.inputs, 'contrasts.alt', ['cont1a.nii', 'cont2a.nii'])
-    >>> ds.run()  # doctest: +SKIP
-    To use DataSink in a MapNode, its inputs have to be defined at the
-    time the interface is created.
-    >>> ds = DataSink(infields=['contasts.@con'])
-    >>> ds.inputs.base_directory = 'results_dir'
-    >>> ds.inputs.container = 'subject'
-    >>> ds.inputs.structural = 'structural.nii'
-    >>> setattr(ds.inputs, 'contrasts.@con', ['cont1.nii', 'cont2.nii'])
-    >>> setattr(ds.inputs, 'contrasts.alt', ['cont1a.nii', 'cont2a.nii'])
-    >>> ds.run()  # doctest: +SKIP
-    """
-
-    # Give obj .inputs and .outputs
-    input_spec = DataSinkInputSpec
-    output_spec = DataSinkOutputSpec
-
-    # Initialization method to set up datasink
-    def __init__(self, infields=None, force_run=True, **kwargs):
-        """
-        Parameters
-        ----------
-        infields : list of str
-            Indicates the input fields to be dynamically created
-        """
-        super(DataSink, self).__init__(**kwargs)
-        undefined_traits = {}
-        # used for mandatory inputs check
-        self._infields = infields
-        if infields:
-            for key in infields:
-                self.inputs.add_trait(key, traits.Any)
-                self.inputs._outputs[key] = Undefined
-                undefined_traits[key] = Undefined
-        self.inputs.trait_set(trait_change_notify=False, **undefined_traits)
-        if force_run:
-            self._always_run = True
-
-    # Get destination paths
-    def _get_dst(self, src):
-        # If path is directory with trailing os.path.sep,
-        # then remove that for a more robust behavior
-        src = src.rstrip(os.path.sep)
-        path, fname = os.path.split(src)
-        if self.inputs.parameterization:
-            dst = path
-            if isdefined(self.inputs.strip_dir):
-                dst = dst.replace(self.inputs.strip_dir, "")
-            folders = [
-                folder for folder in dst.split(os.path.sep) if folder.startswith("_")
-            ]
-            dst = os.path.sep.join(folders)
-            if fname:
-                dst = os.path.join(dst, fname)
-        elif fname:
-            dst = fname
-        else:
-            dst = path.split(os.path.sep)[-1]
-        if dst[0] == os.path.sep:
-            dst = dst[1:]
-        return dst
-
-    # Substitute paths in substitutions dictionary parameter
-    def _substitute(self, pathstr):
-        pathstr_ = pathstr
-        if isdefined(self.inputs.substitutions):
-            for key, val in self.inputs.substitutions:
-                oldpathstr = pathstr
-                pathstr = pathstr.replace(key, val)
-                if pathstr != oldpathstr:
-                    IFLOGGER.debug(
-                        "sub.str: %s -> %s using %r -> %r",
-                        oldpathstr,
-                        pathstr,
-                        key,
-                        val,
-                    )
-        if isdefined(self.inputs.regexp_substitutions):
-            for key, val in self.inputs.regexp_substitutions:
-                oldpathstr = pathstr
-                pathstr, _ = re.subn(key, val, pathstr)
-                if pathstr != oldpathstr:
-                    IFLOGGER.debug(
-                        "sub.regexp: %s -> %s using %r -> %r",
-                        oldpathstr,
-                        pathstr,
-                        key,
-                        val,
-                    )
-        if pathstr_ != pathstr:
-            IFLOGGER.info("sub: %s -> %s", pathstr_, pathstr)
-        return pathstr
-
-    # Check for s3 in base directory
+class DataSink(NipypeDataSink):  # noqa: D101
     def _check_s3_base_dir(self):
-        """
-        Method to see if the datasink's base directory specifies an
-        S3 bucket path; if it does, it parses the path for the bucket
-        name in the form 's3://bucket_name/...' and returns it.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        s3_flag : boolean
-            flag indicating whether the base_directory contained an
-            S3 bucket path
-        bucket_name : string
-            name of the S3 bucket to connect to; if the base directory
-            is not a valid S3 path, defaults to '<N/A>'
-        """
         # Init variables
         s3_str = "s3://"
         bucket_name = "<N/A>"
@@ -237,81 +134,9 @@ class DataSink(IOBase):
         # Return s3_flag
         return s3_flag, bucket_name
 
-    # Function to return AWS secure environment variables
-    def _return_aws_keys(self):
-        """
-        Method to return AWS access key id and secret access key using
-        credentials found in a local file.
+    _check_s3_base_dir.__doc__ == NipypeDataSink._check_s3_base_dir.__doc__
 
-        Parameters
-        ----------
-        self : nipype.interfaces.io.DataSink
-            self for instance method
-
-        Returns
-        -------
-        aws_access_key_id : string
-            string of the AWS access key ID
-        aws_secret_access_key : string
-            string of the AWS secret access key
-        """
-        # Import packages
-        import os
-
-        # Init variables
-        creds_path = self.inputs.creds_path
-
-        # Check if creds exist
-        if creds_path and os.path.exists(creds_path):
-            with open(creds_path, "r") as creds_in:
-                # Grab csv rows
-                row1 = creds_in.readline()
-                row2 = creds_in.readline()
-
-            # Are they root or user keys
-            if "User Name" in row1:
-                # And split out for keys
-                aws_access_key_id = row2.split(",")[1]
-                aws_secret_access_key = row2.split(",")[2]
-            elif "AWSAccessKeyId" in row1:
-                # And split out for keys
-                aws_access_key_id = row1.split("=")[1]
-                aws_secret_access_key = row2.split("=")[1]
-            else:
-                err_msg = "Credentials file not recognized, check file is correct"
-                raise Exception(err_msg)
-
-            # Strip any carriage return/line feeds
-            aws_access_key_id = aws_access_key_id.replace("\r", "").replace("\n", "")
-            aws_secret_access_key = aws_secret_access_key.replace("\r", "").replace(
-                "\n", ""
-            )
-        else:
-            aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
-            aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-
-        # Return keys
-        return aws_access_key_id, aws_secret_access_key
-
-    # Fetch bucket object
     def _fetch_bucket(self, bucket_name):
-        """
-        Method to return a bucket object which can be used to interact
-        with an AWS S3 bucket using credentials found in a local file.
-
-        Parameters
-        ----------
-        self : nipype.interfaces.io.DataSink
-            self for instance method
-        bucket_name : string
-            string corresponding to the name of the bucket on S3
-
-        Returns
-        -------
-        bucket : boto3.resources.factory.s3.Bucket
-            boto3 s3 Bucket object which is used to interact with files
-            in an S3 bucket on AWS
-        """
         # Import packages
         try:
             import boto3
@@ -368,14 +193,13 @@ class DataSink(IOBase):
             _get_head_bucket(s3_resource, bucket_name)
 
         # Explicitly declare a secure SSL connection for bucket object
+        # Return the bucket
         return s3_resource.Bucket(bucket_name)
 
-        # Return the bucket
-
-    # Send up to S3 method
+    _fetch_bucket.__doc__ = NipypeDataSink._fetch_bucket.__doc__
 
     def _upload_to_s3(self, bucket, src, dst):
-        """Method to upload outputs to S3 bucket instead of on local disk."""
+        """Upload outputs to S3 bucket instead of on local disk."""
         # Import packages
         import hashlib
         import os
@@ -453,7 +277,6 @@ class DataSink(IOBase):
 
     # List outputs, main run routine
     def _list_outputs(self):
-        """Execute this module."""
         # Init variables
         outputs = self.output_spec().get()
         out_files = []
@@ -596,3 +419,9 @@ class DataSink(IOBase):
         outputs["out_file"] = out_files
 
         return outputs
+
+    _list_outputs.__doc__ = NipypeDataSink._list_outputs.__doc__
+
+
+DataSink.__doc__ = NipypeDataSink.__doc__
+__all__ = ["DataSink"]
