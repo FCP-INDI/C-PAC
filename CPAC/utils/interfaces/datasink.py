@@ -76,22 +76,21 @@ def _get_head_bucket(s3_resource, bucket_name):
 
         except botocore.exceptions.ClientError as exc:
             error_code = int(exc.response["Error"]["Code"])
-            if error_code == 403:
+            if error_code == 403:  # noqa: PLR2004
                 err_msg = (
                     "Access to bucket: %s is denied; check credentials" % bucket_name
                 )
                 break
-            elif error_code == 404:
+            if error_code == 404:  # noqa: PLR2004
                 err_msg = (
                     "Bucket: %s does not exist; check spelling and try "
                     "again" % bucket_name
                 )
                 break
-            else:
-                err_msg = "Unable to connect to bucket: %s. Error message:\n%s" % (
-                    bucket_name,
-                    exc,
-                )
+            err_msg = "Unable to connect to bucket: %s. Error message:\n%s" % (
+                bucket_name,
+                exc,
+            )
 
         except Exception as exc:
             err_msg = "Unable to connect to bucket: %s. Error message:\n%s" % (
@@ -243,8 +242,7 @@ class DataSink(NipypeDataSink):  # noqa: D101
                 if dst_md5 == src_md5:
                     FMLOGGER.info("File %s already exists on S3, skipping...", dst_f)
                     continue
-                else:
-                    FMLOGGER.info("Overwriting previous S3 file...")
+                FMLOGGER.info("Overwriting previous S3 file...")
 
             except ClientError:
                 FMLOGGER.info("New file to S3")
@@ -341,7 +339,8 @@ class DataSink(NipypeDataSink):  # noqa: D101
                         raise (inst)
 
         # Iterate through outputs attributes {key : path(s)}
-        for key, files in list(self.inputs._outputs.items()):
+        for key, _files in list(self.inputs._outputs.items()):
+            files = _files
             if not isdefined(files):
                 continue
             IFLOGGER.debug("key: %s files: %s", key, str(files))
@@ -362,7 +361,8 @@ class DataSink(NipypeDataSink):  # noqa: D101
                     files = [item for sublist in files for item in sublist]
 
             # Iterate through passed-in source files
-            for src in ensure_list(files):
+            for _src in ensure_list(files):
+                src = _src
                 # Format src and dst files
                 src = os.path.abspath(src)
                 if not os.path.isfile(src):
