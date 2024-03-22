@@ -1,81 +1,48 @@
+# STATEMENT OF CHANGES:
+#     This file is derived from sources licensed under the Apache-2.0 terms,
+#     and this file has been changed.
+
+# CHANGES:
+#     * Removes interfaces and functions we're not using in C-PAC
+#     * Adjusts imports for C-PAC
+#     * Takes final value from list instead of trying to cast list to float if `min_val` is a list
+#     * Docstrings updated accordingly
+#     * Style modifications
+
+# ORIGINAL WORK'S ATTRIBUTION NOTICE:
+#     Copyright (c) 2009-2016, Nipype developers
+
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+
+#         http://www.apache.org/licenses/LICENSE-2.0
+
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+
+#     Prior to release 0.12, Nipype was licensed under a BSD license.
+
+# Modifications Copyright (C) 2019-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+"""Customization of BrickStat.
+
+Modified from https://github.com/nipy/nipype/blob/f64bf33/nipype/interfaces/afni/utils.py#L280-L330
+"""
+
 import os
 
-from nipype.interfaces.afni.base import (
-    AFNICommandBase,
-)
-from nipype.interfaces.base import (
-    CommandLineInputSpec,
-    File,
-    TraitedSpec,
-    traits,
-)
+from nipype.interfaces.afni.utils import BrickStat as NipypeBrickStat
 from nipype.utils.filemanip import load_json, save_json
 
 
-class BrickStatInputSpec(CommandLineInputSpec):
-    in_file = File(
-        desc="input file to 3dmaskave",
-        argstr="%s",
-        position=-1,
-        mandatory=True,
-        exists=True,
-    )
-    mask = File(
-        desc="-mask dset = use dset as mask to include/exclude voxels",
-        argstr="-mask %s",
-        position=2,
-        exists=True,
-    )
-    min = traits.Bool(
-        desc="print the minimum value in dataset", argstr="-min", position=1
-    )
-    slow = traits.Bool(
-        desc="read the whole dataset to find the min and max values", argstr="-slow"
-    )
-    max = traits.Bool(desc="print the maximum value in the dataset", argstr="-max")
-    mean = traits.Bool(desc="print the mean value in the dataset", argstr="-mean")
-    sum = traits.Bool(desc="print the sum of values in the dataset", argstr="-sum")
-    var = traits.Bool(desc="print the variance in the dataset", argstr="-var")
-    percentile = traits.Tuple(
-        traits.Float,
-        traits.Float,
-        traits.Float,
-        desc="p0 ps p1 write the percentile values starting "
-        "at p0% and ending at p1% at a step of ps%. "
-        "only one sub-brick is accepted.",
-        argstr="-percentile %.3f %.3f %.3f",
-    )
-
-
-class BrickStatOutputSpec(TraitedSpec):
-    min_val = traits.Float(desc="output")
-
-
-class BrickStat(AFNICommandBase):
-    """Computes maximum and/or minimum voxel values of an input dataset.
-    TODO Add optional arguments.
-
-    For complete details, see the `3dBrickStat Documentation.
-    <https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dBrickStat.html>`_
-
-    Examples
-    --------
-    >>> from nipype.interfaces import afni
-    >>> brickstat = afni.BrickStat()
-    >>> brickstat.inputs.in_file = 'functional.nii'  # doctest: +SKIP
-    >>> brickstat.inputs.mask = 'skeleton_mask.nii.gz'  # doctest: +SKIP
-    >>> brickstat.inputs.min = True
-    >>> brickstat.cmdline  # doctest: +SKIP
-    '3dBrickStat -min -mask skeleton_mask.nii.gz functional.nii'
-    >>> res = brickstat.run()  # doctest: +SKIP
-
-    """
-
-    _cmd = "3dBrickStat"
-    input_spec = BrickStatInputSpec
-    output_spec = BrickStatOutputSpec
-
+class BrickStat(NipypeBrickStat):  # noqa: D101
     def aggregate_outputs(self, runtime=None, needed_outputs=None):
+        """Populate outputs."""
         outputs = self._outputs()
 
         outfile = os.path.join(os.getcwd(), "stat_result.json")
@@ -98,8 +65,10 @@ class BrickStat(AFNICommandBase):
             if len(min_val) == 1:
                 min_val = min_val[0]
             save_json(outfile, {"stat": min_val})
-        if type(min_val) == list:
-            min_val = min_val[-1]
-        outputs.min_val = min_val
+        outputs.min_val = min_val[-1] if isinstance(min_val, list) else min_val
 
         return outputs
+
+
+BrickStat.__doc__ = NipypeBrickStat.__doc__
+__all__ = ["BrickStat"]
