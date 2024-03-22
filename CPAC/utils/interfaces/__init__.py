@@ -1,8 +1,7 @@
-from . import brickstat, datasink, function, masktool, pc
+from . import brickstat, datasink, function, pc
 
 __all__ = [
     "function",
-    "masktool",
     "pc",
     "brickstat",
     "datasink",

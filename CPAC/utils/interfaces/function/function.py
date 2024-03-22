@@ -1,6 +1,7 @@
 # from https://github.com/nipy/nipype/blob/0.13.1/nipype/interfaces/utility/wrappers.py
 
 # CHANGES:
+#     * Removes Python 2 imports
 #     * Adds `as_module` argument and property
 #     * Adds `sig_imports` decorator
 #     * Automatically imports global Nipype loggers in function nodes
@@ -44,8 +45,8 @@ Like the built-in nipype Function interace, except includes
 - `as_module` to allow module.function name
 - `sig_imports` to set necessary imports on function nodes with a decorator
 """
+
 from ast import FunctionDef, parse
-from builtins import bytes, str
 from importlib import import_module
 import inspect
 from typing import Callable, Optional

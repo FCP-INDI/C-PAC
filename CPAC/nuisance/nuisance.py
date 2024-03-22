@@ -19,7 +19,7 @@ import os
 import numpy as np
 import nibabel as nib
 from nipype.interfaces import afni, fsl
-from nipype.interfaces.afni import utils as afni_utils
+from nipype.interfaces.afni import MaskTool, utils as afni_utils
 import nipype.interfaces.utility as util
 from nipype.pipeline.engine.workflows import Workflow
 
@@ -47,7 +47,6 @@ from CPAC.seg_preproc.utils import erosion, mask_erosion
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.datasource import check_for_s3
 from CPAC.utils.interfaces.function import Function
-from CPAC.utils.interfaces.masktool import MaskTool
 from CPAC.utils.interfaces.pc import PC
 from CPAC.utils.monitoring import IFLOGGER
 from CPAC.utils.typing import LITERAL, TUPLE
@@ -391,9 +390,9 @@ def gather_nuisance(
 
             if len(custom_regressor.shape) > 1 and custom_regressor.shape[1] > 1:
                 msg = (
-                    "Invalid format for censor file {0}, should be a single "
+                    f"Invalid format for censor file {custom_file_path}, should be a single "
                     "column containing 1s for volumes to keep and 0s for volumes "
-                    "to censor.".format(custom_file_path)
+                    "to censor."
                 )
                 raise ValueError(msg)
 
@@ -444,13 +443,9 @@ def gather_nuisance(
         out_of_range_censors = censor_indices >= regressor_length
         if np.any(out_of_range_censors):
             msg = (
-                "Censor volumes {0} are out of range"
-                "on censor file {1}, calculated "
-                "regressor length is {2}".format(
-                    censor_indices[out_of_range_censors],
-                    regressor_file,
-                    regressor_length,
-                )
+                f"Censor volumes {censor_indices[out_of_range_censors]} are out of range"
+                f"on censor file {regressor_file}, calculated "
+                f"regressor length is {regressor_length}"
             )
             raise ValueError(msg)
 
@@ -1282,11 +1277,11 @@ def create_regressor_workflow(
                     MaskTool(outputtype="NIFTI_GZ"),
                     name=f"{regressor_type}_union_masks",
                     mem_gb=2.1,
-                    mem_x=(1708448960473801 / 1208925819614629174706176, "in_files"),
+                    mem_x=(1708448960473801 / 1208925819614629174706176, "in_file"),
                 )
 
                 nuisance_wf.connect(
-                    merge_masks_paths, "out", union_masks_paths, "in_files"
+                    merge_masks_paths, "out", union_masks_paths, "in_file"
                 )
 
                 functional_key = "Functional"
@@ -1509,9 +1504,9 @@ def create_regressor_workflow(
 
                         summary_method_input = (pc_node, "pcs_file")
 
-                pipeline_resource_pool[
-                    regressor_file_resource_key
-                ] = summary_method_input
+                pipeline_resource_pool[regressor_file_resource_key] = (
+                    summary_method_input
+                )
 
                 # Add it to internal resource pool
                 regressor_resource[1] = pipeline_resource_pool[
@@ -1802,12 +1797,8 @@ def create_nuisance_regression_workflow(nuisance_selectors, name="nuisance_regre
                 )
         else:
             nuisance_wf.connect(inputspec, "regressor_file", nuisance_regression, "ort")
-    else:
-        # there's no regressor file generated if only Bandpass in nuisance_selectors
-        if not (
-            "Bandpass" in nuisance_selectors and len(nuisance_selectors.keys()) == 1
-        ):
-            nuisance_wf.connect(inputspec, "regressor_file", nuisance_regression, "ort")
+    elif not ("Bandpass" in nuisance_selectors and len(nuisance_selectors.keys()) == 1):
+        nuisance_wf.connect(inputspec, "regressor_file", nuisance_regression, "ort")
 
     nuisance_wf.connect(
         nuisance_regression, "out_file", outputspec, "residual_file_path"
