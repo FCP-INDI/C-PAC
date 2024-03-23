@@ -38,7 +38,7 @@ else
     find ./CPAC/resources/configs -name "*.yml" -exec sed -i'' -r "${_SED_COMMAND}" {} \;
 fi
 wait_for_git_lock && git add version
-VERSIONS=( `git show $(git log --pretty=format:'%h' -n 2 version | tail -n 1):version` `cat version` )
+VERSIONS=( `git show $(git log --pretty=format:'%h' -n 1 version | tail -n 1):version` `cat version` )
 export PATTERN="(declare|typeset) -a"
 if [[ "$(declare -p VERSIONS)" =~ $PATTERN ]]
 then
@@ -62,12 +62,11 @@ fi
 wait_for_git_lock && git add CPAC/resources/configs .github/Dockerfiles
 
 # Overwrite top-level Dockerfiles with the CI Dockerfiles
-cp .github/Dockerfiles/C-PAC.develop-jammy.Dockerfile Dockerfile
-cp .github/Dockerfiles/C-PAC.develop-ABCD-HCP-bionic.Dockerfile variant-ABCD-HCP.Dockerfile
-cp .github/Dockerfiles/C-PAC.develop-fMRIPrep-LTS-xenial.Dockerfile variant-fMRIPrep-LTS.Dockerfile
-cp .github/Dockerfiles/C-PAC.develop-lite-jammy.Dockerfile variant-lite.Dockerfile
-while [ -f "./.git/index.lock" ]; do
-    echo "Waiting for the lock file to be removed..."
-    sleep 1
+wait_for_git_lock && cp .github/Dockerfiles/C-PAC.develop-jammy.Dockerfile Dockerfile
+wait_for_git_lock && cp .github/Dockerfiles/C-PAC.develop-ABCD-HCP-bionic.Dockerfile variant-ABCD-HCP.Dockerfile
+wait_for_git_lock && cp .github/Dockerfiles/C-PAC.develop-fMRIPrep-LTS-xenial.Dockerfile variant-fMRIPrep-LTS.Dockerfile
+wait_for_git_lock && cp .github/Dockerfiles/C-PAC.develop-lite-jammy.Dockerfile variant-lite.Dockerfile
+for DOCKERFILE in $(ls *Dockerfile)
+do
+  wait_for_git_lock && git add $DOCKERFILE
 done
-wait_for_git_lock && git add *Dockerfile

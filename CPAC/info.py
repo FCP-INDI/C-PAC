@@ -32,18 +32,21 @@
 # Modifications Copyright (C) 2022-2023  C-PAC Developers
 
 # This file is part of C-PAC.
-"""This file contains defines parameters for CPAC that we use to fill
+"""Metadata for building C-PAC.
+
+This file contains defines parameters for CPAC that we use to fill
 settings in setup.py, the CPAC top-level docstring, and for building the
 docs.  In setup.py in particular, we exec this file, so it cannot import CPAC.
 This script was borrowed from and inspired by nipype's info.py file
 (https://github.com/nipy/nipype/blob/08391871/nipype/info.py).
 """
+
 # CPAC version information.  An empty _version_extra corresponds to a
 # full release.  'dev' as a _version_extra string means this is a development
 # version
 _version_major = 1
 _version_minor = 8
-_version_micro = 7
+_version_micro = 8
 _version_extra = "dev1"
 
 

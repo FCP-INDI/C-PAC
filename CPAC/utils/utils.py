@@ -1326,7 +1326,7 @@ def delete_nested_value(d, keys):
 
 
 @deprecated(
-    "1.8.7",
+    "1.8.8",
     "Python 2's end of life was over 4 years prior to this release. A user jumping from a C-PAC version that used Python 2 can use this function in any C-PAC version from 1.6.2 up until its removal in an upcoming version.",
 )
 def repickle(directory):  # noqa: T20
@@ -1381,7 +1381,7 @@ def repickle(directory):  # noqa: T20
 
 
 @deprecated(
-    "1.8.7",
+    "1.8.8",
     "Python 2's end of life was over 4 years prior to this release. A user jumping from a C-PAC version that used Python 2 can use this function in any C-PAC version from 1.6.2 up until its removal in an upcoming version.",
 )
 def _pickle2(p, z=False):  # noqa: T20

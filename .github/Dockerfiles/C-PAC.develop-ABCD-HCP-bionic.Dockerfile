@@ -8,7 +8,7 @@
 # C-PAC is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
 
 # You should have received a copy of the GNU Lesser General Public License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM ghcr.io/fcp-indi/c-pac/stage-base:abcd-hcp-v1.8.7.dev1
+FROM ghcr.io/fcp-indi/c-pac/stage-base:abcd-hcp-v1.8.8.dev1
 LABEL org.opencontainers.image.description "Full C-PAC image with software dependencies version-matched to [ABCD-HCP BIDS fMRI Pipeline](https://github.com/DCAN-Labs/abcd-hcp-pipeline/blob/e480a8f99534f1b05f37bf44c64827384b69b383/Dockerfile)"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
