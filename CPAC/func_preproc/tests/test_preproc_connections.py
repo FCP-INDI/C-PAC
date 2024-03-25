@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Test graph connections for functional preprocessing."""
+
 from itertools import product
 from random import sample
 import re

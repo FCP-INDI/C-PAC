@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Run a group-level analysis with C-PAC."""
+
 import fnmatch
 import os
 
@@ -1249,9 +1250,9 @@ def run_feat(group_config_file, feat=True):
     if contrasts_df.shape[0] == 1 and np.count_nonzero(contrasts_df.values[0][1:]) == 0:
         err = (
             "\n\n[!] C-PAC says: It appears you haven't defined any "
-            "contrasts in your contrasts CSV file.\n\nContrasts file:\n{0}"
+            f"contrasts in your contrasts CSV file.\n\nContrasts file:\n{custom_contrasts_csv}"
             "\n\nDefine your contrasts in this file and run again."
-            "\n\n".format(custom_contrasts_csv)
+            "\n\n"
         )
         raise Exception(err)
 
@@ -1923,8 +1924,8 @@ def run_basc(pipeline_config):
                 if df_scan not in scan_inclusion:
                     continue
 
-            basc_config_dct["analysis_ID"] = "{0}_{1}".format(
-                os.path.basename(pipeline_dir), df_scan
+            basc_config_dct["analysis_ID"] = (
+                f"{os.path.basename(pipeline_dir)}_{df_scan}"
             )
 
             # add scan label and nuisance regression strategy label to the
@@ -2161,7 +2162,7 @@ def run_isc(pipeline_config):
     permutations = pipeconfig_dct.get("isc_permutations", 1000)
     std_filter = pipeconfig_dct.get("isc_level_voxel_std_filter", None)
 
-    if std_filter == 0.0:  # noqa: PLR2004
+    if std_filter == 0.0:
         std_filter = None
 
     levels = []

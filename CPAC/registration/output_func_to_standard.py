@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Transform functional images to template space."""
+
 from nipype.interfaces import ants, c3, fsl
 from nipype.interfaces.afni import utils as afni_utils
 import nipype.interfaces.utility as util
@@ -518,9 +519,7 @@ def ants_apply_warps_func_mni(
         # define the node
         collect_transforms = pe.Node(
             util.Merge(num_transforms),
-            name="collect_transforms_{0}_{1}_{2}_{3}".format(
-                output_name, inverse_string, registration_template, num_strat
-            ),
+            name=f"collect_transforms_{output_name}_{inverse_string}_{registration_template}_{num_strat}",
         )
 
         # wire in the various transformations
@@ -540,9 +539,7 @@ def ants_apply_warps_func_mni(
                 output_names=["checked_transform_list", "list_length"],
                 function=check_transforms,
             ),
-            name="check_transforms{0}_{1}_{2}_{3}".format(
-                output_name, inverse_string, registration_template, num_strat
-            ),
+            name=f"check_transforms{output_name}_{inverse_string}_{registration_template}_{num_strat}",
         )
 
         workflow.connect(collect_transforms, "out", check_transform, "transform_list")
@@ -554,9 +551,7 @@ def ants_apply_warps_func_mni(
                 output_names=["inverse_transform_flags"],
                 function=generate_inverse_transform_flags,
             ),
-            name="inverse_transform_flags_{0}_{1}_{2}_{3}".format(
-                output_name, inverse_string, registration_template, num_strat
-            ),
+            name=f"inverse_transform_flags_{output_name}_{inverse_string}_{registration_template}_{num_strat}",
         )
 
         workflow.connect(
@@ -582,9 +577,7 @@ def ants_apply_warps_func_mni(
     if map_node:
         apply_ants_warp = pe.MapNode(
             interface=ants.ApplyTransforms(),
-            name="apply_ants_warp_{0}_mapnode_{1}_{2}_{3}".format(
-                output_name, inverse_string, registration_template, num_strat
-            ),
+            name=f"apply_ants_warp_{output_name}_mapnode_{inverse_string}_{registration_template}_{num_strat}",
             iterfield=["input_image"],
             mem_gb=1,
             mem_x=(1401462037888665 / 2361183241434822606848, "input_image"),
@@ -592,9 +585,7 @@ def ants_apply_warps_func_mni(
     else:
         apply_ants_warp = pe.Node(
             interface=ants.ApplyTransforms(),
-            name="apply_ants_warp_{0}_{1}_{2}_{3}".format(
-                output_name, inverse_string, registration_template, num_strat
-            ),
+            name=f"apply_ants_warp_{output_name}_{inverse_string}_{registration_template}_{num_strat}",
             mem_gb=1,
             mem_x=(1401462037888665 / 2361183241434822606848, "input_image"),
         )
@@ -628,9 +619,7 @@ def ants_apply_warps_func_mni(
         # write out the composite functional to standard transforms
         write_composite_xfm = pe.Node(
             interface=ants.ApplyTransforms(),
-            name="write_composite_xfm_{0}_{1}_{2}_{3}".format(
-                output_name, inverse_string, registration_template, num_strat
-            ),
+            name=f"write_composite_xfm_{output_name}_{inverse_string}_{registration_template}_{num_strat}",
             mem_gb=8.0,
         )
         write_composite_xfm.inputs.print_out_composite_warp_file = True

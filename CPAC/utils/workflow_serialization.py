@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Custom serialization for flowdump."""
+
 from typing import Callable
 
 from traits.has_traits import HasTraits

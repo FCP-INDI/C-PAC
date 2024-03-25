@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Test to check if all expected outputs were generated."""
+
 from itertools import chain
 from logging import Logger
 import os

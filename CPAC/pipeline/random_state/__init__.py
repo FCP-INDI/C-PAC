@@ -1,4 +1,5 @@
 """Random state for C-PAC."""
+
 from .seed import (
     random_seed,
     random_seed_flags,

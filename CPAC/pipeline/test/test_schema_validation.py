@@ -1,4 +1,5 @@
 """Tests for schema.py."""
+
 from itertools import combinations
 
 import pytest

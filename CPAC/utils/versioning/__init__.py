@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Gather and report versions."""
+
 from CPAC.utils.versioning.dependencies import PYTHON_PACKAGES, REPORTED, REQUIREMENTS
 
 __all__ = ["PYTHON_PACKAGES", "REPORTED", "REQUIREMENTS"]

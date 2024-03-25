@@ -1,4 +1,5 @@
 """Tests of CPAC utility functions."""
+
 import multiprocessing
 from unittest import mock
 

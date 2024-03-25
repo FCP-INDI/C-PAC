@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functions to create YAML configuration files from templates."""
+
 from copy import deepcopy
 from datetime import datetime
 from hashlib import sha1

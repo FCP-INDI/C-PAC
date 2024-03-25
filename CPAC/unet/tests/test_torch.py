@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Test torch installation."""
+
 import os
 from unittest.mock import MagicMock, patch
 
@@ -36,9 +37,8 @@ def test_import_torch(monkeypatch, readonly, tmp_path, workdir):
         monkeypatch.setenv("PYTHONUSERBASE", tmp_path)
     if workdir:
         os.environ["CPAC_WORKDIR"] = str(tmp_path)
-    else:
-        if "CPAC_WORKDIR" in os.environ:
-            del os.environ["CPAC_WORKDIR"]
+    elif "CPAC_WORKDIR" in os.environ:
+        del os.environ["CPAC_WORKDIR"]
 
     # pylint: disable=import-error,unused-import,wrong-import-order
 

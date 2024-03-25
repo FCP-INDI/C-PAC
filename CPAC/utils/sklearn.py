@@ -30,6 +30,7 @@
 # OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 """Code from scikit-learn (https://github.com/scikit-learn/scikit-learn)."""
+
 import numbers
 from typing import Union
 

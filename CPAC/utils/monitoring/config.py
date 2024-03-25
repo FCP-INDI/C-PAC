@@ -1,4 +1,5 @@
 """Global variables for logging."""
+
 LOGTAIL = {"warnings": []}
 MOCK_LOGGERS = {}
 WARNING_FREESURFER_OFF_WITH_DATA = (

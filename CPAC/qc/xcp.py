@@ -55,6 +55,7 @@ normCrossCorr : float
 normCoverage : float
     "Normalization of T1w/Functional to Template:[…] Coverage index" :footcite:`xcp_22,Ciri19`
 """  # pylint: disable=line-too-long
+
 from io import BufferedReader
 import os
 import re

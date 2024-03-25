@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Dynamically install torch iff we're going to use it."""
+
 # pylint: disable=import-error,redefined-outer-name,ungrouped-imports,unused-import
 from importlib import invalidate_caches
 import os

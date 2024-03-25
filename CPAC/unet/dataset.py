@@ -37,55 +37,52 @@ class VolumeDataset(data.Dataset):
         if isinstance(rimg_in, type(None)):
             self.rimg_dir = None
             self.rimg_files = None
+        elif isinstance(rimg_in, str) and os.path.isdir(rimg_in):
+            self.rimg_dir = rimg_in
+            self.rimg_files = os.listdir(rimg_in)
+            self.rimg_files.sort()
+        elif isinstance(rimg_in, str) and os.path.isfile(rimg_in):
+            rimg_dir, rimg_file = os.path.split(rimg_in)
+            self.rimg_dir = rimg_dir
+            self.rimg_files = [rimg_file]
         else:
-            if isinstance(rimg_in, str) and os.path.isdir(rimg_in):
-                self.rimg_dir = rimg_in
-                self.rimg_files = os.listdir(rimg_in)
-                self.rimg_files.sort()
-            elif isinstance(rimg_in, str) and os.path.isfile(rimg_in):
-                rimg_dir, rimg_file = os.path.split(rimg_in)
-                self.rimg_dir = rimg_dir
-                self.rimg_files = [rimg_file]
-            else:
-                IFLOGGER.error("Invalid rimg_in: %s", rimg_in)
-                sys.exit(1)
+            IFLOGGER.error("Invalid rimg_in: %s", rimg_in)
+            sys.exit(1)
 
         # Corrected Images
         self.cimg_in = cimg_in
         if isinstance(cimg_in, type(None)):
             self.cimg_dir = None
             self.cimg_files = None
+        elif isinstance(str(cimg_in), str) and os.path.isdir(cimg_in):
+            self.cimg_dir = cimg_in
+            self.cimg_files = os.listdir(cimg_in)
+            self.cimg_files.sort()
+        elif isinstance(str(cimg_in), str) and os.path.isfile(cimg_in):
+            # if isinstance(cimg_in, str):
+            cimg_dir, cimg_file = os.path.split(cimg_in)
+            self.cimg_dir = cimg_dir
+            self.cimg_files = [cimg_file]
         else:
-            if isinstance(str(cimg_in), str) and os.path.isdir(cimg_in):
-                self.cimg_dir = cimg_in
-                self.cimg_files = os.listdir(cimg_in)
-                self.cimg_files.sort()
-            elif isinstance(str(cimg_in), str) and os.path.isfile(cimg_in):
-                # if isinstance(cimg_in, str):
-                cimg_dir, cimg_file = os.path.split(cimg_in)
-                self.cimg_dir = cimg_dir
-                self.cimg_files = [cimg_file]
-            else:
-                IFLOGGER.error("Invalid cimg_in: %s", cimg_in)
-                sys.exit(1)
+            IFLOGGER.error("Invalid cimg_in: %s", cimg_in)
+            sys.exit(1)
 
         # Brain Masks
         self.bmsk_in = bmsk_in
         if isinstance(bmsk_in, type(None)):
             self.bmsk_dir = None
             self.bmsk_files = None
+        elif isinstance(bmsk_in, str) and os.path.isdir(bmsk_in):
+            self.bmsk_dir = bmsk_in
+            self.bmsk_files = os.listdir(bmsk_in)
+            self.bmsk_files.sort()
+        elif isinstance(bmsk_in, str) and os.path.isfile(bmsk_in):
+            bmsk_dir, bmsk_file = os.path.split(bmsk_in)
+            self.bmsk_dir = bmsk_dir
+            self.bmsk_files = [bmsk_file]
         else:
-            if isinstance(bmsk_in, str) and os.path.isdir(bmsk_in):
-                self.bmsk_dir = bmsk_in
-                self.bmsk_files = os.listdir(bmsk_in)
-                self.bmsk_files.sort()
-            elif isinstance(bmsk_in, str) and os.path.isfile(bmsk_in):
-                bmsk_dir, bmsk_file = os.path.split(bmsk_in)
-                self.bmsk_dir = bmsk_dir
-                self.bmsk_files = [bmsk_file]
-            else:
-                IFLOGGER.error("Invalid bmsk_in: %s", bmsk_in)
-                sys.exit(1)
+            IFLOGGER.error("Invalid bmsk_in: %s", bmsk_in)
+            sys.exit(1)
 
         self.cur_rimg_nii = None
         self.cur_cimg_nii = None

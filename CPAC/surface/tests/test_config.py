@@ -1,4 +1,5 @@
 """Tests for surface configuration."""
+
 import os
 
 import pkg_resources as p

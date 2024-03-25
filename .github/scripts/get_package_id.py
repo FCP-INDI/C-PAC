@@ -20,6 +20,7 @@ Script to get GHCR ID string for a given owner + image tag
 
 Usage: python get_package_id.py $OWNER $IMAGE_TAG $VERSION_TAG
 """
+
 import os
 import sys
 

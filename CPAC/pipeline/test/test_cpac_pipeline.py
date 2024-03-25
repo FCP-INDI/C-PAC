@@ -1,4 +1,5 @@
 """Tests for cpac_pipeline.py."""
+
 import pytest
 
 from CPAC.pipeline.cpac_pipeline import run_workflow

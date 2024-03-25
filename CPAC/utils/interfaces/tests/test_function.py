@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Test Function interface."""
+
 from pytest import mark, raises
 
 from CPAC.utils.interfaces.function.function import Function

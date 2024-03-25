@@ -199,9 +199,8 @@ class TestAnatPreproc:
                         else:
                             assert int(anat_reorient_sform[i][i]) > 0
 
-                    else:
-                        if not (j == 3):
-                            assert int(anat_reorient_sform[i][j]) == 0
+                    elif not (j == 3):
+                        assert int(anat_reorient_sform[i][j]) == 0
 
     def test_anat_skullstrip(self):
         """

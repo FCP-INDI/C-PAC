@@ -40,11 +40,10 @@ def read_pheno_csv_into_df(pheno_csv, id_label=None):
                 pheno_df = pd.read_table(f, dtype={id_label: object})
             else:
                 pheno_df = pd.read_csv(f, dtype={id_label: object})
+        elif ".tsv" in pheno_csv or ".TSV" in pheno_csv:
+            pheno_df = pd.read_table(f)
         else:
-            if ".tsv" in pheno_csv or ".TSV" in pheno_csv:
-                pheno_df = pd.read_table(f)
-            else:
-                pheno_df = pd.read_csv(f)
+            pheno_df = pd.read_csv(f)
 
     return pheno_df
 
@@ -158,9 +157,7 @@ def write_config_dct_to_yaml(config_dct, out_file=None):
 
     with open(out_file, "wt") as f:
         f.write(
-            "# CPAC Group-Level Analysis Configuration File\n# Version {0}\n".format(
-                CPAC.__version__
-            )
+            f"# CPAC Group-Level Analysis Configuration File\n# Version {CPAC.__version__}\n"
         )
         f.write(
             "#\n# http://fcp-indi.github.io for more info.\n#\n"
@@ -801,16 +798,12 @@ def preset_paired_two_group(
     #     ses-2 - ses-1:  -1,  0,  0,  0, etc.
     contrast_one.update(
         {
-            "Contrasts": "{0}_{1} - {2}_{3}".format(
-                condition_type, conditions[0], condition_type, conditions[1]
-            )
+            "Contrasts": f"{condition_type}_{conditions[0]} - {condition_type}_{conditions[1]}"
         }
     )
     contrast_two.update(
         {
-            "Contrasts": "{0}_{1} - {2}_{3}".format(
-                condition_type, conditions[1], condition_type, conditions[0]
-            )
+            "Contrasts": f"{condition_type}_{conditions[1]} - {condition_type}_{conditions[0]}"
         }
     )
 
@@ -1026,24 +1019,18 @@ def preset_tripled_two_group(
     #     ses-2 - ses-3:  -1,  1,  0,  0,  0, etc.
     contrast_one.update(
         {
-            "Contrasts": "{0}_{1} - {2}_{3}".format(
-                condition_type, conditions[0], condition_type, conditions[1]
-            )
+            "Contrasts": f"{condition_type}_{conditions[0]} - {condition_type}_{conditions[1]}"
         }
     )
     contrast_two.update(
         {
-            "Contrasts": "{0}_{1} - {2}_{3}".format(
-                condition_type, conditions[0], condition_type, conditions[2]
-            )
+            "Contrasts": f"{condition_type}_{conditions[0]} - {condition_type}_{conditions[2]}"
         }
     )
 
     contrast_three.update(
         {
-            "Contrasts": "{0}_{1} - {2}_{3}".format(
-                condition_type, conditions[1], condition_type, conditions[2]
-            )
+            "Contrasts": f"{condition_type}_{conditions[1]} - {condition_type}_{conditions[2]}"
         }
     )
 

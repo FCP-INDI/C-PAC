@@ -18,6 +18,7 @@
 (https://bids-specification.readthedocs.io/en/stable/99-appendices/08-coordinate-systems.html#standard-template-identifiers)
 from in-container template paths.
 """
+
 from os import environ, path as op
 from re import findall, search
 from typing import Optional

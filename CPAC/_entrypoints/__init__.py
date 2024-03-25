@@ -16,4 +16,5 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Entrypoints for C-PAC containers."""
+
 __all__ = []

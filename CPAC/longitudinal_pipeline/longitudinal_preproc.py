@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Preprocessing for longitudinal pipelines."""
+
 from collections import Counter
 from multiprocessing.dummy import Pool as ThreadPool
 import os

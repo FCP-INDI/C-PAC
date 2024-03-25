@@ -44,6 +44,7 @@
 
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.utils.draw_gantt_chart.html
 """
+
 from collections import OrderedDict
 from datetime import datetime
 import random

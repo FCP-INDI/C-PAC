@@ -1,4 +1,5 @@
 """Dataclasses for pickled test data."""
+
 from dataclasses import dataclass
 
 import numpy as np

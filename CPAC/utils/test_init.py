@@ -21,6 +21,7 @@
 # Daniel Clark
 # Jon Clucas
 """Assist in initializing CPAC tests resources."""
+
 from typing import Optional
 
 from nipype.interfaces.utility import IdentityInterface

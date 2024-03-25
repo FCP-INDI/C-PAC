@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """General utilities for C-PAC."""
+
 from . import build_data_config, create_fsl_flame_preset, versioning
 from .configuration import check_pname, Configuration, set_subject
 from .datatypes import ListFromItem

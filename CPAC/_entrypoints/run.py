@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Run C-PAC in a container."""
+
 import argparse
 import datetime
 import os
@@ -592,9 +593,9 @@ def run_main():
             c["awsCredentialsFile"] = resolve_aws_credential(args.aws_input_creds)
 
         if args.aws_output_creds:
-            c["pipeline_setup"]["Amazon-AWS"][
-                "aws_output_bucket_credentials"
-            ] = resolve_aws_credential(args.aws_output_creds)
+            c["pipeline_setup"]["Amazon-AWS"]["aws_output_bucket_credentials"] = (
+                resolve_aws_credential(args.aws_output_creds)
+            )
 
         c["pipeline_setup"]["output_directory"]["path"] = os.path.join(
             output_dir, "output"
@@ -610,9 +611,9 @@ def run_main():
             )
 
         if args.mem_gb:
-            c["pipeline_setup"]["system_config"][
-                "maximum_memory_per_participant"
-            ] = float(args.mem_gb)
+            c["pipeline_setup"]["system_config"]["maximum_memory_per_participant"] = (
+                float(args.mem_gb)
+            )
         elif args.mem_mb:
             c["pipeline_setup"]["system_config"]["maximum_memory_per_participant"] = (
                 float(args.mem_mb) / 1024.0
@@ -660,9 +661,9 @@ def run_main():
                 // c["pipeline_setup"]["system_config"]["num_participants_at_once"]
             )
             if c["pipeline_setup"]["system_config"]["max_cores_per_participant"] == 0:
-                c["pipeline_setup"]["system_config"][
-                    "max_cores_per_participant"
-                ] = args.n_cpus
+                c["pipeline_setup"]["system_config"]["max_cores_per_participant"] = (
+                    args.n_cpus
+                )
                 c["pipeline_setup"]["system_config"]["num_participants_at_once"] = 1
 
         if int(args.num_ants_threads) == 0:
@@ -690,13 +691,13 @@ def run_main():
             )
 
         if args.runtime_usage is not None:
-            c["pipeline_setup"]["system_config"]["observed_usage"][
-                "callback_log"
-            ] = args.runtime_usage
+            c["pipeline_setup"]["system_config"]["observed_usage"]["callback_log"] = (
+                args.runtime_usage
+            )
         if args.runtime_buffer is not None:
-            c["pipeline_setup"]["system_config"]["observed_usage"][
-                "buffer"
-            ] = args.runtime_buffer
+            c["pipeline_setup"]["system_config"]["observed_usage"]["buffer"] = (
+                args.runtime_buffer
+            )
 
         if args.save_working_dir is not False:
             c["pipeline_setup"]["working_directory"]["remove_working_dir"] = False

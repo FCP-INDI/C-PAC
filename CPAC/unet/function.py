@@ -123,9 +123,8 @@ def predict_volumes(
     if use_gpu:
         if not model_on_gpu:
             model.cuda()
-    else:
-        if model_on_gpu:
-            model.cpu()
+    elif model_on_gpu:
+        model.cpu()
 
     NoneType = type(None)
     if isinstance(rimg_in, NoneType) and isinstance(cimg_in, NoneType):

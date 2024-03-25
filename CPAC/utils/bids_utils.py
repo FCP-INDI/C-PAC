@@ -102,16 +102,15 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
             raise ValueError(msg)
         else:
             UTLOGGER.error(msg)
-    else:
-        if "bold" in f_dict["scantype"] and not f_dict["task"]:
-            msg = (
-                f"Filename ({fname}) is a BOLD file, but doesn't contain a task, does"
-                " it conform to the BIDS format?"
-            )
-            if raise_error:
-                raise ValueError(msg)
-            else:
-                UTLOGGER.error(msg)
+    elif "bold" in f_dict["scantype"] and not f_dict["task"]:
+        msg = (
+            f"Filename ({fname}) is a BOLD file, but doesn't contain a task, does"
+            " it conform to the BIDS format?"
+        )
+        if raise_error:
+            raise ValueError(msg)
+        else:
+            UTLOGGER.error(msg)
 
     return f_dict
 
@@ -672,9 +671,9 @@ def bids_gen_cpac_sublist(
             if "T1w" in f_dict["scantype"] or "T2w" in f_dict["scantype"]:
                 if "lesion" in f_dict.keys() and "mask" in f_dict["lesion"]:
                     if "lesion_mask" not in subdict[f_dict["sub"]][f_dict["ses"]]:
-                        subdict[f_dict["sub"]][f_dict["ses"]][
-                            "lesion_mask"
-                        ] = task_info["scan"]
+                        subdict[f_dict["sub"]][f_dict["ses"]]["lesion_mask"] = (
+                            task_info["scan"]
+                        )
                     else:
                         UTLOGGER.warning(
                             "Lesion mask file (%s) already found for (%s:%s)"
@@ -835,9 +834,9 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=""):
                         continue
                     if str(s3_obj.key).endswith("json"):
                         try:
-                            config_dict[
-                                s3_obj.key.replace(prefix, "").lstrip("/")
-                            ] = json.loads(s3_obj.get()["Body"].read())
+                            config_dict[s3_obj.key.replace(prefix, "").lstrip("/")] = (
+                                json.loads(s3_obj.get()["Body"].read())
+                            )
                         except Exception as e:
                             msg = (
                                 f"Error retrieving {s3_obj.key.replace(prefix, '')}"

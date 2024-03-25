@@ -16,6 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 # pylint: disable=invalid-name
 """Tests for FSL interface."""
+
 import os
 from pathlib import Path
 

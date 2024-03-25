@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """AFNI Nipype interfaces with customized functionality."""
+
 # pylint: disable=too-few-public-methods
 import semver
 import traits.api as traits

@@ -71,9 +71,8 @@ def dct_diff(dct1, dct2):
             diff[key] = dct_diff(dct1_value, dct2_value)
             if diff[key] == {}:
                 del diff[key]
-        else:
-            if dct1_value != dct2_value:
-                diff[key] = DiffValue(dct1_value, dct2_value)
+        elif dct1_value != dct2_value:
+            diff[key] = DiffValue(dct1_value, dct2_value)
 
     # add any new keys
     if isinstance(dct2, dict):

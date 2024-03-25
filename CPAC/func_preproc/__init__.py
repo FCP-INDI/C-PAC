@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functional preprocessing."""
+
 from .func_motion import (
     calc_motion_stats,
     func_motion_correct,

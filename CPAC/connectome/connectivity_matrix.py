@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functions for creating connectome connectivity matrices."""
+
 import os
 from warnings import warn
 
