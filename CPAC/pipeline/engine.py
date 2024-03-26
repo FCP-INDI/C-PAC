@@ -266,15 +266,20 @@ class ResourcePool:
                              "Try turning on create_regressors or "
                              "ingress_regressors.")
         _nr = cfg['nuisance_corrections', '2-nuisance_regression']
+        
         if not hasattr(self, 'timeseries'):
-            self.regressors = {reg["Name"]: reg for reg in _nr['Regressors']}
+            if _nr['Regressors']:
+                self.regressors = {reg["Name"]: reg for reg in _nr['Regressors']}
+            else:
+                self.regressors = []
         if self.check_rpool('parsed_regressors'):  # ingressed regressor
             # name regressor workflow without regressor_prov
             strat_name = _nr['ingress_regressors']['Regressors']['Name']
             if strat_name in self.regressors:
                 self._regressor_dct = self.regressors[strat_name]
                 return self._regressor_dct
-            raise key_error
+            self.regressor_dct = _nr['ingress_regressors']['Regressors']
+            return self.regressor_dct
         prov = self.get_cpac_provenance('desc-confounds_timeseries')
         strat_name_components = prov[-1].split('_')
         for _ in list(range(prov[-1].count('_'))):
