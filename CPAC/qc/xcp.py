@@ -1,4 +1,6 @@
 """
+Generate XCP-stype quality control files.
+
 .. seealso::
 
       `User Guide: Generate eXtensible Connectivity Pipeline-style quality control files <https://fcp-indi.github.io/docs/user/xcpqc>`_
@@ -158,7 +160,7 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
 
 
 def dvcorr(dvars, fdj):
-    """Function to correlate DVARS and FD-J."""
+    """Correlate DVARS and FD-J."""
     dvars = np.loadtxt(dvars)
     fdj = np.loadtxt(fdj)
     if len(dvars) != len(fdj) - 1:
@@ -170,7 +172,9 @@ def dvcorr(dvars, fdj):
     return np.corrcoef(dvars, fdj[1:])[0, 1]
 
 
-def generate_xcp_qc(
+# This function is for a function node for which
+# Nipype will connect many other nodes as inputs
+def generate_xcp_qc(  # noqa: PLR0913
     sub,
     ses,
     task,
@@ -190,8 +194,8 @@ def generate_xcp_qc(
     dvars_after,
     template,
 ):
-    # pylint: disable=too-many-arguments, too-many-locals, invalid-name
-    """Function to generate an RBC-style QC CSV.
+    """
+    Generate an RBC-style QC CSV.
 
     Parameters
     ----------
@@ -345,7 +349,7 @@ def generate_xcp_qc(
 
 def get_bids_info(subject, scan, wf_name):
     """
-    Function to gather BIDS information from a strat_pool.
+    Gather BIDS information from a strat_pool.
 
     Parameters
     ----------
@@ -449,6 +453,7 @@ def get_bids_info(subject, scan, wf_name):
     },
 )
 def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate an XCP-style quality-control file."""
     # pylint: disable=invalid-name, unused-argument
     if cfg[
         "nuisance_corrections", "2-nuisance_regression", "run"
