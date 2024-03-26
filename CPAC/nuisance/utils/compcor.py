@@ -112,8 +112,6 @@ def cosine_filter(input_image_path, timestep, period_cut=128, remove_mean=True, 
     if datashape[0] == 0 and failure_mode != 'error':
         return input_data, np.array([])
 
-    input_data = input_data.reshape((-1, timepoints))
-
     frametimes = timestep * np.arange(timepoints)
     X = _full_rank(_cosine_drift(period_cut, frametimes))[0]
     non_constant_regressors = X[:, :-1] if X.shape[1] > 1 else np.array([])
