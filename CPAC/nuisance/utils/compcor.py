@@ -91,12 +91,6 @@ def cosine_filter(
     failure_mode="error",
 ):
     """
-    `cosine_filter` adapted from Nipype.
-
-    https://github.com/nipy/nipype/blob/d353f0d/nipype/algorithms/confounds.py#L1086-L1107
-    
-    Apply cosine filter to a BOLD image.
-
     Parameters:
     -----------
     input_image_path : str
@@ -126,7 +120,6 @@ def cosine_filter(
     Adapted from nipype implementation.
 
     The function uses a generator to iterate over voxel time series to optimize memory usage.
-
     """
     # STATEMENT OF CHANGES:
     #     This function is derived from sources licensed under the Apache-2.0 terms,
@@ -165,6 +158,14 @@ def cosine_filter(
                     yield input_data[i, j, k, :]
 
     input_img = nib.load(input_image_path)
+
+    def voxel_generator():
+        for i in range(datashape[0]):
+            for j in range(datashape[1]):
+                for k in range(datashape[2]):
+                    yield input_data[i, j, k, :]
+
+    input_img = nb.load(input_image_path)
 
     input_data = input_img.get_fdata()
 
