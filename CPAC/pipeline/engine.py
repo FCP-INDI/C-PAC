@@ -1753,61 +1753,70 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
 def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
     
-    if 'anat' not in data_paths:
+    if not cfg.pipeline_setup['freesurfer_dir']:
         print('No FreeSurfer data present.')
         return rpool
-    
-    if 'freesurfer_dir' in data_paths['anat']:
-        fs_ingress = create_general_datasource('gather_freesurfer_dir') 
-        fs_ingress.inputs.inputnode.set(
-            unique_id=unique_id,
-            data=data_paths['anat']['freesurfer_dir'],
-            creds_path=data_paths['creds_path'],
-            dl_dir=cfg.pipeline_setup['working_directory']['path'])
-        rpool.set_data("freesurfer-subject-dir", fs_ingress, 'outputspec.data',
-                       {}, "", "freesurfer_config_ingress")
+    fs_path = os.path.join(cfg.pipeline_setup['freesurfer_dir'], part_id)
+    if os.path.exists(os.path.join(fs_path, part_id)): 
+        fs_path = os.path.join(fs_path, part_id)
+        print(fs_path)
+    if not os.path.exists(fs_path):
+        if 'sub' in part_id:
+            fs_path = os.path.join(cfg.pipeline_setup['freesurfer_dir'], part_id.replace('sub-', ''))
+        else:
+            fs_path = os.path.join(cfg.pipeline_setup['freesurfer_dir'], 'sub-', part_id)
+        if not os.path.exists(fs_path):
+            print(f'No FreeSurfer data found for subject {part_id}')
+            return rpool
+    fs_ingress = create_general_datasource('gather_freesurfer_dir') 
+    fs_ingress.inputs.inputnode.set(
+        unique_id=unique_id,
+        data=fs_path,
+        creds_path=data_paths['creds_path'],
+        dl_dir=cfg.pipeline_setup['working_directory']['path'])
+    rpool.set_data("freesurfer-subject-dir", fs_ingress, 'outputspec.data',
+                    {}, "", "freesurfer_config_ingress")
 
-        recon_outs = {
-            'pipeline-fs_raw-average': 'mri/rawavg.mgz',
-            'pipeline-fs_subcortical-seg': 'mri/aseg.mgz',
-            'pipeline-fs_brainmask': 'mri/brainmask.mgz',
-            'pipeline-fs_wmparc': 'mri/wmparc.mgz',
-            'pipeline-fs_T1': 'mri/T1.mgz',
-            'pipeline-fs_hemi-L_desc-surface_curv': 'surf/lh.curv',
-            'pipeline-fs_hemi-R_desc-surface_curv': 'surf/rh.curv',
-            'pipeline-fs_hemi-L_desc-surfaceMesh_pial': 'surf/lh.pial',
-            'pipeline-fs_hemi-R_desc-surfaceMesh_pial': 'surf/rh.pial',
-            'pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm': 'surf/lh.smoothwm',
-            'pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm': 'surf/rh.smoothwm',
-            'pipeline-fs_hemi-L_desc-surfaceMesh_sphere': 'surf/lh.sphere',
-            'pipeline-fs_hemi-R_desc-surfaceMesh_sphere': 'surf/rh.sphere',
-            'pipeline-fs_hemi-L_desc-surfaceMap_sulc': 'surf/lh.sulc',
-            'pipeline-fs_hemi-R_desc-surfaceMap_sulc': 'surf/rh.sulc',
-            'pipeline-fs_hemi-L_desc-surfaceMap_thickness': 'surf/lh.thickness',
-            'pipeline-fs_hemi-R_desc-surfaceMap_thickness': 'surf/rh.thickness',
-            'pipeline-fs_hemi-L_desc-surfaceMap_volume': 'surf/lh.volume',
-            'pipeline-fs_hemi-R_desc-surfaceMap_volume': 'surf/rh.volume',
-            'pipeline-fs_hemi-L_desc-surfaceMesh_white': 'surf/lh.white',
-            'pipeline-fs_hemi-R_desc-surfaceMesh_white': 'surf/rh.white',
-            'pipeline-fs_xfm': 'mri/transforms/talairach.lta'
-        }
-        
-        for key, outfile in recon_outs.items():
-            fullpath = os.path.join(data_paths['anat']['freesurfer_dir'],
-                                    outfile)
-            if os.path.exists(fullpath):
-                fs_ingress = create_general_datasource(f'gather_fs_{key}_dir')
-                fs_ingress.inputs.inputnode.set(
-                    unique_id=unique_id,
-                    data=fullpath,
-                    creds_path=data_paths['creds_path'],
-                    dl_dir=cfg.pipeline_setup['working_directory']['path'])
-                rpool.set_data(key, fs_ingress, 'outputspec.data',
-                               {}, "", f"fs_{key}_ingress")
-            else:
-                warnings.warn(str(
-                        LookupError("\n[!] Path does not exist for "
-                                        f"{fullpath}.\n")))
+    recon_outs = {
+        'pipeline-fs_raw-average': 'mri/rawavg.mgz',
+        'pipeline-fs_subcortical-seg': 'mri/aseg.mgz',
+        'pipeline-fs_brainmask': 'mri/brainmask.mgz',
+        'pipeline-fs_wmparc': 'mri/wmparc.mgz',
+        'pipeline-fs_T1': 'mri/T1.mgz',
+        'pipeline-fs_hemi-L_desc-surface_curv': 'surf/lh.curv',
+        'pipeline-fs_hemi-R_desc-surface_curv': 'surf/rh.curv',
+        'pipeline-fs_hemi-L_desc-surfaceMesh_pial': 'surf/lh.pial',
+        'pipeline-fs_hemi-R_desc-surfaceMesh_pial': 'surf/rh.pial',
+        'pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm': 'surf/lh.smoothwm',
+        'pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm': 'surf/rh.smoothwm',
+        'pipeline-fs_hemi-L_desc-surfaceMesh_sphere': 'surf/lh.sphere',
+        'pipeline-fs_hemi-R_desc-surfaceMesh_sphere': 'surf/rh.sphere',
+        'pipeline-fs_hemi-L_desc-surfaceMap_sulc': 'surf/lh.sulc',
+        'pipeline-fs_hemi-R_desc-surfaceMap_sulc': 'surf/rh.sulc',
+        'pipeline-fs_hemi-L_desc-surfaceMap_thickness': 'surf/lh.thickness',
+        'pipeline-fs_hemi-R_desc-surfaceMap_thickness': 'surf/rh.thickness',
+        'pipeline-fs_hemi-L_desc-surfaceMap_volume': 'surf/lh.volume',
+        'pipeline-fs_hemi-R_desc-surfaceMap_volume': 'surf/rh.volume',
+        'pipeline-fs_hemi-L_desc-surfaceMesh_white': 'surf/lh.white',
+        'pipeline-fs_hemi-R_desc-surfaceMesh_white': 'surf/rh.white',
+        'pipeline-fs_xfm': 'mri/transforms/talairach.lta'
+    }
+    
+    for key, outfile in recon_outs.items():
+        fullpath = os.path.join(fs_path, outfile)
+        if os.path.exists(fullpath):
+            fs_ingress = create_general_datasource(f'gather_fs_{key}_dir')
+            fs_ingress.inputs.inputnode.set(
+                unique_id=unique_id,
+                data=fullpath,
+                creds_path=data_paths['creds_path'],
+                dl_dir=cfg.pipeline_setup['working_directory']['path'])
+            rpool.set_data(key, fs_ingress, 'outputspec.data',
+                            {}, "", f"fs_{key}_ingress")
+        else:
+            warnings.warn(str(
+                    LookupError("\n[!] Path does not exist for "
+                                    f"{fullpath}.\n")))
                 
     return rpool
 

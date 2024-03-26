@@ -425,6 +425,7 @@ latest_schema = Schema({
         'Debugging': {
             'verbose': bool1_1,
         },
+        'freesurfer_dir': str,
         'outdir_ingress': {
             'run': bool1_1,
             'Template': Maybe(str),
