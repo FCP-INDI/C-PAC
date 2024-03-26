@@ -7,15 +7,12 @@
 #
 # Tip: This file can be edited manually with a text editor for quick modifications.
 pipeline_setup:
-
   # Name for this pipeline configuration - useful for identification.
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac-blank-template
   output_directory:
-
     # Quality control outputs
     quality_control:
-
       # Generate eXtensible Connectivity Pipeline-style quality control files
       generate_xcpqc_files: Off
 
@@ -56,7 +53,6 @@ pipeline_setup:
     output_tree: default
 
   system_config:
-
     # Stop worklow execution on first crash?
     fail_fast: Off
 
@@ -73,7 +69,6 @@ pipeline_setup:
 
     # A callback.log file from a previous run can be provided to estimate memory usage based on that run.
     observed_usage:
-
       # Path to callback log file with previously observed usage.
       # Can be overridden with the commandline flag `--runtime_usage`.
       callback_log:
@@ -91,7 +86,6 @@ pipeline_setup:
       # Only applies if you are running on a grid or compute cluster.
       resource_manager: SGE
       SGE:
-
         # SGE Parallel Environment to use when running CPAC.
         # Only applies when you are running on a grid or compute cluster using SGE.
         parallel_environment: mpi_smp
@@ -137,7 +131,6 @@ pipeline_setup:
     FSLDIR: FSLDIR
 
   working_directory:
-
     # Directory where C-PAC should store temporary and intermediate files.
     # - This directory must be saved if you wish to re-run your pipeline from where you left off (if not completed).
     # - NOTE: As it stores all intermediate files, this directory can grow to become very
@@ -153,17 +146,14 @@ pipeline_setup:
     remove_working_dir: On
 
   log_directory:
-
     # Whether to write log details of the pipeline run to the logging files.
     run_logging: On
     path: /outputs/logs
 
     # Configuration options for logging visualizations of the workflow graph
     graphviz:
-
       # Configuration for a graphviz visualization of the entire workflow. See https://fcp-indi.github.io/docs/developer/nodes#CPAC.pipeline.nipype_pipeline_engine.Workflow.write_graph for details about the various options
       entire_workflow:
-
         # Whether to generate the graph visualization
         generate: Off
 
@@ -177,7 +167,6 @@ pipeline_setup:
         simple_form: On
 
   crash_log_directory:
-
     # Directory where CPAC should write crash logs.
     path: /outputs/crash
 
@@ -185,7 +174,6 @@ pipeline_setup:
     run: Off
 
   Amazon-AWS:
-
     # If setting the 'Output Directory' to an S3 bucket, insert the path to your AWS credentials file here.
     aws_output_bucket_credentials:
 
@@ -193,14 +181,12 @@ pipeline_setup:
     s3_encryption: Off
 
   Debugging:
-
     # Verbose developer messages.
     verbose: Off
 
 # PREPROCESSING
 # -------------
 surface_analysis:
-
   # Run freesurfer_abcd_preproc to obtain preprocessed T1w for reconall
   abcd_prefreesurfer_prep:
     run: Off
@@ -277,7 +263,6 @@ anatomical_preproc:
   brain_extraction:
     run: Off
     FreeSurfer-BET:
-
       # Template to be used for FreeSurfer-BET brain extraction in CCS-options pipeline
       T1w_brain_template_mask_ccs: /ccs_template/MNI152_T1_1mm_first_brain_mask.nii.gz
 
@@ -287,7 +272,6 @@ anatomical_preproc:
 
     # option parameters
     AFNI-3dSkullStrip:
-
       # Output a mask volume instead of a skull-stripped volume. The mask volume containes 0 to 6, which represents voxel's postion. If set to True, C-PAC will use this output to generate anatomical brain mask for further analysis.
       mask_vol: Off
 
@@ -352,7 +336,6 @@ anatomical_preproc:
       monkey: Off
 
     FSL-BET:
-
       # Switch "On" to crop out neck regions before generating the mask (default: Off).
       Robustfov: Off
 
@@ -393,12 +376,10 @@ anatomical_preproc:
       vertical_gradient: 0.0
 
     UNet:
-
       # UNet model
       unet_model: s3://fcp-indi/resources/cpac/resources/Site-All-T-epoch_36.model
 
     niworkflows-ants:
-
       # Template to be used during niworkflows-ants.
       # It is not necessary to change this path unless you intend to use a non-standard template.
       # niworkflows-ants Brain extraction template
@@ -419,7 +400,6 @@ anatomical_preproc:
 
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering:
-
     # this is a fork option
     run: [Off]
 
@@ -428,7 +408,6 @@ anatomical_preproc:
 
   # N4 bias field correction via ANTs
   n4_bias_field_correction:
-
     # this is a fork option
     run: [Off]
 
@@ -436,12 +415,10 @@ anatomical_preproc:
     shrink_factor: 2
 
 segmentation:
-
   # Automatically segment anatomical images into white matter, gray matter,
   # and CSF based on prior probability maps.
   run: Off
   tissue_segmentation:
-
     # using: ['FSL-FAST', 'Template_Based', 'ANTs_Prior_Based', 'FreeSurfer']
     # this is a fork point
     using: [FSL-FAST]
@@ -449,12 +426,10 @@ segmentation:
     # option parameters
     FSL-FAST:
       thresholding:
-
         # thresholding of the tissue segmentation probability maps
         # options: 'Auto', 'Custom'
         use: Auto
         Custom:
-
           # Set the threshold value for the segmentation probability masks (CSF, White Matter, and Gray Matter)
           # The values remaining will become the binary tissue masks.
           # A good starting point is 0.95.
@@ -468,7 +443,6 @@ segmentation:
           GM_threshold_value: 0.95
 
       use_priors:
-
         # Use template-space tissue priors to refine the binary tissue masks generated by segmentation.
         run: On
 
@@ -490,7 +464,6 @@ segmentation:
         CSF_path: $priors_path/avg152T1_csf_bin.nii.gz
 
     Template_Based:
-
       # These masks should be in the same space of your registration template, e.g. if
       # you choose 'EPI Template' , below tissue masks should also be EPI template tissue masks.
       #
@@ -509,7 +482,6 @@ segmentation:
       CSF: $FSLDIR/data/standard/tissuepriors/2mm/avg152T1_csf_bin.nii.gz
 
     ANTs_Prior_Based:
-
       # Generate white matter, gray matter, CSF masks based on antsJointLabelFusion
       # ANTs Prior-based Segmentation workflow that has shown optimal results for non-human primate data.
       # The atlas image assumed to be used in ANTs Prior-based Segmentation.
@@ -544,7 +516,6 @@ segmentation:
       CSF_label: [24]
 
     FreeSurfer:
-
       # Use mri_binarize --erode option to erode segmentation masks
       erode: 0
 
@@ -562,7 +533,6 @@ registration_workflows:
     run: Off
     registration:
       FSL-FNIRT:
-
         # The resolution to which anatomical images should be transformed during registration.
         # This is the resolution at which processed anatomical files will be output.
         # specifically for monkey pipeline
@@ -604,7 +574,6 @@ registration_workflows:
 
       # option parameters
       ANTs:
-
         # If a lesion mask is available for a T1w image, use it to improve the ANTs' registration
         # ANTS registration only.
         use_lesion_mask: Off
@@ -616,54 +585,54 @@ registration_workflows:
           - initial-moving-transform:
               initializationFeature: 0
           - transforms:
-            - Rigid:
-                gradientStep: 0.1
-                metric:
-                  type: MI
-                  metricWeight: 1
-                  numberOfBins: 32
-                  samplingStrategy: Regular
-                  samplingPercentage: 0.25
-                convergence:
-                  iteration: 1000x500x250x100
-                  convergenceThreshold: 1e-08
-                  convergenceWindowSize: 10
-                smoothing-sigmas: 3.0x2.0x1.0x0.0
-                shrink-factors: 8x4x2x1
-                use-histogram-matching: On
-            - Affine:
-                gradientStep: 0.1
-                metric:
-                  type: MI
-                  metricWeight: 1
-                  numberOfBins: 32
-                  samplingStrategy: Regular
-                  samplingPercentage: 0.25
-                convergence:
-                  iteration: 1000x500x250x100
-                  convergenceThreshold: 1e-08
-                  convergenceWindowSize: 10
-                smoothing-sigmas: 3.0x2.0x1.0x0.0
-                shrink-factors: 8x4x2x1
-                use-histogram-matching: On
-            - SyN:
-                gradientStep: 0.1
-                updateFieldVarianceInVoxelSpace: 3.0
-                totalFieldVarianceInVoxelSpace: 0.0
-                metric:
-                  type: CC
-                  metricWeight: 1
-                  radius: 4
-                convergence:
-                  iteration: 100x100x70x20
-                  convergenceThreshold: 1e-09
-                  convergenceWindowSize: 15
-                smoothing-sigmas: 3.0x2.0x1.0x0.0
-                shrink-factors: 6x4x2x1
-                use-histogram-matching: On
-                winsorize-image-intensities:
-                  lowerQuantile: 0.01
-                  upperQuantile: 0.99
+              - Rigid:
+                  gradientStep: 0.1
+                  metric:
+                    type: MI
+                    metricWeight: 1
+                    numberOfBins: 32
+                    samplingStrategy: Regular
+                    samplingPercentage: 0.25
+                  convergence:
+                    iteration: 1000x500x250x100
+                    convergenceThreshold: 1e-08
+                    convergenceWindowSize: 10
+                  smoothing-sigmas: 3.0x2.0x1.0x0.0
+                  shrink-factors: 8x4x2x1
+                  use-histogram-matching: On
+              - Affine:
+                  gradientStep: 0.1
+                  metric:
+                    type: MI
+                    metricWeight: 1
+                    numberOfBins: 32
+                    samplingStrategy: Regular
+                    samplingPercentage: 0.25
+                  convergence:
+                    iteration: 1000x500x250x100
+                    convergenceThreshold: 1e-08
+                    convergenceWindowSize: 10
+                  smoothing-sigmas: 3.0x2.0x1.0x0.0
+                  shrink-factors: 8x4x2x1
+                  use-histogram-matching: On
+              - SyN:
+                  gradientStep: 0.1
+                  updateFieldVarianceInVoxelSpace: 3.0
+                  totalFieldVarianceInVoxelSpace: 0.0
+                  metric:
+                    type: CC
+                    metricWeight: 1
+                    radius: 4
+                  convergence:
+                    iteration: 100x100x70x20
+                    convergenceThreshold: 1e-09
+                    convergenceWindowSize: 15
+                  smoothing-sigmas: 3.0x2.0x1.0x0.0
+                  shrink-factors: 6x4x2x1
+                  use-histogram-matching: On
+                  winsorize-image-intensities:
+                    lowerQuantile: 0.01
+                    upperQuantile: 0.99
 
         # Interpolation method for writing out transformed anatomical images.
         # Possible values: Linear, BSpline, LanczosWindowedSinc
@@ -697,11 +666,9 @@ registration_workflows:
 
   functional_registration:
     coregistration:
-
       # functional (BOLD/EPI) registration to anatomical (structural/T1)
       run: Off
       func_input_prep:
-
         # Choose whether to use functional brain or skull as the input to functional-to-anatomical registration
         reg_with_skull: Off
 
@@ -709,19 +676,16 @@ registration_workflows:
         # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
         input: [Mean_Functional]
         Mean Functional:
-
           # Run ANTs’ N4 Bias Field Correction on the input BOLD (EPI)
           # this can increase tissue contrast which may improve registration quality in some data
           n4_correct_func: Off
 
         Selected Functional Volume:
-
           # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'.
           #Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
           func_reg_input_volume: 0
 
       boundary_based_registration:
-
         # this is a fork point
         #   run: [On, Off] - this will run both and fork the pipeline
         run: [Off]
@@ -764,7 +728,6 @@ registration_workflows:
       arguments:
 
     func_registration_to_template:
-
       # these options modify the application (to the functional data), not the calculation, of the
       # T1-to-template and EPI-to-template transforms calculated earlier during registration
       # apply the functional-to-template (T1 template) registration transform to the functional data
@@ -773,7 +736,6 @@ registration_workflows:
       # apply the functional-to-template (EPI template) registration transform to the functional data
       run_EPI: Off
       apply_transform:
-
         # options: 'default', 'abcd', 'single_step_resampling_from_stc', 'dcan_nhp'
         # 'default': apply func-to-anat and anat-to-template transforms on motion corrected functional image.
         # 'abcd': apply motion correction, func-to-anat and anat-to-template transforms on each of raw functional volume using FSL applywarp based on ABCD-HCP pipeline.
@@ -782,7 +744,6 @@ registration_workflows:
         using: default
 
       output_resolution:
-
         # The resolution (in mm) to which the preprocessed, registered functional timeseries outputs are written into.
         # NOTE:
         #   selecting a 1 mm or 2 mm resolution might substantially increase your RAM needs- these resolutions should be selected with caution.
@@ -799,7 +760,6 @@ registration_workflows:
         func_derivative_outputs: 3mm
 
       target_template:
-
         # choose which template space to transform derivatives towards
         # using: ['T1_template', 'EPI_template']
         # this is a fork point
@@ -808,7 +768,6 @@ registration_workflows:
         #   outputs and derivatives to template space
         using: [T1_template]
         T1_template:
-
           # Standard Skull Stripped Template. Used as a reference image for functional registration.
           # This can be different than the template used as the reference/fixed for T1-to-template registration.
           T1w_brain_template_funcreg: $FSLDIR/data/standard/MNI152_T1_${func_resolution}_brain.nii.gz
@@ -825,7 +784,6 @@ registration_workflows:
           T1w_template_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
         EPI_template:
-
           # EPI template for direct functional-to-template registration
           # (bypassing coregistration and the anatomical-to-template transforms)
           EPI_template_funcreg: s3://fcp-indi/resources/cpac/resources/epi_hbn.nii.gz
@@ -837,13 +795,11 @@ registration_workflows:
           EPI_template_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 
       ANTs_pipelines:
-
         # Interpolation method for writing out transformed functional images.
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: LanczosWindowedSinc
 
       FNIRT_pipelines:
-
         # Interpolation method for writing out transformed functional images.
         # Possible values: trilinear, sinc, spline
         interpolation: sinc
@@ -853,7 +809,6 @@ registration_workflows:
         identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
     EPI_registration:
-
       # directly register the mean functional to an EPI template
       #   instead of applying the anatomical T1-to-template transform to the functional data that has been
       #   coregistered to anatomical/T1 space
@@ -871,7 +826,6 @@ registration_workflows:
       # EPI template mask.
       EPI_template_mask:
       ANTs:
-
         # EPI registration configuration - synonymous with T1_registration
         # parameters under anatomical registration above
         parameters:
@@ -880,61 +834,60 @@ registration_workflows:
           - initial-moving-transform:
               initializationFeature: 0
           - transforms:
-            - Rigid:
-                gradientStep: 0.1
-                metric:
-                  type: MI
-                  metricWeight: 1
-                  numberOfBins: 32
-                  samplingStrategy: Regular
-                  samplingPercentage: 0.25
-                convergence:
-                  iteration: 1000x500x250x100
-                  convergenceThreshold: 1e-08
-                  convergenceWindowSize: 10
-                smoothing-sigmas: 3.0x2.0x1.0x0.0
-                shrink-factors: 8x4x2x1
-                use-histogram-matching: On
-            - Affine:
-                gradientStep: 0.1
-                metric:
-                  type: MI
-                  metricWeight: 1
-                  numberOfBins: 32
-                  samplingStrategy: Regular
-                  samplingPercentage: 0.25
-                convergence:
-                  iteration: 1000x500x250x100
-                  convergenceThreshold: 1e-08
-                  convergenceWindowSize: 10
-                smoothing-sigmas: 3.0x2.0x1.0x0.0
-                shrink-factors: 8x4x2x1
-                use-histogram-matching: On
-            - SyN:
-                gradientStep: 0.1
-                updateFieldVarianceInVoxelSpace: 3.0
-                totalFieldVarianceInVoxelSpace: 0.0
-                metric:
-                  type: CC
-                  metricWeight: 1
-                  radius: 4
-                convergence:
-                  iteration: 100x100x70x20
-                  convergenceThreshold: 1e-09
-                  convergenceWindowSize: 15
-                smoothing-sigmas: 3.0x2.0x1.0x0.0
-                shrink-factors: 6x4x2x1
-                use-histogram-matching: On
-                winsorize-image-intensities:
-                  lowerQuantile: 0.01
-                  upperQuantile: 0.99
+              - Rigid:
+                  gradientStep: 0.1
+                  metric:
+                    type: MI
+                    metricWeight: 1
+                    numberOfBins: 32
+                    samplingStrategy: Regular
+                    samplingPercentage: 0.25
+                  convergence:
+                    iteration: 1000x500x250x100
+                    convergenceThreshold: 1e-08
+                    convergenceWindowSize: 10
+                  smoothing-sigmas: 3.0x2.0x1.0x0.0
+                  shrink-factors: 8x4x2x1
+                  use-histogram-matching: On
+              - Affine:
+                  gradientStep: 0.1
+                  metric:
+                    type: MI
+                    metricWeight: 1
+                    numberOfBins: 32
+                    samplingStrategy: Regular
+                    samplingPercentage: 0.25
+                  convergence:
+                    iteration: 1000x500x250x100
+                    convergenceThreshold: 1e-08
+                    convergenceWindowSize: 10
+                  smoothing-sigmas: 3.0x2.0x1.0x0.0
+                  shrink-factors: 8x4x2x1
+                  use-histogram-matching: On
+              - SyN:
+                  gradientStep: 0.1
+                  updateFieldVarianceInVoxelSpace: 3.0
+                  totalFieldVarianceInVoxelSpace: 0.0
+                  metric:
+                    type: CC
+                    metricWeight: 1
+                    radius: 4
+                  convergence:
+                    iteration: 100x100x70x20
+                    convergenceThreshold: 1e-09
+                    convergenceWindowSize: 15
+                  smoothing-sigmas: 3.0x2.0x1.0x0.0
+                  shrink-factors: 6x4x2x1
+                  use-histogram-matching: On
+                  winsorize-image-intensities:
+                    lowerQuantile: 0.01
+                    upperQuantile: 0.99
 
         # Interpolation method for writing out transformed EPI images.
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: LanczosWindowedSinc
 
       FSL-FNIRT:
-
         # Configuration file to be used by FSL to set FNIRT parameters.
         # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
         fnirt_config: T1_2_MNI152_2mm
@@ -950,12 +903,10 @@ registration_workflows:
 functional_preproc:
   run: Off
   update_header:
-
     # Convert raw data from LPI to RPI
     run: On
 
   slice_timing_correction:
-
     # Interpolate voxel time courses so they are sampled at the same time points.
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
@@ -971,7 +922,6 @@ functional_preproc:
   motion_estimates_and_correction:
     run: Off
     motion_estimates:
-
       # calculate motion statistics BEFORE slice-timing correction
       calculate_motion_first: Off
 
@@ -979,7 +929,6 @@ functional_preproc:
       calculate_motion_after: On
 
     motion_correction:
-
       # using: ['3dvolreg', 'mcflirt']
       # Forking is currently broken for this option.
       # Please use separate configs if you want to use each of 3dvolreg and mcflirt.
@@ -988,7 +937,6 @@ functional_preproc:
 
       # option parameters
       AFNI-3dvolreg:
-
         # This option is useful when aligning high-resolution datasets that may need more alignment than a few voxels.
         functional_volreg_twopass: On
 
@@ -999,7 +947,6 @@ functional_preproc:
       motion_correction_reference_volume: 0
 
     motion_estimate_filter:
-
       # Filter physiological (respiration) artifacts from the head motion estimates.
       # Adapted from DCAN Labs filter.
       #     https://www.ohsu.edu/school-of-medicine/developmental-cognition-and-neuroimaging-lab
@@ -1010,12 +957,10 @@ functional_preproc:
       filters: []
 
   distortion_correction:
-
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
     Blip-FSL-TOPUP:
-
       # (approximate) resolution (in mm) of warp basis for the different sub-sampling levels, default 10
       warpres: 10
 
@@ -1066,7 +1011,6 @@ functional_preproc:
 
     # option parameters
     PhaseDiff:
-
       # Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method ('AFNI' for AFNI 3dSkullStrip or 'BET' for FSL BET).
       # Options: 'BET' or 'AFNI'
       fmap_skullstrip_option: BET
@@ -1082,7 +1026,6 @@ functional_preproc:
   func_masking:
     run: Off
     FSL-BET:
-
       # Set an intensity threshold to improve skull stripping performances of FSL BET on rodent scans.
       functional_mean_thr:
         run: Off
@@ -1149,22 +1092,18 @@ functional_preproc:
     # this is a fork point
     using: [AFNI]
     Anatomical_Refined:
-
       # Choose whether or not to dilate the anatomical mask if you choose 'Anatomical_Refined' as the functional masking option. It will dilate one voxel if enabled.
       anatomical_mask_dilation: Off
 
   generate_func_mean:
-
     # Generate mean functional image
     run: Off
 
   normalize_func:
-
     # Normalize functional image
     run: Off
 
   truncation:
-
     # First timepoint to include in analysis.
     # Default is 0 (beginning of timeseries).
     # First timepoint selection in the scan parameters in the data configuration file, if present, will over-ride this selection.
@@ -1178,7 +1117,6 @@ functional_preproc:
     stop_tr:
 
   scaling:
-
     # Scale functional raw data, usually used in rodent pipeline
     run: Off
 
@@ -1186,7 +1124,6 @@ functional_preproc:
     scaling_factor: 10
 
   despiking:
-
     # Run AFNI 3dDespike
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
@@ -1194,13 +1131,11 @@ functional_preproc:
     space: native
 
   coreg_prep:
-
     # Generate sbref
     run: Off
 
 nuisance_corrections:
   2-nuisance_regression:
-
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
@@ -1212,7 +1147,6 @@ nuisance_corrections:
     # regression.
     regressor_masks:
       erode_anatomical_brain_mask:
-
         # Erode brain mask in millimeters, default for brain mask is 30 mm
         # Brain erosion default is using millimeters.
         brain_mask_erosion_mm:
@@ -1229,7 +1163,6 @@ nuisance_corrections:
         brain_erosion_mm:
 
       erode_csf:
-
         # Erode cerebrospinal fluid mask in millimeters, default for cerebrospinal fluid is 30mm
         # Cerebrospinal fluid erosion default is using millimeters.
         csf_mask_erosion_mm:
@@ -1246,7 +1179,6 @@ nuisance_corrections:
         csf_erosion_mm:
 
       erode_wm:
-
         # Target volume ratio, if using erosion.
         # Default proportion is 0.6 for white matter mask.
         # If using erosion, using both proportion and millimeters is not recommended.
@@ -1263,7 +1195,6 @@ nuisance_corrections:
         wm_erosion_mm:
 
       erode_gm:
-
         # Target volume ratio, if using erosion.
         # If using erosion, using both proportion and millimeters is not recommended.
         gm_erosion_prop:
@@ -1301,7 +1232,6 @@ nuisance_corrections:
     bandpass_filtering_order: After
 
   1-ICA-AROMA:
-
     # this is a fork point
     #   run: [On, Off] - this will run both and fork the pipeline
     run: [Off]
@@ -1314,7 +1244,6 @@ nuisance_corrections:
 timeseries_extraction:
   run: Off
   connectivity_matrix:
-
     # Create a connectivity matrix from timeseries data
     # Options:
     #  ['AFNI', 'Nilearn', 'ndmg']
@@ -1369,7 +1298,6 @@ timeseries_extraction:
   realignment: ROI_to_func
 
 amplitude_low_frequency_fluctuation:
-
   # ALFF & f/ALFF
   # Calculate Amplitude of Low Frequency Fluctuations (ALFF) and fractional ALFF (f/ALFF) for all voxels.
   run: Off
@@ -1384,7 +1312,6 @@ amplitude_low_frequency_fluctuation:
   lowpass_cutoff: [0.1]
 
 regional_homogeneity:
-
   # ReHo
   # Calculate Regional Homogeneity (ReHo) for all voxels.
   run: Off
@@ -1399,12 +1326,10 @@ regional_homogeneity:
   cluster_size: 27
 
 voxel_mirrored_homotopic_connectivity:
-
   # VMHC
   # Calculate Voxel-mirrored Homotopic Connectivity (VMHC) for all voxels.
   run: Off
   symmetric_registration:
-
     # Included as part of the 'Image Resource Files' package available on the Install page of the User Guide.
     # It is not necessary to change this path unless you intend to use a non-standard symmetric template.
     T1w_brain_template_symmetric: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_symmetric.nii.gz
@@ -1435,7 +1360,6 @@ voxel_mirrored_homotopic_connectivity:
     dilated_symmetric_brain_mask_for_resample: $FSLDIR/data/standard/MNI152_T1_1mm_brain_mask_symmetric_dil.nii.gz
 
 network_centrality:
-
   # Calculate Degree, Eigenvector Centrality, or Functional Connectivity Density.
   run: Off
 
@@ -1446,7 +1370,6 @@ network_centrality:
   # Full path to a NIFTI file describing the mask. Centrality will be calculated for all voxels within the mask.
   template_specification_file: /cpac_templates/Mask_ABIDE_85Percent_GM.nii.gz
   degree_centrality:
-
     # Enable/Disable degree centrality by selecting the connectivity weights
     #   weight_options: ['Binarized', 'Weighted']
     # disable this type of centrality with:
@@ -1465,7 +1388,6 @@ network_centrality:
     correlation_threshold: 0.001
 
   eigenvector_centrality:
-
     # Enable/Disable eigenvector centrality by selecting the connectivity weights
     #   weight_options: ['Binarized', 'Weighted']
     # disable this type of centrality with:
@@ -1484,7 +1406,6 @@ network_centrality:
     correlation_threshold: 0.001
 
   local_functional_connectivity_density:
-
     # Enable/Disable lFCD by selecting the connectivity weights
     #   weight_options: ['Binarized', 'Weighted']
     # disable this type of centrality with:
@@ -1503,7 +1424,6 @@ network_centrality:
     correlation_threshold: 0.6
 
 longitudinal_template_generation:
-
   # If you have multiple T1w's, you can generate your own run-specific custom
   # T1w template to serve as an intermediate to the standard template for
   # anatomical registration.
@@ -1569,7 +1489,6 @@ post_processing:
     output: [z-scored]
 
 seed_based_correlation_analysis:
-
   # SCA - Seed-Based Correlation Analysis
   # For each extracted ROI Average time series, CPAC will generate a whole-brain correlation map.
   # It should be noted that for a given seed/ROI, SCA maps for ROI Average time series will be the same.
@@ -1595,7 +1514,6 @@ seed_based_correlation_analysis:
 # PACKAGE INTEGRATIONS
 # --------------------
 PyPEER:
-
   # Training of eye-estimation models. Commonly used for movies data/naturalistic viewing.
   run: Off
 
@@ -1614,7 +1532,6 @@ PyPEER:
   # This is a file describing the stimulus locations from the calibration sequence.
   stimulus_path:
   minimal_nuisance_correction:
-
     # PyPEER Minimal nuisance regression
     # Note: PyPEER employs minimal preprocessing - these choices do not reflect what runs in the main pipeline.
     #       PyPEER uses non-nuisance-regressed data from the main pipeline.
