@@ -186,8 +186,6 @@ def cosine_filter(
     if datashape[0] == 0 and failure_mode != "error":
         return input_data, np.array([])
 
-    input_data = input_data.reshape((-1, timepoints))
-
     frametimes = timestep * np.arange(timepoints)
     X = _full_rank(_cosine_drift(period_cut, frametimes))[0]
 
