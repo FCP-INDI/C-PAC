@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+"""Utilities for ALFF."""
+
+from CPAC.utils.typing import PATHSTR
 
 
-def get_opt_string(mask):
+def get_opt_string(mask: PATHSTR) -> str:
     """
-    Method to return option string for 3dTstat.
+    Return option string for 3dTstat.
 
     Parameters
     ----------
@@ -16,4 +19,4 @@ def get_opt_string(mask):
         Command args
 
     """
-    return " -stdev -mask %s" % mask
+    return f" -stdev -mask {mask}"
