@@ -50,9 +50,9 @@ flowchart LR
       end
       subgraph build_and_test.yml
         ubuntu[[Ubnutu]]-->stages[[stages]]-->build-base[[build-base]]-->build-base-standard[[build-base-standard]]
-        
+
         Circle_tests[[Circle_tests]]
-      
+
         build-base-standard-->C-PAC
         C-PAC[[C-PAC]]-->bCPAC
         C-PAC-->Circle_tests
@@ -164,7 +164,7 @@ in the commit message. For this to work, all of these must be true:
    ```YAML
    strategy:
      matrix:
-       Dockerfile: 
+       Dockerfile:
    ```
 
    in a job in a [workflow](../workflows) file.

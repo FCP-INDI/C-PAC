@@ -19,5 +19,3 @@ Scenario: Calculate distances for multiple voxels
     and we calculate distances for 12 seeds with numpy
     Then the cpac distances should be the same as numpy
     and the cpac distances should be like connectir
-
-

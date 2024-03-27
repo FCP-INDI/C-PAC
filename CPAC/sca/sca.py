@@ -14,21 +14,25 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from CPAC.pipeline.nodeblock import nodeblock
-from nipype.interfaces.afni import preprocess
-from CPAC.pipeline import nipype_pipeline_engine as pe
 from nipype.interfaces import fsl, utility as util
+from nipype.interfaces.afni import preprocess
 
+from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.sca.utils import *
-# from CPAC.utils.utils import extract_one_d
-from CPAC.utils.datasource import resample_func_roi, \
-    create_roi_mask_dataflow, create_spatial_map_dataflow
+from CPAC.timeseries.timeseries_analysis import (
+    get_roi_timeseries,
+    get_spatial_map_timeseries,
+    resample_function,
+)
+from CPAC.utils.datasource import (
+    create_roi_mask_dataflow,
+    create_spatial_map_dataflow,
+    resample_func_roi,
+)
 
-from CPAC.timeseries.timeseries_analysis import get_roi_timeseries, \
-    get_spatial_map_timeseries, resample_function
 
-
-def create_sca(name_sca='sca'):
+def create_sca(name_sca="sca"):
     """
     Map of the correlations of the Region of Interest(Seed in native or MNI space) with the rest of brain voxels.
     The map is normalized to contain Z-scores, mapped in standard space and treated with spatial smoothing.
@@ -45,7 +49,7 @@ def create_sca(name_sca='sca'):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/sca/sca.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/sca/sca.py>`_
 
     Workflow Inputs::
         inputspec.rest_res_filt : string (existing nifti file)
@@ -93,89 +97,66 @@ def create_sca(name_sca='sca'):
 
     Examples
     --------
-
     >>> sca_w = create_sca("sca_wf")
     >>> sca_w.inputs.inputspec.functional_file = '/home/data/subject/func/rest_bandpassed.nii.gz'  # doctest: +SKIP
     >>> sca_w.inputs.inputspec.timeseries_one_d = '/home/data/subject/func/ts.1D'  # doctest: +SKIP
     >>> sca_w.run() # doctest: +SKIP
 
     """
-
-    from CPAC.utils.utils import get_roi_num_list
-
     sca = pe.Workflow(name=name_sca)
-    inputNode = pe.Node(util.IdentityInterface(fields=['timeseries_one_d',
-                                                       'functional_file',]),
-                        name='inputspec')
+    inputNode = pe.Node(
+        util.IdentityInterface(
+            fields=[
+                "timeseries_one_d",
+                "functional_file",
+            ]
+        ),
+        name="inputspec",
+    )
 
-    outputNode = pe.Node(util.IdentityInterface(fields=[
-                                                    'correlation_stack',
-                                                    'correlation_files',
-                                                    'Z_score',
-                                                    ]),
-                         name='outputspec')
+    outputNode = pe.Node(
+        util.IdentityInterface(
+            fields=[
+                "correlation_stack",
+                "correlation_files",
+                "Z_score",
+            ]
+        ),
+        name="outputspec",
+    )
 
     # 2. Compute voxel-wise correlation with Seed Timeseries
-    corr = pe.Node(interface=preprocess.TCorr1D(),
-                      name='3dTCorr1D', mem_gb=3.0)
+    corr = pe.Node(interface=preprocess.TCorr1D(), name="3dTCorr1D", mem_gb=3.0)
     corr.inputs.pearson = True
-    corr.inputs.outputtype = 'NIFTI_GZ'
+    corr.inputs.outputtype = "NIFTI_GZ"
 
-    sca.connect(inputNode, 'timeseries_one_d',
-                corr, 'y_1d')
-    sca.connect(inputNode, 'functional_file',
-                corr, 'xset')
+    sca.connect(inputNode, "timeseries_one_d", corr, "y_1d")
+    sca.connect(inputNode, "functional_file", corr, "xset")
 
     # Transform the sub-bricks into volumes
     try:
-        concat = pe.Node(interface=preprocess.TCat(), name='3dTCat')
+        concat = pe.Node(interface=preprocess.TCat(), name="3dTCat")
     except AttributeError:
         from nipype.interfaces.afni import utils as afni_utils
-        concat = pe.Node(interface=afni_utils.TCat(), name='3dTCat')
 
-    concat.inputs.outputtype = 'NIFTI_GZ'
+        concat = pe.Node(interface=afni_utils.TCat(), name="3dTCat")
 
-    # also write out volumes as individual files
-    #split = pe.Node(interface=fsl.Split(), name='split_raw_volumes_sca')
-    #split.inputs.dimension = 't'
-    #split.inputs.out_base_name = 'sca_'
+    concat.inputs.outputtype = "NIFTI_GZ"
 
-    #get_roi_num_list = pe.Node(util.Function(input_names=['timeseries_file',
-    #                                                      'prefix'],
-    #                                         output_names=['roi_list'],
-    #                                         function=get_roi_num_list),
-    #                           name='get_roi_num_list')
-    #get_roi_num_list.inputs.prefix = "sca"
-
-    #sca.connect(inputNode, 'timeseries_one_d', get_roi_num_list,
-    #            'timeseries_file')
-
-    #rename_rois = pe.MapNode(interface=util.Rename(), name='output_rois',
-    #                         iterfield=['in_file', 'format_string'])
-    #rename_rois.inputs.keep_ext = True
-
-    #sca.connect(split, 'out_files', rename_rois, 'in_file')
-    #sca.connect(get_roi_num_list, 'roi_list', rename_rois, 'format_string')
-
-    sca.connect(corr, 'out_file', concat, 'in_files')
-    #sca.connect(concat, 'out_file', split, 'in_file')
-    sca.connect(concat, 'out_file',
-                outputNode, 'correlation_stack')
-    #sca.connect(rename_rois, 'out_file', outputNode,
-    #            'correlation_files')
+    sca.connect(corr, "out_file", concat, "in_files")
+    sca.connect(concat, "out_file", outputNode, "correlation_stack")
 
     return sca
 
 
-def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
-    """
+def create_temporal_reg(wflow_name="temporal_reg", which="SR"):
+    r"""
     Temporal multiple regression workflow
     Provides a spatial map of parameter estimates corresponding to each
-    provided timeseries in a timeseries.txt file as regressors
+    provided timeseries in a timeseries.txt file as regressors.
 
     Parameters
     ----------
-
     wflow_name : a string
         Name of the temporal regression workflow
 
@@ -191,7 +172,6 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
     Returns
     -------
-
     wflow : workflow
 
         temporal multiple regression Workflow
@@ -200,8 +180,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
     Notes
     -----
-
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/sca/sca.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/sca/sca.py>`_
 
     Workflow Inputs::
 
@@ -264,7 +243,6 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
     Examples
     --------
-
     >>> tr_wf = create_temporal_reg('temporal-regression')
     >>> tr_wf.inputs.inputspec.subject_rest = '/home/data/subject/func/rest_bandpassed.nii.gz'  # doctest: +SKIP
     >>> tr_wf.inputs.inputspec.subject_timeseries = '/home/data/subject/func/timeseries.txt'  # doctest: +SKIP
@@ -274,47 +252,56 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     >>> tr_wf.run() # doctest: +SKIP
 
     """
-
     wflow = pe.Workflow(name=wflow_name)
 
-    inputNode = pe.Node(util.IdentityInterface
-                        (fields=['subject_rest',
-                                 'subject_timeseries',
-                                 'subject_mask',
-                                 'demean',
-                                 'normalize']),
-                        name='inputspec')
+    inputNode = pe.Node(
+        util.IdentityInterface(
+            fields=[
+                "subject_rest",
+                "subject_timeseries",
+                "subject_mask",
+                "demean",
+                "normalize",
+            ]
+        ),
+        name="inputspec",
+    )
 
-    outputNode = pe.Node(util.IdentityInterface
-                         (fields=['temp_reg_map',
-                                  'temp_reg_map_files',
-                                  'temp_reg_map_z',
-                                  'temp_reg_map_z_files']),
-                         name='outputspec')
+    outputNode = pe.Node(
+        util.IdentityInterface(
+            fields=[
+                "temp_reg_map",
+                "temp_reg_map_files",
+                "temp_reg_map_z",
+                "temp_reg_map_z_files",
+            ]
+        ),
+        name="outputspec",
+    )
 
-    check_timeseries = pe.Node(util.Function(input_names=['in_file'],
-                                             output_names=['out_file'],
-                                             function=check_ts),
-                               name='check_timeseries')
+    check_timeseries = pe.Node(
+        util.Function(
+            input_names=["in_file"], output_names=["out_file"], function=check_ts
+        ),
+        name="check_timeseries",
+    )
 
-    wflow.connect(inputNode, 'subject_timeseries',
-                  check_timeseries, 'in_file')
+    wflow.connect(inputNode, "subject_timeseries", check_timeseries, "in_file")
 
-    temporalReg = pe.Node(interface=fsl.GLM(), name='temporal_regression',
-        mem_gb=4.0)
-    temporalReg.inputs.out_file = 'temp_reg_map.nii.gz'
-    temporalReg.inputs.out_z_name = 'temp_reg_map_z.nii.gz'
+    temporalReg = pe.Node(interface=fsl.GLM(), name="temporal_regression", mem_gb=4.0)
+    temporalReg.inputs.out_file = "temp_reg_map.nii.gz"
+    temporalReg.inputs.out_z_name = "temp_reg_map_z.nii.gz"
 
-    wflow.connect(inputNode, 'subject_rest', temporalReg, 'in_file')
-    wflow.connect(check_timeseries, 'out_file', temporalReg, 'design')
-    wflow.connect(inputNode, 'demean', temporalReg, 'demean')
-    wflow.connect(inputNode, 'normalize', temporalReg, 'des_norm')
-    wflow.connect(inputNode, 'subject_mask', temporalReg, 'mask')
+    wflow.connect(inputNode, "subject_rest", temporalReg, "in_file")
+    wflow.connect(check_timeseries, "out_file", temporalReg, "design")
+    wflow.connect(inputNode, "demean", temporalReg, "demean")
+    wflow.connect(inputNode, "normalize", temporalReg, "des_norm")
+    wflow.connect(inputNode, "subject_mask", temporalReg, "mask")
 
-    wflow.connect(temporalReg, 'out_file', outputNode, 'temp_reg_map')
-    wflow.connect(temporalReg, 'out_z', outputNode, 'temp_reg_map_z')
+    wflow.connect(temporalReg, "out_file", outputNode, "temp_reg_map")
+    wflow.connect(temporalReg, "out_z", outputNode, "temp_reg_map_z")
 
-    '''
+    """
     split = pe.Node(interface=fsl.Split(), name='split_raw_volumes')
     split.inputs.dimension = 't'
     split.inputs.out_base_name = 'temp_reg_map_'
@@ -388,7 +375,7 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
 
         wflow.connect(rename_maps_zstat, 'out_file',
                       outputNode, 'temp_reg_map_z_files')
-    '''
+    """
 
     return wflow
 
@@ -405,69 +392,81 @@ def create_temporal_reg(wflow_name='temporal_reg', which='SR'):
     ],
 )
 def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''Run Seed-Based Correlation Analysis.'''
-
+    """Run Seed-Based Correlation Analysis."""
     # same workflow, except to run TSE and send it to the resource
     # pool so that it will not get sent to SCA
     resample_functional_roi_for_sca = pe.Node(
-        util.Function(input_names=['in_func',
-                                   'in_roi',
-                                   'realignment',
-                                   'identity_matrix'],
-                      output_names=['out_func', 'out_roi'],
-                      function=resample_func_roi,
-                      as_module=True),
-        name=f'resample_functional_roi_for_sca_{pipe_num}')
+        util.Function(
+            input_names=["in_func", "in_roi", "realignment", "identity_matrix"],
+            output_names=["out_func", "out_roi"],
+            function=resample_func_roi,
+            as_module=True,
+        ),
+        name=f"resample_functional_roi_for_sca_{pipe_num}",
+    )
 
-    resample_functional_roi_for_sca.inputs.realignment = \
-        cfg.timeseries_extraction['realignment']
-    resample_functional_roi_for_sca.inputs.identity_matrix = \
-    cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
+    resample_functional_roi_for_sca.inputs.realignment = cfg.timeseries_extraction[
+        "realignment"
+    ]
+    resample_functional_roi_for_sca.inputs.identity_matrix = cfg.registration_workflows[
+        "functional_registration"
+    ]["func_registration_to_template"]["FNIRT_pipelines"]["identity_matrix"]
 
     roi_dataflow_for_sca = create_roi_mask_dataflow(
-        cfg.seed_based_correlation_analysis['sca_atlases']['Avg'],
-        f'roi_dataflow_for_sca_{pipe_num}'
+        cfg.seed_based_correlation_analysis["sca_atlases"]["Avg"],
+        f"roi_dataflow_for_sca_{pipe_num}",
     )
 
     roi_dataflow_for_sca.inputs.inputspec.set(
-        creds_path=cfg.pipeline_setup['input_creds_path'],
-        dl_dir=cfg.pipeline_setup['working_directory']['path']
+        creds_path=cfg.pipeline_setup["input_creds_path"],
+        dl_dir=cfg.pipeline_setup["working_directory"]["path"],
     )
 
-    roi_timeseries_for_sca = get_roi_timeseries(
-        f'roi_timeseries_for_sca_{pipe_num}')
+    roi_timeseries_for_sca = get_roi_timeseries(f"roi_timeseries_for_sca_{pipe_num}")
 
     node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     # resample the input functional file to roi
-    wf.connect(node, out,
-                     resample_functional_roi_for_sca, 'in_func')
-    wf.connect(roi_dataflow_for_sca, 'outputspec.out_file',
-                     resample_functional_roi_for_sca, 'in_roi')
+    wf.connect(node, out, resample_functional_roi_for_sca, "in_func")
+    wf.connect(
+        roi_dataflow_for_sca,
+        "outputspec.out_file",
+        resample_functional_roi_for_sca,
+        "in_roi",
+    )
 
     # connect it to the roi_timeseries
-    wf.connect(resample_functional_roi_for_sca, 'out_roi',
-                     roi_timeseries_for_sca, 'input_roi.roi')
-    wf.connect(resample_functional_roi_for_sca, 'out_func',
-                     roi_timeseries_for_sca, 'inputspec.rest')
+    wf.connect(
+        resample_functional_roi_for_sca,
+        "out_roi",
+        roi_timeseries_for_sca,
+        "input_roi.roi",
+    )
+    wf.connect(
+        resample_functional_roi_for_sca,
+        "out_func",
+        roi_timeseries_for_sca,
+        "inputspec.rest",
+    )
 
-    sca_roi = create_sca(f'sca_roi_{pipe_num}')
+    sca_roi = create_sca(f"sca_roi_{pipe_num}")
 
     node, out = strat_pool.get_data("space-template_desc-preproc_bold")
-    wf.connect(node, out, sca_roi, 'inputspec.functional_file')
+    wf.connect(node, out, sca_roi, "inputspec.functional_file")
 
-    wf.connect(roi_timeseries_for_sca, 'outputspec.roi_csv',
-               #('outputspec.roi_outputs', extract_one_d),
-               sca_roi, 'inputspec.timeseries_one_d')
+    wf.connect(
+        roi_timeseries_for_sca,
+        "outputspec.roi_csv",
+        sca_roi,
+        "inputspec.timeseries_one_d",
+    )
 
     outputs = {
-        'desc-MeanSCA_timeseries':
-            (roi_timeseries_for_sca, 'outputspec.roi_csv'),
-                                    #('outputspec.roi_outputs',
-                                    # extract_one_d)),
-        'space-template_desc-MeanSCA_correlations':
-            (sca_roi, 'outputspec.correlation_stack'),
-        'atlas_name': (roi_dataflow_for_sca, 'outputspec.out_name')
+        "desc-MeanSCA_timeseries": (roi_timeseries_for_sca, "outputspec.roi_csv"),
+        "space-template_desc-MeanSCA_correlations": (
+            sca_roi,
+            "outputspec.correlation_stack",
+        ),
+        "atlas_name": (roi_dataflow_for_sca, "outputspec.out_name"),
     }
 
     return (wf, outputs)
@@ -477,8 +476,7 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     name="dual_regression",
     config=["seed_based_correlation_analysis"],
     switch=["run"],
-    inputs=["space-template_desc-preproc_bold",
-            "space-template_desc-bold_mask"],
+    inputs=["space-template_desc-preproc_bold", "space-template_desc-bold_mask"],
     outputs=[
         "space-template_desc-DualReg_correlations",
         "desc-DualReg_statmap",
@@ -486,74 +484,81 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
 )
 def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''
-    Run Dual Regression - spatial regression and then temporal regression.
-    '''
+    """Run Dual Regression - spatial regression and then temporal regression."""
     resample_spatial_map_to_native_space_for_dr = pe.Node(
         interface=fsl.FLIRT(),
-        name=f'resample_spatial_map_to_native_space_for_DR_{pipe_num}'
+        name=f"resample_spatial_map_to_native_space_for_DR_{pipe_num}",
     )
     resample_spatial_map_to_native_space_for_dr.inputs.set(
-        interp='nearestneighbour',
+        interp="nearestneighbour",
         apply_xfm=True,
-        in_matrix_file=
-        cfg.registration_workflows['functional_registration'][
-            'func_registration_to_template']['FNIRT_pipelines'][
-            'identity_matrix']
+        in_matrix_file=cfg.registration_workflows["functional_registration"][
+            "func_registration_to_template"
+        ]["FNIRT_pipelines"]["identity_matrix"],
     )
 
     spatial_map_dataflow_for_dr = create_spatial_map_dataflow(
-        cfg.seed_based_correlation_analysis['sca_atlases']['DualReg'],
-        f'spatial_map_dataflow_for_DR_{pipe_num}'
+        cfg.seed_based_correlation_analysis["sca_atlases"]["DualReg"],
+        f"spatial_map_dataflow_for_DR_{pipe_num}",
     )
 
     spatial_map_dataflow_for_dr.inputs.inputspec.set(
-        creds_path=cfg.pipeline_setup['input_creds_path'],
-        dl_dir=cfg.pipeline_setup['working_directory']['path']
+        creds_path=cfg.pipeline_setup["input_creds_path"],
+        dl_dir=cfg.pipeline_setup["working_directory"]["path"],
     )
 
     spatial_map_timeseries_for_dr = get_spatial_map_timeseries(
-        f'spatial_map_timeseries_for_DR_{pipe_num}'
+        f"spatial_map_timeseries_for_DR_{pipe_num}"
     )
     spatial_map_timeseries_for_dr.inputs.inputspec.demean = True
 
     # resample the input functional file and functional mask
     # to spatial map
     node, out = strat_pool.get_data("space-template_desc-preproc_bold")
-    wf.connect(node, out,
-               resample_spatial_map_to_native_space_for_dr, 'reference')
-    wf.connect(node, out,
-               spatial_map_timeseries_for_dr, 'inputspec.subject_rest')
+    wf.connect(node, out, resample_spatial_map_to_native_space_for_dr, "reference")
+    wf.connect(node, out, spatial_map_timeseries_for_dr, "inputspec.subject_rest")
 
-    wf.connect(spatial_map_dataflow_for_dr, 'select_spatial_map.out_file',
-               resample_spatial_map_to_native_space_for_dr, 'in_file')
-
-    # connect it to the spatial_map_timeseries
-    wf.connect(resample_spatial_map_to_native_space_for_dr, 'out_file',
-               spatial_map_timeseries_for_dr, 'inputspec.spatial_map'
+    wf.connect(
+        spatial_map_dataflow_for_dr,
+        "select_spatial_map.out_file",
+        resample_spatial_map_to_native_space_for_dr,
+        "in_file",
     )
 
-    dr_temp_reg = create_temporal_reg(f'temporal_regression_{pipe_num}')
-    dr_temp_reg.inputs.inputspec.normalize = \
-        cfg.seed_based_correlation_analysis['norm_timeseries_for_DR']
+    # connect it to the spatial_map_timeseries
+    wf.connect(
+        resample_spatial_map_to_native_space_for_dr,
+        "out_file",
+        spatial_map_timeseries_for_dr,
+        "inputspec.spatial_map",
+    )
+
+    dr_temp_reg = create_temporal_reg(f"temporal_regression_{pipe_num}")
+    dr_temp_reg.inputs.inputspec.normalize = cfg.seed_based_correlation_analysis[
+        "norm_timeseries_for_DR"
+    ]
     dr_temp_reg.inputs.inputspec.demean = True
 
-    wf.connect(spatial_map_timeseries_for_dr, 'outputspec.subject_timeseries',
-               dr_temp_reg, 'inputspec.subject_timeseries')
+    wf.connect(
+        spatial_map_timeseries_for_dr,
+        "outputspec.subject_timeseries",
+        dr_temp_reg,
+        "inputspec.subject_timeseries",
+    )
 
     node, out = strat_pool.get_data("space-template_desc-preproc_bold")
-    wf.connect(node, out, dr_temp_reg, 'inputspec.subject_rest')
+    wf.connect(node, out, dr_temp_reg, "inputspec.subject_rest")
 
     node, out = strat_pool.get_data("space-template_desc-bold_mask")
-    wf.connect(node, out, dr_temp_reg, 'inputspec.subject_mask')
+    wf.connect(node, out, dr_temp_reg, "inputspec.subject_mask")
 
     outputs = {
-        'space-template_desc-DualReg_correlations':
-            (dr_temp_reg, 'outputspec.temp_reg_map'),
-        'desc-DualReg_statmap':
-            (dr_temp_reg, 'outputspec.temp_reg_map_z'),
-        'atlas_name':
-            (spatial_map_dataflow_for_dr, 'select_spatial_map.out_name')
+        "space-template_desc-DualReg_correlations": (
+            dr_temp_reg,
+            "outputspec.temp_reg_map",
+        ),
+        "desc-DualReg_statmap": (dr_temp_reg, "outputspec.temp_reg_map_z"),
+        "atlas_name": (spatial_map_dataflow_for_dr, "select_spatial_map.out_name"),
     }
 
     return (wf, outputs)
@@ -563,8 +568,7 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     name="multiple_regression",
     config=["seed_based_correlation_analysis"],
     switch=["run"],
-    inputs=["space-template_desc-preproc_bold",
-            "space-template_desc-bold_mask"],
+    inputs=["space-template_desc-preproc_bold", "space-template_desc-bold_mask"],
     outputs=[
         "space-template_desc-MultReg_correlations",
         "desc-MultReg_statmap",
@@ -572,77 +576,94 @@ def dual_regression(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
 )
 def multiple_regression(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''Run Multiple Regression.'''
-
+    """Run Multiple Regression."""
     # same workflow, except to run TSE and send it to the resource
     # pool so that it will not get sent to SCA
     resample_functional_roi_for_multreg = pe.Node(
-        resample_function(),
-        name=f'resample_functional_roi_for_multreg_{pipe_num}')
+        resample_function(), name=f"resample_functional_roi_for_multreg_{pipe_num}"
+    )
 
-    resample_functional_roi_for_multreg.inputs.realignment = \
-    cfg.timeseries_extraction['realignment']
-    resample_functional_roi_for_multreg.inputs.identity_matrix = \
-    cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
+    resample_functional_roi_for_multreg.inputs.realignment = cfg.timeseries_extraction[
+        "realignment"
+    ]
+    resample_functional_roi_for_multreg.inputs.identity_matrix = (
+        cfg.registration_workflows["functional_registration"][
+            "func_registration_to_template"
+        ]["FNIRT_pipelines"]["identity_matrix"]
+    )
 
     roi_dataflow_for_multreg = create_roi_mask_dataflow(
-        cfg.seed_based_correlation_analysis['sca_atlases']['MultReg'],
-        f'roi_dataflow_for_mult_reg_{pipe_num}')
+        cfg.seed_based_correlation_analysis["sca_atlases"]["MultReg"],
+        f"roi_dataflow_for_mult_reg_{pipe_num}",
+    )
 
     roi_dataflow_for_multreg.inputs.inputspec.set(
-        creds_path=cfg.pipeline_setup['input_creds_path'],
-        dl_dir=cfg.pipeline_setup['working_directory']['path']
+        creds_path=cfg.pipeline_setup["input_creds_path"],
+        dl_dir=cfg.pipeline_setup["working_directory"]["path"],
     )
 
     roi_timeseries_for_multreg = get_roi_timeseries(
-        f'roi_timeseries_for_mult_reg_{pipe_num}')
+        f"roi_timeseries_for_mult_reg_{pipe_num}"
+    )
 
     node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     # resample the input functional file to roi
-    wf.connect(node, out, resample_functional_roi_for_multreg, 'in_func')
-    wf.connect(roi_dataflow_for_multreg,
-                     'outputspec.out_file',
-                     resample_functional_roi_for_multreg,
-                     'in_roi')
+    wf.connect(node, out, resample_functional_roi_for_multreg, "in_func")
+    wf.connect(
+        roi_dataflow_for_multreg,
+        "outputspec.out_file",
+        resample_functional_roi_for_multreg,
+        "in_roi",
+    )
 
     # connect it to the roi_timeseries
-    wf.connect(resample_functional_roi_for_multreg,
-                     'out_roi',
-                     roi_timeseries_for_multreg,
-                     'input_roi.roi')
-    wf.connect(resample_functional_roi_for_multreg,
-                     'out_func',
-                     roi_timeseries_for_multreg,
-                     'inputspec.rest')
+    wf.connect(
+        resample_functional_roi_for_multreg,
+        "out_roi",
+        roi_timeseries_for_multreg,
+        "input_roi.roi",
+    )
+    wf.connect(
+        resample_functional_roi_for_multreg,
+        "out_func",
+        roi_timeseries_for_multreg,
+        "inputspec.rest",
+    )
 
-    sc_temp_reg = create_temporal_reg(
-        f'temporal_regression_sca_{pipe_num}',
-        which='RT')
-    sc_temp_reg.inputs.inputspec.normalize = \
-    cfg.seed_based_correlation_analysis['norm_timeseries_for_DR']
+    sc_temp_reg = create_temporal_reg(f"temporal_regression_sca_{pipe_num}", which="RT")
+    sc_temp_reg.inputs.inputspec.normalize = cfg.seed_based_correlation_analysis[
+        "norm_timeseries_for_DR"
+    ]
     sc_temp_reg.inputs.inputspec.demean = True
 
-    node, out = strat_pool.get_data(["space-template_desc-cleaned_bold",
-                                     "space-template_desc-brain_bold",
-                                     "space-template_desc-motion_bold",
-                                     "space-template_desc-preproc_bold",
-                                     "space-template_bold"])
-    wf.connect(node, out, sc_temp_reg, 'inputspec.subject_rest')
+    node, out = strat_pool.get_data(
+        [
+            "space-template_desc-cleaned_bold",
+            "space-template_desc-brain_bold",
+            "space-template_desc-motion_bold",
+            "space-template_desc-preproc_bold",
+            "space-template_bold",
+        ]
+    )
+    wf.connect(node, out, sc_temp_reg, "inputspec.subject_rest")
 
-    wf.connect(roi_timeseries_for_multreg, 'outputspec.roi_csv',
-                     #('outputspec.roi_outputs', extract_one_d),
-                     sc_temp_reg, 'inputspec.subject_timeseries')
+    wf.connect(
+        roi_timeseries_for_multreg,
+        "outputspec.roi_csv",
+        sc_temp_reg,
+        "inputspec.subject_timeseries",
+    )
 
-    node, out = strat_pool.get_data('space-template_desc-bold_mask')
-    wf.connect(node, out, sc_temp_reg, 'inputspec.subject_mask')
+    node, out = strat_pool.get_data("space-template_desc-bold_mask")
+    wf.connect(node, out, sc_temp_reg, "inputspec.subject_mask")
 
     outputs = {
-        'space-template_desc-MultReg_correlations':
-            (sc_temp_reg, 'outputspec.temp_reg_map'),
-        'desc-MultReg_statmap':
-            (sc_temp_reg, 'outputspec.temp_reg_map_z'),
-        'atlas_name': (roi_dataflow_for_multreg, 'outputspec.out_name')
+        "space-template_desc-MultReg_correlations": (
+            sc_temp_reg,
+            "outputspec.temp_reg_map",
+        ),
+        "desc-MultReg_statmap": (sc_temp_reg, "outputspec.temp_reg_map_z"),
+        "atlas_name": (roi_dataflow_for_multreg, "outputspec.out_name"),
     }
 
     return (wf, outputs)

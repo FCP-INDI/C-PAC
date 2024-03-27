@@ -21,8 +21,7 @@ def phase_randomize(D, random_state=0):
         pos_freq = np.arange(1, (D.shape[1] - 1) // 2 + 1)
         neg_freq = np.arange(D.shape[1] - 1, (D.shape[1] - 1) // 2, -1)
 
-    shift = random_state.rand(D.shape[0], len(pos_freq),
-                              D.shape[2]) * 2 * np.pi
+    shift = random_state.rand(D.shape[0], len(pos_freq), D.shape[2]) * 2 * np.pi
 
     F[:, pos_freq, :] *= np.exp(1j * shift)
     F[:, neg_freq, :] *= np.exp(-1j * shift)
@@ -30,9 +29,7 @@ def phase_randomize(D, random_state=0):
     return np.real(ifft(F, axis=1))
 
 
-def p_from_null(X, 
-                max_null, min_null,
-                two_sided=False):
+def p_from_null(X, max_null, min_null, two_sided=False):
     max_null_ecdf = ecdf(max_null)
     if two_sided:
         min_null_ecdf = ecdf(min_null)

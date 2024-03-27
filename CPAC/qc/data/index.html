@@ -86,7 +86,7 @@
         'centrality_zstd_smooth': 'Network Centrality (z-score standardized, smoothed)',
         'centrality_zstd': 'Network Centrality (z-score standardized)',
         'centrality': 'Network Centrality',
-        
+
         'csf_gm_wm': 'Grey Matter, White Matter & CSF',
 
         'falff_smooth_hist': 'Histogram of Fractional Amplitude of Low-Frequency Fluctuation (smoothed)',
@@ -137,14 +137,14 @@
         'sca_tempreg_maps_zstat_files_smooth': 'Seed-based Correlation Analysis',
         'sca_tempreg_maps_zstat_files_smooth_hist': 'Seed-based Correlation Analysis',
 
-        
+
         'skullstrip_vis': 'Visual Result of Skull Strip',
         'snr_hist': 'Histogram of Signal to Noise Ratio',
         'snr': 'Signal to Noise Ratio',
 
         'temporal_dual_regression_smooth_hist': 'Histogram of Temporal Dual Regression',
         'temporal_dual_regression_smooth': 'Temporal Dual Regression',
-        
+
         'vmhc_smooth': 'Voxel-Mirrored Homotopic Connectivity (smoothed)',
         'vmhc_smooth_hist': 'Histogram of Voxel-Mirrored Homotopic Connectivity (smoothed)',
         'vmhc_fisher_zstd': 'Fisher-Z transform map of Voxel-Mirrored Homotopic Connectivity (z-score standardized)',
@@ -171,7 +171,7 @@
       const uris_string =
 /*CPAC*/``/*CPAC*/
       .split(/(\r\n|[\n\v\f\r\x85\u2028\u2029])/)
-          
+
       var uris = []
       for (var uri_i in uris_string) {
         var uri = uris_string[uri_i].trim()
@@ -236,7 +236,7 @@
             filteredImages.push(image.image)
           }
         }
-        
+
         $('#images img').remove()
 
         for (var image_i in filteredImages) {
@@ -314,7 +314,7 @@
             }
             $('#filter').append($('<div />').attr('data-name', field).append(sel))
           }
-        
+
           $('#filter div:not(.fixed) select').off('change').on('change', function () {
             $('#loading').show()
             options.filters = filters()

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from nipype.interfaces import afni
-from CPAC.pipeline import nipype_pipeline_engine as pe
 import nipype.interfaces.utility as util
+
+from CPAC.pipeline import nipype_pipeline_engine as pe
 
 
 def inverse_lesion(lesion_path):
@@ -21,15 +22,16 @@ def inverse_lesion(lesion_path):
         path to the output file, if the lesion does not require to be inverted
         it returns the unchanged lesion_path input
     """
-    import shutil
-    import os
     import ntpath
+    import os
+    import shutil
 
-    import CPAC.utils.nifti_utils as nu
     import nibabel as nib
 
+    import CPAC.utils.nifti_utils as nu
+
     lesion_out = lesion_path
-    
+
     if nu.more_zeros_than_ones(image=lesion_path):
         lesion_out = os.path.join(os.getcwd(), ntpath.basename(lesion_path))
         shutil.copyfile(lesion_path, lesion_out)
@@ -40,7 +42,7 @@ def inverse_lesion(lesion_path):
         return lesion_out
 
 
-def create_lesion_preproc(wf_name='lesion_preproc'):
+def create_lesion_preproc(wf_name="lesion_preproc"):
     """
     The main purpose of this workflow is to process lesions masks.
     Lesion mask file is deobliqued and reoriented in the same way as the T1 in
@@ -80,49 +82,45 @@ def create_lesion_preproc(wf_name='lesion_preproc'):
     >>> preproc.inputs.inputspec.lesion = 'sub1/anat/lesion-mask.nii.gz'
     >>> preproc.run() #doctest: +SKIP
     """
-
     preproc = pe.Workflow(name=wf_name)
 
-    inputnode = pe.Node(util.IdentityInterface(
-        fields=['lesion']), name='inputspec')
+    inputnode = pe.Node(util.IdentityInterface(fields=["lesion"]), name="inputspec")
 
-    outputnode = pe.Node(util.IdentityInterface(fields=['refit',
-                                                        'reorient']),
-                         name='outputspec')
+    outputnode = pe.Node(
+        util.IdentityInterface(fields=["refit", "reorient"]), name="outputspec"
+    )
 
-    lesion_deoblique = pe.Node(interface=afni.Refit(),
-                               name='lesion_deoblique')
+    lesion_deoblique = pe.Node(interface=afni.Refit(), name="lesion_deoblique")
 
     lesion_deoblique.inputs.deoblique = True
 
-    lesion_inverted = pe.Node(interface=util.Function(
-        input_names=['lesion_path'],
-        output_names=['lesion_out'],
-        function=inverse_lesion),
-        name='inverse_lesion')
+    lesion_inverted = pe.Node(
+        interface=util.Function(
+            input_names=["lesion_path"],
+            output_names=["lesion_out"],
+            function=inverse_lesion,
+        ),
+        name="inverse_lesion",
+    )
     # We first check and invert the lesion if needed to be used by ANTs
-    preproc.connect(
-        inputnode, 'lesion', lesion_inverted, 'lesion_path')
+    preproc.connect(inputnode, "lesion", lesion_inverted, "lesion_path")
 
-    preproc.connect(
-        lesion_inverted, 'lesion_out', lesion_deoblique, 'in_file')
+    preproc.connect(lesion_inverted, "lesion_out", lesion_deoblique, "in_file")
 
-    preproc.connect(
-        lesion_deoblique, 'out_file', outputnode, 'refit')
+    preproc.connect(lesion_deoblique, "out_file", outputnode, "refit")
 
     # Anatomical reorientation
-    lesion_reorient = pe.Node(interface=afni.Resample(),
-                              name='lesion_reorient',
-                              mem_gb=0,
-                              mem_x=(0.0115, 'in_file', 't'))
+    lesion_reorient = pe.Node(
+        interface=afni.Resample(),
+        name="lesion_reorient",
+        mem_gb=0,
+        mem_x=(0.0115, "in_file", "t"),
+    )
 
-    lesion_reorient.inputs.orientation = 'RPI'
-    lesion_reorient.inputs.outputtype = 'NIFTI_GZ'
+    lesion_reorient.inputs.orientation = "RPI"
+    lesion_reorient.inputs.outputtype = "NIFTI_GZ"
 
-    preproc.connect(
-        lesion_deoblique, 'out_file', lesion_reorient,
-        'in_file')
-    preproc.connect(
-        lesion_reorient, 'out_file', outputnode, 'reorient')
+    preproc.connect(lesion_deoblique, "out_file", lesion_reorient, "in_file")
+    preproc.connect(lesion_reorient, "out_file", outputnode, "reorient")
 
     return preproc

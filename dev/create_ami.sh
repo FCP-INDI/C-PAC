@@ -161,7 +161,7 @@ else
         fi
         if (( $ELAPSED > 14400 )); then  # 4 hours
             echo "It should not take that much (more then 4h). Please take a look."
-            read 
+            read
         fi
         sleep 5
     done

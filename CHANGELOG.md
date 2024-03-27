@@ -16,7 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
-## Changed
+### Fixed
+
+- A bug in which AWS S3 encryption was looked for in Nipype config instead of pipeline config (only affected uploading logs)
+
+### Changed
 
 - Moved autoversioning from CI to pre-commit
 - Updated `FSL-BET` config to default `-mask-boolean` flag as on, and removed all removed `mask-boolean` keys from configs.
@@ -24,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.8.6] - 2024-01-15
 
-## Added
+### Added
 
 - Some automatic handling of user-provided BIDSy atlas names.
 - `sig_imports` static method decorator for `Function` nodes, to accommodate type hinting in signatures of `Function` node functions.
@@ -231,7 +235,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - In a given pipeline configuration, segmentation probability maps and binary tissue masks are warped to template space, and those warped masks are included in the output directory
   - if `registration_workflows['functional_registration']['EPI_registration']['run segmentation']` is `On` and `segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']` includes `EPI_Template`
-  
+
     and/or
   - if `registration_workflows['anatomical_registration']['run']` is `On` and `segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']` includes `T1_Template`
 - Renamed connectivity matrices from `*_connectome.tsv` to `*_correlations.tsv`

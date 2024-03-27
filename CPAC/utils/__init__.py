@@ -1,38 +1,47 @@
-from . import extract_data_multiscan
-from . import create_fsl_model
-from . import extract_parameters
-from . import build_data_config
-from .interfaces import function, masktool
-from .extract_data import run
-from .datatypes import ListFromItem
-from .configuration import check_pname, Configuration, set_subject
+# Copyright (C) 2012-2024  C-PAC Developers
 
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""General utilities for C-PAC."""
+
+from . import build_data_config, create_fsl_flame_preset, versioning
+from .configuration import check_pname, Configuration, set_subject
+from .datatypes import ListFromItem
+from .interfaces import function
+from .sklearn import check_random_state
 from .utils import (
-    get_zscore,
-    get_fisher_zscore,
-    compute_fisher_z_score,
-    get_operand_string,
-    get_roi_num_list,
-    safe_shape,
-    extract_one_d,
-    extract_txt,
-    zscore,
     correlation,
-    check,
-    check_random_state,
-    try_fetch_parameter,
-    get_scan_params,
-    get_tr,
-    check_tr,
     find_files,
-    extract_output_mean,
-    create_output_mean_csv,
-    pick_wm,
-    check_command_path,
-    check_system_deps,
-    check_config_resources,
+    get_zscore,
     repickle,
+    safe_shape,
 )
 
-__all__ = ['check_pname', 'Configuration', 'function', 'ListFromItem',
-           'set_subject']
+__all__ = [
+    "build_data_config",
+    "check_pname",
+    "check_random_state",
+    "Configuration",
+    "correlation",
+    "create_fsl_flame_preset",
+    "find_files",
+    "function",
+    "get_zscore",
+    "ListFromItem",
+    "repickle",
+    "safe_shape",
+    "set_subject",
+    "versioning",
+]

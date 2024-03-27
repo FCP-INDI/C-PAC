@@ -68,7 +68,7 @@ ENV PERL5LIB="$MINC_LIB_DIR/perl5/5.8.5" \
 
 # Installing and setting up AFNI
 COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
-COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/ 
+COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
 COPY --from=AFNI /lib64/ld* /lib64/
 COPY --from=AFNI /usr/lib/afni/bin/ /usr/lib/afni/bin/
 COPY --from=AFNI /usr/lib/x86_64-linux-gnu/lib*so* /usr/lib/x86_64-linux-gnu/
@@ -92,7 +92,7 @@ COPY --from=c3d /usr/bin/c3d_* /usr/bin/
 COPY --from=c3d /usr/share/doc/convert3d /usr/share/doc/convert3d
 COPY --from=c3d /usr/lib/c3d_gui-1.1.0/Convert3DGUI /usr/lib/c3d_gui-1.1.0/Convert3DGUI
 
-# Installing and setting up FSL 
+# Installing and setting up FSL
 COPY --from=FSL /etc/fsl /etc/fsl
 COPY --from=FSL /usr/lib/fsl /usr/lib/fsl
 COPY --from=FSL /usr/lib/libnewmat.so.10 /usr/lib/libnewmat.so.10

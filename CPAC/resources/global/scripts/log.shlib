@@ -137,13 +137,13 @@ log_Msg()
 		fi
 	fi
 
-	# always add the message/parameters specified 
+	# always add the message/parameters specified
 	if [ -z "${msg}" ]; then
 		msg+="${parameters}"
 	else
 		msg+=": ${parameters}"
 	fi
-	
+
 	echo "${msg}"
 }
 

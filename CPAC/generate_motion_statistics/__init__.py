@@ -14,24 +14,27 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Functions for generating motion statistics"""
-from .generate_motion_statistics import (motion_power_statistics,
-                                        calculate_FD_P,
-                                        calculate_FD_J,
-                                        gen_motion_parameters,
-                                        gen_power_parameters,
-                                        calculate_DVARS,
-                                        ImageTo1D)
+"""Functions for generating motion statistics."""
+
+from .generate_motion_statistics import (
+    calculate_DVARS,
+    calculate_FD_J,
+    calculate_FD_P,
+    gen_motion_parameters,
+    gen_power_parameters,
+    ImageTo1D,
+    motion_power_statistics,
+)
 from .utils import affine_file_from_params_file, affine_from_params
 
 __all__ = [
-    'affine_file_from_params_file',
-    'affine_from_params',
-    'calculate_DVARS',
-    'calculate_FD_P',
-    'calculate_FD_J',
-    'gen_motion_parameters',
-    'gen_power_parameters',
-    'ImageTo1D',
-    'motion_power_statistics'
+    "affine_file_from_params_file",
+    "affine_from_params",
+    "calculate_DVARS",
+    "calculate_FD_P",
+    "calculate_FD_J",
+    "gen_motion_parameters",
+    "gen_power_parameters",
+    "ImageTo1D",
+    "motion_power_statistics",
 ]

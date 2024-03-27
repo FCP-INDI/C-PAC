@@ -1,29 +1,64 @@
-"""QC metrics from XCP-D v0.0.9
+# BSD 3-Clause License
 
-Ref: https://github.com/PennLINC/xcp_d/tree/0.0.9
+# Copyright (c) 2020, Lifespan Informatics and Neuroimaging Center
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer.
+
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+
+# 3. Neither the name of the copyright holder nor the names of its
+#    contributors may be used to endorse or promote products derived from
+#    this software without specific prior written permission.
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# Modifications copyright (C) 2022-2024  C-PAC Developers
+"""QC metrics from XCP-D v0.0.9.
+
+https://github.com/PennLINC/xcp_d/blob/0.0.9/xcp_d/utils/qcmetrics.py
 """
+
 # pylint: disable=invalid-name, redefined-outer-name
-import nibabel as nb
 import numpy as np
+import nibabel as nib
 
 
 def regisQ(bold2t1w_mask, t1w_mask, bold2template_mask, template_mask):
-    reg_qc = {'coregDice': [dc(bold2t1w_mask, t1w_mask)],
-              'coregJaccard': [jc(bold2t1w_mask, t1w_mask)],
-              'coregCrossCorr': [crosscorr(bold2t1w_mask, t1w_mask)],
-              'coregCoverage': [coverage(bold2t1w_mask, t1w_mask)],
-              'normDice': [dc(bold2template_mask, template_mask)],
-              'normJaccard': [jc(bold2template_mask, template_mask)],
-              'normCrossCorr': [crosscorr(bold2template_mask, template_mask)],
-              'normCoverage': [coverage(bold2template_mask, template_mask)]}
-    return reg_qc
+    """Collect a dictionary of registration QC metrics."""
+    return {
+        "coregDice": [dc(bold2t1w_mask, t1w_mask)],
+        "coregJaccard": [jc(bold2t1w_mask, t1w_mask)],
+        "coregCrossCorr": [crosscorr(bold2t1w_mask, t1w_mask)],
+        "coregCoverage": [coverage(bold2t1w_mask, t1w_mask)],
+        "normDice": [dc(bold2template_mask, template_mask)],
+        "normJaccard": [jc(bold2template_mask, template_mask)],
+        "normCrossCorr": [crosscorr(bold2template_mask, template_mask)],
+        "normCoverage": [coverage(bold2template_mask, template_mask)],
+    }
 
 
 def dc(input1, input2):
     r"""
-    Dice coefficient
+    Dice coefficient.
+
     Computes the Dice coefficient (also known as Sorensen index)
     between the binary objects in two images.
+
     The metric is defined as
 
     .. math::
@@ -53,8 +88,8 @@ def dc(input1, input2):
     -----
     This is a real metric.
     """
-    input1 = nb.load(input1).get_fdata()
-    input2 = nb.load(input2).get_fdata()
+    input1 = nib.load(input1).get_fdata()
+    input2 = nib.load(input2).get_fdata()
     input1 = np.atleast_1d(input1.astype(bool))
     input2 = np.atleast_1d(input2.astype(bool))
 
@@ -64,7 +99,7 @@ def dc(input1, input2):
     size_i2 = np.count_nonzero(input2)
 
     try:
-        dc = 2. * intersection / float(size_i1 + size_i2)
+        dc = 2.0 * intersection / float(size_i1 + size_i2)
     except ZeroDivisionError:
         dc = 0.0
 
@@ -73,8 +108,10 @@ def dc(input1, input2):
 
 def jc(input1, input2):
     r"""
-    Jaccard coefficient
+    Jaccard coefficient.
+
     Computes the Jaccard coefficient between the binary objects in two images.
+
     Parameters
     ----------
     input1: array_like
@@ -83,43 +120,42 @@ def jc(input1, input2):
     input2: array_like
             Input data containing objects. Can be any type but will be
             converted into binary: background where 0, object everywhere else.
+
     Returns
     -------
     jc: float
         The Jaccard coefficient between the object(s) in `input1` and the
         object(s) in `input2`. It ranges from 0 (no overlap) to 1
         (perfect overlap).
+
     Notes
     -----
     This is a real metric.
     """
-    input1 = nb.load(input1).get_fdata()
-    input2 = nb.load(input2).get_fdata()
+    input1 = nib.load(input1).get_fdata()
+    input2 = nib.load(input2).get_fdata()
     input1 = np.atleast_1d(input1.astype(bool))
     input2 = np.atleast_1d(input2.astype(bool))
 
     intersection = np.count_nonzero(input1 & input2)
     union = np.count_nonzero(input1 | input2)
 
-    jc = float(intersection) / float(union)
-
-    return jc
+    return float(intersection) / float(union)
 
 
 def crosscorr(input1, input2):
-    r"""cross correlation: compute cross correction bewteen input masks"""
-    input1 = nb.load(input1).get_fdata()
-    input2 = nb.load(input2).get_fdata()
+    r"""Cross correlation: compute cross correction bewteen input masks."""
+    input1 = nib.load(input1).get_fdata()
+    input2 = nib.load(input2).get_fdata()
     input1 = np.atleast_1d(input1.astype(bool)).flatten()
     input2 = np.atleast_1d(input2.astype(bool)).flatten()
-    cc = np.corrcoef(input1, input2)[0][1]
-    return cc
+    return np.corrcoef(input1, input2)[0][1]
 
 
 def coverage(input1, input2):
     """Estimate the coverage between two masks."""
-    input1 = nb.load(input1).get_fdata()
-    input2 = nb.load(input2).get_fdata()
+    input1 = nib.load(input1).get_fdata()
+    input2 = nib.load(input2).get_fdata()
     input1 = np.atleast_1d(input1.astype(bool))
     input2 = np.atleast_1d(input2.astype(bool))
     intsec = np.count_nonzero(input1 & input2)
@@ -127,5 +163,4 @@ def coverage(input1, input2):
         smallv = np.sum(input2)
     else:
         smallv = np.sum(input1)
-    cov = float(intsec)/float(smallv)
-    return cov
+    return float(intsec) / float(smallv)

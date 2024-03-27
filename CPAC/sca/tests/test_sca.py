@@ -1,22 +1,23 @@
-from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.algorithms.rapidart as ra
-import nipype.interfaces.afni as afni
-import nipype.interfaces.fsl as fsl
-import nipype.interfaces.io as nio
-import nipype.interfaces.utility as util
-
 class TestSCA(object):
-
-    def __init__(self, rest_res_filt, ref, standard, fwhm, seed_list, rest_mask2standard, premat, postmat, extraction_space):
-
+    def __init__(
+        self,
+        rest_res_filt,
+        ref,
+        standard,
+        fwhm,
+        seed_list,
+        rest_mask2standard,
+        premat,
+        postmat,
+        extraction_space,
+    ):
         """
 
         Initialize Inputs
-        Constructor call to initialize the inputs to sca_preproc workflow
+        Constructor call to initialize the inputs to sca_preproc workflow.
 
         Parameters
         ----------
-
         seed_list : a list of existing nifti files
                A list of seeds/ ROI iin MNI space.
 
@@ -40,12 +41,10 @@ class TestSCA(object):
 
         Returns
         -------
-
         Nothing
 
 
         """
-
         self.rest_res_filt = rest_res_filt
         self.ref = ref
         self.standard = standard
@@ -57,39 +56,32 @@ class TestSCA(object):
         self.extraction_space = extraction_space
         self.sca_preproc = self.setup_workflow()
 
-
     def setup_workflow(self):
         """
-        Set up the workflow object by initializing it
+        Set up the workflow object by initializing it.
 
         Parameters
         ----------
-
         self
 
         Returns
         -------
-
         None
 
         """
-
         self.sca_preproc = sca_preproc(self.extraction_space)
-
 
     def teardown_workflow(self):
         """
 
-        Tear down the workflow by deleting the workflow object
+        Tear down the workflow by deleting the workflow object.
 
         Parameters
         ----------
-
         self
 
         Returns
         -------
-
         None
 
         """
@@ -98,21 +90,18 @@ class TestSCA(object):
     def test_inputs(self):
         """
 
-        Test the workflow inputs
+        Test the workflow inputs.
 
         Parameters
         ----------
-
         self
 
         Returns
         -------
-
         Generates exceptions if any of the input tests fails
 
         Notes
         -----
-
         seed_list :
 
              Verify that inputs seeds lie inside the MNI brain(Not clear on how to verify it without the user supplied co-ordinates.
@@ -145,27 +134,23 @@ class TestSCA(object):
 
 
         """
-
         assert False
 
     def test_output(self):
         """
 
-        Run the sca_preproc workflow and test all the outputs
+        Run the sca_preproc workflow and test all the outputs.
 
         Parameters
         ----------
-
         self
 
         Returns
         -------
-
         generate exceptions for each outputs that fail the test
 
         Notes
         -----
-
         correlations_verification : (a boolean value)
             Reports if correlations command works as expected.
 
@@ -241,29 +226,23 @@ class TestSCA(object):
 
 
         """
-
         assert False
-
-
 
     def test_warp_to_native(self):
         """
         Checks if warping to native space works as expected
-        Set up the workflow object by initializing it
+        Set up the workflow object by initializing it.
 
         Parameters
         ----------
-
         self
 
         Returns
         -------
-
         generates an exception if warp_to_native_test fails
 
         Notes
         -----
-
         On Real Data -
 
         Compute the spatial correlation of the registered Image(outputs of the warp_to_native node) with the reference nifti image (ref)
@@ -277,27 +256,22 @@ class TestSCA(object):
 
 
         """
-
         assert False
-
 
     def test_time_series(self):
         """
-        checks if extraction of timeseries works as expected
+        checks if extraction of timeseries works as expected.
 
         Parameters
         ----------
-
         self
 
         Returns
         -------
-
         generates an exception if time_series_test fails
 
         Notes
         -----
-
         On Real Data -
 
         CASE_extraction_space_MNI: Extract the mean time series from the rest_res_filt in MNI space(do it for all the seeds in MNI space)
@@ -312,27 +286,22 @@ class TestSCA(object):
 
         - Not sure
         """
-
         assert False
-
 
     def test_print_timeseries_to_file(self):
         """
-        checks if outputing timeseries list to a file works as expected
+        checks if outputing timeseries list to a file works as expected.
 
         Parameters
         ----------
-
         self
 
         Returns
         -------
-
         generates an exception if  print_timeseries_to_file_test fails
 
         Notes
         -----
-
         On Real Data -
 
         Read the timeseries from the timeseries file (output of print_timeseries_to_file node).
@@ -343,29 +312,22 @@ class TestSCA(object):
         Not sure
 
         """
-
         assert False
 
-
     def test_warp_filt(self):
-
-
         """
-        checks if warping from functional space to MNI space works as expected
+        checks if warping from functional space to MNI space works as expected.
 
         Parameters
         ----------
-
         self
 
         Returns
         -------
-
         generates an exception if warp_filt_test fails
 
         Notes
         -----
-
         On Real Data -
 
         Compute the spatial correlation of the registered Image(output of warp_filt node) with the reference nifti image (standard)
@@ -379,28 +341,22 @@ class TestSCA(object):
         Not Sure
 
         """
-
         assert False
 
-
     def test_z_trans(self):
-
         """
-        checks if fisher Z transformation works as expected
+        checks if fisher Z transformation works as expected.
 
         Parameters
         ----------
-
         self
 
         Returns
         -------
-
         generates an exception if z_trans_test fails
 
         Notes
         -----
-
         On Real Data -
 
         Measure the variance in z scores in a subject and between subjects as the correlation values vary, is approximately constant
@@ -412,26 +368,20 @@ class TestSCA(object):
         """
         assert False
 
-
     def test_warp_to_standard(self):
-
         """
-        checks if warping from functional space to MNI space works as expected
-
+        checks if warping from functional space to MNI space works as expected.
 
         Parameters
         ----------
-
         self
 
         Returns
         -------
-
         generates an exception if warp_to_standard_test fails
 
         Notes
         -----
-
         On Real Data -
 
         Compute the spatial correlation of the registered Image(output of warp_to_standard node) with the reference nifti image (standard)
@@ -448,25 +398,20 @@ class TestSCA(object):
         """
         assert False
 
-
     def test_corr(self):
-
         """
-        tests if computing correlations works as expected
+        tests if computing correlations works as expected.
 
         Parameters
         ----------
-
         self
 
         Returns
         -------
-
         generates an exception if corr_test fails
 
         Notes
         -----
-
         On Real Data -
 
         Extract mean TimeSeries using the ROI from rest_res_filt nifti image(use the seed and nifi image in appropriate co-ordinate space for extraction_space = 'mni' & 'native')
@@ -484,25 +429,20 @@ class TestSCA(object):
         """
         assert False
 
-
     def test_smooth_mni(self):
-
         """
-        test if spatial smoothing works as expected
+        test if spatial smoothing works as expected.
 
         Parameters
         ----------
-
         self
 
         Returns
         -------
-
         generates an exception if smooth_mni_test fails
 
         Notes
         -----
-
         On Real Data -
 
         Verify that the intensiy distribution in smoothed image is still centered at zero and have unit variance

@@ -15,17 +15,16 @@ def _initial(c):
         c = c << 1
     return crc
 
+
 _tab = [_initial(i) for i in range(256)]
 
 
 def _update_crc(crc, c):
-    cc = 0xff & c
+    cc = 0xFF & c
 
     tmp = (crc >> 8) ^ cc
-    crc = (crc << 8) ^ _tab[tmp & 0xff]
-    crc = crc & 0xffff
-
-    return crc
+    crc = (crc << 8) ^ _tab[tmp & 0xFF]
+    return crc & 0xFFFF
 
 
 def crc(str):
@@ -37,6 +36,6 @@ def crc(str):
 
 def encode(string):
     scrc = str(crc(string))
-    bcrc = scrc.encode('ascii')
-    base64crc = base64.urlsafe_b64encode(bcrc).strip(b'=')
+    bcrc = scrc.encode("ascii")
+    base64crc = base64.urlsafe_b64encode(bcrc).strip(b"=")
     return base64crc.decode()

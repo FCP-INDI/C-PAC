@@ -1,29 +1,30 @@
 # -*- coding: utf-8 -*-
 
-import glob
 from copy import deepcopy
-from CPAC.pipeline import nipype_pipeline_engine as pe
-from nipype.interfaces.utility import Function
-from nipype.pipeline.engine.utils import generate_expanded_graph
-import networkx as nx
+import glob
 
+import networkx as nx
+from nipype.pipeline.engine.utils import generate_expanded_graph
 from indi_aws import fetch_creds
 
 from CPAC.utils.datasource import (
     create_check_for_s3_node,
 )
 
+
 def expand_workflow(wf):
     return generate_expanded_graph(deepcopy(wf._create_flat_graph()))
 
+
 def is_datasink(n):
-    return type(n).__name__ == 'Node' and type(n.interface).__name__ == 'DataSink'
+    return type(n).__name__ == "Node" and type(n.interface).__name__ == "DataSink"
+
 
 def compute_datasink_dirs(graph, datasink, output_dir=None, container=None):
     directories = {}
     for inp in graph.in_edges(datasink):
         src, _ = inp
-        for edge in graph.get_edge_data(*inp)['connect']:
+        for edge in graph.get_edge_data(*inp)["connect"]:
             _, derivative_name = edge
 
             datasink_output_dir = datasink.interface.inputs.base_directory
@@ -37,25 +38,27 @@ def compute_datasink_dirs(graph, datasink, output_dir=None, container=None):
             # Look if there is an output in this datasink directory
 
             iterables = datasink.parameterization
-            path = '/'.join(['', derivative_name] + iterables)
+            path = "/".join(["", derivative_name, *iterables])
             path = datasink.interface._substitute(path)[1:]
-            path = '/'.join([datasink_output_dir, datasink_container, path])
+            path = "/".join([datasink_output_dir, datasink_container, path])
 
             directories[(src, derivative_name)] = path
 
     return directories
 
+
 def list_files(path, s3_creds_path=None):
-    if path.startswith('s3://'):
-        pieces = path[5:].split('/')
-        bucket_name, path = pieces[0], '/'.join(pieces[1:])
+    if path.startswith("s3://"):
+        pieces = path[5:].split("/")
+        bucket_name, path = pieces[0], "/".join(pieces[1:])
         bucket = fetch_creds.return_bucket(s3_creds_path, bucket_name)
         return [
-            's3://%s/%s' % (bucket, obj['Key'])
+            "s3://%s/%s" % (bucket, obj["Key"])
             for obj in bucket.objects.filter(Prefix=path)
         ]
     else:
-        return list(glob.glob(path + '/*'))
+        return list(glob.glob(path + "/*"))
+
 
 def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
     """
@@ -100,7 +103,7 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
     another branch, for [node4], that is not cached. After trimming,
     the remaining workflow is:
 
-    [node1] 
+    [node1]
             ↳ [node4] → [datasink to file2.txt ❌]
 
     2) The node has several outputs, and an uncached branch down the
@@ -115,7 +118,7 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
     is cached, we will reexecute the [registration] again to get the transforms. After trimming,
     the remaining workflow is:
 
-    [registration] 
+    [registration]
                    ↳(transforms)→ [apply transforms] → [datasink to func_warped.nii.gz ❌]
                    [functional] ↗
 
@@ -137,57 +140,49 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
     container : Path
         The subdirectory from the output_dir in which the output are stored. If not provided,
         value is inferred from the DataSink nodes.
-    
+
     s3_creds_path : Path
         Path to S3 credentials, in case output_dir is in a S3 bucket.
-    
+
     Returns
     -------
     wf_new : Workflow
         Prunned workflow
 
     (replacement_mapping, deletions): (Dict, List)
-        
+
         replacement_mapping contains the nodes replaces with input nodes, pointing to
         files from the output_dir
 
         deletions contains the nodes removed from the workflow, as they do not need to be
         executed
-    
-    """
 
+    """
     # Expand graph, to flatten out sub-workflows and iterables
     execgraph = expand_workflow(wf)
 
     replacements = {}
     deletions = []
-    
+
     # Check out for datasinks (i.e. the ones who throws things at the output dir)
-    datasinks = [
-        n for n in execgraph.nodes()
-        if is_datasink(n)
-    ]
+    datasinks = [n for n in execgraph.nodes() if is_datasink(n)]
     for datasink in datasinks:
-
-        for (src, derivative_name), path in \
-            compute_datasink_dirs(execgraph,
-                                  datasink,
-                                  output_dir=output_dir,
-                                  container=container).items():
-
+        for (src, derivative_name), path in compute_datasink_dirs(
+            execgraph, datasink, output_dir=output_dir, container=container
+        ).items():
             files = list_files(path, s3_creds_path=s3_creds_path)
             if len(files) == 1:  # Ignore multi-file nodes
                 if src not in replacements:
                     replacements[src] = {}
 
                 replacements[src][src_field] = files[0]
-        
-        # if the replacements have all the fields from the datasink, datasink 
+
+        # if the replacements have all the fields from the datasink, datasink
         # can be deleted (we do not want to output again the same file :))
         if all(
             any(
                 field in replacements.get(src, {})
-                for field, _ in execgraph.get_edge_data(src, dst)['connect']
+                for field, _ in execgraph.get_edge_data(src, dst)["connect"]
             )
             for src, dst in execgraph.in_edges(datasink)
         ):
@@ -199,11 +194,11 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
         for edge in execgraph.out_edges(node):
             if any(
                 src_field not in cached_fields
-                for src_field, _ in execgraph.get_edge_data(*edge)['connect']
+                for src_field, _ in execgraph.get_edge_data(*edge)["connect"]
             ):
                 del replacements[node]
                 break
-            
+
     # Delete them! It also removes the edges, and recursively delete nodes
     # before rationalizing about replacements
     for node in reversed(nx.topological_sort(execgraph)):
@@ -211,53 +206,51 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
             execgraph.remove_node(node)
         if is_datasink(node):
             continue
-        
+
         if len(execgraph.out_edges(node)) == 0:
             deletions += [node]
             if node in replacements:
                 del replacements[node]
             execgraph.remove_node(node)
-                    
-    # And now we replace the cached with a data input node, from the 
+
+    # And now we replace the cached with a data input node, from the
     # output directory.
     replacement_mapping = {}
     for replacement, cached_files in replacements.items():
         out_edges_data = execgraph.edge[replacement]
-        
+
         # Get this cached node, and replace all the out-connections
         # from this node with a data input node
         out_edges = execgraph.successors(replacement)
         if out_edges:
             for to_node in out_edges:
-                for from_field, to_field in out_edges_data[to_node]['connect']:
-                    
+                for from_field, to_field in out_edges_data[to_node]["connect"]:
                     # Reuse the data input node for this field
                     if replacement not in replacement_mapping:
                         replacement_mapping[replacement] = {}
                     if from_field not in replacement_mapping[replacement]:
-                
                         new_node = create_check_for_s3_node(
-                            name='%s_%s_triminput' % (replacement.name, from_field),
+                            name="%s_%s_triminput" % (replacement.name, from_field),
                             file_path=cached_files[from_field],
-                            img_type='other',
+                            img_type="other",
                             creds_path=s3_creds_path,
-                            dl_dir=None
+                            dl_dir=None,
                         )
                         new_node._hierarchy = deepcopy(replacement._hierarchy)
 
                         execgraph.add_node(new_node)
                         replacement_mapping[replacement][from_field] = new_node
-                
+
                     # Connect the new data input node to the node
                     # it was connected
                     execgraph.add_edge(
                         replacement_mapping[replacement][from_field],
                         to_node,
-                        connect=[('local_path', to_field)]
+                        connect=[("local_path", to_field)],
                     )
 
         execgraph.remove_node(replacement)
-        
+
     # Second round of backtrack deletion, affected by replacements
     for node in reversed(nx.topological_sort(execgraph)):
         if is_datasink(node):
@@ -268,9 +261,9 @@ def the_trimmer(wf, output_dir=None, container=None, s3_creds_path=None):
             if node in replacements:
                 del replacements[node]
             execgraph.remove_node(node)
-        
-    wf_new = wf.clone(wf.name + '_trimmed')
+
+    wf_new = wf.clone(wf.name + "_trimmed")
     wf_new.name = wf.name
     wf_new._graph = execgraph
-    
+
     return wf_new, (replacement_mapping, deletions)

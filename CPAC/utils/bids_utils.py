@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2023  C-PAC Developers
+# Copyright (C) 2016-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -20,7 +20,10 @@ import re
 import sys
 from warnings import warn
 
+from botocore.exceptions import BotoCoreError
 import yaml
+
+from CPAC.utils.monitoring import UTLOGGER
 
 
 def bids_decode_fname(file_path, dbg=False, raise_error=True):
@@ -29,41 +32,45 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
     fname = os.path.basename(file_path)
 
     # first lets make sure that we know how to handle the file
-    if 'nii' not in fname.lower() and 'json' not in fname.lower():
-        raise IOError("File (%s) does not appear to be" % fname +
-                      "a nifti or json file")
+    if "nii" not in fname.lower() and "json" not in fname.lower():
+        msg = f"File ({fname}) does not appear to be a nifti or json file"
+        raise IOError(msg)
 
     if dbg:
-        print("parsing %s" % file_path)
+        UTLOGGER.debug("parsing %s", file_path)
 
     # first figure out if there is a site directory level, this isn't
     # specified in BIDS currently, but hopefully will be in the future
-    file_path_vals = os.path.dirname(file_path).split('/')
-    sub = [s for s in file_path_vals if 'sub-' in s]
+    file_path_vals = os.path.dirname(file_path).split("/")
+    sub = [s for s in file_path_vals if "sub-" in s]
     if dbg:
-        print("found subject %s in %s" % (sub, str(file_path_vals)))
+        UTLOGGER.debug("found subject %s in %s", sub, file_path_vals)
 
     if len(sub) > 1:
-        print("Odd that there is more than one subject directory" +
-              "in (%s), does the filename conform to" % file_path +
-              " BIDS format?")
+        UTLOGGER.debug(
+            "Odd that there is more than one subject directory in (%s), does the"
+            " filename conform to BIDS format?",
+            file_path,
+        )
     if sub:
         sub_ndx = file_path_vals.index(sub[0])
         if sub_ndx > 0 and file_path_vals[sub_ndx - 1]:
             if dbg:
-                print("setting site to %s" % (file_path_vals[sub_ndx - 1]))
+                UTLOGGER.debug("setting site to %s", file_path_vals[sub_ndx - 1])
             f_dict["site"] = file_path_vals[sub_ndx - 1]
         else:
             f_dict["site"] = "none"
     elif file_path_vals[-1]:
         if dbg:
-            print("looking for subject id didn't pan out settling for last"+
-                   "subdir %s" % (str(file_path_vals[-1])))
+            UTLOGGER.debug(
+                "looking for subject id didn't pan out settling for last subdir %s",
+                file_path_vals[-1],
+            )
         f_dict["site"] = file_path_vals[-1]
     else:
         f_dict["site"] = "none"
 
-    f_dict["site"] = re.sub(r'[\s\-\_]+', '', f_dict["site"])
+    f_dict["site"] = re.sub(r"[\s\-\_]+", "", f_dict["site"])
 
     fname = fname.split(".")[0]
     # convert the filename string into a dictionary to pull out the other
@@ -78,28 +85,32 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
             f_dict["scantype"] = key_val_pair.split(".")[0]
 
     if "scantype" not in f_dict:
-        msg = "Filename ({0}) does not appear to contain" \
-              " scan type, does it conform to the BIDS format?".format(fname)
+        msg = (
+            f"Filename ({fname}) does not appear to contain"
+            " scan type, does it conform to the BIDS format?"
+        )
         if raise_error:
             raise ValueError(msg)
         else:
-            print(msg)
+            UTLOGGER.error(msg)
     elif not f_dict["scantype"]:
-        msg = "Filename ({0}) does not appear to contain" \
-              " scan type, does it conform to the BIDS format?".format(fname)
+        msg = (
+            f"Filename ({fname}) does not appear to contain"
+            " scan type, does it conform to the BIDS format?"
+        )
         if raise_error:
             raise ValueError(msg)
         else:
-            print(msg)
-    else:
-        if 'bold' in f_dict["scantype"] and not f_dict["task"]:
-            msg = "Filename ({0}) is a BOLD file, but " \
-                  "doesn't contain a task, does it conform to the" \
-                  " BIDS format?".format(fname)
-            if raise_error:
-                raise ValueError(msg)
-            else:
-                print(msg)
+            UTLOGGER.error(msg)
+    elif "bold" in f_dict["scantype"] and not f_dict["task"]:
+        msg = (
+            f"Filename ({fname}) is a BOLD file, but doesn't contain a task, does"
+            " it conform to the BIDS format?"
+        )
+        if raise_error:
+            raise ValueError(msg)
+        else:
+            UTLOGGER.error(msg)
 
     return f_dict
 
@@ -124,8 +135,10 @@ def bids_entities_from_filename(filename):
     ['sub-0001', 'ses-NFB3', 'task-MSIT', 'bold']
     """
     return (
-        filename.split('/')[-1] if '/' in filename else filename
-    ).split('.')[0].split('_')
+        (filename.split("/")[-1] if "/" in filename else filename)
+        .split(".")[0]
+        .split("_")
+    )
 
 
 def bids_match_entities(file_list, entities, suffix):
@@ -167,38 +180,48 @@ def bids_match_entities(file_list, entities, suffix):
     - task-PEER2
     """
     matches = [
-        file for file in file_list if (
-            f'_{entities}_' in '_'.join(
-                bids_entities_from_filename(file)
-            ) and bids_entities_from_filename(file)[-1] == suffix
-        ) or bids_entities_from_filename(file)[-1] != suffix
+        file
+        for file in file_list
+        if (
+            f"_{entities}_" in "_".join(bids_entities_from_filename(file))
+            and bids_entities_from_filename(file)[-1] == suffix
+        )
+        or bids_entities_from_filename(file)[-1] != suffix
     ]
     if file_list and not matches:
-        pp_file_list = '\n'.join([f'- {file}' for file in file_list])
-        error_message = ' '.join([
-            'No match found for provided',
-            'entity' if len(entities.split('_')) == 1 else 'entities',
-            f'"{entities}" in\n{pp_file_list}'
-        ])
-        partial_matches = [match.group() for match in [
-            re.search(re.compile(f'[^_]*{entities}[^_]*'), file) for
-            file in file_list
-        ] if match is not None]
+        pp_file_list = "\n".join([f"- {file}" for file in file_list])
+        error_message = " ".join(
+            [
+                "No match found for provided",
+                "entity" if len(entities.split("_")) == 1 else "entities",
+                f'"{entities}" in\n{pp_file_list}',
+            ]
+        )
+        partial_matches = [
+            match.group()
+            for match in [
+                re.search(re.compile(f"[^_]*{entities}[^_]*"), file)
+                for file in file_list
+            ]
+            if match is not None
+        ]
         if partial_matches:
             if len(partial_matches) == 1:
                 error_message += f'\nPerhaps you meant "{partial_matches[0]}"?'
             else:
-                error_message = '\n'.join([
-                    error_message,
-                    'Perhaps you meant one of these?',
-                    *[f'- {match}' for match in partial_matches]
-                ])
+                error_message = "\n".join(
+                    [
+                        error_message,
+                        "Perhaps you meant one of these?",
+                        *[f"- {match}" for match in partial_matches],
+                    ]
+                )
         raise LookupError(error_message)
     return matches
 
 
 def bids_remove_entity(name, key):
-    """Remove an entity from a BIDS string by key
+    """Remove an entity from a BIDS string by key.
 
     Parameters
     ----------
@@ -219,8 +242,11 @@ def bids_remove_entity(name, key):
     >>> bids_remove_entity('atlas-Yeo_space-MNI152NLin6_res-2x2x2', 'res')
     'atlas-Yeo_space-MNI152NLin6'
     """
-    return '_'.join(entity for entity in bids_entities_from_filename(name)
-                    if not entity.startswith(f'{key.rstrip("-")}-'))
+    return "_".join(
+        entity
+        for entity in bids_entities_from_filename(name)
+        if not entity.startswith(f'{key.rstrip("-")}-')
+    )
 
 
 def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
@@ -249,23 +275,23 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     t_dict = bids_config_dict  # pointer to current dictionary
     # try to populate the configuration using information
     # already in the list
-    for level in ['scantype', 'site', 'sub', 'ses', 'task', 'acq',
-                  'rec', 'dir', 'run']:
+    for level in ["scantype", "site", "sub", "ses", "task", "acq", "rec", "dir", "run"]:
         if level in f_dict:
             key = "-".join([level, f_dict[level]])
         else:
             key = "-".join([level, "none"])
 
         if dbg:
-            print(key)
+            UTLOGGER.debug(key)
         # if the key doesn't exist in the config dictionary, check to see if
         # the generic key exists and return that
         if key in t_dict:
             t_dict = t_dict[key]
         else:
             if dbg:
-                print("Couldn't find %s, so going with %s" % (key,
-                        "-".join([level, "none"])))
+                UTLOGGER.debug(
+                    "Couldn't find %s, so going with %s", key, "-".join([level, "none"])
+                )
             key = "-".join([level, "none"])
             if key in t_dict:
                 t_dict = t_dict[key]
@@ -276,16 +302,16 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     # sidecar files
 
     if dbg:
-        print(t_dict)
+        UTLOGGER.debug(t_dict)
 
     for key in t_dict.keys():
-        if 'RepetitionTime' in key:
+        if "RepetitionTime" in key:
             params = t_dict
             break
 
     for k, v in params.items():
         if isinstance(v, str):
-            params[k] = v.encode('ascii', errors='ignore')
+            params[k] = v.encode("ascii", errors="ignore")
 
     return params
 
@@ -304,7 +330,6 @@ def bids_parse_sidecar(config_dict, dbg=False, raise_error=True):
     :return: a dictionary that maps parameters to components from BIDS filenames
        such as sub, sess, run, acq, and scan type
     """
-
     # we are going to build a large-scale data structure, consisting of many
     # levels of dictionaries to hold the data.
     bids_config_dict = {}
@@ -312,14 +337,13 @@ def bids_parse_sidecar(config_dict, dbg=False, raise_error=True):
     # initialize 'default' entries, this essentially is a pointer traversal
     # of the dictionary
     t_dict = bids_config_dict
-    for level in ['scantype', 'site', 'sub', 'ses', 'task',
-                  'acq', 'rec', 'dir', 'run']:
-        key = '-'.join([level, 'none'])
+    for level in ["scantype", "site", "sub", "ses", "task", "acq", "rec", "dir", "run"]:
+        key = "-".join([level, "none"])
         t_dict[key] = {}
         t_dict = t_dict[key]
 
     if dbg:
-        print(bids_config_dict)
+        UTLOGGER.debug(bids_config_dict)
 
     # get the paths to the json yaml files in config_dict, the paths contain
     # the information needed to map the parameters from the jsons (the vals
@@ -327,18 +351,14 @@ def bids_parse_sidecar(config_dict, dbg=False, raise_error=True):
     # by the number of path components, so that we can iterate from the outer
     # most path to inner-most, which will help us address the BIDS inheritance
     # principle
-    config_paths = sorted(
-        list(config_dict.keys()),
-        key=lambda p: len(p.split('/'))
-    )
+    config_paths = sorted(config_dict.keys(), key=lambda p: len(p.split("/")))
 
     if dbg:
-        print(config_paths)
+        UTLOGGER.debug(config_paths)
 
     for cp in config_paths:
-
         if dbg:
-            print("processing %s" % (cp))
+            UTLOGGER.debug("processing %s", cp)
 
         # decode the filepath into its various components as defined by  BIDS
         f_dict = bids_decode_fname(cp, raise_error=raise_error)
@@ -365,11 +385,13 @@ def bids_parse_sidecar(config_dict, dbg=False, raise_error=True):
         try:
             bids_config.update(t_config)
         except ValueError:
-            err = "\n[!] Could not properly parse the AWS S3 path provided " \
-                  "- please double-check the bucket and the path.\n\nNote: " \
-                  "This could either be an issue with the path or the way " \
-                  "the data is organized in the directory. You can also " \
-                  "try providing a specific site sub-directory.\n\n"
+            err = (
+                "\n[!] Could not properly parse the AWS S3 path provided "
+                "- please double-check the bucket and the path.\n\nNote: "
+                "This could either be an issue with the path or the way "
+                "the data is organized in the directory. You can also "
+                "try providing a specific site sub-directory.\n\n"
+            )
             raise ValueError(err)
 
         # now put the configuration in the data structure, by first iterating
@@ -379,8 +401,17 @@ def bids_parse_sidecar(config_dict, dbg=False, raise_error=True):
         # e.g. run-1, run-2, ... will all map to run-none if no jsons
         # explicitly define values for those runs
         t_dict = bids_config_dict  # pointer to current dictionary
-        for level in ['scantype', 'site', 'sub', 'ses', 'task', 'acq',
-                      'rec', 'dir', 'run']:
+        for level in [
+            "scantype",
+            "site",
+            "sub",
+            "ses",
+            "task",
+            "acq",
+            "rec",
+            "dir",
+            "run",
+        ]:
             if level in f_dict:
                 key = "-".join([level, f_dict[level]])
             else:
@@ -393,7 +424,7 @@ def bids_parse_sidecar(config_dict, dbg=False, raise_error=True):
 
         t_dict.update(bids_config)
 
-    return(bids_config_dict)
+    return bids_config_dict
 
 
 def bids_shortest_entity(file_list):
@@ -419,9 +450,7 @@ def bids_shortest_entity(file_list):
     ... ])
     's3://fake/data/sub-001_ses-001_bold.nii.gz'
     """
-    entity_lists = [
-        bids_entities_from_filename(filename) for filename in file_list
-    ]
+    entity_lists = [bids_entities_from_filename(filename) for filename in file_list]
 
     if not entity_lists:
         return None
@@ -429,8 +458,9 @@ def bids_shortest_entity(file_list):
     shortest_len = min(len(entity_list) for entity_list in entity_lists)
 
     shortest_list = [
-        file_list[i] for i in range(len(file_list)) if
-        len(entity_lists[i]) == shortest_len
+        file_list[i]
+        for i in range(len(file_list))
+        if len(entity_lists[i]) == shortest_len
     ]
 
     return shortest_list[0] if len(shortest_list) == 1 else shortest_list
@@ -439,15 +469,19 @@ def bids_shortest_entity(file_list):
 def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
     import copy
 
-    func_keys = ["functional_to_anat_linear_xfm", "motion_params",
-                 "movement_parameters", "motion_correct"]
+    func_keys = [
+        "functional_to_anat_linear_xfm",
+        "motion_params",
+        "movement_parameters",
+        "motion_correct",
+    ]
     top_keys = list(set(key_list) - set(func_keys))
     bot_keys = list(set(key_list).intersection(func_keys))
 
     subjdict = {}
 
-    if not base_path.endswith('/'):
-        base_path = base_path + '/'
+    if not base_path.endswith("/"):
+        base_path = base_path + "/"
 
     # output directories are a bit different than standard BIDS, so
     # we handle things differently
@@ -457,10 +491,10 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
 
         # find the participant and session info which should be at
         # some level in the path
-        path_base = p.replace(base_path, '')
+        path_base = p.replace(base_path, "")
 
-        subj_info = path_base.split('/')[0]
-        resource = path_base.split('/')[1]
+        subj_info = path_base.split("/")[0]
+        resource = path_base.split("/")[1]
 
         if resource not in key_list:
             continue
@@ -472,14 +506,13 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
             subjdict[subj_info]["creds_path"] = creds_path
 
         if resource in func_keys:
-            run_info = path_base.split('/')[2]
+            run_info = path_base.split("/")[2]
             if "funcs" not in subjdict[subj_info]:
                 subjdict[subj_info]["funcs"] = {}
             if run_info not in subjdict[subj_info]["funcs"]:
-                subjdict[subj_info]["funcs"][run_info] = {'run_info': run_info}
+                subjdict[subj_info]["funcs"][run_info] = {"run_info": run_info}
             if resource in subjdict[subj_info]["funcs"][run_info]:
-                print("warning resource %s already exists in subjdict ??" %
-                      (resource))
+                UTLOGGER.warning("resource %s already exists in subjdict ??", resource)
             subjdict[subj_info]["funcs"][run_info][resource] = p
         else:
             subjdict[subj_info][resource] = p
@@ -489,7 +522,7 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
         missing = 0
         for tkey in top_keys:
             if tkey not in subj_res:
-                print("%s not found for %s" % (tkey, subj_info))
+                UTLOGGER.warning("%s not found for %s", tkey, subj_info)
                 missing += 1
                 break
 
@@ -497,14 +530,13 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
             for func_key, func_res in subj_res["funcs"].items():
                 for bkey in bot_keys:
                     if bkey not in func_res:
-                        print("%s not found for %s" % (bkey,
-                                                       func_key))
+                        UTLOGGER.warning("%s not found for %s", bkey, func_key)
                         missing += 1
                         break
                 if missing == 0:
-                    print("adding: %s, %s, %d" % (subj_info,
-                                                  func_key,
-                                                  len(sublist)))
+                    UTLOGGER.info(
+                        "adding: %s, %s, %d", subj_info, func_key, len(sublist)
+                    )
                     tdict = copy.deepcopy(subj_res)
                     del tdict["funcs"]
                     tdict.update(func_res)
@@ -512,8 +544,15 @@ def gen_bids_outputs_sublist(base_path, paths_list, key_list, creds_path):
     return sublist
 
 
-def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
-                          dbg=False, raise_error=True, only_one_anat=True):
+def bids_gen_cpac_sublist(
+    bids_dir,
+    paths_list,
+    config_dict,
+    creds_path,
+    dbg=False,
+    raise_error=True,
+    only_one_anat=True,
+):
     """
     Generates a CPAC formatted subject list from information contained in a
     BIDS formatted set of data.
@@ -559,51 +598,52 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
         to be processed
     """
     if dbg:
-        print("gen_bids_sublist called with:")
-        print("  bids_dir: {0}".format(bids_dir))
-        print("  # paths: {0}".format(str(len(paths_list))))
-        print("  config_dict: {0}".format(
-            "missing" if not config_dict else "found")
+        UTLOGGER.debug(
+            "gen_bids_sublist called with:\n  bids_dir: %s\n  # paths: %s"
+            "\n  config_dict: %s\n  creds_path: %s",
+            bids_dir,
+            len(paths_list),
+            "missing" if not config_dict else "found",
+            creds_path,
         )
-        print("  creds_path: {0}".format(creds_path))
 
     # if configuration information is not desired, config_dict will be empty,
     # otherwise parse the information in the sidecar json files into a dict
     # we can use to extract data for our nifti files
     if config_dict:
-        bids_config_dict = bids_parse_sidecar(config_dict,
-                                              raise_error=raise_error)
+        bids_config_dict = bids_parse_sidecar(config_dict, raise_error=raise_error)
 
     subdict = {}
     for p in paths_list:
         if bids_dir in p:
             str_list = p.split(bids_dir)
             val = str_list[0]
-            val = val.rsplit('/')
+            val = val.rsplit("/")
             val = val[0]
         else:
-            str_list = p.split('/')
+            str_list = p.split("/")
             val = str_list[0]
 
-        if 'sub-' not in val:
+        if "sub-" not in val:
             continue
 
         p = p.rstrip()
         f = os.path.basename(p)
 
         if f.endswith(".nii") or f.endswith(".nii.gz"):
-
             f_dict = bids_decode_fname(p, raise_error=raise_error)
 
             if config_dict:
-                t_params = bids_retrieve_params(bids_config_dict,
-                                                f_dict)
+                t_params = bids_retrieve_params(bids_config_dict, f_dict)
                 if not t_params:
-                    print("Did not receive any parameters for %s," % (p) +
-                          " is this a problem?")
+                    UTLOGGER.warning(
+                        "Did not receive any parameters for %s, is this a problem?", p
+                    )
 
-                task_info = {"scan": os.path.join(bids_dir, p),
-                             "scan_parameters": t_params.copy()}
+                task_info = {
+                    "scan": os.path.join(bids_dir, p),
+                    "scan_parameters": t_params.copy(),
+                }
             else:
                 task_info = os.path.join(bids_dir, p)
 
@@ -611,8 +651,9 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                 f_dict["ses"] = "1"
 
             if "sub" not in f_dict:
-                raise IOError("sub not found in %s," % (p) +
-                              " perhaps it isn't in BIDS format?")
+                raise IOError(
+                    "sub not found in %s," % (p) + " perhaps it isn't in BIDS format?"
+                )
 
             if f_dict["sub"] not in subdict:
                 subdict[f_dict["sub"]] = {}
@@ -620,82 +661,95 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
             subjid = "-".join(["sub", f_dict["sub"]])
 
             if f_dict["ses"] not in subdict[f_dict["sub"]]:
-                subdict[f_dict["sub"]][f_dict["ses"]] = \
-                    {"creds_path": creds_path,
-                     "site_id": "-".join(["site", f_dict["site"]]),
-                     "subject_id": subjid,
-                     "unique_id": "-".join(["ses", f_dict["ses"]])}
+                subdict[f_dict["sub"]][f_dict["ses"]] = {
+                    "creds_path": creds_path,
+                    "site_id": "-".join(["site", f_dict["site"]]),
+                    "subject_id": subjid,
+                    "unique_id": "-".join(["ses", f_dict["ses"]]),
+                }
 
             if "T1w" in f_dict["scantype"] or "T2w" in f_dict["scantype"]:
-                if "lesion" in f_dict.keys() and "mask" in f_dict['lesion']:
-                    if "lesion_mask" not in \
-                            subdict[f_dict["sub"]][f_dict["ses"]]:
-                        subdict[f_dict["sub"]][f_dict["ses"]]["lesion_mask"] = \
+                if "lesion" in f_dict.keys() and "mask" in f_dict["lesion"]:
+                    if "lesion_mask" not in subdict[f_dict["sub"]][f_dict["ses"]]:
+                        subdict[f_dict["sub"]][f_dict["ses"]]["lesion_mask"] = (
                             task_info["scan"]
+                        )
                     else:
-                        print("Lesion mask file (%s) already found" %
-                              (subdict[f_dict["sub"]]
-                               [f_dict["ses"]]
-                               ["lesion_mask"]) +
-                              " for (%s:%s) discarding %s" %
-                              (f_dict["sub"], f_dict["ses"], p))
+                        UTLOGGER.warning(
+                            "Lesion mask file (%s) already found for (%s:%s)"
+                            " discarding %s",
+                            subdict[f_dict["sub"]][f_dict["ses"]]["lesion_mask"],
+                            f_dict["sub"],
+                            f_dict["ses"],
+                            p,
+                        )
+
                 # TODO deal with scan parameters anatomical
                 if "anat" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["anat"] = {}
 
-                if f_dict["scantype"] not in subdict[f_dict["sub"]][
-                    f_dict["ses"]
-                ]["anat"]:
+                if (
+                    f_dict["scantype"]
+                    not in subdict[f_dict["sub"]][f_dict["ses"]]["anat"]
+                ):
                     if only_one_anat:
                         subdict[f_dict["sub"]][f_dict["ses"]]["anat"][
                             f_dict["scantype"]
                         ] = task_info["scan"] if config_dict else task_info
                     else:
                         subdict[f_dict["sub"]][f_dict["ses"]]["anat"][
-                            f_dict["scantype"]] = []
+                            f_dict["scantype"]
+                        ] = []
                 if not only_one_anat:
                     subdict[f_dict["sub"]][f_dict["ses"]]["anat"][
-                        f_dict["scantype"]].append(
-                            task_info["scan"] if config_dict else task_info)
+                        f_dict["scantype"]
+                    ].append(task_info["scan"] if config_dict else task_info)
 
             if "bold" in f_dict["scantype"]:
                 task_key = f_dict["task"]
                 if "run" in f_dict:
-                    task_key = "_".join([task_key,
-                                         "-".join(["run", f_dict["run"]])])
+                    task_key = "_".join([task_key, "-".join(["run", f_dict["run"]])])
                 if "acq" in f_dict:
-                    task_key = "_".join([task_key,
-                                         "-".join(["acq", f_dict["acq"]])])
+                    task_key = "_".join([task_key, "-".join(["acq", f_dict["acq"]])])
                 if "func" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["func"] = {}
 
-                if task_key not in \
-                    subdict[f_dict["sub"]][f_dict["ses"]]["func"]:
-
+                if task_key not in subdict[f_dict["sub"]][f_dict["ses"]]["func"]:
                     if not isinstance(task_info, dict):
                         task_info = {"scan": task_info}
                     subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] = task_info
 
                 else:
-                    print("Func file (%s)" %
-                        subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key] +
-                        " already found for ( % s: %s: % s) discarding % s" % (
-                               f_dict["sub"],
-                               f_dict["ses"],
-                               task_key,
-                               p))
+                    UTLOGGER.warning(
+                        "Func file (%s) already found for (%s: %s: %s) discarding %s",
+                        subdict[f_dict["sub"]][f_dict["ses"]]["func"][task_key],
+                        f_dict["sub"],
+                        f_dict["ses"],
+                        task_key,
+                        p,
+                    )
 
             if "phase" in f_dict["scantype"]:
                 if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
-                if f_dict["scantype"] not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
-                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][f_dict["scantype"]] = task_info
+                if (
+                    f_dict["scantype"]
+                    not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]
+                ):
+                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][
+                        f_dict["scantype"]
+                    ] = task_info
 
             if "magnitude" in f_dict["scantype"]:
                 if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                     subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
-                if f_dict["scantype"] not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
-                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][f_dict["scantype"]] = task_info
+                if (
+                    f_dict["scantype"]
+                    not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]
+                ):
+                    subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][
+                        f_dict["scantype"]
+                    ] = task_info
 
             if "epi" in f_dict["scantype"]:
                 pe_dir = f_dict["dir"]
@@ -703,12 +757,13 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                     if "fMRI" in f_dict["acq"]:
                         if "fmap" not in subdict[f_dict["sub"]][f_dict["ses"]]:
                             subdict[f_dict["sub"]][f_dict["ses"]]["fmap"] = {}
-                        if "epi_{0}".format(
-                            pe_dir
-                        ) not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]:
-                            subdict[f_dict["sub"]][
-                                f_dict["ses"]
-                            ]["fmap"]["epi_{0}".format(pe_dir)] = task_info
+                        if (
+                            f"epi_{pe_dir}"
+                            not in subdict[f_dict["sub"]][f_dict["ses"]]["fmap"]
+                        ):
+                            subdict[f_dict["sub"]][f_dict["ses"]]["fmap"][
+                                f"epi_{pe_dir}"
+                            ] = task_info
 
     sublist = []
     for ksub, sub in subdict.items():
@@ -717,102 +772,119 @@ def bids_gen_cpac_sublist(bids_dir, paths_list, config_dict, creds_path,
                 sublist.append(ses)
             else:
                 if "anat" not in ses:
-                    print("%s %s %s is missing an anat" % (
-                        ses["site_id"] if 'none' not in ses["site_id"] else '',
+                    UTLOGGER.warning(
+                        "%s %s %s is missing an anat",
+                        ses["site_id"] if "none" not in ses["site_id"] else "",
                         ses["subject_id"],
-                        ses["unique_id"]
-                    ))
+                        ses["unique_id"],
+                    )
                 if "func" not in ses:
-                    print("%s %s %s is missing an func" % (
-                        ses["site_id"] if 'none' not in ses["site_id"] else '',
+                    UTLOGGER.warning(
+                        "%s %s %s is missing a func",
+                        ses["site_id"] if "none" not in ses["site_id"] else "",
                         ses["subject_id"],
-                        ses["unique_id"]
-                    ))
+                        ses["unique_id"],
+                    )
 
     return sublist
 
 
-def collect_bids_files_configs(bids_dir, aws_input_creds=''):
+def collect_bids_files_configs(bids_dir, aws_input_creds=""):
     """
     :param bids_dir:
     :param aws_input_creds:
     :return:
     """
-
     file_paths = []
     config_dict = {}
 
-    suffixes = ['T1w', 'T2w', 'bold', 'epi', 'phasediff', 'phase1',
-                'phase2', 'magnitude', 'magnitude1', 'magnitude2']
+    suffixes = [
+        "T1w",
+        "T2w",
+        "bold",
+        "epi",
+        "phasediff",
+        "phase1",
+        "phase2",
+        "magnitude",
+        "magnitude1",
+        "magnitude2",
+    ]
 
     if bids_dir.lower().startswith("s3://"):
         # s3 paths begin with s3://bucket/
-        bucket_name = bids_dir.split('/')[2]
-        s3_prefix = '/'.join(bids_dir.split('/')[:3])
-        prefix = bids_dir.replace(s3_prefix, '').lstrip('/')
+        bucket_name = bids_dir.split("/")[2]
+        s3_prefix = "/".join(bids_dir.split("/")[:3])
+        prefix = bids_dir.replace(s3_prefix, "").lstrip("/")
 
         if aws_input_creds:
             if not os.path.isfile(aws_input_creds):
-                raise IOError("Could not find aws_input_creds (%s)" %
-                              (aws_input_creds))
+                raise IOError("Could not find aws_input_creds (%s)" % (aws_input_creds))
 
         from indi_aws import fetch_creds
+
         bucket = fetch_creds.return_bucket(aws_input_creds, bucket_name)
 
-        print(f"gathering files from S3 bucket ({bucket}) for {prefix}")
+        UTLOGGER.info("gathering files from S3 bucket (%s) for %s", bucket, prefix)
 
         for s3_obj in bucket.objects.filter(Prefix=prefix):
             for suf in suffixes:
                 if suf in str(s3_obj.key):
-                    if suf == 'epi' and 'acq-fMRI' not in s3_obj.key:
+                    if suf == "epi" and "acq-fMRI" not in s3_obj.key:
                         continue
                     if str(s3_obj.key).endswith("json"):
                         try:
-                            config_dict[s3_obj.key.replace(prefix, "")
-                                        .lstrip('/')] = json.loads(
-                                            s3_obj.get()["Body"].read())
+                            config_dict[s3_obj.key.replace(prefix, "").lstrip("/")] = (
+                                json.loads(s3_obj.get()["Body"].read())
+                            )
                         except Exception as e:
-                            print("Error retrieving %s (%s)" %
-                                  (s3_obj.key.replace(prefix, ""),
-                                  e.message))
-                            raise
-                    elif 'nii' in str(s3_obj.key):
-                        file_paths.append(str(s3_obj.key)
-                                          .replace(prefix,'').lstrip('/'))
+                            msg = (
+                                f"Error retrieving {s3_obj.key.replace(prefix, '')}"
+                                f" ({e.message})"
+                            )
+                            raise BotoCoreError(msg) from e
+                    elif "nii" in str(s3_obj.key):
+                        file_paths.append(
+                            str(s3_obj.key).replace(prefix, "").lstrip("/")
+                        )
 
     else:
         for root, dirs, files in os.walk(bids_dir, topdown=False, followlinks=True):
             if files:
                 for f in files:
                     for suf in suffixes:
-                        if suf == 'epi' and 'acq-fMRI' not in f:
+                        if suf == "epi" and "acq-fMRI" not in f:
                             continue
-                        if 'nii' in f and suf in f:
-                            file_paths += [os.path.join(root, f)
-                                           .replace(bids_dir, '').lstrip('/')]
-                        if f.endswith('json') and suf in f:
+                        if "nii" in f and suf in f:
+                            file_paths += [
+                                os.path.join(root, f).replace(bids_dir, "").lstrip("/")
+                            ]
+                        if f.endswith("json") and suf in f:
                             try:
                                 config_dict.update(
-                                    {os.path.join(root.replace(bids_dir, '')
-                                     .lstrip('/'), f):
-                                         json.load(
-                                             open(os.path.join(root, f), 'r')
-                                         )})
+                                    {
+                                        os.path.join(
+                                            root.replace(bids_dir, "").lstrip("/"), f
+                                        ): json.load(open(os.path.join(root, f), "r"))
+                                    }
+                                )
                             except UnicodeDecodeError:
-                                raise Exception("Could not decode {0}".format(
-                                    os.path.join(root, f)))
+                                msg = f"Could not decode {os.path.join(root, f)}"
+                                raise UnicodeDecodeError(msg)
 
     if not file_paths and not config_dict:
-        raise IOError("Didn't find any files in {0}. Please verify that the "
-                      "path is typed correctly, that you have read access to "
-                      "the directory, and that it is not "
-                      "empty.".format(bids_dir))
+        msg = (
+            f"Didn't find any files in {bids_dir}. Please verify that the path is"
+            " typed correctly, that you have read access to the directory, and that it"
+            " is not empty."
+        )
+        raise IOError(msg)
 
     return file_paths, config_dict
 
 
 def camelCase(string: str) -> str:  # pylint: disable=invalid-name
-    """Convert a hyphenated string to camelCase
+    """Convert a hyphenated string to camelCase.
 
     Parameters
     ----------
@@ -830,16 +902,16 @@ def camelCase(string: str) -> str:  # pylint: disable=invalid-name
     >>> camelCase('mean-Pearson-Nilearn-aCompCor')
     'meanPearsonNilearnACompCor'
     """
-    pieces = string.split('-')
+    pieces = string.split("-")
     for i in range(1, len(pieces)):  # don't change case of first piece
         if pieces[i]:  # don't do anything to falsy pieces
-            pieces[i] = f'{pieces[i][0].upper()}{pieces[i][1:]}'
-    return ''.join(pieces)
+            pieces[i] = f"{pieces[i][0].upper()}{pieces[i][1:]}"
+    return "".join(pieces)
 
 
 def combine_multiple_entity_instances(bids_str: str) -> str:
     """Combines mutliple instances of a key in a BIDS string to a single
-    instance by camelCasing and concatenating the values
+    instance by camelCasing and concatenating the values.
 
     Parameters
     ----------
@@ -860,27 +932,26 @@ def combine_multiple_entity_instances(bids_str: str) -> str:
     ...     'run-1_framewise-displacement-power.1D')
     'sub-1_ses-HBN_site-RU_task-rest_run-1_framewiseDisplacementPower.1D'
     """
-    _entity_list = bids_str.split('_')
+    _entity_list = bids_str.split("_")
     entity_list = _entity_list[:-1]
     suffixes = [camelCase(_entity_list[-1])]
     entities = {}
     for entity in entity_list:
-        if '-' in entity:
-            key, value = entity.split('-', maxsplit=1)
+        if "-" in entity:
+            key, value = entity.split("-", maxsplit=1)
             if key not in entities:
                 entities[key] = []
             entities[key].append(value)
     for key, value in entities.items():
-        entities[key] = camelCase('-'.join(value))
-    if 'desc' in entities:  # make 'desc' final entity
+        entities[key] = camelCase("-".join(value))
+    if "desc" in entities:  # make 'desc' final entity
         suffixes.insert(0, f'desc-{entities.pop("desc")}')
-    return '_'.join([f'{key}-{value}' for key, value in entities.items()
-                     ] + suffixes)
+    return "_".join([f"{key}-{value}" for key, value in entities.items()] + suffixes)
 
 
 def insert_entity(resource, key, value):
     """Insert a `f'{key}-{value}'` BIDS entity before `desc-` if
-    present or before the suffix otherwise
+    present or before the suffix otherwise.
 
     Parameters
     ----------
@@ -901,60 +972,56 @@ def insert_entity(resource, key, value):
     >>> insert_entity('run-1_reg-default_bold', 'filt', 'notch4c0p31bw0p12')
     'run-1_reg-default_filt-notch4c0p31bw0p12_bold'
     """
-    entities = resource.split('_')[:-1]
-    suff = resource.split('_')[-1]
+    entities = resource.split("_")[:-1]
+    suff = resource.split("_")[-1]
     new_entities = [[], []]
     for entity in entities:
-        if entity.startswith('desc-'):
+        if entity.startswith("desc-"):
             new_entities[1].append(entity)
         else:
             new_entities[0].append(entity)
-    return '_'.join([*new_entities[0], f'{key}-{value}', *new_entities[1],
-                     suff])
+    return "_".join([*new_entities[0], f"{key}-{value}", *new_entities[1], suff])
 
 
 def load_yaml_config(config_filename, aws_input_creds):
-
-    if config_filename.lower().startswith('data:'):
+    if config_filename.lower().startswith("data:"):
         try:
             header, encoded = config_filename.split(",", 1)
             config_content = b64decode(encoded)
-            config_data = yaml.safe_load(config_content)
-            return config_data
+            return yaml.safe_load(config_content)
         except:
-            print("Error! Could not find load config from data URI")
-            raise
+            msg = f"Error! Could not find load config from data URI {config_filename}"
+            raise BotoCoreError(msg)
 
     if config_filename.lower().startswith("s3://"):
         # s3 paths begin with s3://bucket/
-        bucket_name = config_filename.split('/')[2]
-        s3_prefix = '/'.join(config_filename.split('/')[:3])
-        prefix = config_filename.replace(s3_prefix, '').lstrip('/')
+        bucket_name = config_filename.split("/")[2]
+        s3_prefix = "/".join(config_filename.split("/")[:3])
+        prefix = config_filename.replace(s3_prefix, "").lstrip("/")
 
         if aws_input_creds:
             if not os.path.isfile(aws_input_creds):
-                raise IOError("Could not find aws_input_creds (%s)" %
-                              (aws_input_creds))
+                raise IOError("Could not find aws_input_creds (%s)" % (aws_input_creds))
 
         from indi_aws import fetch_creds
+
         bucket = fetch_creds.return_bucket(aws_input_creds, bucket_name)
-        downloaded_config = '/tmp/' + os.path.basename(config_filename)
+        downloaded_config = "/tmp/" + os.path.basename(config_filename)
         bucket.download_file(prefix, downloaded_config)
         config_filename = downloaded_config
 
     config_filename = os.path.realpath(config_filename)
 
     try:
-        config_data = yaml.safe_load(open(config_filename, 'r'))
-        return config_data
+        return yaml.safe_load(open(config_filename, "r"))
     except IOError:
-        print("Error! Could not find config file {0}".format(config_filename))
-        raise
+        msg = f"Error! Could not find config file {config_filename}"
+        raise FileNotFoundError(msg)
 
 
 def cl_strip_brackets(arg_list):
     """Removes '[' from before first and ']' from after final
-    arguments in a list of commandline arguments
+    arguments in a list of commandline arguments.
 
     Parameters
     ----------
@@ -973,14 +1040,18 @@ def cl_strip_brackets(arg_list):
     >>> cl_strip_brackets('[ a b c ]'.split(' '))
     ['a', 'b', 'c']
     """
-    arg_list[0] = arg_list[0].lstrip('[')
-    arg_list[-1] = arg_list[-1].rstrip(']')
+    arg_list[0] = arg_list[0].lstrip("[")
+    arg_list[-1] = arg_list[-1].rstrip("]")
     return [arg for arg in arg_list if arg]
 
 
-def create_cpac_data_config(bids_dir, participant_labels=None,
-                            aws_input_creds=None, skip_bids_validator=False,
-                            only_one_anat=True):
+def create_cpac_data_config(
+    bids_dir,
+    participant_labels=None,
+    aws_input_creds=None,
+    skip_bids_validator=False,
+    only_one_anat=True,
+):
     """
     Create a C-PAC data config YAML file from a BIDS directory.
 
@@ -1003,23 +1074,22 @@ def create_cpac_data_config(bids_dir, participant_labels=None,
     -------
     list
     """
-    print("Parsing {0}..".format(bids_dir))
+    UTLOGGER.info("Parsing %s..", bids_dir)
 
-    (file_paths, config) = collect_bids_files_configs(bids_dir,
-                                                      aws_input_creds)
+    (file_paths, config) = collect_bids_files_configs(bids_dir, aws_input_creds)
 
     if participant_labels and file_paths:
         file_paths = [
-            file_path for file_path in file_paths if any(
+            file_path
+            for file_path in file_paths
+            if any(
                 participant_label in file_path
                 for participant_label in participant_labels
             )
         ]
 
     if not file_paths:
-        print("Did not find data for {0}".format(
-            ", ".join(participant_labels)
-        ))
+        UTLOGGER.error("Did not find data for %s", ", ".join(participant_labels))
         sys.exit(1)
 
     raise_error = not skip_bids_validator
@@ -1030,20 +1100,19 @@ def create_cpac_data_config(bids_dir, participant_labels=None,
         config,
         aws_input_creds,
         raise_error=raise_error,
-        only_one_anat=only_one_anat
+        only_one_anat=only_one_anat,
     )
 
     if not sub_list:
-        print("Did not find data in {0}".format(bids_dir))
+        UTLOGGER.error("Did not find data in %s", bids_dir)
         sys.exit(1)
 
     return sub_list
 
 
-def load_cpac_data_config(data_config_file, participant_labels,
-                          aws_input_creds):
+def load_cpac_data_config(data_config_file, participant_labels, aws_input_creds):
     """
-    Loads the file as a check to make sure it is available and readable
+    Loads the file as a check to make sure it is available and readable.
 
     Parameters
     ----------
@@ -1061,33 +1130,32 @@ def load_cpac_data_config(data_config_file, participant_labels,
     sub_list = load_yaml_config(data_config_file, aws_input_creds)
 
     if participant_labels:
-
         sub_list = [
             d
             for d in sub_list
             if (
                 d["subject_id"]
-                if d["subject_id"].startswith('sub-')
-                else 'sub-' + d["subject_id"]
-            ) in participant_labels
+                if d["subject_id"].startswith("sub-")
+                else "sub-" + d["subject_id"]
+            )
+            in participant_labels
         ]
 
         if not sub_list:
-            print("Did not find data for {0} in {1}".format(
+            UTLOGGER.error(
+                "Did not find data for %s in %s",
                 ", ".join(participant_labels),
-                (
-                    data_config_file
-                    if not data_config_file.startswith("data:")
-                    else "data URI"
-                )
-            ))
+                data_config_file
+                if not data_config_file.startswith("data:")
+                else "data URI",
+            )
             sys.exit(1)
 
     return sub_list
 
 
 def res_in_filename(cfg, label):
-    """Specify resolution in filename
+    """Specify resolution in filename.
 
     Parameters
     ----------
@@ -1113,27 +1181,37 @@ def res_in_filename(cfg, label):
     ...     'sub-1_res-3mm_bold')
     'sub-1_res-3mm_bold'
     """
-    if '_res-' in label:
+    if "_res-" in label:
         # replace resolution text with actual resolution
-        resolution = label.split('_res-', 1)[1].split('_', 1)[0]
+        resolution = label.split("_res-", 1)[1].split("_", 1)[0]
         resolution = {
-            'anat': cfg['registration_workflows', 'anatomical_registration',
-                        'resolution_for_anat'],
-            'bold': cfg['registration_workflows', 'functional_registration',
-                        'func_registration_to_template', 'output_resolution',
-                        'func_preproc_outputs'],
-            'derivative': cfg['registration_workflows',
-                              'functional_registration',
-                              'func_registration_to_template',
-                              'output_resolution', 'func_derivative_outputs']
+            "anat": cfg[
+                "registration_workflows",
+                "anatomical_registration",
+                "resolution_for_anat",
+            ],
+            "bold": cfg[
+                "registration_workflows",
+                "functional_registration",
+                "func_registration_to_template",
+                "output_resolution",
+                "func_preproc_outputs",
+            ],
+            "derivative": cfg[
+                "registration_workflows",
+                "functional_registration",
+                "func_registration_to_template",
+                "output_resolution",
+                "func_derivative_outputs",
+            ],
         }.get(resolution, resolution)
-        label = re.sub('_res-[A-Za-z0-9]*_', f'_res-{resolution}_', label)
+        label = re.sub("_res-[A-Za-z0-9]*_", f"_res-{resolution}_", label)
     return label
 
 
 def sub_list_filter_by_labels(sub_list, labels):
     """Function to filter a sub_list by provided BIDS labels for
-    specified suffixes
+    specified suffixes.
 
     Parameters
     ----------
@@ -1150,16 +1228,16 @@ def sub_list_filter_by_labels(sub_list, labels):
     -------
     list
     """
-    if labels.get('T1w'):
-        sub_list = _sub_list_filter_by_label(sub_list, 'T1w', labels['T1w'])
-    if labels.get('bold'):
-        labels['bold'] = cl_strip_brackets(labels['bold'])
-        sub_list = _sub_list_filter_by_label(sub_list, 'bold', labels['bold'])
+    if labels.get("T1w"):
+        sub_list = _sub_list_filter_by_label(sub_list, "T1w", labels["T1w"])
+    if labels.get("bold"):
+        labels["bold"] = cl_strip_brackets(labels["bold"])
+        sub_list = _sub_list_filter_by_label(sub_list, "bold", labels["bold"])
     return sub_list
 
 
 def with_key(entity: str, key: str) -> str:
-    """Return a keyed BIDS entity
+    """Return a keyed BIDS entity.
 
     Parameters
     ----------
@@ -1178,13 +1256,13 @@ def with_key(entity: str, key: str) -> str:
     """
     if not isinstance(entity, str):
         entity = str(entity)
-    if not entity.startswith(f'{key}-'):
-        entity = '-'.join((key, entity))
+    if not entity.startswith(f"{key}-"):
+        entity = "-".join((key, entity))
     return entity
 
 
 def without_key(entity: str, key: str) -> str:
-    """Return a BIDS entity value
+    """Return a BIDS entity value.
 
     Parameters
     ----------
@@ -1203,13 +1281,13 @@ def without_key(entity: str, key: str) -> str:
     """
     if not isinstance(entity, str):
         entity = str(entity)
-    if entity.startswith(f'{key}-'):
-        entity = entity.replace(f'{key}-', '')
+    if entity.startswith(f"{key}-"):
+        entity = entity.replace(f"{key}-", "")
     return entity
 
 
 def _t1w_filter(anat, shortest_entity, label):
-    """Helper function to filter T1w paths
+    """Helper function to filter T1w paths.
 
     Parameters
     ----------
@@ -1228,10 +1306,10 @@ def _t1w_filter(anat, shortest_entity, label):
     if shortest_entity:
         anat = bids_shortest_entity(anat)
     else:
-        anat = bids_match_entities(anat, label, 'T1w')
+        anat = bids_match_entities(anat, label, "T1w")
         # pylint: disable=invalid-name
         try:
-            anat_T2 = bids_match_entities(anat, label, 'T2w')
+            anat_T2 = bids_match_entities(anat, label, "T2w")
         except LookupError:
             anat_T2 = None
         if anat_T2 is not None:
@@ -1240,7 +1318,7 @@ def _t1w_filter(anat, shortest_entity, label):
 
 
 def _sub_anat_filter(anat, shortest_entity, label):
-    """Helper function to filter anat paths in sub_list
+    """Helper function to filter anat paths in sub_list.
 
     Parameters
     ----------
@@ -1256,10 +1334,8 @@ def _sub_anat_filter(anat, shortest_entity, label):
         same type as 'anat' parameter
     """
     if isinstance(anat, dict):
-        if 'T1w' in anat:
-            anat['T1w'] = _t1w_filter(anat['T1w'],
-                                      shortest_entity,
-                                      label)
+        if "T1w" in anat:
+            anat["T1w"] = _t1w_filter(anat["T1w"], shortest_entity, label)
         return anat
     return _t1w_filter(anat, shortest_entity, label)
 
@@ -1294,40 +1370,39 @@ def _sub_list_filter_by_label(sub_list, label_type, label):
         label_list.remove(label_type)
     else:
         shortest_entity = False
-    if label_type == 'T1w':
-        for sub in [sub for sub in sub_list if 'anat' in sub]:
+    if label_type == "T1w":
+        for sub in [sub for sub in sub_list if "anat" in sub]:
             try:
-                sub['anat'] = _sub_anat_filter(sub['anat'],
-                                               shortest_entity,
-                                               label_list[0] if not
-                                               shortest_entity else None)
-                if sub['anat']:
+                sub["anat"] = _sub_anat_filter(
+                    sub["anat"],
+                    shortest_entity,
+                    label_list[0] if not shortest_entity else None,
+                )
+                if sub["anat"]:
                     new_sub_list.append(sub)
             except LookupError as lookup_error:
                 warn(str(lookup_error))
 
-    elif label_type == 'bold':
-        for sub in [sub for sub in sub_list if 'func' in sub]:
+    elif label_type == "bold":
+        for sub in [sub for sub in sub_list if "func" in sub]:
             try:
-                all_scans = [sub['func'][scan].get('scan') for
-                             scan in sub['func']]
+                all_scans = [sub["func"][scan].get("scan") for scan in sub["func"]]
                 new_func = {}
                 for entities in label_list:
-                    matched_scans = bids_match_entities(all_scans, entities,
-                                                        label_type)
+                    matched_scans = bids_match_entities(all_scans, entities, label_type)
                     for scan in matched_scans:
                         new_func = {
                             **new_func,
-                            **_match_functional_scan(sub['func'], scan)
+                            **_match_functional_scan(sub["func"], scan),
                         }
                 if shortest_entity:
                     new_func = {
                         **new_func,
                         **_match_functional_scan(
-                            sub['func'], bids_shortest_entity(all_scans)
-                        )
+                            sub["func"], bids_shortest_entity(all_scans)
+                        ),
                     }
-                sub['func'] = new_func
+                sub["func"] = new_func
                 new_sub_list.append(sub)
             except LookupError as lookup_error:
                 warn(str(lookup_error))
@@ -1335,10 +1410,10 @@ def _sub_list_filter_by_label(sub_list, label_type, label):
 
 
 def _match_functional_scan(sub_list_func_dict, scan_file_to_match):
-    """Function to subset a scan from a sub_list_func_dict by a scan filename
+    """Function to subset a scan from a sub_list_func_dict by a scan filename.
 
     Parameters
-    ---------
+    ----------
     sub_list_func_dict : dict
         sub_list[sub]['func']
 
@@ -1363,7 +1438,7 @@ def _match_functional_scan(sub_list_func_dict, scan_file_to_match):
     True
     """
     return {
-        entity: sub_list_func_dict[entity] for entity in
-        sub_list_func_dict if
-        sub_list_func_dict[entity].get('scan') == scan_file_to_match
+        entity: sub_list_func_dict[entity]
+        for entity in sub_list_func_dict
+        if sub_list_func_dict[entity].get("scan") == scan_file_to_match
     }

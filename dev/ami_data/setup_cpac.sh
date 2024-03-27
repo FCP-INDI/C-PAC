@@ -3,7 +3,7 @@
 set -e
 
 wget -O /etc/apt/sources.list.d/neurodebian.sources.list http://neuro.debian.net/lists/bionic.us-ca.full
-for i in {1..5}; do 
+for i in {1..5}; do
     apt-key adv --recv-keys --keyserver hkp://pool.sks-keyservers.net:80 0xA5D32F012649A5A9 && break || sleep 5;
 done
 
@@ -29,7 +29,7 @@ cat <<EOT > /etc/lightdm/lightdm.conf
 [Seat:*]
 pam-service=lightdm
 pam-autologin-service=lightdm-autologin
-autologin-user=ubuntu  
+autologin-user=ubuntu
 autologin-user-timeout=0
 session-wrapper=/etc/X11/Xsession
 greeter-session=lightdm-greeter
@@ -126,7 +126,7 @@ wget -q -O /tmp/libpng12.deb http://mirrors.kernel.org/ubuntu/pool/main/libp/lib
   && dpkg -i /tmp/libpng12.deb \
   && rm /tmp/libpng12.deb
 
-libs_path=/usr/lib/x86_64-linux-gnu 
+libs_path=/usr/lib/x86_64-linux-gnu
 if [ -f $libs_path/libgsl.so.19 ]; then \
     ln $libs_path/libgsl.so.19 $libs_path/libgsl.so.0; \
 fi

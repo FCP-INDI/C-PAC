@@ -1,5 +1,5 @@
 # CPAC Data Settings File
-# Version 1.8.7.dev1
+# Version 1.8.8.dev1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -20,26 +20,26 @@ bidsBaseDir: None
 
 # File Path Template for Anatomical Files
 # Custom Data Format only.
-# 
+#
 # Place tags for the appropriate data directory levels with the tags {site}, {participant}, and {session}. Only {participant} is required.
-# 
+#
 # Examples:
 # /data/{site}/{participant}/{session}/anat/mprage.nii.gz
 # /data/{site}/{participant}/anat.nii.gz
-# 
+#
 # See the User Guide for more detailed instructions.
 anatomicalTemplate: None
 
 
 # File Path Template for Functional Files
 # Custom Data Format only.
-# 
+#
 # Place tags for the appropriate data directory levels with the tags {site}, {participant}, {session}, and {series}. Only {participant} is required.
-# 
+#
 # Examples:
 # /data/{site}/{participant}/{session}/func/{series}_bold.nii.gz
 # /data/{site}/{participant}/{series}/func.nii.gz
-# 
+#
 # See the User Guide for more detailed instructions.
 functionalTemplate: None
 
@@ -105,7 +105,7 @@ brain_mask_template: None
 #
 # Examples:
 # /recon-all_path/{participant}
-# 
+#
 freesurfer_dir: None
 
 
@@ -134,66 +134,64 @@ fieldMapMagnitude: None
 
 
 # Include only a sub-set of the participants present in the folders defined above.
-# 
+#
 # List participants in this box (ex: sub101, sub102) or provide the path to a text file with one participant ID on each line.
-# 
+#
 # If 'None' is specified, CPAC will include all participants.
 subjectList: None
 
 
 # Exclude a sub-set of the participants present in the folders defined above.
-# 
+#
 # List participants in this box (ex: sub101, sub102) or provide the path to a text file with one participant ID on each line.
-# 
+#
 # If 'None' is specified, CPAC will not exclude any participants.
 exclusionSubjectList: None
 
 
 # Include only a sub-set of the sites present in the folders defined above.
-# 
+#
 # List sites in this box (ex: NYU, UCLA) or provide the path to a text file with one site name on each line.
-# 
+#
 # If 'None' is specified, CPAC will include all sites.
 siteList: None
 
 
 # Exclude a sub-set of the sites present in the folders defined above.
-# 
+#
 # List sites in this box (ex: NYU, UCLA) or provide the path to a text file with one site name on each line.
-# 
+#
 # If 'None' is specified, CPAC will include all sites.
 exclusionSiteList: None
 
 
 # Include only a sub-set of the sessions present in the folders defined above.
-# 
+#
 # List sessions in this box (ex: session-1, session-2) or provide the path to a text file with one session name on each line.
-# 
+#
 # If 'None' is specified, CPAC will include all sessions.
 sessionList: None
 
 
 # Exclude a sub-set of the sessions present in the folders defined above.
-# 
+#
 # List sessions in this box (ex: session-1, session-2) or provide the path to a text file with one session name on each line.
-# 
+#
 # If 'None' is specified, CPAC will include all sessions.
 exclusionSessionList: None
 
 
 # Include only a sub-set of the series present in the folders defined above.
-# 
+#
 # List series in this box (ex: func-1, func-2) or provide the path to a text file with one series name on each line.
-# 
+#
 # If 'None' is specified, CPAC will include all series.
 scanList: None
 
 
 # Exclude a sub-set of the series present in the folders defined above.
-# 
+#
 # List series in this box (ex: func-1, func-2) or provide the path to a text file with one series name on each line.
-# 
+#
 # If 'None' is specified, CPAC will include all series.
 exclusionScanList: None
-
-

@@ -1,49 +1,47 @@
 import numpy as np
-import nibabel as nib
-import os
-from numpy import ndarray
-import matplotlib.pyplot as plt
-from scipy.signal import find_peaks
-from nilearn.masking import apply_mask
-from nilearn.masking import compute_epi_mask
 import numpy.matlib
+from scipy.signal import find_peaks
 
 from CPAC.utils import check_random_state, correlation
 
 
 def smooth(x):
-    """
-    Temporary moving average
-    """
+    """Temporary moving average."""
     return np.array(
-        [x[0]] +
-        [np.mean(x[0:3])] +
-        (np.convolve(x, np.ones(5), 'valid') / 5).tolist() +
-        [np.mean(x[-3:])] +
-        [x[-1]]
+        [
+            x[0],
+            np.mean(x[0:3]),
+            *(np.convolve(x, np.ones(5), "valid") / 5).tolist(),
+            np.mean(x[-3:]),
+            x[-1],
+        ]
     )
 
 
 def flattened_segment(data, window_length, pos):
-    return data[:, pos:pos + window_length].flatten(order='F')
+    return data[:, pos : pos + window_length].flatten(order="F")
 
 
 def normalize_segment(segment, df):
     segment -= np.sum(segment) / df
-    segment = segment / np.sqrt(np.dot(segment, segment))
-    return segment
+    return segment / np.sqrt(np.dot(segment, segment))
 
 
-def detect_qpp(data, num_scans, window_length,
-               permutations, correlation_threshold, 
-               iterations, convergence_iterations=1,
-               random_state=None):
+def detect_qpp(
+    data,
+    num_scans,
+    window_length,
+    permutations,
+    correlation_threshold,
+    iterations,
+    convergence_iterations=1,
+    random_state=None,
+):
     """
     This code is adapted from the paper "Quasi-periodic patterns (QP): Large-
     scale dynamics in resting state fMRI that correlate with local infraslow
     electrical activity", Shella Keilholz et al. NeuroImage, 2014.
     """
-
     random_state = check_random_state(random_state)
 
     voxels, trs = data.shape
@@ -66,20 +64,24 @@ def detect_qpp(data, num_scans, window_length,
 
     permutation_result = [{} for _ in range(permutations)]
     for perm in range(permutations):
-
         template_holder = np.zeros(trs)
-        random_initial_window = normalize_segment(flattened_segment(data, window_length, initial_trs[perm]), df)
+        random_initial_window = normalize_segment(
+            flattened_segment(data, window_length, initial_trs[perm]), df
+        )
         for tr in inpectable_trs:
-            scan_window = normalize_segment(flattened_segment(data, window_length, tr), df)
+            scan_window = normalize_segment(
+                flattened_segment(data, window_length, tr), df
+            )
             template_holder[tr] = np.dot(random_initial_window, scan_window)
 
         template_holder_convergence = np.zeros((convergence_iterations, trs))
 
         for iteration in range(iterations):
-
             peak_threshold = correlation_thresholds[iteration]
 
-            peaks, _ = find_peaks(template_holder, height=peak_threshold, distance=window_length)
+            peaks, _ = find_peaks(
+                template_holder, height=peak_threshold, distance=window_length
+            )
             peaks = np.delete(peaks, np.where(~np.isin(peaks, inpectable_trs))[0])
 
             template_holder = smooth(template_holder)
@@ -90,16 +92,22 @@ def detect_qpp(data, num_scans, window_length,
 
             peaks_segments = flattened_segment(data, window_length, peaks[0])
             for peak in peaks[1:]:
-                peaks_segments = peaks_segments + flattened_segment(data, window_length, peak)
+                peaks_segments = peaks_segments + flattened_segment(
+                    data, window_length, peak
+                )
 
             peaks_segments = peaks_segments / found_peaks
             peaks_segments = normalize_segment(peaks_segments, df)
 
             for tr in inpectable_trs:
-                scan_window = normalize_segment(flattened_segment(data, window_length, tr), df)
+                scan_window = normalize_segment(
+                    flattened_segment(data, window_length, tr), df
+                )
                 template_holder[tr] = np.dot(peaks_segments, scan_window)
 
-            if np.all(correlation(template_holder, template_holder_convergence) > 0.9999):
+            if np.all(
+                correlation(template_holder, template_holder_convergence) > 0.9999
+            ):
                 break
 
             if convergence_iterations > 1:
@@ -108,23 +116,26 @@ def detect_qpp(data, num_scans, window_length,
 
         if found_peaks > 1:
             permutation_result[perm] = {
-                'template': template_holder,
-                'peaks': peaks,
-                'final_iteration': iteration,
-                'correlation_score': np.sum(template_holder[peaks]),
+                "template": template_holder,
+                "peaks": peaks,
+                "final_iteration": iteration,
+                "correlation_score": np.sum(template_holder[peaks]),
             }
 
     # Retrieve max correlation of template from permutations
-    correlation_scores = np.array([
-        r['correlation_score'] if r else 0.0 for r in permutation_result
-    ])
+    correlation_scores = np.array(
+        [r["correlation_score"] if r else 0.0 for r in permutation_result]
+    )
     if not np.any(correlation_scores):
-        raise Exception("C-PAC could not find QPP in your data. "
-                        "Please lower your correlation threshold and try again.")
+        msg = (
+            "C-PAC could not find QPP in your data. "
+            "Please lower your correlation threshold and try again."
+        )
+        raise Exception(msg)
 
     max_correlation = np.argsort(correlation_scores)[-1]
-    best_template = permutation_result[max_correlation]['template']
-    best_selected_peaks = permutation_result[max_correlation]['peaks']
+    best_template = permutation_result[max_correlation]["template"]
+    best_selected_peaks = permutation_result[max_correlation]["peaks"]
 
     best_template_metrics = [
         np.median(best_template[best_selected_peaks]),
@@ -133,13 +144,13 @@ def detect_qpp(data, num_scans, window_length,
     ]
 
     window_length_start = round(window_length / 2)
-    window_length_end = window_length_start - window_length % 2
+    window_length_start - window_length % 2
 
     best_template_segment = np.zeros((voxels, window_length))
 
     for best_peak in best_selected_peaks:
-        start_tr = int(best_peak - np.ceil(window_length / 2.))
-        end_tr = int(best_peak + np.floor(window_length / 2.))
+        start_tr = int(best_peak - np.ceil(window_length / 2.0))
+        end_tr = int(best_peak + np.floor(window_length / 2.0))
 
         start_segment = np.zeros((voxels, 0))
         if start_tr <= 0:
@@ -153,11 +164,14 @@ def detect_qpp(data, num_scans, window_length,
 
         data_segment = data[:, start_tr:end_tr]
 
-        best_template_segment += np.concatenate([
-            start_segment,
-            data_segment,
-            end_segment,
-        ], axis=1)
+        best_template_segment += np.concatenate(
+            [
+                start_segment,
+                data_segment,
+                end_segment,
+            ],
+            axis=1,
+        )
 
     best_template_segment /= len(best_selected_peaks)
 

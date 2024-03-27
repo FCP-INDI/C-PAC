@@ -1,13 +1,13 @@
 name: Run Regression Full Test
 
-on: 
+on:
   workflow_call:
 
-jobs: 
+jobs:
   test:
     name: Regression Test - Full
     runs-on: ubuntu-latest
-    steps: 
+    steps:
       - name: Get C-PAC branch
         run: |
           GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
