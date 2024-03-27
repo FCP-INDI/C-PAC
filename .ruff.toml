@@ -3,7 +3,7 @@ extend-exclude = ["dev/docker_data/get-pip_23.0.1.py"]
 target-version = "py37"
 
 [lint]
-extend-select = ["A", "C4", "D", "EM", "F541", "G", "I", "ICN", "NPY", "PL", "RET", "RSE", "RUF", "Q", "T20", "UP032", "W"]  # proposed rules to add next release cylce: ["B904", "LOG007", "TRY002", "TRY201", "TRY400", "TRY401"]
+extend-select = ["A", "C4", "D", "EM", "F541", "G", "I", "ICN", "NPY", "PL", "RET", "RSE", "RUF", "Q", "T20", "UP032", "W"]  # proposed rules to add next release cycle: ["B904", "LOG007", "TRY002", "TRY201", "TRY400", "TRY401"]
 external = ["T20"]  # Don't autoremove 'noqa` comments for these rules
 
 [lint.per-file-ignores]
