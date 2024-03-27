@@ -234,7 +234,7 @@ def generate_xcp_qc(  # noqa: PLR0913
         path to space-template_desc-bold_mask
 
     template_mask : str
-        path to space-template_desc-T1w_mask
+        path to T1w-brain-template-mask or EPI-template-mask
 
     movement_parameters: str
         path to movement parameters
