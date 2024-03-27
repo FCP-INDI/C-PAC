@@ -1,0 +1,16 @@
+name: NeuroStars
+description: Track a NeuroStars conversation on GitHub
+title: "\U0001F9E0\U0001F31F [NeuroStars conversation]"
+labels: [bug, neurostars, user-reported]
+body:
+  - type: markdown
+    attributes:
+      value: Open an issue here to track the status of a NeuroStars thread on GitHub. Please replace "[NeuroStars conversation]" in the title with the name of the thread on Neurostars.
+  - type: input
+    id: URL
+    attributes:
+      label: URL
+      description: Link to the thread on neurostars.org
+      placeholder: https://neurostars.org/tag/cpac
+    validations:
+      required: true
