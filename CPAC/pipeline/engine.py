@@ -1756,18 +1756,26 @@ def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
     if not cfg.pipeline_setup['freesurfer_dir']:
         print('No FreeSurfer data present.')
         return rpool
+    
     fs_path = os.path.join(cfg.pipeline_setup['freesurfer_dir'], part_id)
-    if os.path.exists(os.path.join(fs_path, part_id)): 
-        fs_path = os.path.join(fs_path, part_id)
-        print(fs_path)
     if not os.path.exists(fs_path):
         if 'sub' in part_id:
             fs_path = os.path.join(cfg.pipeline_setup['freesurfer_dir'], part_id.replace('sub-', ''))
         else:
-            fs_path = os.path.join(cfg.pipeline_setup['freesurfer_dir'], 'sub-', part_id)
+            fs_path = os.path.join(cfg.pipeline_setup['freesurfer_dir'], ('sub-' + part_id))
+        
+        # patch for flo-specific data
         if not os.path.exists(fs_path):
-            print(f'No FreeSurfer data found for subject {part_id}')
-            return rpool
+            subj_ses = part_id + '-' + ses_id
+            fs_path = os.path.join(cfg.pipeline_setup['freesurfer_dir'], subj_ses)
+            if not os.path.exists(fs_path):
+                print(f'No FreeSurfer data found for subject {part_id}')
+                return rpool
+    
+    # Check for double nested subj names
+    if os.path.exists(os.path.join(fs_path, os.path.basename(fs_path))): 
+        fs_path = os.path.join(fs_path, part_id)
+
     fs_ingress = create_general_datasource('gather_freesurfer_dir') 
     fs_ingress.inputs.inputnode.set(
         unique_id=unique_id,
