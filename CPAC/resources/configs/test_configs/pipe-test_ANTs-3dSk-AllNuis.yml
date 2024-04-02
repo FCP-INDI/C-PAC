@@ -68,15 +68,6 @@ pipeline_setup:
     # If you have specified an FSL path in your .bashrc file, this path will be set automatically.
     FSLDIR: FSLDIR
 
-anatomical_preproc: 
-
-  brain_extraction: 
-
-    FSL-BET: 
-
-      # Mask created along with skull stripping. It should be `On`, if selected functionalMasking :  ['Anatomical_Refined'] and `FSL` as skull-stripping method.
-      mask_boolean: Off
-
 segmentation: 
 
   tissue_segmentation: 
