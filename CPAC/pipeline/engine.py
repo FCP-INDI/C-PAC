@@ -840,7 +840,10 @@ class ResourcePool:
             # or lfcd [binarized or weighted]
             mask = 'template-specification-file'
         elif 'space-template' in label:
-            mask = 'space-template_res-derivative_desc-bold_mask'
+            if 'space-template_res-derivative_desc-bold_mask' in self.rpool.keys():
+                mask = 'space-template_res-derivative_desc-bold_mask'
+            else:
+                mask = 'space-template_desc-bold_mask'
         else:
             mask = 'space-bold_desc-brain_mask'
 
