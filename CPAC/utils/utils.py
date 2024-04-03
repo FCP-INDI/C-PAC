@@ -149,7 +149,7 @@ def read_json(json_file):
 
 def create_id_string(cfg, unique_id, resource, scan_id=None,
                      template_desc=None, atlas_id=None, fwhm=None,
-                     subdir=None):
+                     subdir=None, extension=None):
     """Create the unique key-value identifier string for BIDS-Derivatives
     compliant file names.
 
@@ -202,6 +202,11 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
                 break
         else:
             raise Exception('\n[!] FWHM provided but no desc-sm?\n')
+    
+    
+    if extension is not None: 
+       out_filename = out_filename + "." + str(extension)
+       
 
     # drop space- entities from from native-space filenames
     if subdir == 'anat':
@@ -215,8 +220,12 @@ def create_id_string(cfg, unique_id, resource, scan_id=None,
 def write_output_json(json_data, filename, indent=3, basedir=None):
     if not basedir:
         basedir = os.getcwd()
+    if '.gii' in filename:
+        filename = os.path.splitext(filename)[0]
+        filename = f'{filename}.json'
     if '.json' not in filename:
         filename = f'{filename}.json'
+    
     json_file = os.path.join(basedir, filename)
     json_data = json.dumps(json_data, indent=indent, sort_keys=True)
     with open(json_file, 'wt') as f:

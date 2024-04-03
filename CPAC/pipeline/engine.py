@@ -25,6 +25,7 @@ import re
 from typing import Any, Optional, Union
 import warnings
 
+
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
 from nipype import config, logging  # pylint: disable=wrong-import-order
@@ -265,15 +266,20 @@ class ResourcePool:
                              "Try turning on create_regressors or "
                              "ingress_regressors.")
         _nr = cfg['nuisance_corrections', '2-nuisance_regression']
+        
         if not hasattr(self, 'timeseries'):
-            self.regressors = {reg["Name"]: reg for reg in _nr['Regressors']}
+            if _nr['Regressors']:
+                self.regressors = {reg["Name"]: reg for reg in _nr['Regressors']}
+            else:
+                self.regressors = []
         if self.check_rpool('parsed_regressors'):  # ingressed regressor
             # name regressor workflow without regressor_prov
             strat_name = _nr['ingress_regressors']['Regressors']['Name']
             if strat_name in self.regressors:
                 self._regressor_dct = self.regressors[strat_name]
                 return self._regressor_dct
-            raise key_error
+            self.regressor_dct = _nr['ingress_regressors']['Regressors']
+            return self.regressor_dct
         prov = self.get_cpac_provenance('desc-confounds_timeseries')
         strat_name_components = prov[-1].split('_')
         for _ in list(range(prov[-1].count('_'))):
@@ -675,6 +681,7 @@ class ResourcePool:
                 # strat_list is actually the merged CpacProvenance lists
                 pipe_idx = str(strat_list)
                 new_strats[pipe_idx] = ResourcePool()     # <----- new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
+                
                 # placing JSON info at one level higher only for copy convenience
                 new_strats[pipe_idx].rpool['json'] = {}
                 new_strats[pipe_idx].rpool['json']['subjson'] = {}
@@ -1058,7 +1065,7 @@ class ResourcePool:
                          self.rpool[resource]]
             unlabelled = set(key for json_info in all_jsons for key in
                              json_info.get('CpacVariant', {}).keys() if
-                             key not in (*MOVEMENT_FILTER_KEYS, 'regressors'))
+                             key not in (*MOVEMENT_FILTER_KEYS, 'timeseries'))
             if 'bold' in unlabelled:
                 all_bolds = list(
                     chain.from_iterable(json_info['CpacVariant']['bold'] for
@@ -1130,7 +1137,8 @@ class ResourcePool:
                                                           'template_desc',
                                                           'atlas_id',
                                                           'fwhm',
-                                                          'subdir'],
+                                                          'subdir',
+                                                          'extension'],
                                              output_names=['out_filename'],
                                              function=create_id_string),
                                     name=f'id_string_{resource_idx}_{pipe_x}')
@@ -1185,6 +1193,22 @@ class ResourcePool:
                 nii_name = pe.Node(Rename(), name=f'nii_{resource_idx}_'
                                                   f'{pipe_x}')
                 nii_name.inputs.keep_ext = True
+                
+                if resource in Outputs.ciftis:
+                   nii_name.inputs.keep_ext = False
+                   id_string.inputs.extension = Outputs.ciftis[resource]
+                else:
+                   nii_name.inputs.keep_ext = True
+                
+               
+                if resource in Outputs.giftis:
+
+                   nii_name.inputs.keep_ext = False
+                   id_string.inputs.extension = f'{Outputs.giftis[resource]}.gii'
+                   
+                else:
+                   nii_name.inputs.keep_ext = True
+                
                 wf.connect(id_string, 'out_filename',
                            nii_name, 'format_string')
                 
@@ -1326,9 +1350,12 @@ class NodeBlock:
                             f'{outputs} in Node Block "{name}"\n')
 
     def grab_tiered_dct(self, cfg, key_list):
-        cfg_dct = cfg
+        cfg_dct = cfg.dict()
         for key in key_list:
-            cfg_dct = cfg_dct.__getitem__(key)
+            try:
+                cfg_dct = cfg_dct.get(key, {})
+            except KeyError:
+                raise Exception(f"[!] The config provided to the node block is not valid")  
         return cfg_dct
 
     def connect_block(self, wf, cfg, rpool):
@@ -1439,6 +1466,7 @@ class NodeBlock:
                                         f"for {name}, make sure the 'config' or "
                                         "'switch' fields are lists.\n\n")
                     switch = self.grab_tiered_dct(cfg, key_list)
+                    
                 else:
                     if isinstance(switch[0], list):
                         # we have multiple switches, which is designed to only work if

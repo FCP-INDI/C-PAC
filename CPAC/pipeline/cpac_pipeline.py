@@ -178,6 +178,10 @@ from CPAC.nuisance.nuisance import (
 )
 
 from CPAC.surface.surf_preproc import surface_postproc
+from CPAC.surface.surf_preproc import surface_falff
+from CPAC.surface.surf_preproc import surface_alff
+from CPAC.surface.surf_preproc import surface_reho
+from CPAC.surface.surf_preproc import surface_connectivity_matrix
 
 from CPAC.timeseries.timeseries_analysis import (
     timeseries_extraction_AVG,
@@ -1425,6 +1429,18 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
         
         pipeline_blocks += [surface_postproc]
 
+    if not rpool.check_rpool('surf_falff'):
+        pipeline_blocks += [surface_falff]
+
+    if not rpool.check_rpool('surf_alff'):
+        pipeline_blocks += [surface_alff]
+
+    if not rpool.check_rpool('surf-L_reho') or not rpool.check_rpool('surf-R_reho') :
+        pipeline_blocks += [surface_reho]
+
+    if not rpool.check_rpool('space-fsLR_den-32k_bold_surf-correlation_matrix'):
+        pipeline_blocks += [surface_connectivity_matrix]
+
     # Extractions and Derivatives
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)
     cfg.timeseries_extraction['tse_atlases'] = tse_atlases
@@ -1494,7 +1510,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None,
 
     # Connect the entire pipeline!
     try:
+        
         wf = connect_pipeline(wf, cfg, rpool, pipeline_blocks)
+        
     except LookupError as lookup_error:
         missing_key = None
         errorstrings = [arg for arg in lookup_error.args[0].split('\n') if

@@ -59,26 +59,6 @@ nuisance_corrections:
     # Select which nuisance signal corrections to apply
     Regressors:
       - Name: default
-        Motion:
-          include_delayed: On
-          include_squared: On
-          include_delayed_squared: On
-        aCompCor:
-          summary:
-            method: DetrendPC
-            components: 5
-          tissues:
-          - WhiteMatter
-          - CerebrospinalFluid
-          extraction_resolution: 2
-        CerebrospinalFluid:
-          summary: Mean
-          extraction_resolution: 2
-          erode_mask: On
-        GlobalSignal:
-          summary: Mean
-        PolyOrt:
-          degree: 2
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1

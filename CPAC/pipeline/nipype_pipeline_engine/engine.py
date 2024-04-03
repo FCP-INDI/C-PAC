@@ -51,6 +51,7 @@ import os
 import re
 from copy import deepcopy
 from inspect import Parameter, Signature, signature
+from typing import ClassVar, Optional, Union
 from nibabel import load
 from nipype.interfaces.utility import Function
 from nipype.pipeline import engine as pe
@@ -69,6 +70,7 @@ from numpy import prod
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
 from CPAC.utils.monitoring.custom_logging import getLogger
+from CPAC.utils.typing import DICT
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
@@ -153,7 +155,13 @@ class Node(pe.Node):
         {"    >>> realign.inputs.in_files = 'functional.nii'"}
     )
 
-    def __init__(self, *args, mem_gb=DEFAULT_MEM_GB, **kwargs):
+    def __init__(
+            self,
+            *args,
+            mem_gb: Optional[float] = DEFAULT_MEM_GB,
+            throttle: Optional[bool] = False,
+            **kwargs
+        ) -> None:
         # pylint: disable=import-outside-toplevel
         from CPAC.pipeline.random_state import random_seed
         super().__init__(*args, mem_gb=mem_gb, **kwargs)
@@ -162,6 +170,8 @@ class Node(pe.Node):
         self.seed_applied = False
         self.input_data_shape = Undefined
         self._debug = False
+        if throttle:
+            self.throttle = True
         self.verbose_logger = None
         self._mem_x = {}
         if 'mem_x' in kwargs and isinstance(
@@ -195,7 +205,8 @@ class Node(pe.Node):
             Parameter('mem_gb', Parameter.POSITIONAL_OR_KEYWORD,
                       default=DEFAULT_MEM_GB)
         )[1] for p in orig_sig_params[:-1]] + [
-            Parameter('mem_x', Parameter.KEYWORD_ONLY),
+            Parameter('mem_x', Parameter.KEYWORD_ONLY, default=None),
+            Parameter("throttle", Parameter.KEYWORD_ONLY, default=False),
             orig_sig_params[-1][1]
         ])
 
@@ -232,7 +243,11 @@ class Node(pe.Node):
             ``mode`` can be any one of
             * 'xyzt' (spatial * temporal) (default if not specified)
             * 'xyz' (spatial)
-            * 't' (temporal)''']))  # noqa: E501  # pylint: disable=line-too-long
+            * 't' (temporal)
+
+        throttle : bool, optional
+            Assume this Node will use all available memory if no observation run is
+            provided.''']))  # noqa: E501  # pylint: disable=line-too-long
 
     def _add_flags(self, flags):
         r'''
@@ -440,12 +455,21 @@ class MapNode(Node, pe.MapNode):
         if not self.name.endswith('_'):
             self.name = f'{self.name}_'
 
-    __init__.__signature__ = Signature(parameters=[
-        p[1] if p[0] != 'mem_gb' else (
-            'mem_gb',
-            Parameter('mem_gb', Parameter.POSITIONAL_OR_KEYWORD,
-                      default=DEFAULT_MEM_GB)
-        )[1] for p in signature(pe.Node).parameters.items()])
+    _parameters: ClassVar[DICT[str, Parameter]] = {}
+    _custom_params: ClassVar[DICT[str, Union[bool, float]]] = {
+        "mem_gb": DEFAULT_MEM_GB,
+        "throttle": False,
+    }
+    for param, default in _custom_params.items():
+        for p in signature(pe.Node).parameters.items():
+            if p[0] in _custom_params:
+                _parameters[p[0]] = Parameter(
+                    param, Parameter.POSITIONAL_OR_KEYWORD, default=default
+                )
+            else:
+                _parameters[p[0]] = p[1]
+    __init__.__signature__ = Signature(parameters=list(_parameters.values()))
+    del _custom_params, _parameters
 
 
 class Workflow(pe.Workflow):

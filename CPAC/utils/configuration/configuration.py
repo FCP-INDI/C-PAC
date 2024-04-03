@@ -99,12 +99,23 @@ class Configuration:
     >>> slack_420349_preconfig['pipeline_setup', 'pipeline_name']
     'slack_420349_preconfig'
     """
-    def __init__(self, config_map=None):
+    def __init__(self, config_map: Optional[dict] = None,
+                 skip_env_check: bool = False) -> None:
+        """Initialize a Configuration instance.
+
+        Parameters
+        ----------
+        config_map : dict, optional
+
+        skip_env_check : bool, optional
+        """
         from CPAC.pipeline.schema import schema
         from CPAC.utils.utils import lookup_nested_value, update_nested_dict
 
         if config_map is None:
             config_map = {}
+        if skip_env_check:
+            config_map['skip env check'] = True
 
         base_config = config_map.pop('FROM', None)
         if base_config:
@@ -112,7 +123,8 @@ class Configuration:
                 base_config = 'default'
             # import another config (specified with 'FROM' key)
             try:
-                base_config = Preconfiguration(base_config)
+                base_config = Preconfiguration(base_config,
+                                               skip_env_check=skip_env_check)
             except BadParameter:
                 base_config = configuration_from_file(base_config)
             config_map = update_nested_dict(base_config.dict(), config_map)
@@ -140,20 +152,26 @@ class Configuration:
 
         config_map = schema(config_map)
 
+        # remove 'skip env check' now that the config is validated
+        if "skip env check" in config_map:
+            del config_map["skip env check"]
         # remove 'FROM' before setting attributes now that it's imported
         if 'FROM' in config_map:
             del config_map['FROM']
 
-        # set FSLDIR to the environment $FSLDIR if the user sets it to
-        # 'FSLDIR' in the pipeline config file
-        _FSLDIR = config_map.get('FSLDIR')
-        if _FSLDIR and bool(re.match(r'^[\$\{]{0,2}?FSLDIR[\}]?$', _FSLDIR)):
-            config_map['FSLDIR'] = os.environ['FSLDIR']
-
-        for key in config_map:
-            # set attribute
-            setattr(self, key, set_from_ENV(config_map[key]))
-
+        if skip_env_check:
+            for key in config_map:
+                # set attribute
+                setattr(self, key, self.set_without_ENV(config_map[key]))
+        else:
+            # set FSLDIR to the environment $FSLDIR if the user sets it to
+            # 'FSLDIR' in the pipeline config file
+            _FSLDIR = config_map.get('FSLDIR')
+            if _FSLDIR and bool(re.match(r'^[\$\{]{0,2}?FSLDIR[\}]?$', _FSLDIR)):
+                config_map['FSLDIR'] = os.environ['FSLDIR']
+            for key in config_map:
+                # set attribute
+                setattr(self, key, self.set_from_ENV(config_map[key]))
         self._update_attr()
 
         # set working directory as an environment variable
@@ -270,6 +288,78 @@ class Configuration:
             if not callable(attr) and not attr.startswith("__")
         ]
         return attributes
+
+    def set_from_ENV(self, conf):  # pylint: disable=invalid-name
+        '''Replace strings like $VAR and ${VAR} with environment variable values.
+
+        Parameters
+        ----------
+        conf : any
+
+        Returns
+        -------
+        conf : any
+
+        Examples
+        --------
+        >>> import os
+        >>> os.environ['SAMPLE_VALUE_SFE'] = '/example/path'
+        >>> c = Configuration()
+        >>> c.set_from_ENV({'key': {'nested_list': [
+        ...     1, '1', '$SAMPLE_VALUE_SFE/extended']}})
+        {'key': {'nested_list': [1, '1', '/example/path/extended']}}
+        >>> c.set_from_ENV(['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE'])
+        ['/example/path', 'SAMPLE_VALUE_SFE']
+        >>> del os.environ['SAMPLE_VALUE_SFE']
+        '''
+        if isinstance(conf, list):
+            return [self.set_from_ENV(item) for item in conf]
+        if isinstance(conf, dict):
+            return {key: self.set_from_ENV(conf[key]) for key in conf}
+        if isinstance(conf, str):
+            # set any specified environment variables
+            # (only matching all-caps plus `-` and `_`)
+            # like `${VAR}`
+            _pattern1 = r'\${[A-Z\-_]*}'
+            # like `$VAR`
+            _pattern2 = r'\$[A-Z\-_]*(?=/|$)'
+            # replace with environment variables if they exist
+            for _pattern in [_pattern1, _pattern2]:
+                _match = re.search(_pattern, conf)
+                if _match:
+                    _match = _match.group().lstrip('${').rstrip('}')
+                    conf = re.sub(
+                        _pattern, os.environ.get(_match, f'${_match}'), conf)
+        return conf
+
+    def set_without_ENV(self, conf):  # pylint: disable=invalid-name
+        '''Retain strings like $VAR and ${VAR} when setting attributes.
+
+        Parameters
+        ----------
+        conf : any
+
+        Returns
+        -------
+        conf : any
+
+        Examples
+        --------
+        >>> import os
+        >>> os.environ['SAMPLE_VALUE_SFE'] = '/example/path'
+        >>> c = Configuration()
+        >>> c.set_without_ENV({'key': {'nested_list': [
+        ...     1, '1', '$SAMPLE_VALUE_SFE/extended']}})
+        {'key': {'nested_list': [1, '1', '$SAMPLE_VALUE_SFE/extended']}}
+        >>> c.set_without_ENV(['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE'])
+        ['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE']
+        >>> del os.environ['SAMPLE_VALUE_SFE']
+        '''
+        if isinstance(conf, list):
+            return [self.set_without_ENV(item) for item in conf]
+        if isinstance(conf, dict):
+            return {key: self.set_without_ENV(conf[key]) for key in conf}
+        return conf
 
     def sub_pattern(self, pattern, orig_key):
         return orig_key.replace(pattern, self[pattern[2:-1].split('.')])
@@ -659,52 +749,9 @@ class Preconfiguration(Configuration):
     preconfig : str
         The canonical name of the preconfig to load
     """
-    def __init__(self, preconfig):
-        super().__init__(config_map=preconfig_yaml(preconfig, True))
-
-
-def set_from_ENV(conf):  # pylint: disable=invalid-name
-    '''Function to replace strings like $VAR and ${VAR} with
-    environment variable values
-
-    Parameters
-    ----------
-    conf : any
-
-    Returns
-    -------
-    conf : any
-
-    Examples
-    --------
-    >>> import os
-    >>> os.environ['SAMPLE_VALUE_SFE'] = '/example/path'
-    >>> set_from_ENV({'key': {'nested_list': [
-    ...     1, '1', '$SAMPLE_VALUE_SFE/extended']}})
-    {'key': {'nested_list': [1, '1', '/example/path/extended']}}
-    >>> set_from_ENV(['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE'])
-    ['/example/path', 'SAMPLE_VALUE_SFE']
-    >>> del os.environ['SAMPLE_VALUE_SFE']
-    '''
-    if isinstance(conf, list):
-        return [set_from_ENV(item) for item in conf]
-    if isinstance(conf, dict):
-        return {key: set_from_ENV(conf[key]) for key in conf}
-    if isinstance(conf, str):
-        # set any specified environment variables
-        # (only matching all-caps plus `-` and `_`)
-        # like `${VAR}`
-        _pattern1 = r'\${[A-Z\-_]*}'
-        # like `$VAR`
-        _pattern2 = r'\$[A-Z\-_]*(?=/|$)'
-        # replace with environment variables if they exist
-        for _pattern in [_pattern1, _pattern2]:
-            _match = re.search(_pattern, conf)
-            if _match:
-                _match = _match.group().lstrip('${').rstrip('}')
-                conf = re.sub(
-                    _pattern, os.environ.get(_match, f'${_match}'), conf)
-    return conf
+    def __init__(self, preconfig, skip_env_check=False):
+        super().__init__(config_map=preconfig_yaml(preconfig, True),
+                         skip_env_check=skip_env_check)
 
 
 def set_subject(sub_dict: dict, pipe_config: 'Configuration',
