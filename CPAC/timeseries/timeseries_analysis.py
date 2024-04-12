@@ -673,8 +673,6 @@ def gen_voxel_timeseries(data_file, template):
     header_data = datafile.header
     qform = header_data.get_qform()
     sorted_list = []
-    vol_dict = {}
-    out_list = []
 
     tmp_file = os.path.splitext(
                   os.path.basename(template))[0]
@@ -682,14 +680,10 @@ def gen_voxel_timeseries(data_file, template):
     oneD_file = os.path.abspath('mask_' + tmp_file + '.1D')
     f = open(oneD_file, 'wt')
 
-    x, y, z = unit_data.shape
-
     node_array = img_data[unit_data != 0]
     node_array = node_array.T
     time_points = node_array.shape[0]
     for t in range(0, time_points):
-        string = 'vol {0}'.format(t)
-        vol_dict[string] = node_array[t]
         f.write(str(np.round(np.mean(node_array[t]), 6)))
         f.write('\n')
         val = node_array[t].tolist()
@@ -704,9 +698,9 @@ def gen_voxel_timeseries(data_file, template):
                         quoting=csv.QUOTE_MINIMAL)
     one = np.array([1])
     headers = ['volume/xyz']
-    cordinates = np.argwhere(unit_data != 0)
-    for val in range(len(cordinates)):
-        ijk_mat = np.concatenate([cordinates[val], one])
+    coordinates = np.argwhere(unit_data != 0)
+    for val in range(len(coordinates)):
+        ijk_mat = np.concatenate([coordinates[val], one])
         ijk_mat = ijk_mat.T
         product = np.dot(qform, ijk_mat)
         val = tuple(product.tolist()[0:3])
@@ -714,11 +708,6 @@ def gen_voxel_timeseries(data_file, template):
     writer.writerow(headers)
     writer.writerows(sorted_list)
     f.close()
-
-    #if output_type[1]:
-    #    numpy_file = os.path.abspath('mask_' + tmp_file + '.npz')
-    #    np.savez(numpy_file, **dict(vol_dict))
-    #    out_list.append(numpy_file)
 
     return oneD_file
 
