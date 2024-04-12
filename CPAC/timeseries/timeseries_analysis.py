@@ -641,20 +641,11 @@ def gen_voxel_timeseries(data_file, template):
         path to input functional data
     template : string (nifti file)
         path to input mask in functional native space
-    output_type : list
-        list of two boolean values suggesting
-        the output types - numpy npz file and csv
-        format
 
     Returns
     -------
-    out_list : list of files
-        Based on ouput_type options method returns a list containing
-        path to npz and csv file having timeseries of each voxel in
-        the data that is present in the input mask.The row header
-        corresponds to voxel's xyz cordinates and column headers corresponds
-        to the volume index in the csv. By default it outputs afni compatible
-        1D file with mean of timeseries of voxels across timepoints.
+    oneD_file : str
+        Path to the created .1D file containing the mean timeseries vector.
 
     Raises
     ------
