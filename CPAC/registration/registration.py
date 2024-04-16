@@ -1421,15 +1421,9 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
 
 
     if opt == 'FSL':
-        if cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_resolution'] ==  \
-            cfg.registration_workflows['anatomical_registration']['resolution_for_anat']:
-            fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg(
-                f'anat_mni_fnirt_register{symm}'
-            )
-        else:
-            fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg_nhp(
-                f'anat_mni_fnirt_register{symm}'
-            )
+        fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg_nhp(
+            f'anat_mni_fnirt_register{symm}'
+        )
 
         wf.connect(inputNode, 'input_brain',
                    fnirt_reg_anat_mni, 'inputspec.input_brain')
@@ -1454,33 +1448,22 @@ def FSL_registration_connector(wf_name, cfg, orig="T1w", opt=None,
         wf.connect(inputNode, 'fnirt_config',
                    fnirt_reg_anat_mni, 'inputspec.fnirt_config')
 
-        if cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_resolution'] ==  \
-            cfg.registration_workflows['anatomical_registration']['resolution_for_anat']:
-            # NOTE: this is an UPDATE because of the opt block above
-            added_outputs = {
-                f'space-{sym}template_desc-preproc_{orig}': (
-                    fnirt_reg_anat_mni, 'outputspec.output_brain'),
-                f'from-{orig}_to-{sym}{tmpl}template_mode-image_xfm': (
-                    fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm')
-            }
-            outputs.update(added_outputs)
-        else:
-            # NOTE: this is an UPDATE because of the opt block above
-            added_outputs = {
-                f'space-{sym}template_desc-preproc_{orig}': (
-                    fnirt_reg_anat_mni, 'outputspec.output_brain'),
-                f'space-{sym}template_desc-head_{orig}': (
-                    fnirt_reg_anat_mni, 'outputspec.output_head'),
-                f'space-{sym}template_desc-{orig}_mask': (
-                    fnirt_reg_anat_mni, 'outputspec.output_mask'),
-                f'space-{sym}template_desc-T1wT2w_biasfield': (
-                    fnirt_reg_anat_mni, 'outputspec.output_biasfield'),
-                f'from-{orig}_to-{sym}{tmpl}template_mode-image_xfm': (
-                    fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm'),
-                f'from-{orig}_to-{sym}{tmpl}template_mode-image_warp': (
-                    fnirt_reg_anat_mni, 'outputspec.nonlinear_warp')
-            }
-            outputs.update(added_outputs)
+        # NOTE: this is an UPDATE because of the opt block above
+        added_outputs = {
+            f'space-{sym}template_desc-preproc_{orig}': (
+                fnirt_reg_anat_mni, 'outputspec.output_brain'),
+            f'space-{sym}template_desc-head_{orig}': (
+                fnirt_reg_anat_mni, 'outputspec.output_head'),
+            f'space-{sym}template_desc-{orig}_mask': (
+                fnirt_reg_anat_mni, 'outputspec.output_mask'),
+            f'space-{sym}template_desc-T1wT2w_biasfield': (
+                fnirt_reg_anat_mni, 'outputspec.output_biasfield'),
+            f'from-{orig}_to-{sym}{tmpl}template_mode-image_xfm': (
+                fnirt_reg_anat_mni, 'outputspec.nonlinear_xfm'),
+            f'from-{orig}_to-{sym}{tmpl}template_mode-image_warp': (
+                fnirt_reg_anat_mni, 'outputspec.nonlinear_warp')
+        }
+        outputs.update(added_outputs)
 
     return (wf, outputs)
 
@@ -2030,20 +2013,11 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = connect
     wf.connect(node, out, fsl, 'inputspec.input_brain')
 
-    if cfg.registration_workflows['anatomical_registration']['registration']['FSL-FNIRT']['ref_resolution'] ==  \
-        cfg.registration_workflows['anatomical_registration']['resolution_for_anat']:
+    node, out = strat_pool.get_data('T1w-brain-template')
+    wf.connect(node, out, fsl, 'inputspec.reference_brain')
 
-        node, out = strat_pool.get_data('T1w-brain-template')
-        wf.connect(node, out, fsl, 'inputspec.reference_brain')
-
-        node, out = strat_pool.get_data('T1w-template')
-        wf.connect(node, out, fsl, 'inputspec.reference_head')
-    else:
-        node, out = strat_pool.get_data('FNIRT-T1w-brain-template')
-        wf.connect(node, out, fsl, 'inputspec.reference_brain')
-
-        node, out = strat_pool.get_data('FNIRT-T1w-template')
-        wf.connect(node, out, fsl, 'inputspec.reference_head')
+    node, out = strat_pool.get_data('T1w-template')
+    wf.connect(node, out, fsl, 'inputspec.reference_head')
 
     node, out = strat_pool.get_data(["desc-preproc_T1w",
                                      "space-longitudinal_desc-reorient_T1w"])
