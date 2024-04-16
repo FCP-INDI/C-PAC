@@ -343,6 +343,11 @@ def run_main():
                              'need to bind the port using the Docker '
                              'flag "-p".',
                         action='store_true')
+    
+    parser.add_argument('--freesurfer_dir', '--freesurfer-dir',
+                        help='Specify path to pre-computed FreeSurfer outputs '
+                              'to pull into C-PAC run',
+                        default=False)
 
     # get the command line arguments
     args = parser.parse_args(
@@ -641,6 +646,9 @@ def run_main():
               .format(c['pipeline_setup']['system_config'][
                   'num_participants_at_once']))
 
+        if args.freesurfer_dir:
+            c['pipeline_setup']['freesurfer_dir'] = args.freesurfer_dir
+        
         if not args.data_config_file:
             print("Input directory: {0}".format(bids_dir))
 
