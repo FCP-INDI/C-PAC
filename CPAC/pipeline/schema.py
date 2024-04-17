@@ -641,7 +641,6 @@ latest_schema = Schema({
         'functional_registration': {
             'coregistration': {
                 'run': bool1_1,
-                'reference': In({'brain', 'restore-brain'}),
                 'interpolation': In({'trilinear', 'sinc', 'spline'}),
                 'using': str,
                 'input': str,

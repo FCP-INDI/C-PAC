@@ -759,10 +759,6 @@ registration_workflows:
 
       run: On
 
-      # reference: 'brain' or 'restore-brain'
-      # In ABCD-options pipeline, 'restore-brain' is used as coregistration reference
-      reference: brain
-
       # Choose FSL or ABCD as coregistration method
       using: FSL
 

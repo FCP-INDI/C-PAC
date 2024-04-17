@@ -2913,7 +2913,7 @@ def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
         ),
         (
             "desc-preproc_T1w",
-            "desc-restore-brain_T1w",
+            ["desc-restore-brain_T1w", "desc-preproc_T1w"],
             "desc-preproc_T2w",
             "desc-preproc_T2w",
             "T2w",
@@ -2979,13 +2979,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data('sbref')
         wf.connect(node, out, func_to_anat, 'inputspec.func')
 
-        if cfg.registration_workflows['functional_registration'][
-            'coregistration']['reference'] == 'brain':
-            # TODO: use JSON meta-data to confirm
-            node, out = strat_pool.get_data('desc-preproc_T1w')
-        elif cfg.registration_workflows['functional_registration'][
-            'coregistration']['reference'] == 'restore-brain':
-            node, out = strat_pool.get_data('desc-restore-brain_T1w')
+        node, out = strat_pool.get_data(['desc-restore-brain_T1w', 'desc-preproc_T1w'])
         wf.connect(node, out, func_to_anat, 'inputspec.anat')
 
     if diff_complete:
