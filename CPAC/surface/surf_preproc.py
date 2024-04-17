@@ -573,7 +573,6 @@ def run_surface(post_freesurfer_folder,
                  "hemi-R_space-native_white",
     ],
 )
-
 def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     surf = pe.Node(util.Function(input_names=['post_freesurfer_folder',
