@@ -1761,11 +1761,13 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
 def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
     
-    if not cfg.pipeline_setup['freesurfer_dir']:
+    try: 
+        fs_path = os.path.join(cfg.pipeline_setup['freesurfer_dir'], part_id)
+    except KeyError:
         print('No FreeSurfer data present.')
         return rpool
     
-    fs_path = os.path.join(cfg.pipeline_setup['freesurfer_dir'], part_id)
+    #fs_path = os.path.join(cfg.pipeline_setup['freesurfer_dir'], part_id)
     if not os.path.exists(fs_path):
         if 'sub' in part_id:
             fs_path = os.path.join(cfg.pipeline_setup['freesurfer_dir'], part_id.replace('sub-', ''))
