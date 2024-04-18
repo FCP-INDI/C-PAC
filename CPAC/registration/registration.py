@@ -3783,6 +3783,12 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
 
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh#L548
     # convertwarp --relout --rel -m ${WD}/fMRI2str.mat --ref=${T1wImage} --out=${WD}/fMRI2str.nii.gz
+
+    if not strat_pool.check_rpool("space-template_res-bold_desc-brain_T1w"):
+        outputs = {}
+    else:
+        wf, outputs = bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt)
+
     convert_func_to_anat_linear_warp = pe.Node(interface=fsl.ConvertWarp(),
         name=f'convert_func_to_anat_linear_warp_{pipe_num}')
 
@@ -4028,11 +4034,11 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     wf.connect(merge_func_mask, 'out',
         extract_scout_brain, 'operand_files')
 
-    outputs = {
+    outputs.update({
         'space-template_desc-preproc_bold': (extract_func_brain, 'out_file'),
         'space-template_desc-scout_bold': (extract_scout_brain, 'out_file'),
         'space-template_desc-head_bold': (merge_func_to_standard, 'merged_file')
-    }
+    })
 
     return (wf, outputs)
 
