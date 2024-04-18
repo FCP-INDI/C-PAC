@@ -79,12 +79,9 @@ jobs:
           script: |
             set -x
             cd ${{ env.SSH_WORK_DIR }}
-            if [ -d C-PAC_slurm_testing ] ; then
-              rm -rf C-PAC_slurm_testing
-            fi
-            git clone --branch ${{ env.SLURM_TESTING_BRANCH }} --depth 1 https://github.com/${{ env.SLURM_TESTING_REPO }} C-PAC_slurm_testing
+            pip install "https://github.com/${{ env.SLURM_TESTING_REPO }}/archive/${{ env.SLURM_TESTING_BRANCH }}.zip"
             mkdir -p ./logs/${{ github.sha }}
-            sbatch --export="COMPARISON_PATH=${{ env.COMPARISON_PATH }},DASHBOARD_REPO=${{ env.DASHBOARD_REPO}},HOME_DIR=${{ env.SSH_WORK_DIR }},IMAGE=${{ env.DOCKER_TAG }},OWNER=${{ github.repository_owner }},PATH_EXTRA=${{ env.GH_CLI_BIN_PATH }},REPO=$(echo ${{ github.repository }} | cut -d '/' -f 2),TESTING_REPO=${{ env.SLURM_TESTING_REPO }},SHA=${{ github.sha }},TOKEN_FILE=${{ env.TOKEN_FILE }}" --output=${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}/out.log --error=${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}/error.log C-PAC_slurm_testing/.github/scripts/launch_regtest_lite.SLURM
+            sbatch cpac-slurm-status launch --wd="${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}" --comparison-path="${{ env.COMPARISON_PATH }}" --dashboard-repo="${{ env.DASHBOARD_REPO}}" --home-dir="${{ env.SSH_WORK_DIR }}" --image="${{ env.DOCKER_TAG }}" --owner="${{ github.repository_owner }}" --path-extra="${{ env.GH_CLI_BIN_PATH }}" --repo="${{ github.repository }}" --testing-repo="${{ env.SLURM_TESTING_REPO }}" --sha="${{ github.sha }}" --token-file="${{ env.TOKEN_FILE }}"
 
       - name: Cleanup SSH
         run: |
