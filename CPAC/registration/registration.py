@@ -3774,8 +3774,6 @@ def warp_timeseries_to_T1template_deriv(wf, cfg, strat_pool, pipe_num,
     outputs={
         "space-template_res-bold_desc-brain_T1w": {
             "Template": "T1w-brain-template-funcreg"},
-        "space-template_desc-bold_mask": {
-            "Template": "T1w-brain-template-funcreg"},
         "space-template_desc-preproc_bold": {
             "Template": "T1w-brain-template-funcreg"},
         "space-template_desc-scout_bold": {
@@ -3842,7 +3840,6 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
 
         wf.connect(anat_brain_to_func_res, 'out_file',
                 convert_func_to_standard_warp, 'reference')
-
     # Create brain masks in this space from the FreeSurfer output (changing resolution)
     # applywarp --rel --interp=nn -i ${FreeSurferBrainMask}.nii.gz -r ${WD}/${T1wImageFile}.${FinalfMRIResolution} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${FreeSurferBrainMaskFile}.${FinalfMRIResolution}.nii.gz
     anat_brain_mask_to_func_res = pe.Node(interface=fsl.ApplyWarp(),
@@ -4084,7 +4081,6 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
 
     outputs = {
         'space-template_res-bold_desc-brain_T1w': (anat_brain_to_func_res, 'out_file'),
-        'space-template_desc-bold_mask': (anat_brain_mask_to_func_res, 'out_file'),
         'space-template_desc-preproc_bold': (extract_func_brain, 'out_file'),
         'space-template_desc-scout_bold': (extract_scout_brain, 'out_file'),
         'space-template_desc-head_bold': (merge_func_to_standard, 'merged_file')
