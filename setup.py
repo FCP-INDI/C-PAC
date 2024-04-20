@@ -1,4 +1,4 @@
-# Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2022-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -43,9 +43,12 @@ def configuration(parent_package="", top_path=None):
 
 def main(**extra_args):
     from glob import glob
+    import sys
 
     from numpy.distutils.core import setup
 
+    # prepend this file's parent directory to sys.path to find CPAC when building
+    sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
     from CPAC.info import (
         AUTHOR,
         AUTHOR_EMAIL,
