@@ -3766,6 +3766,9 @@ def warp_timeseries_to_T1template_deriv(wf, cfg, strat_pool, pipe_num,
         "space-template_res-bold_desc-brain_T1w",
         "space-template_desc-bold_mask",
         "T1w-brain-template-funcreg",
+        "T1w-template-funcreg",
+        "space-template_desc-preproc_T1w",
+        "space-template_desc-T1w_mask",
     ],
     outputs={
         "space-template_desc-preproc_bold": {
@@ -3783,12 +3786,6 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
 
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh#L548
     # convertwarp --relout --rel -m ${WD}/fMRI2str.mat --ref=${T1wImage} --out=${WD}/fMRI2str.nii.gz
-
-    if not strat_pool.check_rpool("space-template_res-bold_desc-brain_T1w"):
-        outputs = {}
-    else:
-        wf, outputs = bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt)
-
     convert_func_to_anat_linear_warp = pe.Node(interface=fsl.ConvertWarp(),
         name=f'convert_func_to_anat_linear_warp_{pipe_num}')
 
@@ -3822,8 +3819,17 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     node, out = strat_pool.get_data('from-T1w_to-template_mode-image_xfm')
     wf.connect(node, out, convert_func_to_standard_warp, 'warp2')
 
-    node, out = strat_pool.get_data('space-template_res-bold_desc-brain_T1w')
-    wf.connect(node, out, convert_func_to_standard_warp, 'reference')
+
+    from CPAC.func_preproc.func_preproc import anat_brain_to_bold_res, anat_brain_mask_to_bold_res
+    anat_brain_to_func_res = anat_brain_to_bold_res(wf, cfg, pipe_num)
+
+    node, out = strat_pool.get_data('space-template_desc-preproc_T1w')
+    wf.connect(node, out, anat_brain_to_func_res, 'inputspec.space-template_desc-preproc_T1w')
+
+    node, out = strat_pool.get_data('T1w-template-funcreg')
+    wf.connect(node, out, anat_brain_to_func_res, 'inputspec.T1w-template-funcreg')
+
+    wf.connect(anat_brain_to_func_res, 'outputspec.space-template_res-bold_desc-brain_T1w', convert_func_to_standard_warp, 'reference')
 
     # TODO add condition: if no gradient distortion
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L283-L284
@@ -3882,8 +3888,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     convert_registration_warp.inputs.out_relwarp = True
     convert_registration_warp.inputs.relwarp = True
 
-    node, out = strat_pool.get_data('space-template_res-bold_desc-brain_T1w')
-    wf.connect(node, out, convert_registration_warp, 'reference')
+    wf.connect(anat_brain_to_func_res, 'outputspec.space-template_res-bold_desc-brain_T1w', convert_registration_warp, 'reference')
 
     wf.connect(convert_motion_distortion_warp, 'out_file',
         convert_registration_warp, 'warp1')
@@ -3915,8 +3920,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     wf.connect(convert_registration_warp, 'out_file',
         applywarp_func_to_standard, 'field_file')
 
-    node, out = strat_pool.get_data('space-template_res-bold_desc-brain_T1w')
-    wf.connect(node, out,
+    wf.connect(anat_brain_to_func_res, 'outputspec.space-template_res-bold_desc-brain_T1w',
         applywarp_func_to_standard, 'ref_file')
 
     # applywarp --rel --interp=nn --in=${WD}/prevols/vol${vnum}_mask.nii.gz --warp=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum}_all_warp.nii.gz --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --out=${WD}/postvols/vol${vnum}_mask.nii.gz
@@ -3933,8 +3937,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     wf.connect(convert_registration_warp, 'out_file',
         applywarp_func_mask_to_standard, 'field_file')
 
-    node, out = strat_pool.get_data('space-template_res-bold_desc-brain_T1w')
-    wf.connect(node, out,
+    wf.connect(anat_brain_to_func_res, 'outputspec.space-template_res-bold_desc-brain_T1w',
         applywarp_func_mask_to_standard, 'ref_file')
 
     ### Loop ends! ###
@@ -3975,8 +3978,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     convert_dc_warp.inputs.out_relwarp = True
     convert_dc_warp.inputs.relwarp = True
 
-    node, out = strat_pool.get_data('space-template_res-bold_desc-brain_T1w')
-    wf.connect(node, out, convert_dc_warp, 'reference')
+    wf.connect(anat_brain_to_func_res, 'outputspec.space-template_res-bold_desc-brain_T1w', convert_dc_warp, 'reference')
 
     wf.connect(multiply_func_roi_by_zero, 'out_file',
         convert_dc_warp, 'warp1')
@@ -3994,8 +3996,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     node, out = strat_pool.get_data('motion-basefile')
     wf.connect(node, out, applywarp_scout, 'in_file')
 
-    node, out = strat_pool.get_data('space-template_res-bold_desc-brain_T1w')
-    wf.connect(node, out, applywarp_scout, 'ref_file')
+    wf.connect(anat_brain_to_func_res, 'outputspec.space-template_res-bold_desc-brain_T1w', applywarp_scout, 'ref_file')
 
     wf.connect(convert_dc_warp, 'out_file', applywarp_scout, 'field_file')
 
@@ -4004,8 +4005,15 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     merge_func_mask = pe.Node(util.Merge(2),
         name=f'merge_func_mask_{pipe_num}')
 
-    node, out = strat_pool.get_data('space-template_desc-bold_mask')
-    wf.connect(node, out, merge_func_mask, 'in1')
+    anat_brain_mask_to_func_res = anat_brain_mask_to_bold_res(wf_name='anat_brain_mask_to_bold_res', cfg=cfg, pipe_num=pipe_num)
+    
+    node, out = strat_pool.get_data('space-template_desc-T1w_mask')
+    wf.connect(node, out, anat_brain_mask_to_func_res, 'inputspec.space-template_desc-T1w_mask')
+
+    wf.connect(anat_brain_to_func_res, 'outputspec.space-template_res-bold_desc-brain_T1w',
+            anat_brain_mask_to_func_res, 'inputspec.space-template_desc-preproc_T1w')
+
+    wf.connect(anat_brain_mask_to_func_res, 'outputspec.space-template_desc-bold_mask', merge_func_mask, 'in1')
 
     wf.connect(find_min_mask, 'out_file', merge_func_mask, 'in2')
 
@@ -4034,11 +4042,11 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     wf.connect(merge_func_mask, 'out',
         extract_scout_brain, 'operand_files')
 
-    outputs.update({
+    outputs = {
         'space-template_desc-preproc_bold': (extract_func_brain, 'out_file'),
         'space-template_desc-scout_bold': (extract_scout_brain, 'out_file'),
         'space-template_desc-head_bold': (merge_func_to_standard, 'merged_file')
-    })
+    }
 
     return (wf, outputs)
 
