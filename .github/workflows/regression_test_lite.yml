@@ -85,11 +85,22 @@ jobs:
                 python3 -m pip install --user --upgrade "https://github.com/${{ env.SLURM_TESTING_REPO }}/archive/${{ env.SLURM_TESTING_BRANCH }}.zip"
             else
                 # If the package is not installed, install it
-                python3 -m pip install --user --upgrade "https://github.com/${{ env.SLURM_TESTING_REPO }}/archive/${{ env.SLURM_TESTING_BRANCH }}.zip"
+                python3 -m pip install --user "https://github.com/${{ env.SLURM_TESTING_REPO }}/archive/${{ env.SLURM_TESTING_BRANCH }}.zip"
             fi
-            pip install --user "https://github.com/${{ env.SLURM_TESTING_REPO }}/archive/${{ env.SLURM_TESTING_BRANCH }}.zip"
             mkdir -p ./logs/${{ github.sha }}
-            sbatch cpac-slurm-status launch --wd="${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}" --comparison-path="${{ env.COMPARISON_PATH }}" --dashboard-repo="${{ env.DASHBOARD_REPO}}" --home-dir="${{ env.SSH_WORK_DIR }}" --image="${{ env.DOCKER_TAG }}" --owner="${{ github.repository_owner }}" --path-extra="${{ env.GH_CLI_BIN_PATH }}" --repo="${{ github.repository }}" --slurm-testing-repo="${{ env.SLURM_TESTING_REPO }}" --sha="${{ github.sha }}" --token-file="${{ env.TOKEN_FILE }}"
+            sbatch cpac-slurm-status launch \
+              --wd="${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}" \
+              --comparison-path="${{ env.COMPARISON_PATH }}" \
+              --dashboard-repo="${{ env.DASHBOARD_REPO}}" \
+              --home-dir="${{ env.SSH_WORK_DIR }}" \
+              --image="${{ env.DOCKER_TAG }}" \
+              --owner="${{ github.repository_owner }}" \
+              --path-extra="${{ env.GH_CLI_BIN_PATH }}" \
+              --repo="${{ github.repository }}" \
+              --sha="${{ github.sha }}" \
+              --slurm-testing-branch="${{ env.SLURM_TESTING_BRANCH }}" \
+              --slurm-testing-repo="${{ env.SLURM_TESTING_REPO }}" \
+              --token-file="${{ env.TOKEN_FILE }}"
 
       - name: Cleanup SSH
         run: |
