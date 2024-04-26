@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Robustfov` feature in `FSL-BET` to crop images ensuring removal of neck regions that may appear in the skull-stripped images. 
 - Ability to throttle nodes, estimating all available memory when threading
+- Ability to configure FreeSurfer ingress from the command line
 
 ### Changed
 
