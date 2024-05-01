@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The ABCD-pipeline based surface post-processing workflows have been modularized to be more robust, resolving a running issue with this part of the pipeline stalling or crashing in some runs.
 - Moved autoversioning from CI to pre-commit
 - Updated `FSL-BET` config to default `-mask-boolean` flag as on, and removed all removed `mask-boolean` keys from configs.
 - Added `dvars` as optional output in `cpac_outputs`.
