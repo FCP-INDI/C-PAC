@@ -14,19 +14,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [1.8.7] - 2024-05-03
 
 ### Added
 
 - `Robustfov` feature in `FSL-BET` to crop images ensuring removal of neck regions that may appear in the skull-stripped images. 
-- Ability to throttle nodes, estimating all available memory when threading
-- Ability to configure FreeSurfer ingress from the command line
+- Ability to throttle nodes, estimating all available memory when threading.
+- Ability to configure FreeSurfer ingress from the command line.
 
 ### Changed
 
 - Moved autoversioning from CI to pre-commit
 - Updated `FSL-BET` config to default `-mask-boolean` flag as on, and removed all removed `mask-boolean` keys from configs.
-- Added `dvars` as optional output in `cpac_outputs`
+- Added `dvars` as optional output in `cpac_outputs`.
+
+### Fixed
+
+- Fixed a bug where ingressing fmriprep outputs into C-PAC with a blank nuisance confounds field in the C-PAC pipeline configuration file would cause a crash.
+- Fixed a bug where spatial smoothing and z-scoring of final outputs would sometimes fail to run when running a C-PAC pipeline that would ingress fmriprep outputs.
+- Fixed a bug where ingress of distortion correction-related field map metadata would sometimes fail to recognize both echo times, when there were two present, leading to an error message claiming an echo time is missing.
+- Changed an extraneous default pipeline configuration setting - `surface_connectivity` is now disabled in the default configuration as intended.
 
 ## [1.8.6] - 2024-01-15
 
