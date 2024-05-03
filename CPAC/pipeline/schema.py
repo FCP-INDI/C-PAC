@@ -1,4 +1,4 @@
-# Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2022-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -21,12 +21,13 @@ import re
 from itertools import chain, permutations
 import numpy as np
 from pathvalidate import sanitize_filename
+from subprocess import CalledProcessError
 from voluptuous import All, ALLOW_EXTRA, Any, BooleanInvalid, Capitalize, \
                        Coerce, CoerceInvalid, ExclusiveInvalid, In, Length, \
                        LengthInvalid, Lower, Match, Maybe, MultipleInvalid, \
                        Optional, Range, Required, Schema, Title
-from CPAC import docs_prefix
 from CPAC.utils.datatypes import ItemFromList, ListFromItem
+from CPAC.utils.docs import DOCS_URL_PREFIX
 from CPAC.utils.utils import YAML_BOOLS
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
@@ -249,7 +250,7 @@ motion_estimate_filter = Any({  # notch filter with breathing_rate_* set
         Required('lowpass_cutoff'): Number,
         'Name': Maybe(str)},
     msg='`motion_estimate_filter` configuration is invalid.\nSee '
-        f'{docs_prefix}/user/'
+        f'{DOCS_URL_PREFIX}/user/'
         'func#motion-estimate-filter-valid-options for details.\n')
 target_space = All(Coerce(ListFromItem),
                    [All(Title, In(valid_options['target_space']))])
@@ -355,6 +356,7 @@ def sanitize(filename):
 
 latest_schema = Schema({
     'FROM': Maybe(str),
+    'skip env check': Maybe(bool),  # flag for skipping an environment check
     'pipeline_setup': {
         'pipeline_name': All(str, Length(min=1), sanitize),
         'output_directory': {
@@ -524,7 +526,7 @@ latest_schema = Schema({
             },
             'FSL-BET': {
                 'frac': Number,
-                'mask_boolean': bool1_1,
+                'Robustfov': bool1_1,
                 'mesh_boolean': bool1_1,
                 'outline': bool1_1,
                 'padding': bool1_1,
@@ -743,6 +745,16 @@ latest_schema = Schema({
             'freesurfer_labels': Maybe(str),
             'fmri_res': Maybe(int),
             'smooth_fwhm': Maybe(int),
+        },
+        'amplitude_low_frequency_fluctuation': {
+            'run': bool1_1,
+        },
+        'regional_homogeneity': {
+            'run': bool1_1,
+        },
+        'surface_connectivity': {
+            'run': bool1_1,
+            'surface_parcellation_template': Maybe(str),
         },
     },
     'longitudinal_template_generation': {
@@ -1183,13 +1195,14 @@ def schema(config_dict):
     except KeyError:
         pass
     try:
-        if 'unet' in [using.lower() for using in
-                      partially_validated['anatomical_preproc'][
-                          'brain_extraction']['using']]:
+        if not partially_validated.get("skip env check"
+                                       ) and 'unet' in [using.lower() for using in
+                partially_validated['anatomical_preproc'][
+                    'brain_extraction']['using']]:
             try:
                 from importlib import import_module
                 import_module('CPAC.unet')
-            except (ImportError, ModuleNotFoundError, OSError) as error:
+            except (CalledProcessError, ImportError, ModuleNotFoundError, OSError) as error:
                 import site
                 raise OSError(
                     'U-Net brain extraction requires torch to be installed, '

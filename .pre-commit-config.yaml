@@ -1,4 +1,4 @@
-# Copyright (C) 2023  C-PAC Developers
+# Copyright (C) 2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -15,12 +15,22 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 
-# line length
-MD013: false
-# no duplicate headers
-MD024:
-  siblings_only: true
-# allow specific inline HTML elements
-MD033:
-  allowed_elements:
-  - span
+repos:
+  - repo: local
+    hooks:
+      - id: autoversioning
+        name: Update Dockerfiles and version comments
+        entry: .github/scripts/autoversioning.sh
+        language: script
+        files: '.*Dockerfile$|.*\.yaml$|^CPAC/info\.py$'
+      - id: update-yaml-comments
+        name: Update YAML comments
+        entry: CPAC/utils/configuration/yaml_template.py
+        language: python
+        files: '^CPAC/resources/configs/pipeline_config_.*\.ya?ml'
+        additional_dependencies:
+          - "click"
+          - "nipype"
+          - "pathvalidate"
+          - "pyyaml"
+          - "voluptuous"

@@ -42,8 +42,8 @@ This script was borrowed from and inspired by nipype's info.py file
 # version
 _version_major = 1
 _version_minor = 8
-_version_micro = 6
-_version_extra = ''
+_version_micro = 7
+_version_extra = 'dev1'
 
 
 def get_cpac_gitversion():
@@ -82,7 +82,7 @@ def get_cpac_gitversion():
 if 'dev' in _version_extra:
     gitversion = get_cpac_gitversion()
     if gitversion:
-        _version_extra = f'dev1+{gitversion}'
+        _version_extra = f'{_version_extra}+{gitversion}'
 
 
 __version__ = "%s.%s.%s" % (_version_major,
@@ -90,7 +90,7 @@ __version__ = "%s.%s.%s" % (_version_major,
                             _version_micro)
 
 if _version_extra:
-    __version__ += "%s" % _version_extra
+    __version__ += ".%s" % _version_extra
 
 ga_tracker = 'UA-19224662-10'
 
@@ -170,7 +170,7 @@ VERSION = __version__
 STATUS = 'stable'
 REQUIREMENTS = [
     "boto3",
-    "ciftify",
+    "ciftify @ git+https://git@github.com/fcp-indi/ciftify#egg=ciftify",
     "click",
     "click-aliases",
     "configparser",
