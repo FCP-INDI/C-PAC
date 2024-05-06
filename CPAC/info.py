@@ -42,7 +42,7 @@ This script was borrowed from and inspired by nipype's info.py file
 # version
 _version_major = 1
 _version_minor = 8
-_version_micro = 7
+_version_micro = 8
 _version_extra = 'dev1'
 
 
