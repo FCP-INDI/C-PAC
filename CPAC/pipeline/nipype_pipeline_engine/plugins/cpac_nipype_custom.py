@@ -47,6 +47,9 @@ from CPAC.pipeline.nipype_pipeline_engine import MapNode, UNDEFINED_SIZE
 from CPAC.utils.monitoring import log_nodes_cb
 
 
+OVERHEAD_MEMORY_ESTIMATE: float = 1  # estimate of C-PAC + Nipype overhead (GB)
+
+
 def get_peak_usage():
     """Function to return peak usage in GB.
 
@@ -189,17 +192,19 @@ class CpacNipypeCustomPluginMixin():
         tasks_num_th = []
         overrun_message_mem = None
         overrun_message_th = None
-        # estimate of C-PAC + Nipype overhead (GB):
-        overhead_memory_estimate = 1
         for node in graph.nodes():
             if hasattr(self, 'runtime'):
                 self._override_memory_estimate(node)
+            elif hasattr(node, "throttle"):
+                # for a throttled node without an observation run,
+                # assume all available memory will be needed
+                node._mem_gb = self.memory_gb - OVERHEAD_MEMORY_ESTIMATE
             try:
                 node_memory_estimate = node.mem_gb
             except FileNotFoundError:
                 # pylint: disable=protected-access
                 node_memory_estimate = node._apply_mem_x(UNDEFINED_SIZE)
-            node_memory_estimate += overhead_memory_estimate
+            node_memory_estimate += OVERHEAD_MEMORY_ESTIMATE
             if node_memory_estimate > self.memory_gb:
                 tasks_mem_gb.append((node.name, node_memory_estimate))
             if node.n_procs > self.processors:

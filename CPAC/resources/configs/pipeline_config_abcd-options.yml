@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.7.dev1
+# Version 1.8.8.dev1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -43,6 +43,15 @@ surface_analysis:
 
   # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
   post_freesurfer:
+    run: On
+
+  amplitude_low_frequency_fluctuation:
+    run: On
+
+  regional_homogeneity:
+    run: On
+
+  surface_connectivity:
     run: On
 
 anatomical_preproc:

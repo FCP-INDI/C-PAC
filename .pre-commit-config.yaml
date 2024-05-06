@@ -64,3 +64,14 @@ repos:
         entry: .github/scripts/autoversioning.sh
         language: script
         files: '.*Dockerfile$|.*\.yaml$|^CPAC/info\.py$'
+      - id: update-yaml-comments
+        name: Update YAML comments
+        entry: CPAC/utils/configuration/yaml_template.py
+        language: python
+        files: '^CPAC/resources/configs/pipeline_config_.*\.ya?ml'
+        additional_dependencies:
+          - "click"
+          - "nipype"
+          - "pathvalidate"
+          - "pyyaml"
+          - "voluptuous"
