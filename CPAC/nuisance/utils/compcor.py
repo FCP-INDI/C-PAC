@@ -62,17 +62,47 @@ def calc_compcor_components(data_filename, num_components, mask_filename):
 # cosine_filter adapted from nipype 'https://github.com/nipy/nipype/blob/d353f0d879826031334b09d33e9443b8c9b3e7fe/nipype/algorithms/confounds.py'
 def cosine_filter(input_image_path, timestep, period_cut=128, remove_mean=True, axis=-1, failure_mode='error'):
     """
-    input_image_path: string
-            Bold image to be filtered.
-    timestep: float
-            'Repetition time (TR) of series (in sec) - derived from image header if unspecified'
-    period_cut: float
-            Minimum period (in sec) for DCT high-pass filter, nipype default value: 128
+    Apply cosine filter to a BOLD image.
 
+    Parameters:
+    -----------
+    input_image_path : str
+        Path to the BOLD image to be filtered.
+    timestep : float
+        Repetition time (TR) of the series (in seconds). Derived from image header if unspecified.
+    period_cut : float, optional
+        Minimum period (in seconds) for the DCT high-pass filter. Default value is 128.
+    remove_mean : bool, optional
+        Whether to remove the mean from the voxel time series before filtering. Default is True.
+    axis : int, optional
+        The axis along which to apply the filter. Default is -1 (last axis).
+    failure_mode : {'error', 'ignore'}, optional
+        Specifies how to handle failure modes. If set to 'error', the function raises an error.
+        If set to 'ignore', it returns the input data unchanged in case of failure. Default is 'error'.
+
+    Returns:
+    --------
+    cosfiltered_img : str
+        Path to the filtered BOLD image.
+
+    Notes:
+    ------
+    The function applies a cosine filter to the input BOLD image using the discrete cosine transform (DCT) method.
+    It removes the low-frequency drift from the voxel time series. The filtered image is saved to disk.
+
+    Adapted from nipype implementation.
+
+    The function uses a generator to iterate over voxel time series to optimize memory usage.
     """
 
     from CPAC.nuisance.utils.compcor import _full_rank
     from CPAC.nuisance.utils.compcor import _cosine_drift
+
+    def voxel_generator():
+        for i in range(datashape[0]):
+            for j in range(datashape[1]):
+                for k in range(datashape[2]):
+                    yield input_data[i, j, k, :]
 
     input_img = nb.load(input_image_path)
     input_data = input_img.get_fdata()
@@ -82,21 +112,28 @@ def cosine_filter(input_image_path, timestep, period_cut=128, remove_mean=True, 
     if datashape[0] == 0 and failure_mode != 'error':
         return input_data, np.array([])
 
-    input_data = input_data.reshape((-1, timepoints))
-
     frametimes = timestep * np.arange(timepoints)
     X = _full_rank(_cosine_drift(period_cut, frametimes))[0]
     non_constant_regressors = X[:, :-1] if X.shape[1] > 1 else np.array([])
 
-    betas = np.linalg.lstsq(X, input_data.T)[0]
+    output_data = np.zeros(input_data.shape)
 
-    if not remove_mean:
-        X = X[:, :-1]
-        betas = betas[:-1]
+    voxel_gen = voxel_generator()
 
-    residuals = input_data - X.dot(betas).T
+    for i in range(datashape[0]):
+        print(f"calculating {i+1} of {datashape[0]} row of voxels")
+        for j in range(datashape[1]):
+            for k in range(datashape[2]):
+                voxel_time_series = next(voxel_gen)
+                betas = np.linalg.lstsq(X, voxel_time_series.T)[0]
 
-    output_data = residuals.reshape(datashape)
+                if not remove_mean:
+                    X = X[:, :-1]
+                    betas = betas[:-1]
+
+                residuals = voxel_time_series - X.dot(betas)
+
+                output_data[i, j, k, :] = residuals
 
     hdr = input_img.header
     output_img = nb.Nifti1Image(output_data, header=hdr,
