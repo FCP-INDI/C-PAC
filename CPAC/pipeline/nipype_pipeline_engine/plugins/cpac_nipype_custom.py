@@ -53,6 +53,9 @@ from CPAC.utils.monitoring import log_nodes_cb
 OVERHEAD_MEMORY_ESTIMATE: float = 1  # estimate of C-PAC + Nipype overhead (GB)
 
 
+OVERHEAD_MEMORY_ESTIMATE: float = 1  # estimate of C-PAC + Nipype overhead (GB)
+
+
 def get_peak_usage():
     """Return peak usage in GB.
 

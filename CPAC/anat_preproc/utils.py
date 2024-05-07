@@ -1,9 +1,70 @@
 # -*- coding: utf-8 -*-
 from numpy import zeros
-from nibabel import load as nib_load
+from nibabel import load as nib_load, Nifti1Image
 import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
+
+
+def get_shape(nifti_image):
+    return nib_load(nifti_image).shape
+
+
+def pad(cropped_image_path, target_image_path):
+    """
+    Pad a cropped image to match the dimensions of a target image along the z-axis,
+    while keeping padded image aligned with target_image.
+
+    Parameters
+    ----------
+    - cropped_image_path (str): The file path to the cropped image (NIfTI format).
+    - target_image_path (str): The file path to the target image (NIfTI format).
+
+    Returns
+    -------
+    - str: The file path to the saved padded image (NIfTI format).
+
+    The function loads cropped and target iamges, calculates the z-dimension shift required for alignment such
+    that the mask generated from padded image will work correctly on the target image. The result padded image is
+    saved as an NIfTI file in the working directory/node and file path is returned as output.
+
+    Note: The function assumes that the input images are in NIfTI format and have compatible dimensions. The cropped
+    and target image should only differ in z-axis dimension.
+    """
+    from os import getcwd, path
+    from typing import Optional
+
+    from numpy import asanyarray, ndarray, zeros_like
+    from nibabel import load, Nifti1Image, save
+
+    cropped_image: Optional[ndarray] = asanyarray(load(cropped_image_path).dataobj)
+    target_image: Optional[ndarray] = asanyarray(load(target_image_path).dataobj)
+
+    # Taking 1 slice to calculate the z dimension shift from top
+    center_row: int = target_image.shape[0] // 2
+    center_column: int = target_image.shape[1] // 2
+    z_slice_cropped_image: Optional[ndarray] = cropped_image[
+        center_row, center_column, :
+    ]
+    z_slice_target_image: Optional[ndarray] = target_image[center_row, center_column, :]
+
+    for z_shift in range(len(z_slice_target_image) - len(z_slice_cropped_image) + 1):
+        if (
+            z_slice_target_image[z_shift : z_shift + len(z_slice_cropped_image)]
+            == z_slice_cropped_image
+        ).all():
+            break
+
+    padded_image_matrix: Optional[ndarray] = zeros_like(target_image)
+    padded_image_matrix[:, :, z_shift : cropped_image.shape[2] + z_shift] = (
+        cropped_image
+    )
+    padded_image_path: str = path.join(getcwd(), "padded_image_T1w.nii.gz")
+    cropped_image = load(cropped_image_path)
+    save(
+        Nifti1Image(padded_image_matrix, affine=cropped_image.affine), padded_image_path
+    )
+    return padded_image_path
 
 
 def get_shape(nifti_image):
@@ -36,7 +97,7 @@ def pad(cropped_image_path, target_image_path):
     from typing import Optional
 
     from numpy import asanyarray, ndarray, zeros_like
-    from nibabel import load, Nifti1Image, save
+    from nibabel import load, save
 
     cropped_image: Optional[ndarray] = asanyarray(load(cropped_image_path).dataobj)
     target_image: Optional[ndarray] = asanyarray(load(target_image_path).dataobj)
