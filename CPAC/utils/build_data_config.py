@@ -20,13 +20,13 @@ from logging import basicConfig, INFO
 from typing import Any
 
 from CPAC.utils.monitoring.custom_logging import getLogger
-from CPAC.utils.typing import DICT, LIST, PATHSTR
+from CPAC.utils.typing import DICT, LIST, PathStr
 
 logger = getLogger("CPAC.utils.data-config")
 basicConfig(format="%(message)s", level=INFO)
 
 
-def _cannot_write(file_name: PATHSTR) -> None:
+def _cannot_write(file_name: PathStr) -> None:
     """Raise an IOError when a file cannot be written to disk."""
     msg = (
         f"\n\nCPAC says: I couldn't save this file to your drive:\n{file_name}\n\nMake"
@@ -35,7 +35,7 @@ def _cannot_write(file_name: PATHSTR) -> None:
     raise IOError(msg)
 
 
-def gather_file_paths(base_directory, verbose=False) -> LIST[PATHSTR]:
+def gather_file_paths(base_directory, verbose=False) -> LIST[PathStr]:
     """Return a list of file paths from a base directory."""
     # this will go into core tools eventually
 
@@ -68,7 +68,7 @@ def _no_anatomical_found(
     purpose: str,
     entity: str,
     _id: str,
-    file_path: PATHSTR,
+    file_path: PathStr,
 ) -> dict:
     """Return the data dictionary and warn no anatomical entries are found."""
     if verbose:
@@ -82,7 +82,7 @@ def _no_anatomical_found(
     return data_dct
 
 
-def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True) -> LIST[PATHSTR]:
+def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True) -> LIST[PathStr]:
     """Return a list of input data file paths that are available from AWS S3."""
     import os
 
@@ -128,7 +128,7 @@ def pull_s3_sublist(data_folder, creds_path=None, keep_prefix=True) -> LIST[PATH
 
 def get_file_list(
     base_directory, creds_path=None, write_txt=None, write_pkl=None, write_info=False
-) -> LIST[PATHSTR]:
+) -> LIST[PathStr]:
     """Return a list of input and data file paths.
 
     These paths are either stored locally or on an AWS S3 bucket on the cloud.
@@ -382,7 +382,7 @@ def generate_group_analysis_files(data_config_outdir, data_config_name):
     )
 
 
-def extract_scan_params_csv(scan_params_csv: PATHSTR) -> DICT[str, Any]:
+def extract_scan_params_csv(scan_params_csv: PathStr) -> DICT[str, Any]:
     """
     Extract the site-based scan parameters from a csv file.
 

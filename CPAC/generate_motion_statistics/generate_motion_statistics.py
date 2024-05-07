@@ -30,15 +30,17 @@ from nipype.interfaces.base import File, TraitedSpec, traits
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.pytest import skipif
-from CPAC.utils.typing import LITERAL, TUPLE
+from CPAC.utils.typing import Literal, TUPLE
 
 
 def motion_power_statistics(
     name="motion_stats", motion_correct_tool="3dvolreg", filtered=False
-):
+) -> pe.Workflow:
     """
+    Get stats from movement/motion parameters.
+
     The main purpose of this workflow is to get various statistical measures
-     from the movement/motion parameters obtained in functional preprocessing.
+    from the movement/motion parameters obtained in functional preprocessing.
 
     Parameters
     ----------
@@ -220,6 +222,7 @@ def motion_power_statistics(
         name="cal_DVARS",
         mem_gb=0.4,
         mem_x=(739971956005215 / 151115727451828646838272, "in_file"),
+        throttle=True,
     )
 
     cal_DVARS_strip = pe.Node(
@@ -358,7 +361,7 @@ def motion_power_statistics(
 
 def calculate_FD_P(in_file):
     """
-    Method to calculate Framewise Displacement (FD)  as per Power et al., 2012.
+    Calculate Framewise Displacement (FD) as per Power et al., 2012.
 
     Parameters
     ----------
@@ -395,17 +398,17 @@ def calculate_FD_P(in_file):
         "from typing import Optional",
         "import numpy as np",
         "from CPAC.utils.pytest import skipif",
-        "from CPAC.utils.typing import LITERAL, TUPLE",
+        "from CPAC.utils.typing import Literal, TUPLE",
     ]
 )
 @skipif(sys.version_info < (3, 10), reason="Test requires Python 3.10 or higher")
 def calculate_FD_J(
     in_file: str,
-    calc_from: LITERAL["affine", "rms"],
+    calc_from: Literal["affine", "rms"],
     center: Optional[np.ndarray] = None,
 ) -> TUPLE[str, np.ndarray]:
     """
-    Method to calculate framewise displacement as per Jenkinson et al. 2002.
+    Calculate framewise displacement as per Jenkinson et al. 2002.
 
     Parameters
     ----------
@@ -524,7 +527,7 @@ def gen_motion_parameters(
     movement_parameters, max_displacement, motion_correct_tool, rels_displacement=None
 ):
     """
-    Method to calculate all the movement parameters.
+    Calculate all the movement parameters.
 
     Parameters
     ----------
@@ -623,7 +626,7 @@ def gen_motion_parameters(
     with open(out_file, "w") as f:
         f.write(",".join(t for t, v in info))
         f.write("\n")
-        f.write(",".join(v if type(v) == str else f"{v:.6f}" for t, v in info))
+        f.write(",".join(v if isinstance(v, str) else f"{v:.6f}" for t, v in info))
         f.write("\n")
 
     return out_file, info, maxdisp, relsdisp
@@ -633,7 +636,7 @@ def gen_power_parameters(
     fdp=None, fdj=None, dvars=None, motion_correct_tool="3dvolreg"
 ):
     """
-    Method to generate Power parameters for scrubbing.
+    Generate Power parameters for scrubbing.
 
     Parameters
     ----------
@@ -700,7 +703,7 @@ def gen_power_parameters(
     with open(out_file, "a") as f:
         f.write(",".join(t for t, v in info))
         f.write("\n")
-        f.write(",".join(v if type(v) == str else f"{v:.4f}" for t, v in info))
+        f.write(",".join(v if isinstance(v, str) else f"{v:.4f}" for t, v in info))
         f.write("\n")
 
     return out_file, info
@@ -767,7 +770,7 @@ class ImageTo1D(AFNICommand):
 
 def calculate_DVARS(func_brain, mask):
     """
-    Method to calculate DVARS as per power's method.
+    Calculate DVARS as per Power's method.
 
     Parameters
     ----------
@@ -808,7 +811,7 @@ def calculate_DVARS(func_brain, mask):
 
 def get_allmotion(fdj, fdp, maxdisp, motion, power, relsdisp=None, dvars=None):
     """
-    Method to append all the motion and power parameters into 2 files.
+    Append all the motion and power parameters into 2 files.
 
     Parameters
     ----------

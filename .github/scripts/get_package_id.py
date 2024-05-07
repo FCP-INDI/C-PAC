@@ -86,7 +86,7 @@ def get_packages(owner, tag, api_token=None):
         return response
 
     _packages = fetch(
-        f"https://api.github.com/orgs/{owner}/packages/container/" f"{tag}/versions"
+        f"https://api.github.com/orgs/{owner}/packages/container/{tag}/versions"
     )
     packages = []
     for _package in _packages:

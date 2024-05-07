@@ -23,7 +23,7 @@
 
 #     Prior to release 0.12, Nipype was licensed under a BSD license.
 
-# Modifications Copyright (C) 2022  C-PAC Developers
+# Modifications Copyright (C) 2022-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 """
@@ -44,14 +44,17 @@ from textwrap import indent
 from traceback import format_exception
 
 from numpy import flatnonzero
+from nipype.pipeline.engine import Node as NipypeNode
 from nipype.pipeline.plugins.multiproc import logger
 
 from CPAC.pipeline.nipype_pipeline_engine import MapNode, UNDEFINED_SIZE
 from CPAC.utils.monitoring import log_nodes_cb
 
+OVERHEAD_MEMORY_ESTIMATE: float = 1  # estimate of C-PAC + Nipype overhead (GB)
+
 
 def get_peak_usage():
-    """Function to return peak usage in GB.
+    """Return peak usage in GB.
 
     Parameters
     ----------
@@ -72,7 +75,7 @@ def get_peak_usage():
 
 
 def parse_previously_observed_mem_gb(callback_log_path):
-    """Function to parse the previously observed memory usage.
+    """Parse the previously observed memory usage.
 
     Parameters
     ----------
@@ -111,7 +114,7 @@ class CpacNipypeCustomPluginMixin:
         self._stats = None
 
     def _check_resources_(self, running_tasks):
-        """Make sure there are resources available."""
+        """Make sure resources are available."""
         free_memory_gb = self.memory_gb
         free_processors = self.processors
         for _, jobid in running_tasks:
@@ -121,9 +124,7 @@ class CpacNipypeCustomPluginMixin:
         return free_memory_gb, free_processors
 
     def _check_resources(self, running_tasks):
-        """Make sure there are resources available, accounting for
-        Nipype memory usage.
-        """
+        """Make sure resources are available, accounting for Nipype memory usage."""
         free_memory_gb, free_processors = self._check_resources_(running_tasks)
 
         # Nipype memory usage
@@ -136,23 +137,12 @@ class CpacNipypeCustomPluginMixin:
         traceback = format_exception(*sys.exc_info())
         self._clean_queue(jobid, graph, result={"result": None, "traceback": traceback})
 
-    def _override_memory_estimate(self, node):
-        """
-        Override node memory estimate with provided runtime memory
-        usage, buffered.
-
-        Parameters
-        ----------
-        node : nipype.pipeline.engine.nodes.Node
-
-        Returns
-        -------
-        None
-        """
+    def _override_memory_estimate(self, node: NipypeNode) -> None:
+        """Override node memory estimate with provided runtime memory usage, buffered."""
         if hasattr(node, "list_node_names"):
-            for node_id in node.list_node_names():
+            for _node_id in node.list_node_names():
                 # drop top-level node name
-                node_id = node_id.split(".", 1)[-1]
+                node_id = _node_id.split(".", 1)[-1]
         else:
             node_id = node.fullname.split(".", 1)[-1]
         if self._match_for_overrides(node, node_id):
@@ -192,17 +182,19 @@ class CpacNipypeCustomPluginMixin:
         tasks_num_th = []
         overrun_message_mem = None
         overrun_message_th = None
-        # estimate of C-PAC + Nipype overhead (GB):
-        overhead_memory_estimate = 1
         for node in graph.nodes():
             if hasattr(self, "runtime"):
                 self._override_memory_estimate(node)
+            elif hasattr(node, "throttle"):
+                # for a throttled node without an observation run,
+                # assume all available memory will be needed
+                node._mem_gb = self.memory_gb - OVERHEAD_MEMORY_ESTIMATE
             try:
                 node_memory_estimate = node.mem_gb
             except FileNotFoundError:
                 # pylint: disable=protected-access
                 node_memory_estimate = node._apply_mem_x(UNDEFINED_SIZE)
-            node_memory_estimate += overhead_memory_estimate
+            node_memory_estimate += OVERHEAD_MEMORY_ESTIMATE
             if node_memory_estimate > self.memory_gb:
                 tasks_mem_gb.append((node.name, node_memory_estimate))
             if node.n_procs > self.processors:
@@ -245,7 +237,8 @@ class CpacNipypeCustomPluginMixin:
 
     def _send_procs_to_workers(self, updatehash=False, graph=None):
         """
-        Sends jobs to workers when system resources are available.
+        Send jobs to workers when system resources are available.
+
         Customized from https://github.com/nipy/nipype/blob/79e2fdfc/nipype/pipeline/plugins/legacymultiproc.py#L311-L462
         to catch overhead deadlocks.
         """  # pylint: disable=line-too-long

@@ -20,8 +20,8 @@ import os
 import subprocess
 
 import nibabel as nib
-from nipype.interfaces import afni, ants, fsl
-from nipype.interfaces.afni import preprocess
+from nipype.interfaces import ants, fsl
+from nipype.interfaces.afni import preprocess, SkullStrip
 import nipype.interfaces.afni.utils as afni_utils
 import nipype.interfaces.utility as util
 
@@ -63,8 +63,8 @@ def create_afni_arg(shrink_fac):
 )
 def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
     """
-    Fieldmap correction takes in an input magnitude image which is
-    Skull Stripped (Tight).
+    Fieldmap correction takes in an input magnitude image which is Skull Stripped (Tight).
+
     The magnitude images are obtained from each echo series. It also
     requires a phase image
     as an input, the phase image is a subtraction of the two phase
@@ -143,8 +143,8 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
         ]["PhaseDiff"]["fmap_skullstrip_AFNI_threshold"]
 
         afni = pe.Node(
-            interface=afni.SkullStrip(),
-            name=f"distcor_phasediff_" f"afni_skullstrip_" f"{pipe_num}",
+            interface=SkullStrip(),
+            name=f"distcor_phasediff_afni_skullstrip_{pipe_num}",
         )
         afni.inputs.outputtype = "NIFTI_GZ"
         wf.connect(skullstrip_args, "expr", afni, "args")
@@ -165,7 +165,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
         == "BET"
     ):
         bet = pe.Node(
-            interface=fsl.BET(), name="distcor_phasediff_bet_" f"skullstrip_{pipe_num}"
+            interface=fsl.BET(), name="distcor_phasediff_bet_skullstrip_{pipe_num}"
         )
         bet.inputs.output_type = "NIFTI_GZ"
         bet.inputs.frac = cfg.functional_preproc["distortion_correction"]["PhaseDiff"][
@@ -271,8 +271,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
 
 
 def same_pe_direction_prep(same_pe_epi, func_mean):
-    """Skull-strip and align the EPI field map that has the same phase
-    encoding direction as the BOLD scan.
+    """Skull-strip and align the EPI field map that has the same phase encoding direction as the BOLD scan.
 
     This function only exists to serve as a function node in the
     blip_distcor_wf sub-workflow because workflow decisions cannot be made
@@ -384,7 +383,9 @@ def convert_afni_to_ants(afni_warp):
     outputs=["sbref", "space-bold_desc-brain_mask", "ants-blip-warp"],
 )
 def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
-    """Execute AFNI 3dQWarp to calculate the distortion "unwarp" for
+    """Execute AFNI 3dQWarp.
+
+    To calculate the distortion "unwarp" for
     phase encoding direction EPI field map distortion correction.
 
         1. Skull-strip the opposite-direction phase encoding EPI.
@@ -573,7 +574,9 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["sbref", "space-bold_desc-brain_mask", "fsl-blip-warp"],
 )
 def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
-    """Execute FSL TOPUP to calculate the distortion "unwarp" for
+    """Execute FSL TOPUP.
+
+    To calculate the distortion "unwarp" for
     phase encoding direction EPI field map distortion correction.
     """
     # TODO: re-integrate gradient distortion coefficient usage at a later date

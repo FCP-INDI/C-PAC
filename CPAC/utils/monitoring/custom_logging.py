@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2023  C-PAC Developers
+# Copyright (C) 2022-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -30,6 +30,7 @@ from CPAC.utils.monitoring.config import MOCK_LOGGERS
 
 def failed_to_start(log_dir, exception):
     """Launch a failed-to-start logger for a run that failed to start.
+
     Must be called from within an ``except`` block.
 
     Parameters
@@ -45,8 +46,7 @@ def failed_to_start(log_dir, exception):
 
 
 def getLogger(name):  # pylint: disable=invalid-name
-    """Function to get a mock logger if one exists, falling back on
-    real loggers.
+    """Get a mock logger if one exists, falling back on real loggers.
 
     Parameters
     ----------
@@ -62,6 +62,13 @@ def getLogger(name):  # pylint: disable=invalid-name
     return logging.getLogger(name) if logger is None else logger
 
 
+# Nipype built-in loggers
+IFLOGGER = getLogger("nipype.interface")
+FMLOGGER = getLogger("nipype.filemanip")
+UTLOGGER = getLogger("nipype.utils")
+WFLOGGER = getLogger("nipype.workflow")
+
+
 def log_failed_subprocess(cpe):
     """Pass STDERR from a subprocess to the interface's logger.
 
@@ -69,14 +76,13 @@ def log_failed_subprocess(cpe):
     ----------
     cpe : subprocess.CalledProcessError
     """
-    logger = getLogger("nipype.interface")
-    logger.error("%s\nExit code %s", cpe.output, cpe.returncode)
+    IFLOGGER.error("%s\nExit code %s", cpe.output, cpe.returncode)
 
 
 def log_subprocess(cmd, *args, raise_error=True, **kwargs):
     """Pass STDERR and STDOUT from subprocess to interface's logger.
-    This function is nearly a drop-in replacement for
-    `subprocess.check_output`.
+
+    This function is nearly a drop-in replacement for `subprocess.check_output`.
 
     Caveat: if you're assigning to a variable (like
 
@@ -116,12 +122,11 @@ def log_subprocess(cmd, *args, raise_error=True, **kwargs):
 
     exit_code : int
     """
-    logger = getLogger("nipype.interface")
     try:
         output = subprocess.check_output(
             cmd, *args, stderr=subprocess.STDOUT, universal_newlines=True, **kwargs
         )
-        logger.info(output)
+        IFLOGGER.info(output)
     except subprocess.CalledProcessError as cpe:
         log_failed_subprocess(cpe)
         if raise_error:
@@ -140,9 +145,7 @@ class MockHandler:
 
 # pylint: disable=too-few-public-methods
 class MockLogger:
-    """Mock logging.Logger to provide the same API without keeping the
-    logger in memory.
-    """
+    """Mock logging.Logger to provide API without keeping the logger in memory."""
 
     def __init__(self, name, filename, level, log_dir):
         self.name = name
@@ -153,16 +156,13 @@ class MockLogger:
             # set up log methods for all built-in levels
             setattr(self, loglevel, self._factory_log(loglevel))
 
-    def exception(self, msg, *args, exc_info=True, **kwargs):
-        # pylint: disable=missing-function-docstring,no-member
+    def exception(self, msg, *args, exc_info=True, **kwargs):  # noqa: D102
         return self.error(msg, *args, exc_info=exc_info, **kwargs)
 
     exception.__doc__ = logging.exception.__doc__
 
     def _factory_log(self, level):
-        r"""Generate a log method like `self.log(message)` for a given
-        built-in level.
-        """
+        r"""Generate a log method like `self.log(message)` for a given built-in level."""
 
         @docstring_parameter(level=level)
         def _log(message, *items, exc_info=False):
@@ -222,7 +222,7 @@ def _lazy_sub(message, *items):
 def set_up_logger(
     name, filename=None, level=None, log_dir=None, mock=False, overwrite_existing=False
 ):
-    r"""Function to initialize a logger.
+    r"""Initialize a logger.
 
     Parameters
     ----------
@@ -289,10 +289,3 @@ def set_up_logger(
     handler = logging.FileHandler(filepath)
     logger.addHandler(handler)
     return logger
-
-
-# Nipype built-in loggers
-IFLOGGER = getLogger("nipype.interface")
-FMLOGGER = getLogger("nipype.filemanip")
-UTLOGGER = getLogger("nipype.utils")
-WFLOGGER = getLogger("nipype.workflow")

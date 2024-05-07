@@ -22,6 +22,7 @@ import fnmatch
 import gzip
 from itertools import repeat
 import json
+import numbers
 import os
 import pickle
 from typing import Any, Union
@@ -156,6 +157,7 @@ def create_id_string(
     atlas_id=None,
     fwhm=None,
     subdir=None,
+    extension=None,
 ):
     """Create the unique key-value identifier string for BIDS-Derivatives file names.
 
@@ -210,6 +212,9 @@ def create_id_string(
             msg = "\n[!] FWHM provided but no desc-sm?\n"
             raise Exception(msg)
 
+    if extension is not None:
+        out_filename = out_filename + "." + str(extension)
+
     # drop space- entities from from native-space filenames
     if subdir == "anat":
         out_filename = out_filename.replace("_space-T1w_", "_")
@@ -222,8 +227,12 @@ def write_output_json(json_data, filename, indent=3, basedir=None):
     """Write a dictionary to a JSON file."""
     if not basedir:
         basedir = os.getcwd()
+    if ".gii" in filename:
+        filename = os.path.splitext(filename)[0]
+        filename = f"{filename}.json"
     if ".json" not in filename:
         filename = f"{filename}.json"
+
     json_file = os.path.join(basedir, filename)
     json_data = json.dumps(json_data, indent=indent, sort_keys=True)
     with open(json_file, "wt") as f:
@@ -440,15 +449,6 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     import numpy as np
     import nibabel as nib
 
-    if isinstance(timeseries_one_d, str):
-        if ".1D" in timeseries_one_d or ".csv" in timeseries_one_d:
-            pass
-
-    else:
-        for timeseries in timeseries_one_d:
-            if ".1D" in timeseries or ".csv" in timeseries:
-                pass
-
     # get the specific roi number
     filename = correlation_file.split("/")[-1]
     filename = filename.replace(".nii", "")
@@ -575,7 +575,7 @@ def check(params_dct, subject_id, scan_id, val_to_check, throw_exception):
     """Check that a value is populated for a given key in a parameters dictionary."""
     if val_to_check not in params_dct:
         if throw_exception:
-            msg = f"Missing Value for {val_to_check} for participant " f"{subject_id}"
+            msg = f"Missing Value for {val_to_check} for participant {subject_id}"
             raise ValueError(msg)
         return None
 
@@ -598,6 +598,31 @@ def check(params_dct, subject_id, scan_id, val_to_check, throw_exception):
         raise ValueError(msg)
 
     return ret_val
+
+
+def check_random_state(seed):
+    """
+    Turn seed into a np.random.RandomState instance.
+
+    Code from scikit-learn (https://github.com/scikit-learn/scikit-learn)
+
+    Parameters
+    ----------
+    seed : None | int | instance of RandomState
+        If seed is None, return the RandomState singleton used by np.random.
+        If seed is an int, return a new RandomState instance seeded with seed.
+        If seed is already a RandomState instance, return it.
+        Otherwise raise ValueError.
+    """
+    if seed is None or seed is np.random:
+        return np.random.mtrand._rand
+    if isinstance(seed, (numbers.Integral, np.integer)):
+        return np.random.RandomState(seed)
+    if isinstance(seed, np.random.RandomState):
+        return seed
+    raise ValueError(
+        "%r cannot be used to seed a numpy.random.RandomState" " instance" % seed
+    )
 
 
 def try_fetch_parameter(scan_parameters, subject, scan, keys):
@@ -1356,9 +1381,7 @@ def repickle(directory):  # noqa: T20
                             "a Python 3 pickle."
                         )
                     except Exception as e:
-                        print(
-                            f"Could not convert Python 2 pickle {p} " f"because {e}\n"
-                        )
+                        print(f"Could not convert Python 2 pickle {p} because {e}\n")
                 else:
                     print(f"Pickle {fn} is a Python 3 pickle.")
             elif fn.endswith(".pklz"):
@@ -1373,9 +1396,7 @@ def repickle(directory):  # noqa: T20
                             "a Python 3 pickle."
                         )
                     except Exception as e:
-                        print(
-                            f"Could not convert Python 2 pickle {p} " f"because {e}\n"
-                        )
+                        print(f"Could not convert Python 2 pickle {p} because {e}\n")
                 else:
                     print(f"Pickle {fn} is a Python 3 pickle.")
 
@@ -1410,9 +1431,7 @@ def _pickle2(p, z=False):  # noqa: T20
             except UnicodeDecodeError:
                 return True
             except Exception as e:
-                print(
-                    f"Pickle {p} may be a Python 3 pickle, but raised " f"exception {e}"
-                )
+                print(f"Pickle {p} may be a Python 3 pickle, but raised exception {e}")
     else:
         with open(p, "rb") as fp:
             try:
@@ -1420,9 +1439,7 @@ def _pickle2(p, z=False):  # noqa: T20
             except UnicodeDecodeError:
                 return True
             except Exception as e:
-                print(
-                    f"Pickle {p} may be a Python 3 pickle, but raised " f"exception {e}"
-                )
+                print(f"Pickle {p} may be a Python 3 pickle, but raised exception {e}")
     return False
 
 

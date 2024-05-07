@@ -1819,7 +1819,7 @@ def run_basc(pipeline_config):
     # did that actually work?
     if not os.path.isfile(ref_file):
         # TODO: better message
-        msg = "\n[!] The reference file could not be found.\nPath: " f"{ref_file}\n"
+        msg = f"\n[!] The reference file could not be found.\nPath: {ref_file}\n"
         raise FileNotFoundError(msg)
 
     working_dir = os.path.join(

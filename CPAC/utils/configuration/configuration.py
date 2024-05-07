@@ -101,12 +101,24 @@ class Configuration:
     'slack_420349_preconfig'
     """
 
-    def __init__(self, config_map=None):
+    def __init__(
+        self, config_map: Optional[dict] = None, skip_env_check: bool = False
+    ) -> None:
+        """Initialize a Configuration instance.
+
+        Parameters
+        ----------
+        config_map : dict, optional
+
+        skip_env_check : bool, optional
+        """
         from CPAC.pipeline.schema import schema
         from CPAC.utils.utils import lookup_nested_value, update_nested_dict
 
         if config_map is None:
             config_map = {}
+        if skip_env_check:
+            config_map["skip env check"] = True
 
         base_config = config_map.pop("FROM", None)
         if base_config:
@@ -114,7 +126,9 @@ class Configuration:
                 base_config = "default"
             # import another config (specified with 'FROM' key)
             try:
-                base_config = Preconfiguration(base_config)
+                base_config = Preconfiguration(
+                    base_config, skip_env_check=skip_env_check
+                )
             except BadParameter:
                 base_config = configuration_from_file(base_config)
             config_map = update_nested_dict(base_config.dict(), config_map)
@@ -143,30 +157,36 @@ class Configuration:
 
         config_map = schema(config_map)
 
+        # remove 'skip env check' now that the config is validated
+        if "skip env check" in config_map:
+            del config_map["skip env check"]
         # remove 'FROM' before setting attributes now that it's imported
         if "FROM" in config_map:
             del config_map["FROM"]
 
-        # set FSLDIR to the environment $FSLDIR if the user sets it to
-        # 'FSLDIR' in the pipeline config file
-        _FSLDIR = config_map.get("FSLDIR")
-        if _FSLDIR and bool(re.match(r"^[\$\{]{0,2}?FSLDIR[\}]?$", _FSLDIR)):
-            config_map["FSLDIR"] = os.environ["FSLDIR"]
-
-        for key in config_map:
-            # set attribute
-            setattr(self, key, set_from_ENV(config_map[key]))
-
+        if skip_env_check:
+            for key in config_map:
+                # set attribute
+                setattr(self, key, self.set_without_ENV(config_map[key]))
+        else:
+            # set FSLDIR to the environment $FSLDIR if the user sets it to
+            # 'FSLDIR' in the pipeline config file
+            _FSLDIR = config_map.get("FSLDIR")
+            if _FSLDIR and bool(re.match(r"^[\$\{]{0,2}?FSLDIR[\}]?$", _FSLDIR)):
+                config_map["FSLDIR"] = os.environ["FSLDIR"]
+            for key in config_map:
+                # set attribute
+                setattr(self, key, self.set_from_ENV(config_map[key]))
         self._update_attr()
 
         # set working directory as an environment variable
         os.environ["CPAC_WORKDIR"] = self["pipeline_setup", "working_directory", "path"]
 
     def __str__(self):
-        return "C-PAC Configuration " f"('{self['pipeline_setup', 'pipeline_name']}')"
+        return f"C-PAC Configuration ('{self['pipeline_setup', 'pipeline_name']}')"
 
     def __repr__(self):
-        # show Configuration as a dict when accessed directly
+        """Show Configuration as a dict when accessed directly."""
         return str(self.dict())
 
     def __copy__(self):
@@ -178,11 +198,10 @@ class Configuration:
     def __getitem__(self, key):
         if isinstance(key, str):
             return getattr(self, key)
-        elif isinstance(key, (list, tuple)):
+        if isinstance(key, (list, tuple)):
             return self.get_nested(self, key)
-        else:
-            self.key_type_error(key)
-            return None
+        self.key_type_error(key)
+        return None
 
     def __setitem__(self, key, value):
         if isinstance(key, str):
@@ -237,8 +256,7 @@ class Configuration:
         return self.dict().keys()
 
     def _nonestr_to_None(self, d):
-        """Recursive method to type convert 'None' to None in nested
-        config.
+        """Recursive method to type convert 'None' to None in nested config.
 
         Parameters
         ----------
@@ -253,24 +271,84 @@ class Configuration:
         """
         if isinstance(d, str) and d.lower() == "none":
             return None
-        elif isinstance(d, list):
+        if isinstance(d, list):
             return [self._nonestr_to_None(i) for i in d]
-        elif isinstance(d, set):
+        if isinstance(d, set):
             return {self._nonestr_to_None(i) for i in d}
-        elif isinstance(d, dict):
+        if isinstance(d, dict):
             return {i: self._nonestr_to_None(d[i]) for i in d}
-        else:
-            return d
+        return d
 
-    def return_config_elements(self):
-        # this returns a list of tuples
-        # each tuple contains the name of the element in the yaml config file
-        # and its value
-        return [
-            (attr, getattr(self, attr))
-            for attr in dir(self)
-            if not callable(attr) and not attr.startswith("__")
-        ]
+    def set_from_ENV(self, conf):  # pylint: disable=invalid-name
+        """Replace strings like $VAR and ${VAR} with environment variable values.
+
+        Parameters
+        ----------
+        conf : any
+
+        Returns
+        -------
+        conf : any
+
+        Examples
+        --------
+        >>> import os
+        >>> os.environ['SAMPLE_VALUE_SFE'] = '/example/path'
+        >>> c = Configuration()
+        >>> c.set_from_ENV({'key': {'nested_list': [
+        ...     1, '1', '$SAMPLE_VALUE_SFE/extended']}})
+        {'key': {'nested_list': [1, '1', '/example/path/extended']}}
+        >>> c.set_from_ENV(['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE'])
+        ['/example/path', 'SAMPLE_VALUE_SFE']
+        >>> del os.environ['SAMPLE_VALUE_SFE']
+        """
+        if isinstance(conf, list):
+            return [self.set_from_ENV(item) for item in conf]
+        if isinstance(conf, dict):
+            return {key: self.set_from_ENV(conf[key]) for key in conf}
+        if isinstance(conf, str):
+            # set any specified environment variables
+            # (only matching all-caps plus `-` and `_`)
+            # like `${VAR}`
+            _pattern1 = r"\${[A-Z\-_]*}"
+            # like `$VAR`
+            _pattern2 = r"\$[A-Z\-_]*(?=/|$)"
+            # replace with environment variables if they exist
+            for _pattern in [_pattern1, _pattern2]:
+                _match = re.search(_pattern, conf)
+                if _match:
+                    _match = _match.group().lstrip("${").rstrip("}")
+                    conf = re.sub(_pattern, os.environ.get(_match, f"${_match}"), conf)
+        return conf
+
+    def set_without_ENV(self, conf):  # pylint: disable=invalid-name
+        """Retain strings like $VAR and ${VAR} when setting attributes.
+
+        Parameters
+        ----------
+        conf : any
+
+        Returns
+        -------
+        conf : any
+
+        Examples
+        --------
+        >>> import os
+        >>> os.environ['SAMPLE_VALUE_SFE'] = '/example/path'
+        >>> c = Configuration()
+        >>> c.set_without_ENV({'key': {'nested_list': [
+        ...     1, '1', '$SAMPLE_VALUE_SFE/extended']}})
+        {'key': {'nested_list': [1, '1', '$SAMPLE_VALUE_SFE/extended']}}
+        >>> c.set_without_ENV(['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE'])
+        ['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE']
+        >>> del os.environ['SAMPLE_VALUE_SFE']
+        """
+        if isinstance(conf, list):
+            return [self.set_without_ENV(item) for item in conf]
+        if isinstance(conf, dict):
+            return {key: self.set_without_ENV(conf[key]) for key in conf}
+        return conf
 
     def sub_pattern(self, pattern, orig_key):
         return orig_key.replace(pattern, self[pattern[2:-1].split(".")])
@@ -395,8 +473,7 @@ class Configuration:
         return False
 
     def _switch_bool(self, key: ConfigKeyType, value: bool, exclusive: bool) -> bool:
-        """Return True if the given key is set to the given value or
-        False otherwise.
+        """Return True if the key is set to the given value or False otherwise.
 
         Parameters
         ----------
@@ -424,8 +501,9 @@ class Configuration:
         return False
 
     def switch_is_off(self, key: ConfigKeyType, exclusive: bool = False) -> bool:
-        """Return True if the given key is set to 'off' OR 'on' and 'off'
-        or False otherwise. Used for tracking forking.
+        """Return True if the key is set to 'off' OR 'on' and 'off' or False otherwise.
+
+        Used for tracking forking.
 
         Parameters
         ----------
@@ -461,8 +539,9 @@ class Configuration:
         return self._switch_bool(key, False, exclusive)
 
     def switch_is_on(self, key: ConfigKeyType, exclusive: bool = False) -> bool:
-        """Return True if the given key is set to 'on' OR 'on' and 'off'
-        or False otherwise. Used for tracking forking.
+        """Return True if the key is set to 'on' OR 'on' and 'off' or False otherwise.
+
+        Used for tracking forking.
 
         Parameters
         ----------
@@ -498,8 +577,9 @@ class Configuration:
         return self._switch_bool(key, True, exclusive)
 
     def switch_is_on_off(self, key: ConfigKeyType) -> bool:
-        """Return True if the given key is set to both 'on' and 'off'
-        or False otherwise. Used for tracking forking.
+        """Return True if the key is set to both 'on' and 'off' or False otherwise.
+
+        Used for tracking forking.
 
         Parameters
         ----------
@@ -529,6 +609,7 @@ class Configuration:
         return False
 
     def key_type_error(self, key):
+        """Raise a KeyError if an inappropriate type of key is attempted."""
         raise KeyError(
             " ".join(
                 [
@@ -542,8 +623,7 @@ class Configuration:
 
 
 def check_pname(p_name: str, pipe_config: Configuration) -> str:
-    """Function to check / set `p_name`, the string representation of a
-    pipeline for use in filetrees.
+    """Check / set `p_name`, the str representation of a pipeline for use in filetrees.
 
     Parameters
     ----------
@@ -581,7 +661,7 @@ def check_pname(p_name: str, pipe_config: Configuration) -> str:
 
 
 def collect_key_list(config_dict):
-    """Function to return a list of lists of keys for a nested dictionary.
+    """Return a list of lists of keys for a nested dictionary.
 
     Parameters
     ----------
@@ -607,7 +687,7 @@ def collect_key_list(config_dict):
 
 
 def configuration_from_file(config_file):
-    """Function to load a Configuration from a pipeline config file.
+    """Load a Configuration from a pipeline config file.
 
     Parameters
     ----------
@@ -624,6 +704,7 @@ def configuration_from_file(config_file):
 
 def preconfig_yaml(preconfig_name="default", load=False):
     """Get the path to a preconfigured pipeline's YAML file.
+
     Raises BadParameter if an invalid preconfig name is given.
 
     Parameters
@@ -668,58 +749,16 @@ class Preconfiguration(Configuration):
         The canonical name of the preconfig to load
     """
 
-    def __init__(self, preconfig):
-        super().__init__(config_map=preconfig_yaml(preconfig, True))
-
-
-def set_from_ENV(conf):  # pylint: disable=invalid-name
-    """Function to replace strings like $VAR and ${VAR} with
-    environment variable values.
-
-    Parameters
-    ----------
-    conf : any
-
-    Returns
-    -------
-    conf : any
-
-    Examples
-    --------
-    >>> import os
-    >>> os.environ['SAMPLE_VALUE_SFE'] = '/example/path'
-    >>> set_from_ENV({'key': {'nested_list': [
-    ...     1, '1', '$SAMPLE_VALUE_SFE/extended']}})
-    {'key': {'nested_list': [1, '1', '/example/path/extended']}}
-    >>> set_from_ENV(['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE'])
-    ['/example/path', 'SAMPLE_VALUE_SFE']
-    >>> del os.environ['SAMPLE_VALUE_SFE']
-    """
-    if isinstance(conf, list):
-        return [set_from_ENV(item) for item in conf]
-    if isinstance(conf, dict):
-        return {key: set_from_ENV(conf[key]) for key in conf}
-    if isinstance(conf, str):
-        # set any specified environment variables
-        # (only matching all-caps plus `-` and `_`)
-        # like `${VAR}`
-        _pattern1 = r"\${[A-Z\-_]*}"
-        # like `$VAR`
-        _pattern2 = r"\$[A-Z\-_]*(?=/|$)"
-        # replace with environment variables if they exist
-        for _pattern in [_pattern1, _pattern2]:
-            _match = re.search(_pattern, conf)
-            if _match:
-                _match = _match.group().lstrip("${").rstrip("}")
-                conf = re.sub(_pattern, os.environ.get(_match, f"${_match}"), conf)
-    return conf
+    def __init__(self, preconfig, skip_env_check=False):
+        super().__init__(
+            config_map=preconfig_yaml(preconfig, True), skip_env_check=skip_env_check
+        )
 
 
 def set_subject(
     sub_dict: dict, pipe_config: "Configuration", p_name: Optional[str] = None
 ) -> TUPLE[str, str, str]:
-    """Function to set pipeline name and log directory path for a given
-    sub_dict.
+    """Set pipeline name and log directory path for a given sub_dict.
 
     Parameters
     ----------
@@ -770,8 +809,9 @@ def set_subject(
 
 
 def nipype_friendly_name(name: str) -> str:
-    """Replace each sequence of non-alphanumeric characters with a single
-    underscore and remove any leading underscores.
+    """Replace each sequence of non-alphanumeric characters...
+
+    ...with a single underscore and remove any leading underscores.
 
     Parameters
     ----------

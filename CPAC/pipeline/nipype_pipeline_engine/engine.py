@@ -26,7 +26,7 @@
 
 #     Prior to release 0.12, Nipype was licensed under a BSD license.
 
-# Modifications Copyright (C) 2022-2023 C-PAC Developers
+# Modifications Copyright (C) 2022-2024 C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -43,6 +43,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Module to import Nipype Pipeline engine and override some Classes.
+
 See https://fcp-indi.github.io/docs/developer/nodes
 for C-PAC-specific documentation.
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine.html
@@ -53,6 +54,7 @@ from copy import deepcopy
 from inspect import Parameter, Signature, signature
 import os
 import re
+from typing import Any, ClassVar, Optional, Union
 
 from numpy import prod
 from traits.trait_base import Undefined
@@ -73,6 +75,7 @@ from nipype.utils.filemanip import fname_presuffix
 from nipype.utils.functions import getsource
 
 from CPAC.utils.monitoring import getLogger, WFLOGGER
+from CPAC.utils.typing import DICT
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
@@ -80,7 +83,7 @@ UNDEFINED_SIZE = (42, 42, 42, 1200)
 
 
 def _check_mem_x_path(mem_x_path):
-    """Function to check if a supplied multiplier path exists.
+    """Check if a supplied multiplier path exists.
 
     Parameters
     ----------
@@ -99,8 +102,9 @@ def _check_mem_x_path(mem_x_path):
 
 def _doctest_skiplines(docstring, lines_to_skip):
     """
-    Function to add '  # doctest: +SKIP' to the end of docstring lines
-    to skip in imported docstrings.
+    Add '  # doctest: +SKIP' to the end of docstring lines.
+
+    Used to skip doctests in imported docstrings.
 
     Parameters
     ----------
@@ -130,8 +134,7 @@ def _doctest_skiplines(docstring, lines_to_skip):
 
 
 def _grab_first_path(mem_x_path):
-    """Function to grab the first path if multiple paths for given
-    multiplier input.
+    """Grab the first path if multiple paths for given multiplier input.
 
     Parameters
     ----------
@@ -152,7 +155,13 @@ class Node(pe.Node):
         pe.Node.__doc__, {"    >>> realign.inputs.in_files = 'functional.nii'"}
     )
 
-    def __init__(self, *args, mem_gb=DEFAULT_MEM_GB, **kwargs):
+    def __init__(
+        self,
+        *args,
+        mem_gb: Optional[float] = DEFAULT_MEM_GB,
+        throttle: Optional[bool] = False,
+        **kwargs,
+    ) -> None:
         # pylint: disable=import-outside-toplevel
         from CPAC.pipeline.random_state import random_seed
 
@@ -162,6 +171,8 @@ class Node(pe.Node):
         self.seed_applied = False
         self.input_data_shape = Undefined
         self._debug = False
+        if throttle:
+            self.throttle = True
         self.verbose_logger = None
         self._mem_x = {}
         if "mem_x" in kwargs and isinstance(kwargs["mem_x"], (tuple, list)):
@@ -196,7 +207,11 @@ class Node(pe.Node):
             )[1]
             for p in orig_sig_params[:-1]
         ]
-        + [Parameter("mem_x", Parameter.KEYWORD_ONLY), orig_sig_params[-1][1]]
+        + [
+            Parameter("mem_x", Parameter.KEYWORD_ONLY, default=None),
+            Parameter("throttle", Parameter.KEYWORD_ONLY, default=False),
+            orig_sig_params[-1][1],
+        ]
     )
 
     __init__.__doc__ = re.sub(
@@ -236,7 +251,11 @@ class Node(pe.Node):
             ``mode`` can be any one of
             * 'xyzt' (spatial * temporal) (default if not specified)
             * 'xyz' (spatial)
-            * 't' (temporal)""",
+            * 't' (temporal)
+
+        throttle : bool, optional
+            Assume this Node will use all available memory if no observation run is
+            provided.""",
             ]
         ),
     )  # pylint: disable=line-too-long
@@ -283,8 +302,7 @@ class Node(pe.Node):
             self.inputs.args = prep_flags("args")
 
     def _apply_mem_x(self, multiplicand=None):
-        """Method to calculate and memoize a Node's estimated memory
-        footprint.
+        """Calculate and memoize a Node's estimated memory footprint.
 
         Parameters
         ----------
@@ -301,19 +319,8 @@ class Node(pe.Node):
             estimated memory usage (GB)
         """
 
-        def parse_multiplicand(multiplicand):
-            """
-            Returns an numeric value for a multiplicand if
-            multipland is a string or None.
-
-            Parameters
-            ----------
-            muliplicand : any
-
-            Returns
-            -------
-            int or float
-            """
+        def parse_multiplicand(multiplicand: Any) -> Optional[Union[int, float]]:
+            """Return a numeric value or None for a multiplicand."""
             if self._debug:
                 self.verbose_logger.debug(
                     "%s multiplicand: %s", self.name, multiplicand
@@ -324,7 +331,7 @@ class Node(pe.Node):
                 return multiplicand
             if (
                 isinstance(multiplicand, tuple)
-                and 3 <= len(multiplicand) <= 4
+                and 3 <= len(multiplicand) <= 4  # noqa: PLR2004
                 and all(isinstance(i, (int, float)) for i in multiplicand)
             ):
                 return get_data_size(
@@ -416,10 +423,18 @@ class Node(pe.Node):
         return self._mem_gb
 
     @property
-    def mem_x(self):
-        """Get dict of 'multiplier' (memory multiplier), 'file' (input file)
-        and multiplier mode (spatial * temporal, spatial only or
-        temporal only). Returns ``None`` if already consumed or not set.
+    def mem_x(self) -> Optional[DICT[str, Union[int, float, str]]]:
+        """Get dict of 'multiplier', 'file', and 'multiplier mode'.
+
+        'multiplier' is a memory multiplier.
+        'file' is an input file.
+        'multiplier mode' is one of
+           - spatial * temporal
+           - spatial only
+             or
+           - temporal only.
+
+        Returns ``None`` if already consumed or not set.
         """
         return getattr(self, "_mem_x", None)
 
@@ -465,19 +480,21 @@ class MapNode(Node, pe.MapNode):
         if not self.name.endswith("_"):
             self.name = f"{self.name}_"
 
-    __init__.__signature__ = Signature(
-        parameters=[
-            p[1]
-            if p[0] != "mem_gb"
-            else (
-                "mem_gb",
-                Parameter(
-                    "mem_gb", Parameter.POSITIONAL_OR_KEYWORD, default=DEFAULT_MEM_GB
-                ),
-            )[1]
-            for p in signature(pe.Node).parameters.items()
-        ]
-    )
+    _parameters: ClassVar[DICT[str, Parameter]] = {}
+    _custom_params: ClassVar[DICT[str, Union[bool, float]]] = {
+        "mem_gb": DEFAULT_MEM_GB,
+        "throttle": False,
+    }
+    for param, default in _custom_params.items():
+        for p in signature(pe.Node).parameters.items():
+            if p[0] in _custom_params:
+                _parameters[p[0]] = Parameter(
+                    param, Parameter.POSITIONAL_OR_KEYWORD, default=default
+                )
+            else:
+                _parameters[p[0]] = p[1]
+    __init__.__signature__ = Signature(parameters=list(_parameters.values()))
+    del _custom_params, _parameters
 
 
 class Workflow(pe.Workflow):
@@ -742,7 +759,7 @@ class Workflow(pe.Workflow):
 
 
 def get_data_size(filepath, mode="xyzt"):
-    """Function to return the size of a functional image (x * y * z * t).
+    """Return the size of a functional image (x * y * z * t).
 
     Parameters
     ----------
@@ -764,11 +781,11 @@ def get_data_size(filepath, mode="xyzt"):
     """
     if isinstance(filepath, str):
         data_shape = load(filepath).shape
-    elif isinstance(filepath, tuple) and len(filepath) == 4:
+    elif isinstance(filepath, tuple) and len(filepath) == 4:  # noqa: PLR2004
         data_shape = filepath
     if mode == "t":
         # if the data has muptiple TRs, return that number
-        if len(data_shape) > 3:
+        if len(data_shape) > 3:  # noqa: PLR2004
             return data_shape[3]
         # otherwise return 1
         return 1
@@ -787,7 +804,7 @@ def export_graph(
     format="png",
     simple_form=True,
 ):
-    """Displays the graph layout of the pipeline.
+    """Display the graph layout of the pipeline.
 
     This function requires that pygraphviz and matplotlib are available on
     the system.
@@ -857,8 +874,8 @@ def _write_detailed_dot(graph, dotfilename):
         struct1:f1 -> struct2:f0;
         struct1:f0 -> struct2:f1;
         struct1:f2 -> struct3:here;
-        }.
-    """
+        }
+    """  # noqa: D205,D400
     # pylint: disable=invalid-name
     import networkx as nx
 
@@ -907,12 +924,10 @@ def _write_detailed_dot(graph, dotfilename):
         srcpackage = ""
         if hasattr(n, "_interface"):
             pkglist = n.interface.__class__.__module__.split(".")
-            if len(pkglist) > 2:
+            if len(pkglist) > 2:  # noqa: PLR2004
                 srcpackage = pkglist[2]
         srchierarchy = ".".join(nodename.split(".")[1:-1])
-        nodenamestr = (
-            f"{{ {nodename.split('.')[-1]} | {srcpackage} | " f"{srchierarchy} }}"
-        )
+        nodenamestr = f"{{ {nodename.split('.')[-1]} | {srcpackage} | {srchierarchy} }}"
         text += [
             f'"{nodename.replace(".", "")}" [label='
             f'"{"".join(inputstr)}|{nodenamestr}|{"".join(outputstr)}"];'

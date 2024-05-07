@@ -708,7 +708,7 @@ def func_despike_template(wf, cfg, strat_pool, pipe_num, opt=None):
 def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
     """Genetare slice-time correctied timeseries."""
     slice_time = slice_timing_wf(
-        name="func_slice_timing_correction_" f"{pipe_num}",
+        name=f"func_slice_timing_correction_{pipe_num}",
         tpattern=cfg.functional_preproc["slice_timing_correction"]["tpattern"],
         tzero=cfg.functional_preproc["slice_timing_correction"]["tzero"],
     )
@@ -1159,7 +1159,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         name=f"skullstrip_first_dilate_{pipe_num}",
     )
 
-    bet_mask = pe.Node(fsl.ApplyMask(), name=f"skullstrip_first_mask_" f"{pipe_num}")
+    bet_mask = pe.Node(fsl.ApplyMask(), name=f"skullstrip_first_mask_{pipe_num}")
 
     # Use AFNI's unifize for T2 constrast
     unifize = pe.Node(
@@ -1315,7 +1315,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # refined_bold_mask : input motion corrected func
     refined_bold_mask = anat_refined_mask(
-        init_bold_mask=False, wf_name="refined_bold_mask" f"_{pipe_num}"
+        init_bold_mask=False, wf_name=f"refined_bold_mask_{pipe_num}"
     )
 
     node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])

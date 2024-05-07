@@ -853,7 +853,7 @@ def tissue_seg_EPI_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def tissue_seg_ants_prior(wf, cfg, strat_pool, pipe_num, opt=None):
     seg_preproc_ants_prior_based = create_seg_preproc_antsJointLabel_method(
-        wf_name=f"seg_preproc_" f"ants_prior_" f"{pipe_num}"
+        wf_name=f"seg_preproc_ants_prior_{pipe_num}"
     )
 
     seg_preproc_ants_prior_based.inputs.inputspec.template_brain_list = cfg[

@@ -43,7 +43,7 @@ from tempfile import mkdtemp
 from pytest import fixture
 import nipype
 
-from CPAC.utils.typing import PATHSTR
+from CPAC.utils.typing import PathStr
 
 NIPYPE_DATADIR = Path(nipype.__file__).parent / "testing/data"
 TEMP_FOLDER = Path(mkdtemp())
@@ -52,7 +52,7 @@ copytree(NIPYPE_DATADIR, DATA_DIR, symlinks=True)
 
 
 @contextmanager
-def cwd(path: PATHSTR):
+def cwd(path: PathStr):
     """Change the current working directory."""
     orig_wd = getcwd()
     try:

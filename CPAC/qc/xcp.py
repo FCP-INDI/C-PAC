@@ -123,6 +123,7 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
         name=f"cal_DVARS_{pipe_num}",
         mem_gb=0.4,
         mem_x=(739971956005215 / 151115727451828646838272, "in_file"),
+        throttle=True,
     )
     cal_DVARS_strip = pe.Node(
         Function(
@@ -158,7 +159,7 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
 
 
 def dvcorr(dvars, fdj):
-    """Function to correlate DVARS and FD-J."""
+    """Correlate DVARS and FD-J."""
     dvars = np.loadtxt(dvars)
     fdj = np.loadtxt(fdj)
     if len(dvars) != len(fdj) - 1:
@@ -191,7 +192,7 @@ def generate_xcp_qc(
     template,
 ):
     # pylint: disable=too-many-arguments, too-many-locals, invalid-name
-    """Function to generate an RBC-style QC CSV.
+    """Generate an RBC-style QC CSV.
 
     Parameters
     ----------
@@ -345,7 +346,7 @@ def generate_xcp_qc(
 
 def get_bids_info(subject, scan, wf_name):
     """
-    Function to gather BIDS information from a strat_pool.
+    Gather BIDS information from a strat_pool.
 
     Parameters
     ----------
