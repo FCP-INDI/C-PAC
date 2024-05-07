@@ -231,7 +231,7 @@ def estimate_reference_image(in_file):
 
     ref_name = os.path.join(os.getcwd(), "slice.nii.gz")
     ref_im.to_filename(ref_name)
-    os.system("3dvolreg -Fourier -twopass -zpad 4 " f"-prefix {mc_out_file} {ref_name}")
+    os.system(f"3dvolreg -Fourier -twopass -zpad 4 -prefix {mc_out_file} {ref_name}")
 
     mc_slice_nii = nib.load(mc_out_file)
 
@@ -486,7 +486,7 @@ def motion_correct_3dvolreg(wf, cfg, strat_pool, pipe_num):
 
         func_motion_correct = pe.MapNode(
             interface=preprocess.Volreg(),
-            name="func_generate_" f"ref_{pipe_num}",
+            name=f"func_generate_ref_{pipe_num}",
             iterfield=["in_file"],
         )
 

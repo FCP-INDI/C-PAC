@@ -181,7 +181,13 @@ from CPAC.seg_preproc.seg_preproc import (
     tissue_seg_fsl_fast,
     tissue_seg_T1_template_based,
 )
-from CPAC.surface.surf_preproc import surface_postproc
+from CPAC.surface.surf_preproc import (
+    surface_alff,
+    surface_connectivity_matrix,
+    surface_falff,
+    surface_postproc,
+    surface_reho,
+)
 from CPAC.timeseries.timeseries_analysis import (
     spatial_regression,
     timeseries_extraction_AVG,
@@ -463,7 +469,7 @@ def run_workflow(
         set_up_random_state_logger(log_dir)
 
     try:
-        workflow = build_workflow(subject_id, sub_dict, c, p_name)
+        workflow = build_workflow(subject_id, sub_dict, c, p_name, num_ants_cores)
     except Exception as exception:
         WFLOGGER.exception("Building workflow failed")
         raise exception
@@ -1431,6 +1437,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
         if rpool.check_rpool(func):
             apply_func_warp["T1"] = False
 
+    target_space_nuis = cfg.nuisance_corrections["2-nuisance_regression"]["space"]
     target_space_alff = cfg.amplitude_low_frequency_fluctuation["target_space"]
     target_space_reho = cfg.regional_homogeneity["target_space"]
 
@@ -1460,6 +1467,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
         pipeline_blocks += [warp_bold_mask_to_T1template, warp_deriv_mask_to_T1template]
 
     pipeline_blocks += [func_despike_template]
+
+    # if "Template" in target_space_alff and target_space_nuis == "native":
+    #     pipeline_blocks += [warp_denoiseNofilt_to_T1template]
 
     template = cfg.registration_workflows["functional_registration"][
         "func_registration_to_template"
@@ -1510,6 +1520,18 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
     # PostFreeSurfer and fMRISurface
     if not rpool.check_rpool("space-fsLR_den-32k_bold.dtseries"):
         pipeline_blocks += [surface_postproc]
+
+    if not rpool.check_rpool("surf_falff"):
+        pipeline_blocks += [surface_falff]
+
+    if not rpool.check_rpool("surf_alff"):
+        pipeline_blocks += [surface_alff]
+
+    if not rpool.check_rpool("surf-L_reho") or not rpool.check_rpool("surf-R_reho"):
+        pipeline_blocks += [surface_reho]
+
+    if not rpool.check_rpool("space-fsLR_den-32k_bold_surf-correlation_matrix"):
+        pipeline_blocks += [surface_connectivity_matrix]
 
     # Extractions and Derivatives
     tse_atlases, sca_atlases = gather_extraction_maps(cfg)

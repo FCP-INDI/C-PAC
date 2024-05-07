@@ -234,6 +234,9 @@ surface_analysis:
 
     smooth_fwhm: 2
 
+  surface_connectivity:
+    run: Off
+    surface_parcellation_template: /cpac_templates/Schaefer2018_200Parcels_17Networks_order.dlabel.nii
 
 longitudinal_template_generation:
 
@@ -409,6 +412,8 @@ anatomical_preproc:
       monkey: False
 
     FSL-BET:
+      # Switch "On" to crop out neck regions before generating the mask (default: Off).
+      Robustfov : Off
 
       # Set the threshold value controling the brain vs non-brain voxels, default is 0.5
       frac: 0.5
@@ -1616,7 +1621,6 @@ timeseries_extraction:
       - Pearson
       - Partial
 
-
 seed_based_correlation_analysis:
 
   # SCA - Seed-Based Correlation Analysis
@@ -1640,7 +1644,6 @@ seed_based_correlation_analysis:
 
   # Normalize each time series before running Dual Regression SCA.
   norm_timeseries_for_DR: True
-
 
 amplitude_low_frequency_fluctuation:
 

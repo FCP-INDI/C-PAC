@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
+from typing import Union
 
 from nipype.interfaces import fsl
 import nipype.interfaces.io as nio
@@ -57,7 +58,7 @@ from CPAC.utils.utils import check_config_resources, check_prov_for_regtool
 def mask_T1w_longitudinal_template(wf, cfg, strat_pool, pipe_num, opt=None):
     brain_mask = pe.Node(
         interface=fsl.maths.MathsCommand(),
-        name=f"longitudinal_anatomical_brain_mask_" f"{pipe_num}",
+        name=f"longitudinal_anatomical_brain_mask_{pipe_num}",
     )
     brain_mask.inputs.args = "-bin"
 
@@ -76,9 +77,8 @@ def create_datasink(
     session_id="",
     strat_name="",
     map_node_iterfield=None,
-):
+) -> Union[pe.Node, pe.MapNode]:
     """
-
     Parameters
     ----------
     datasink_name
@@ -87,10 +87,6 @@ def create_datasink(
     session_id
     strat_name
     map_node_iterfield
-
-    Returns
-    -------
-
     """
     encrypt_data = config.pipeline_setup["Amazon-AWS"]["s3_encryption"]
 
@@ -355,7 +351,7 @@ def warp_longitudinal_seg_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
 
     for label in labels:
         apply_xfm = apply_transform(
-            f"warp_longitudinal_seg_to_T1w_{label}_" f"{pipe_num}",
+            f"warp_longitudinal_seg_to_T1w_{label}_{pipe_num}",
             reg_tool,
             time_series=False,
             num_cpus=num_cpus,

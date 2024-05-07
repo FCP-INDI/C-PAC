@@ -37,7 +37,7 @@ connectome_methods = {
 
 
 def connectome_name(atlas_name, tool, method):
-    """Helper function to create connectome file filename.
+    """Create connectome file filename.
 
     Parameters
     ----------
@@ -61,7 +61,7 @@ def connectome_name(atlas_name, tool, method):
 
 
 def get_connectome_method(method, tool):
-    """Helper function to get tool's method string.
+    """Get tool's method string.
 
     Parameters
     ----------
@@ -93,7 +93,7 @@ def get_connectome_method(method, tool):
 
 
 def compute_connectome_nilearn(in_rois, in_file, method, atlas_name):
-    """Function to compute a connectome matrix using Nilearn.
+    """Compute a connectome matrix using Nilearn.
 
     Parameters
     ----------
@@ -171,7 +171,7 @@ def create_connectome_afni(name, method, pipe_num):
             imports=["import subprocess"],
             function=strip_afni_output_header,
         ),
-        name="netcorrStripHeader" f"{method}_{pipe_num}",
+        name="netcorrStripHeader{method}_{pipe_num}",
     )
 
     name_output_node = pe.Node(

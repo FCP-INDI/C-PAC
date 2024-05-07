@@ -5,6 +5,7 @@ target-version = "py37"
 [lint]
 extend-select = ["A", "C4", "D", "EM", "F541", "G", "I", "ICN", "NPY", "PL", "RET", "RSE", "RUF", "Q", "T20", "UP032", "W"]  # proposed rules to add next release cycle: ["B904", "LOG007", "TRY002", "TRY201", "TRY400", "TRY401"]
 external = ["T20"]  # Don't autoremove 'noqa` comments for these rules
+typing-modules = ["CPAC.utils.typing"]
 
 [lint.per-file-ignores]
 "CPAC/func_preproc/func_preproc.py" = ["E402"]

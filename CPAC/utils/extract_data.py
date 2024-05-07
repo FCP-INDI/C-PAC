@@ -23,7 +23,7 @@ from typing import BinaryIO, Optional
 
 import yaml
 
-from CPAC.utils.typing import PATHSTR
+from CPAC.utils.typing import PathStr
 
 logger = logging.getLogger("extract_data_logs")
 if logger.handlers:
@@ -724,7 +724,7 @@ class Configuration(object):
             setattr(self, key, config_map[key])
 
 
-def run(data_config: PATHSTR) -> None:
+def run(data_config: PathStr) -> None:
     """Run a data config.
 
     Parameters

@@ -588,9 +588,7 @@ def resource_report(callback_log, num_cores, logger=None):
             ) as resource_overusage_file:
                 resource_overusage_file.write(txt_report)
     except Exception as exception:  # pylint: disable=broad-except
-        e_msg += (
-            f"Excessive usage report failed for {callback_log} " f"({exception!s})\n"
-        )
+        e_msg += f"Excessive usage report failed for {callback_log} ({exception!s})\n"
     generate_gantt_chart(callback_log, num_cores)
     if e_msg:
         if logger is not None:

@@ -33,20 +33,14 @@ from CPAC.utils.datasource import (
 from CPAC.utils.monitoring import FMLOGGER
 
 
-def get_voxel_timeseries(wf_name="voxel_timeseries"):
+def get_voxel_timeseries(wf_name: str = "voxel_timeseries") -> pe.Workflow:
     """
-    Workflow to extract time series for each voxel
-    in the data that is present in the input mask.
+    Extract time series for each voxel in data that are present in the input mask.
 
     Parameters
     ----------
     wf_name : string
         name of the workflow
-
-    Returns
-    -------
-    wflow : workflow object
-        workflow object
 
     Notes
     -----
@@ -112,8 +106,7 @@ def get_voxel_timeseries(wf_name="voxel_timeseries"):
 
 
 def clean_roi_csv(roi_csv):
-    """Remove the file path comments from every other row of the output of
-    AFNI's 3dROIstats.
+    """Remove file path comments from every other row of AFNI's 3dROIstats output.
 
     3dROIstats has a -nobriklab and a -quiet option, but neither remove the
     file path comments while retaining the ROI label header, which is needed.
@@ -165,7 +158,6 @@ def clean_roi_csv(roi_csv):
         with open(edited_roi_csv, "wt") as f:
             for line in edited_lines:
                 f.write(line)
-        edited_roi_csv = edited_roi_csv
     else:
         edited_roi_csv = roi_csv
 
@@ -176,25 +168,10 @@ def clean_roi_csv(roi_csv):
     return roi_array, edited_roi_csv
 
 
-def write_roi_npz(roi_csv, out_type=None):
-    roi_npz = None
-    roi_outputs = [roi_csv[0]]
-
-    if not out_type:
-        return roi_outputs
-    elif out_type[1]:
-        np_roi_data = genfromtxt(roi_csv[0], delimiter=",")
-        roi_npz = os.path.join(os.getcwd(), "roi_stats.npz")
-        with open(roi_npz, "wb") as f:
-            np.savez(f, np_roi_data)
-        roi_outputs.append(roi_npz)
-
-    return roi_outputs
-
-
-def get_roi_timeseries(wf_name="roi_timeseries"):
+def get_roi_timeseries(wf_name: str = "roi_timeseries") -> pe.Workflow:
     """
-    Workflow to extract timeseries for each node in the ROI mask.
+    Extract timeseries for each node in the ROI mask.
+
     For each node, mean across all the timepoint is calculated and stored
     in csv and npz format.
 
@@ -202,11 +179,6 @@ def get_roi_timeseries(wf_name="roi_timeseries"):
     ----------
     wf_name : string
         name of the workflow
-
-    Returns
-    -------
-    wflow : workflow object
-        workflow object
 
     Notes
     -----
@@ -283,35 +255,19 @@ def get_roi_timeseries(wf_name="roi_timeseries"):
     wflow.connect(clean_csv, "roi_array", outputNode, "roi_ts")
     wflow.connect(clean_csv, "edited_roi_csv", outputNode, "roi_csv")
 
-    # write_npz_imports = ['import os', 'import numpy as np',
-    #                     'from numpy import genfromtxt']
-    # write_npz = pe.Node(util.Function(input_names=['roi_csv', 'out_type'],
-    #                                  output_names=['roi_output_npz'],
-    #                                  function=write_roi_npz,
-    #                                  imports=write_npz_imports),
-    #                    name='write_roi_npz')
-    # wflow.connect(clean_csv, 'edited_roi_csv', write_npz, 'roi_csv')
-    # wflow.connect(inputNode, 'output_type', write_npz, 'out_type')
-    # wflow.connect(write_npz, 'roi_output_npz', outputNode, 'roi_outputs')
-
     return wflow
 
 
-def get_spatial_map_timeseries(wf_name="spatial_map_timeseries"):
+def get_spatial_map_timeseries(wf_name: str = "spatial_map_timeseries") -> pe.Workflow:
     """
-    Workflow to regress each provided spatial
-    map to the subjects functional 4D file in order
-    to return a timeseries for each of the maps.
+    Regress each provided spatial map to the subjects functional 4D file...
+
+    ...in order to return a timeseries for each of the maps.
 
     Parameters
     ----------
     wf_name : string
         name of the workflow
-
-    Returns
-    -------
-    wflow : workflow object
-        workflow object
 
     Notes
     -----
@@ -507,8 +463,7 @@ def get_normalized_moments(wf_name="normalized_moments"):
 
 def gen_roi_timeseries(data_file, template, output_type):
     """
-    Method to extract mean of voxel across
-    all timepoints for each node in roi mask.
+    Extract mean of voxel across all timepoints for each node in roi mask.
 
     Parameters
     ----------
@@ -637,8 +592,7 @@ def gen_roi_timeseries(data_file, template, output_type):
 
 def gen_voxel_timeseries(data_file, template):
     """
-    Method to extract timeseries for each voxel
-    in the data that is present in the input mask.
+    Extract timeseries for each voxel in the data that is present in the input mask.
 
     Parameters
     ----------
@@ -718,18 +672,12 @@ def gen_voxel_timeseries(data_file, template):
     writer.writerows(sorted_list)
     f.close()
 
-    # if output_type[1]:
-    #    numpy_file = os.path.abspath('mask_' + tmp_file + '.npz')
-    #    np.savez(numpy_file, **dict(vol_dict))
-    #    out_list.append(numpy_file)
-
     return oneD_file
 
 
 def gen_vertices_timeseries(rh_surface_file, lh_surface_file):
     """
-    Method to extract timeseries from vertices
-    of a freesurfer surface file.
+    Extract timeseries from vertices of a freesurfer surface file.
 
     Parameters
     ----------
@@ -777,8 +725,7 @@ def gen_vertices_timeseries(rh_surface_file, lh_surface_file):
 
 def resample_function() -> "Function":
     """
-    Returns a Function interface for
-    `CPAC.utils.datasource.resample_func_roi`.
+    Return a Function interface for :py:func:`~CPAC.utils.datasource.resample_func_roi`.
 
     Returns
     -------
@@ -809,7 +756,7 @@ def resample_function() -> "Function":
 )
 def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     resample_functional_roi = pe.Node(
-        resample_function(), name="resample_functional_roi_" f"{pipe_num}"
+        resample_function(), name=f"resample_functional_roi_{pipe_num}"
     )
     realignment = cfg.timeseries_extraction["realignment"]
     resample_functional_roi.inputs.realignment = realignment
@@ -972,7 +919,7 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
     resample_functional_to_mask = pe.Node(
-        resample_function(), name="resample_functional_to_mask_" f"{pipe_num}"
+        resample_function(), name=f"resample_functional_to_mask_{pipe_num}"
     )
 
     resample_functional_to_mask.inputs.realignment = cfg.timeseries_extraction[
@@ -1024,8 +971,9 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-SpatReg_timeseries", "atlas_name"],
 )
 def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
-    """Performs spatial regression, extracting the spatial map timeseries of
-    the given atlases.
+    """Perform spatial regression.
+
+    Extracts the spatial map timeseries of the given atlases.
 
     Note: this is a standalone function for when only spatial regression is
           selected for the given atlases - if dual regression is selected,

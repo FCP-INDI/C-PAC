@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -40,7 +40,7 @@ from CPAC.registration.utils import (
     single_ants_xfm_to_list,
 )
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
-from CPAC.utils.typing import LIST_OR_STR, TUPLE
+from CPAC.utils.typing import ListOrStr, TUPLE
 from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
 
 
@@ -1297,6 +1297,7 @@ def create_wf_calculate_ants_warp(
         name="calc_ants_warp",
         mem_gb=2.8,
         mem_x=(2e-7, "moving_brain", "xyz"),
+        throttle=True,
     )
 
     calculate_ants_warp.interface.num_threads = num_threads
@@ -1517,7 +1518,7 @@ def FSL_registration_connector(
         )
 
         write_invlin_composite_xfm = pe.Node(
-            interface=fsl.ConvertWarp(), name=f"fsl_invlin-warp_to_" f"nii{symm}"
+            interface=fsl.ConvertWarp(), name=f"fsl_invlin-warp_to_nii{symm}"
         )
 
         wf.connect(
@@ -1834,7 +1835,7 @@ def ANTs_registration_connector(
     write_composite_invlinear_xfm.inputs.dimension = 3
 
     collect_inv_transforms = pe.Node(
-        util.Merge(3), name="collect_inv_transforms" f"{symm}"
+        util.Merge(3), name=f"collect_inv_transforms{symm}"
     )
 
     wf.connect(
@@ -1914,7 +1915,7 @@ def ANTs_registration_connector(
     write_composite_xfm.inputs.dimension = 3
 
     collect_all_transforms = pe.Node(
-        util.Merge(4), name=f"collect_all_transforms" f"{symm}"
+        util.Merge(4), name=f"collect_all_transforms{symm}"
     )
 
     wf.connect(
@@ -1971,7 +1972,7 @@ def ANTs_registration_connector(
     write_composite_inv_xfm.inputs.dimension = 3
 
     collect_all_inv_transforms = pe.Node(
-        util.Merge(4), name=f"collect_all_inv_transforms" f"{symm}"
+        util.Merge(4), name=f"collect_all_inv_transforms{symm}"
     )
 
     wf.connect(
@@ -2288,7 +2289,7 @@ def bold_to_T1template_xfm_connector(
 def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Register T1w to template with FSL."""
     fsl, outputs = FSL_registration_connector(
-        f"register_{opt}_anat_to_" f"template_{pipe_num}", cfg, orig="T1w", opt=opt
+        f"register_{opt}_anat_to_template_{pipe_num}", cfg, orig="T1w", opt=opt
     )
 
     fsl.inputs.inputspec.interpolation = cfg.registration_workflows[
@@ -2387,7 +2388,7 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Register T1w to symmetric template with FSL."""
     fsl, outputs = FSL_registration_connector(
-        f"register_{opt}_anat_to_" f"template_symmetric_" f"{pipe_num}",
+        f"register_{opt}_anat_to_template_symmetric_{pipe_num}",
         cfg,
         orig="T1w",
         opt=opt,
@@ -2461,7 +2462,7 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=N
 def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Directly register the mean functional to an EPI template. No T1w involved."""
     fsl, outputs = FSL_registration_connector(
-        f"register_{opt}_EPI_to_" f"template_{pipe_num}",
+        f"register_{opt}_EPI_to_template_{pipe_num}",
         cfg,
         orig="bold",
         opt=opt,
@@ -2602,7 +2603,7 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     ]["T1_registration"]
 
     ants_rc, outputs = ANTs_registration_connector(
-        "ANTS_T1_to_template_" f"{pipe_num}", cfg, params, orig="T1w"
+        f"ANTS_T1_to_template_{pipe_num}", cfg, params, orig="T1w"
     )
 
     ants_rc.inputs.inputspec.interpolation = cfg.registration_workflows[
@@ -2737,7 +2738,7 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=
     ]["T1_registration"]
 
     ants, outputs = ANTs_registration_connector(
-        "ANTS_T1_to_template_" f"symmetric_{pipe_num}",
+        f"ANTS_T1_to_template_symmetric_{pipe_num}",
         cfg,
         params,
         orig="T1w",
@@ -2827,7 +2828,7 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     ]["parameters"]
 
     ants, outputs = ANTs_registration_connector(
-        "ANTS_bold_to_EPI-template" f"_{pipe_num}",
+        f"ANTS_bold_to_EPI-template_{pipe_num}",
         cfg,
         params,
         orig="bold",
@@ -3277,7 +3278,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     if strat_pool.check_rpool("T2w") and cfg.anatomical_preproc["run_t2"]:
         # monkey data
         func_to_anat = create_register_func_to_anat_use_T2(
-            cfg, f"func_to_anat_FLIRT_" f"{pipe_num}"
+            cfg, f"func_to_anat_FLIRT_{pipe_num}"
         )
 
         # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/90e7e3f/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh#L177
@@ -3307,7 +3308,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         # if field map-based distortion correction is on, but BBR is off,
         # send in the distortion correction files here
         func_to_anat = create_register_func_to_anat(
-            cfg, diff_complete, f"func_to_anat_FLIRT_" f"{pipe_num}"
+            cfg, diff_complete, f"func_to_anat_FLIRT_{pipe_num}"
         )
 
         func_to_anat.inputs.inputspec.dof = cfg.registration_workflows[
@@ -3379,7 +3380,7 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         ]["run"]
     ):
         func_to_anat_bbreg = create_bbregister_func_to_anat(
-            diff_complete, f"func_to_anat_" f"bbreg_" f"{pipe_num}"
+            diff_complete, f"func_to_anat_bbreg_{pipe_num}"
         )
         func_to_anat_bbreg.inputs.inputspec.bbr_schedule = cfg.registration_workflows[
             "functional_registration"
@@ -3505,7 +3506,7 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
     reg_tool = check_prov_for_regtool(xfm_prov)
 
     xfm, outputs = bold_to_T1template_xfm_connector(
-        "create_func_to_T1w" f"template_xfm_{pipe_num}", cfg, reg_tool, symmetric=False
+        f"create_func_to_T1wtemplate_xfm_{pipe_num}", cfg, reg_tool, symmetric=False
     )
 
     node, out = strat_pool.get_data("from-bold_to-T1w_mode-image_desc-linear_xfm")
@@ -3584,7 +3585,7 @@ def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num, opt=N
     reg_tool = check_prov_for_regtool(xfm_prov)
 
     xfm, outputs = bold_to_T1template_xfm_connector(
-        "create_func_to_T1wsymtem" f"plate_xfm_{pipe_num}",
+        f"create_func_to_T1wsymtemplate_xfm_{pipe_num}",
         cfg,
         reg_tool,
         symmetric=True,
@@ -3825,8 +3826,6 @@ def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, opt=None)
         apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
             "functional_registration"
         ]["func_registration_to_template"]["FNIRT_pipelines"]["interpolation"]
-
-    strat_pool.get_data("desc-preproc_bold")
 
     if opt == "default":
         node, out = strat_pool.get_data("desc-preproc_bold")
@@ -4308,7 +4307,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # fslmerge -tr ${OutputfMRI}_mask $FrameMergeSTRINGII $TR_vol
     merge_func_mask_to_standard = pe.Node(
-        interface=fslMerge(), name="merge_func_mask_to_" f"standard_{pipe_num}"
+        interface=fslMerge(), name=f"merge_func_mask_to_standard_{pipe_num}"
     )
 
     merge_func_mask_to_standard.inputs.dimension = "t"
@@ -4675,7 +4674,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
 
     # fslmerge -tr ${OutputfMRI}_mask $FrameMergeSTRINGII $TR_vol
     merge_func_mask_to_standard = pe.Node(
-        interface=fslMerge(), name="merge_func_mask_to_" f"standard_{pipe_num}"
+        interface=fslMerge(), name=f"merge_func_mask_to_standard_{pipe_num}"
     )
 
     merge_func_mask_to_standard.inputs.dimension = "t"
@@ -5420,7 +5419,7 @@ def warp_resource_to_template(
     cfg,
     strat_pool,
     pipe_num: int,
-    input_resource: LIST_OR_STR,
+    input_resource: ListOrStr,
     xfm: str,
     reference: Optional[str] = None,
     time_series: Optional[bool] = False,
@@ -5488,7 +5487,7 @@ def warp_resource_to_template(
         )
     # set up 'apply_transform' subworkflow
     apply_xfm = apply_transform(
-        f"warp_{subwf_input_name}_to_" f"{template_space}template_{pipe_num}",
+        f"warp_{subwf_input_name}_to_{template_space}template_{pipe_num}",
         reg_tool,
         time_series=time_series,
         num_cpus=cfg.pipeline_setup["system_config"]["max_cores_per_participant"],

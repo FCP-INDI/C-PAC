@@ -230,6 +230,16 @@ surface_analysis:
     fmri_res: 2
     smooth_fwhm: 2
 
+  amplitude_low_frequency_fluctuation:
+    run: Off
+
+  regional_homogeneity:
+    run: Off
+
+  surface_connectivity:
+    run: Off
+    surface_parcellation_template: /cpac_templates/Schaefer2018_200Parcels_17Networks_order.dlabel.nii
+
 anatomical_preproc:
   run: Off
   acpc_alignment:
@@ -342,6 +352,9 @@ anatomical_preproc:
       monkey: Off
 
     FSL-BET:
+
+      # Switch "On" to crop out neck regions before generating the mask (default: Off).
+      Robustfov: Off
 
       # Set the threshold value controling the brain vs non-brain voxels, default is 0.5
       frac: 0.5
