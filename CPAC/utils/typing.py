@@ -1,4 +1,4 @@
-# Copyright (C) 2023  C-PAC Developers
+# Copyright (C) 2023-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -21,6 +21,7 @@ Once all variants (see {DOCS_URL_PREFIX}/user/versions#variants)
 run Python ≥ 3.10, these global variables can be replaced with the
 current preferred syntax.
 """
+
 from pathlib import Path
 import sys
 from typing import Union
@@ -31,32 +32,41 @@ from CPAC.utils.docs import DOCS_URL_PREFIX
 __doc__ = __doc__.replace(r"{DOCS_URL_PREFIX}", DOCS_URL_PREFIX)  # noqa: A001
 
 if sys.version_info >= (3, 8):
-    from typing import Literal as LITERAL
+    from typing import Literal as TypingLiteral
 else:
-    from typing_extensions import Literal as LITERAL
+    from typing_extensions import Literal as TypingLiteral
+
 if sys.version_info >= (3, 9):
-    from builtins import dict as DICT, list as LIST
-    from collections.abc import Iterable as ITERABLE
+    from collections.abc import Iterable as TypingIterable
+
+    DICT = dict
+    LIST = list
 else:
-    from typing import Dict as DICT, Iterable as ITERABLE, List as LIST
+    from typing import Dict, Iterable as TypingIterable, List
+
+    DICT = Dict
+    LIST = List
 if sys.version_info >= (3, 10):
-    from builtins import tuple as TUPLE
-
-    LIST_OR_STR = LIST[str] | str  # pylint: disable=invalid-name
+    ListOrStr = list[str] | str  # pylint: disable=invalid-name
+    TUPLE = tuple
 else:
-    from typing import Tuple as TUPLE
+    from typing import Tuple
 
-    LIST_OR_STR = Union[LIST[str], str]  # pylint: disable=invalid-name
+    ListOrStr = Union[LIST[str], str]  # pylint: disable=invalid-name
+    TUPLE = Tuple
 
-PATHSTR = Union[Path, str]
 ConfigKeyType = Union[str, LIST[str]]
+Iterable = TypingIterable
+Literal = TypingLiteral
+PathStr = Union[Path, str]
+
 __all__ = [
     "ConfigKeyType",
     "DICT",
-    "ITERABLE",
+    "Iterable",
     "LIST",
-    "LIST_OR_STR",
-    "LITERAL",
-    "PATHSTR",
+    "ListOrStr",
+    "Literal",
+    "PathStr",
     "TUPLE",
 ]

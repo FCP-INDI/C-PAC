@@ -2,7 +2,7 @@ Feature: Connectivity via Pearson Correlations for a single subject
 
 @connectivity, @simulated
 Scenario: Correlation for simulated data
-    Given simulated time-series data 
+    Given simulated time-series data
     When we norm the data
     and we compute the connectivity on normed data
     and we compute the connectivity with numpy

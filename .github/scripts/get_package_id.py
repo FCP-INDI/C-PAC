@@ -1,16 +1,34 @@
-"""Get Package ID
+# Copyright (C) 2021-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Get Package ID.
 
 Script to get GHCR ID string for a given owner + image tag
 
 Usage: python get_package_id.py $OWNER $IMAGE_TAG $VERSION_TAG
 """
+
 import os
-import requests
 import sys
+
+import requests
 
 
 def get_packages(owner, tag, api_token=None):
-    """Function to collect GHCR packages for a given owner & tag
+    """Collect GHCR packages for a given owner & tag.
 
     Parameters
     ----------
@@ -28,10 +46,10 @@ def get_packages(owner, tag, api_token=None):
     list
     """
     if api_token is None:
-        api_token = os.environ.get('GITHUB_TOKEN', '')
+        api_token = os.environ.get("GITHUB_TOKEN", "")
 
     def fetch(url):
-        """Method to make API call and return response, given a URL
+        """Make API call and return response, given a URL.
 
         Parameters
         ----------
@@ -42,37 +60,46 @@ def get_packages(owner, tag, api_token=None):
         dict or list
         """
         response = requests.get(
-            url,
-            headers={'Authorization': f'token {api_token}'}).json()
-        if isinstance(response, dict) and response.get(
-            'message', ''
-        ) == 'Bad credentials':
-            raise PermissionError('\n'.join([
-                ': '.join([
-                    response['message'],
-                    api_token if api_token else '[no token provided]'
-                ]),
-                'Either set GITHUB_TOKEN to a personal access token with '
-                'read.packages permissions or explicitly pass one as a fourth '
-                'positional argument:\n'
-                '`python get_package_id.py $OWNER $IMAGE_TAG '
-                '$VERSION_TAG $GITHUB_TOKEN`'
-            ]))
+            url, headers={"Authorization": f"token {api_token}"}
+        ).json()
+        if (
+            isinstance(response, dict)
+            and response.get("message", "") == "Bad credentials"
+        ):
+            raise PermissionError(
+                "\n".join(
+                    [
+                        ": ".join(
+                            [
+                                response["message"],
+                                api_token if api_token else "[no token provided]",
+                            ]
+                        ),
+                        "Either set GITHUB_TOKEN to a personal access token with "
+                        "read.packages permissions or explicitly pass one as a fourth "
+                        "positional argument:\n"
+                        "`python get_package_id.py $OWNER $IMAGE_TAG "
+                        "$VERSION_TAG $GITHUB_TOKEN`",
+                    ]
+                )
+            )
         return response
+
     _packages = fetch(
-        f'https://api.github.com/orgs/{owner}/packages/container/'
-        f'{tag}/versions')
+        f"https://api.github.com/orgs/{owner}/packages/container/{tag}/versions"
+    )
     packages = []
     for _package in _packages:
-        if _package.get('message', 'Not Found') == 'Not Found':
+        if _package.get("message", "Not Found") == "Not Found":
             packages += fetch(
-                f'https://api.github.com/users/{owner}/packages/container/'
-                f'{tag}/versions')
+                f"https://api.github.com/users/{owner}/packages/container/"
+                f"{tag}/versions"
+            )
     return packages
 
 
 def id_from_tag(owner, image, tag, api_token=None):
-    """Function to return a package ID given an image version tag
+    """Return a package ID given an image version tag.
 
     Parameters
     ----------
@@ -89,17 +116,19 @@ def id_from_tag(owner, image, tag, api_token=None):
         GitHub API personal access token with read.packages permission
     """
     packages = get_packages(owner, image, api_token)
-    versions = [image['id'] for image in packages if tag in image.get(
-        'metadata', {}
-    ).get('container', {}).get('tags', [])]
+    versions = [
+        image["id"]
+        for image in packages
+        if tag in image.get("metadata", {}).get("container", {}).get("tags", [])
+    ]
     if len(versions):
         return versions[0]
-    else:
-        raise LookupError(f'Image not found: ghcr.io/{owner}/{image}:{tag}')
+    msg = f"Image not found: ghcr.io/{owner}/{image}:{tag}"
+    raise LookupError(msg)
 
 
-if __name__ == '__main__':
-    if len(sys.argv) == 4:
-        print(id_from_tag(*sys.argv[1:]))
+if __name__ == "__main__":
+    if len(sys.argv) == 4:  # noqa: PLR2004
+        print(id_from_tag(*sys.argv[1:]))  # noqa: T201
     else:
-        print(__doc__)
+        print(__doc__)  # noqa: T201

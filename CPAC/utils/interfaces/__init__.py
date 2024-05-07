@@ -1,13 +1,8 @@
-from . import function
-from . import masktool
-from . import pc
-from . import brickstat
-from . import datasink
+from . import brickstat, datasink, function, pc
 
 __all__ = [
-    'function',
-    'masktool',
-    'pc',
-    'brickstat',
-    'datasink',
+    "function",
+    "pc",
+    "brickstat",
+    "datasink",
 ]
