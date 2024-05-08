@@ -23,7 +23,7 @@ on:
         required: true
   workflow_dispatch:
 
-jobs: 
+jobs:
   test:
     name: Regression Test - Lite
     environment: ACCESS
@@ -55,7 +55,7 @@ jobs:
           echo "${{ env.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H -t rsa "${{ env.SSH_HOST }}" > ~/.ssh/known_hosts
-      
+
       - name: Initiate check
         uses: guibranco/github-status-action-v2@v1.1.7
         with:

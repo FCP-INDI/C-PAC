@@ -1,12 +1,27 @@
+# Copyright (C) 2018-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import numpy as np
 
 from CPAC.utils import correlation
-
+from CPAC.utils.monitoring import IFLOGGER
 from .utils import p_from_null, phase_randomize
 
 
 def isc(D, std=None, collapse_subj=True):
-
     assert D.ndim == 3
 
     n_vox, _, n_subj = D.shape
@@ -19,9 +34,7 @@ def isc(D, std=None, collapse_subj=True):
         for loo_subj in range(n_subj):
             loo_subj_ts = D[:, :, loo_subj]
             ISC += correlation(
-                loo_subj_ts,
-                (group_sum - loo_subj_ts) / n_subj_loo,
-                match_rows=True
+                loo_subj_ts, (group_sum - loo_subj_ts) / n_subj_loo, match_rows=True
             )
         ISC /= n_subj
 
@@ -37,28 +50,20 @@ def isc(D, std=None, collapse_subj=True):
         for loo_subj in range(n_subj):
             loo_subj_ts = D[:, :, loo_subj]
             ISC[loo_subj] = correlation(
-                loo_subj_ts,
-                (group_sum - loo_subj_ts) / n_subj_loo,
-                match_rows=True
+                loo_subj_ts, (group_sum - loo_subj_ts) / n_subj_loo, match_rows=True
             )
-        
+
         masked = np.array([True] * n_vox)
 
     return ISC, masked
 
 
 def isc_significance(ISC, min_null, max_null, two_sided=False):
-    p = p_from_null(ISC,
-                    max_null=max_null,
-                    min_null=min_null,
-                    two_sided=two_sided)
-    return p
+    return p_from_null(ISC, max_null=max_null, min_null=min_null, two_sided=two_sided)
 
 
 def isc_permutation(permutation, D, masked, collapse_subj=True, random_state=0):
-
-    print("Permutation", permutation)
-
+    IFLOGGER.info("Permutation %s", permutation)
     min_null = 1
     max_null = -1
 
@@ -75,12 +80,9 @@ def isc_permutation(permutation, D, masked, collapse_subj=True, random_state=0):
 
     for loo_subj in range(n_subj):
         loo_subj_ts = D[:, :, loo_subj]
-        ISC_subj = \
-            correlation(
-                loo_subj_ts,
-                (group_sum - loo_subj_ts) / n_subj_loo,
-                match_rows=True
-            )
+        ISC_subj = correlation(
+            loo_subj_ts, (group_sum - loo_subj_ts) / n_subj_loo, match_rows=True
+        )
 
         if collapse_subj:
             ISC_null += ISC_subj

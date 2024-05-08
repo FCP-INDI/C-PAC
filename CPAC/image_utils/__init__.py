@@ -15,8 +15,16 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from .spatial_smoothing import set_gauss, spatial_smoothing
-from .statistical_transforms import calc_avg, fisher_z_score_standardize, \
-                                    z_score_standardize
+from .statistical_transforms import (
+    calc_avg,
+    fisher_z_score_standardize,
+    z_score_standardize,
+)
 
-__all__ = ['calc_avg', 'fisher_z_score_standardize', 'set_gauss',
-           'spatial_smoothing', 'z_score_standardize']
+__all__ = [
+    "calc_avg",
+    "fisher_z_score_standardize",
+    "set_gauss",
+    "spatial_smoothing",
+    "z_score_standardize",
+]

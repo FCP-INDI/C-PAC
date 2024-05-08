@@ -1,2 +1,2 @@
-from .utils import *
 from .qc import *
+from .utils import *

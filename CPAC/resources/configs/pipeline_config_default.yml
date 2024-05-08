@@ -200,7 +200,7 @@ surface_analysis:
   # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
-  freesurfer: 
+  freesurfer:
 
     run_reconall: Off
 
@@ -212,7 +212,7 @@ surface_analysis:
 
 
   # Run ABCD-HCP post FreeSurfer and fMRISurface pipeline
-  post_freesurfer: 
+  post_freesurfer:
 
     run: Off
 
@@ -280,7 +280,7 @@ anatomical_preproc:
   run_t2: Off
 
   # Non-local means filtering via ANTs DenoiseImage
-  non_local_means_filtering: 
+  non_local_means_filtering:
 
     # this is a fork option
     run: [Off]
@@ -298,12 +298,12 @@ anatomical_preproc:
     shrink_factor: 2
 
   # Bias field correction based on square root of T1w * T2w
-  t1t2_bias_field_correction: 
+  t1t2_bias_field_correction:
 
-    run: Off 
-    
+    run: Off
+
     BiasFieldSmoothingSigma: 5
-    
+
   acpc_alignment:
 
     run: Off
@@ -316,17 +316,17 @@ anatomical_preproc:
     # Default: 150mm for human data.
     brain_size: 150
 
-    # Choose a tool to crop the FOV in ACPC alignment. 
-    # Using FSL's robustfov or flirt command. 
-    # Default: robustfov for human data, flirt for monkey data. 
+    # Choose a tool to crop the FOV in ACPC alignment.
+    # Using FSL's robustfov or flirt command.
+    # Default: robustfov for human data, flirt for monkey data.
     FOV_crop: robustfov
-    
+
     # ACPC Target
     # options: 'brain' or 'whole-head'
     #   note: 'brain' requires T1w_brain_ACPC_template below to be populated
     acpc_target: 'whole-head'
 
-    # Run ACPC alignment on brain mask 
+    # Run ACPC alignment on brain mask
     # If the brain mask is in native space, turn it on
     # If the brain mask is ACPC aligned, turn it off
     align_brain_mask: Off
@@ -338,7 +338,7 @@ anatomical_preproc:
     T2w_brain_ACPC_template: None
 
   brain_extraction:
-  
+
     run: On
 
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 'FreeSurfer-Brainmask']
@@ -412,9 +412,9 @@ anatomical_preproc:
       monkey: False
 
     FSL-BET:
-      # Switch "On" to crop out neck regions before generating the mask (default: Off).    
+      # Switch "On" to crop out neck regions before generating the mask (default: Off).
       Robustfov : Off
-      
+
       # Set the threshold value controling the brain vs non-brain voxels, default is 0.5
       frac: 0.5
 
@@ -715,21 +715,21 @@ registration_workflows:
         fnirt_config: T1_2_MNI152_2mm
 
         # The resolution to which anatomical images should be transformed during registration.
-        # This is the resolution at which processed anatomical files will be output. 
+        # This is the resolution at which processed anatomical files will be output.
         # specifically for monkey pipeline
         ref_resolution: 2mm
 
         # Reference mask for FSL registration.
         ref_mask: $FSLDIR/data/standard/MNI152_T1_${resolution_for_anat}_brain_mask_dil.nii.gz
-        
+
         # Template to be used during registration.
-        # It is for monkey pipeline specifically. 
+        # It is for monkey pipeline specifically.
         FNIRT_T1w_brain_template: None
 
         # Template to be used during registration.
-        # It is for monkey pipeline specifically. 
+        # It is for monkey pipeline specifically.
         FNIRT_T1w_template: None
-        
+
         # Interpolation method for writing out transformed anatomical images.
         # Possible values: trilinear, sinc, spline
         interpolation: sinc
@@ -926,10 +926,10 @@ registration_workflows:
 
       # these options modify the application (to the functional data), not the calculation, of the
       # T1-to-template and EPI-to-template transforms calculated earlier during registration
-      
+
       # apply the functional-to-template (T1 template) registration transform to the functional data
       run: On
-      
+
       # apply the functional-to-template (EPI template) registration transform to the functional data
       run_EPI: Off
 
@@ -950,7 +950,7 @@ registration_workflows:
         #   thus, a higher resolution may not result in a large increase in RAM needs as above
         func_derivative_outputs: 3mm
 
-      target_template:      
+      target_template:
         # choose which template space to transform derivatives towards
         # using: ['T1_template', 'EPI_template']
         # this is a fork point
@@ -1018,11 +1018,11 @@ functional_preproc:
 
   run: On
 
-  update_header: 
+  update_header:
 
     # Convert raw data from LPI to RPI
     run: On
-  
+
   truncation:
 
     # First timepoint to include in analysis.
@@ -1067,10 +1067,10 @@ functional_preproc:
     tzero: None
 
   motion_estimates_and_correction:
-  
+
     run: On
 
-    motion_estimates: 
+    motion_estimates:
 
       # calculate motion statistics BEFORE slice-timing correction
       calculate_motion_first: Off
@@ -1210,48 +1210,48 @@ functional_preproc:
       # Set the threshold value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
       # The default value is 0.6.
       fmap_skullstrip_AFNI_threshold:  0.6
-      
+
     Blip-FSL-TOPUP:
-      
+
       # (approximate) resolution (in mm) of warp basis for the different sub-sampling levels, default 10
       warpres: 10
-      
+
       # sub-sampling scheme, default 1
       subsamp: 1
-      
+
       # FWHM (in mm) of gaussian smoothing kernel, default 8
       fwhm: 8
-      
+
       # Max # of non-linear iterations, default 5
       miter: 5
-      
+
       # Weight of regularisation, default depending on --ssqlambda and --regmod switches. See user documentation.
       lambda: 1
-      
+
       # If set (=1), lambda is weighted by current ssq, default 1
       ssqlambda: 1
-      
+
       # Model for regularisation of warp-field [membrane_energy bending_energy], default bending_energy
       regmod: bending_energy
-      
+
       # Estimate movements if set, default 1 (true)
       estmov: 1
-      
+
       # Minimisation method 0=Levenberg-Marquardt, 1=Scaled Conjugate Gradient, default 0 (LM)
       minmet: 0
-      
+
       # Order of spline, 2->Qadratic spline, 3->Cubic spline. Default=3
       splineorder: 3
-      
+
       # Precision for representing Hessian, double or float. Default double
       numprec: double
-      
+
       # Image interpolation model, linear or spline. Default spline
       interp: spline
-      
+
       # If set (=1), the images are individually scaled to a common mean, default 0 (false)
       scale: 0
-      
+
       # If set (=1), the calculations are done in a different grid, default 1 (true)
       regrid: 1
 
@@ -1276,7 +1276,7 @@ functional_preproc:
       functional_mean_boolean: Off
 
       # Set an intensity threshold to improve skull stripping performances of FSL BET on rodent scans.
-      functional_mean_thr: 
+      functional_mean_thr:
         run: Off
         threshold_value: 98
 
@@ -1344,7 +1344,7 @@ functional_preproc:
 
     # Normalize functional image
     run: On
-  
+
   coreg_prep:
 
     # Generate sbref
