@@ -49,15 +49,14 @@ from CPAC.utils.datasource import check_for_s3
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.pc import PC
 from CPAC.utils.monitoring import IFLOGGER
-from CPAC.utils.typing import LITERAL, TUPLE
+from CPAC.utils.typing import Literal, TUPLE
 from CPAC.utils.utils import check_prov_for_regtool
 from .bandpass import afni_1dBandpass, bandpass_voxels
 
 
 def choose_nuisance_blocks(cfg, rpool, generate_only=False):
     """
-    Function to handle selecting appropriate blocks based on
-    existing config and resource pool.
+    Handle selecting appropriate blocks based on existing config and resource pool.
 
     Parameters
     ----------
@@ -190,6 +189,8 @@ def gather_nuisance(
     censor_file_path=None,
 ):
     """
+    Gather nuisance regressors into a single TSV file.
+
     Gathers the various nuisance regressors together into a single tab-
     separated values file that is an appropriate for input into
     3dTproject.
@@ -242,7 +243,7 @@ def gather_nuisance(
         )
         raise ValueError(msg)
 
-    if len(functional_image.shape) < 4 or functional_image.shape[3] < 2:
+    if len(functional_image.shape) < 4 or functional_image.shape[3] < 2:  # noqa: PLR2004
         msg = f"Invalid input_file ({functional_file_path}). Expected 4D file."
         raise ValueError(msg)
     regressor_length = functional_image.shape[3]
@@ -288,7 +289,7 @@ def gather_nuisance(
         regressor_selector = selector.get(regressor_type) or {}
 
         if "summary" in regressor_selector:
-            if type(regressor_selector["summary"]) is str:
+            if isinstance(regressor_selector["summary"], str):
                 regressor_selector["summary"] = {
                     "method": regressor_selector["summary"],
                 }
@@ -339,7 +340,7 @@ def gather_nuisance(
                 regressor_name = motion_labels[regressor_index]
             else:
                 summary_method = regressor_selector["summary"]
-                if type(summary_method) is dict:
+                if isinstance(summary_method, dict):
                     summary_method = summary_method["method"]
 
                 regressor_name = f"{regressor_type}{summary_method}{regressor_index}"
@@ -502,8 +503,10 @@ def create_regressor_workflow(
     csf_mask_exist,
     all_bold=False,
     name="nuisance_regressors",
-):
+) -> pe.Workflow:
     """
+    Remove noise from fMRI data.
+
     Workflow for the removal of various signals considered to be noise from resting state
     fMRI data.  The residual signals for linear regression denoising is performed in a single
     model.  Therefore the residual time-series will be orthogonal to all signals.
@@ -962,7 +965,7 @@ def create_regressor_workflow(
             if "summary" not in regressor_selector:
                 regressor_selector["summary"] = {}
 
-            if type(regressor_selector["summary"]) is not dict:
+            if not isinstance(regressor_selector["summary"], dict):
                 msg = (
                     "Regressor {0} requires PC summary method, "
                     "but {1} specified".format(
@@ -1091,7 +1094,7 @@ def create_regressor_workflow(
                     "outputspec.mask",
                 )
 
-            if type(regressor_selector["summary"]) is not dict:
+            if not isinstance(regressor_selector["summary"], dict):
                 regressor_selector["summary"] = {
                     "filter": regressor_selector["summary"],
                     "method": regressor_selector["summary"],
@@ -1128,7 +1131,7 @@ def create_regressor_workflow(
                     regressor_selector["summary"]["components"]
                 )
 
-            if type(regressor_descriptor["tissue"]) is not list:
+            if not isinstance(regressor_descriptor["tissue"], list):
                 regressor_descriptor["tissue"] = [regressor_descriptor["tissue"]]
 
             if (
@@ -1249,7 +1252,7 @@ def create_regressor_workflow(
             regressor_file_resource_key = "_".join(
                 [
                     "-".join(regressor_descriptor[key])
-                    if type(regressor_descriptor[key]) == list
+                    if isinstance(regressor_descriptor[key], list)
                     else regressor_descriptor[key]
                     for key in ["tissue", "resolution", "erosion", "extraction"]
                     if key in regressor_descriptor
@@ -1362,6 +1365,7 @@ def create_regressor_workflow(
                             ),
                             name=f"{regressor_type}_cosine_filter",
                             mem_gb=8.0,
+                            throttle=True,
                         )
                         nuisance_wf.connect(
                             summary_filter_input[0],
@@ -2412,7 +2416,7 @@ def nuisance_regressors_generation(
     strat_pool: ResourcePool,
     pipe_num: int,
     opt: dict,
-    space: LITERAL["T1w", "bold"],
+    space: Literal["T1w", "bold"],
 ) -> TUPLE[Workflow, dict]:
     """
     Parameters
@@ -2708,7 +2712,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
         # sometimes mm dimensions match but the voxel dimensions don't
         # so here we align the mask to the resampled data before applying
         match_grid = pe.Node(
-            afni.Resample(), name="align_template_mask_to_template_data_" f"{name_suff}"
+            afni.Resample(), name=f"align_template_mask_to_template_data_{name_suff}"
         )
         match_grid.inputs.outputtype = "NIFTI_GZ"
         match_grid.inputs.resample_mode = "Cu"
@@ -2759,7 +2763,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
 
     if bandpass:
         filt = filtering_bold_and_regressors(
-            opt, name=f"filtering_bold_and_" f"regressors_{name_suff}"
+            opt, name=f"filtering_bold_and_regressors_{name_suff}"
         )
         filt.inputs.inputspec.nuisance_selectors = opt
 
@@ -2887,8 +2891,7 @@ def ingress_regressors(wf, cfg, strat_pool, pipe_num, opt=None):
 
 def parse_regressors(regressors_file, regressors_list):
     """
-
-    Parses regressors file from outdir ingress.
+    Parse regressors file from outdir ingress.
 
     Parameters
     ----------
@@ -2897,12 +2900,10 @@ def parse_regressors(regressors_file, regressors_list):
     regressors list : list, can be empty
         List containing names of regressors to select
 
-
     Returns
     -------
     parsed_regressors: dataframe
         Regressors
-
     """
     import pandas as pd
 

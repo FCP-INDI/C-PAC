@@ -254,73 +254,70 @@ def create_design_matrix_df(
             # TODO: exception message
             msg = "there's a pheno file, but no pheno sub label"
             raise Exception(msg)
+        # rename the pheno sub label thingy
+        pheno_df = pheno_df.rename(columns={pheno_sub_label: "participant_id"})
+        if ev_selections:
+            ev_selections.insert(0, "participant_id")
+        sort_by = ["participant_id"]
+
+        if pheno_ses_label:
+            # if sessions are important in the model, do this also
+            pheno_df = pheno_df.rename(columns={pheno_ses_label: "session_id"})
+            if ev_selections:
+                ev_selections.append(1, "session_id")
+            # again, sort by session ID first in case of repeated
+            # measures, where the sessions have to be all together first
+            sort_by.insert(0, "session_id")
+
+        if pheno_site_label:
+            # and if sites are important as well, same here
+            pheno_df = pheno_df.rename(columns={pheno_site_label: "site_id"})
+            if ev_selections:
+                ev_selections.append(2, "site_id")
+
+        if ev_selections:
+            # get specific covariates!
+            pheno_df = pheno_df[ev_selections]
+
+        # check for inconsistency with leading zeroes
+        # (sometimes, the sub_ids from individual will be something like
+        #  '0002601' and the phenotype will have '2601')
+        sublist_subs = map_df["participant_id"]
+        pheno_subs = list(pheno_df["participant_id"])
+
+        for index, row in pheno_df.iterrows():
+            pheno_sub_id = str(row["participant_id"])
+            for sub_id in sublist_subs:
+                if str(sub_id).lstrip("0") == pheno_sub_id:
+                    pheno_df.at[index, "participant_id"] = sub_id
+
+        for sub in sublist_subs:
+            if sub in pheno_subs:
+                # okay, there's at least one match
+                break
         else:
-            # rename the pheno sub label thingy
-            pheno_df = pheno_df.rename(columns={pheno_sub_label: "participant_id"})
-            if ev_selections:
-                ev_selections.insert(0, "participant_id")
-            sort_by = ["participant_id"]
-
-            if pheno_ses_label:
-                # if sessions are important in the model, do this also
-                pheno_df = pheno_df.rename(columns={pheno_ses_label: "session_id"})
-                if ev_selections:
-                    ev_selections.append(1, "session_id")
-                # again, sort by session ID first in case of repeated
-                # measures, where the sessions have to be all together first
-                sort_by.insert(0, "session_id")
-
-            if pheno_site_label:
-                # and if sites are important as well, same here
-                pheno_df = pheno_df.rename(columns={pheno_site_label: "site_id"})
-                if ev_selections:
-                    ev_selections.append(2, "site_id")
-
-            if ev_selections:
-                # get specific covariates!
-                pheno_df = pheno_df[ev_selections]
-
-            # check for inconsistency with leading zeroes
-            # (sometimes, the sub_ids from individual will be something like
-            #  '0002601' and the phenotype will have '2601')
-            sublist_subs = map_df["participant_id"]
-            pheno_subs = list(pheno_df["participant_id"])
-
-            for index, row in pheno_df.iterrows():
-                pheno_sub_id = str(row["participant_id"])
-                for sub_id in sublist_subs:
-                    if str(sub_id).lstrip("0") == pheno_sub_id:
-                        pheno_df.at[index, "participant_id"] = sub_id
-
-            for sub in sublist_subs:
+            new_sublist_subs = [str(x).lstrip("0") for x in sublist_subs]
+            for sub in new_sublist_subs:
                 if sub in pheno_subs:
-                    # okay, there's at least one match
+                    # that's better
+                    map_df["participant_id"] = new_sublist_subs
                     break
             else:
-                new_sublist_subs = [str(x).lstrip("0") for x in sublist_subs]
-                for sub in new_sublist_subs:
-                    if sub in pheno_subs:
-                        # that's better
-                        map_df["participant_id"] = new_sublist_subs
-                        break
-                else:
-                    msg = (
-                        "the participant IDs in your group "
-                        "analysis participant list and the "
-                        "participant IDs in your phenotype file "
-                        "do not match"
-                    )
-                    raise Exception(msg)
-
-            # merge
-            if pheno_ses_label:
-                design_df = pheno_df.merge(map_df, on=["participant_id"])
-            else:
-                design_df = pheno_df.merge(
-                    map_df[["participant_id"]], on="participant_id"
+                msg = (
+                    "the participant IDs in your group "
+                    "analysis participant list and the "
+                    "participant IDs in your phenotype file "
+                    "do not match"
                 )
+                raise Exception(msg)
 
-            design_df = design_df.sort_values(sort_by)
+        # merge
+        if pheno_ses_label:
+            design_df = pheno_df.merge(map_df, on=["participant_id"])
+        else:
+            design_df = pheno_df.merge(map_df[["participant_id"]], on="participant_id")
+
+        design_df = design_df.sort_values(sort_by)
 
     return design_df
 
@@ -558,13 +555,13 @@ def preset_unpaired_two_group(
                 f"found in column:\n{group_set!s}"
             )
             raise Exception(msg)
-        elif len(group_set) == 0:
+        if len(group_set) == 0:
             msg = (
                 "no groups were found - something went wrong "
                 "with reading the phenotype information"
             )
             raise Exception(msg)
-        elif len(group_set) == 1:
+        if len(group_set) == 1:
             msg = (
                 "only one group found in the column provided, "
                 "but this is a model for a two-group difference"
@@ -750,9 +747,7 @@ def preset_paired_two_group(
     for val in condition_ev[0 : (len(condition_ev) / 2) - 1]:
         if past_val:
             if val != past_val:
-                msg = (
-                    "Non-equal amount of participants for each " f"{condition_type}.\n"
-                )
+                msg = f"Non-equal amount of participants for each {condition_type}.\n"
                 raise Exception(msg)
         past_val = val
     #   second half
@@ -760,9 +755,7 @@ def preset_paired_two_group(
     for val in condition_ev[(len(condition_ev) / 2) :]:
         if past_val:
             if val != past_val:
-                msg = (
-                    "Non-equal amount of participants for each " f"{condition_type}.\n"
-                )
+                msg = f"Non-equal amount of participants for each {condition_type}.\n"
                 raise Exception(msg)
         past_val = val
 
@@ -1151,7 +1144,7 @@ def run(
         group_list_text_file = os.path.join(
             output_dir,
             model_name,
-            "group_participant_list_" f"{model_name}.txt",
+            f"group_participant_list_{model_name}.txt",
         )
 
     elif isinstance(group_list_text_file, list):
@@ -1162,7 +1155,7 @@ def run(
         group_list_text_file = os.path.join(
             output_dir,
             model_name,
-            "group_participant_list_" f"{model_name}.txt",
+            f"group_participant_list_{model_name}.txt",
         )
     elif os.path.isfile(group_list_text_file):
         group_list = read_group_list_text_file(group_list_text_file)
@@ -1172,7 +1165,7 @@ def run(
         group_list_text_file = os.path.join(
             output_dir,
             model_name,
-            "group_participant_list_" f"{model_name}.txt",
+            f"group_participant_list_{model_name}.txt",
         )
 
     if len(group_list) == 0:

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """Utilities for ALFF."""
 
-from CPAC.utils.typing import PATHSTR
+from CPAC.utils.typing import PathStr
 
 
-def get_opt_string(mask: PATHSTR) -> str:
+def get_opt_string(mask: PathStr) -> str:
     """
     Return option string for 3dTstat.
 

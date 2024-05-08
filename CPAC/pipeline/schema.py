@@ -20,6 +20,7 @@
 # pylint: disable=too-many-lines
 from itertools import chain, permutations
 import re
+from subprocess import CalledProcessError
 
 import numpy as np
 from pathvalidate import sanitize_filename
@@ -419,6 +420,7 @@ def sanitize(filename):
 latest_schema = Schema(
     {
         "FROM": Maybe(str),
+        "skip env check": Maybe(bool),  # flag for skipping an environment check
         "pipeline_setup": {
             "pipeline_name": All(str, Length(min=1), sanitize),
             "output_directory": {
@@ -610,6 +612,7 @@ latest_schema = Schema(
                 },
                 "FSL-BET": {
                     "frac": Number,
+                    "Robustfov": bool1_1,
                     "mesh_boolean": bool1_1,
                     "outline": bool1_1,
                     "padding": bool1_1,
@@ -828,6 +831,16 @@ latest_schema = Schema(
                 "freesurfer_labels": Maybe(str),
                 "fmri_res": Maybe(int),
                 "smooth_fwhm": Maybe(int),
+            },
+            "amplitude_low_frequency_fluctuation": {
+                "run": bool1_1,
+            },
+            "regional_homogeneity": {
+                "run": bool1_1,
+            },
+            "surface_connectivity": {
+                "run": bool1_1,
+                "surface_parcellation_template": Maybe(str),
             },
         },
         "longitudinal_template_generation": {
@@ -1375,7 +1388,7 @@ def schema(config_dict):
     except KeyError:
         pass
     try:
-        if "unet" in [
+        if not partially_validated.get("skip env check") and "unet" in [
             using.lower()
             for using in partially_validated["anatomical_preproc"]["brain_extraction"][
                 "using"
@@ -1385,7 +1398,12 @@ def schema(config_dict):
                 from importlib import import_module
 
                 import_module("CPAC.unet")
-            except (ImportError, ModuleNotFoundError, OSError) as error:
+            except (
+                CalledProcessError,
+                ImportError,
+                ModuleNotFoundError,
+                OSError,
+            ) as error:
                 import site
 
                 msg = (

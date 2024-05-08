@@ -25,12 +25,12 @@ from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.monitoring import IFLOGGER
-from CPAC.utils.typing import ITERABLE, LIST
+from CPAC.utils.typing import Iterable, LIST
 
 
 def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
     """
-    Method to calculate correlation threshold from p_value.
+    Calculate correlation threshold from p_value.
 
     Parameters
     ----------
@@ -79,7 +79,7 @@ def merge_lists(
     eig_list: Optional[LIST[str]] = None,
     lfcd_list: Optional[LIST[str]] = None,
 ):
-    """Function to actually do the list merging.
+    """Actually do the list merging.
 
     Parameters
     ----------
@@ -225,14 +225,14 @@ def create_merge_node(pipe_num: int) -> Node:
         "import nibabel as nib",
         "from CPAC.pipeline.schema import valid_options",
         "from CPAC.utils.docs import docstring_parameter",
-        "from CPAC.utils.typing import ITERABLE, LIST",
+        "from CPAC.utils.typing import Iterable, LIST",
     ]
 )
 @docstring_parameter(
     weight_options=tuple(valid_options["centrality"]["weight_options"])
 )
 def sep_nifti_subbriks(
-    nifti_file: Union[Path, str], out_names: ITERABLE[str]
+    nifti_file: Union[Path, str], out_names: Iterable[str]
 ) -> LIST[str]:
     """Separate sub-briks of niftis and save specified out
 
@@ -259,7 +259,7 @@ def sep_nifti_subbriks(
     nii_dims = nii_arr.shape
 
     if nii_dims[-1] != len(weight_options):
-        if len(nii_dims) == 3 and len(out_names) == 1:
+        if len(nii_dims) == 3 and len(out_names) == 1:  # noqa: PLR2004
             pass
         else:
             err_msg = "out_names must have same number of elements as nifti sub-briks"
@@ -267,9 +267,9 @@ def sep_nifti_subbriks(
 
     for brik, option in enumerate(weight_options):
         if option in selected_options:
-            if len(nii_dims) == 3:
+            if len(nii_dims) == 3:  # noqa: PLR2004
                 brik_arr = nii_arr
-            elif len(nii_dims) > 3:
+            elif len(nii_dims) > 3:  # noqa: PLR2004
                 brik_arr = nii_arr[:, :, :, 0, brik]
             out_file = os.path.join(os.getcwd(), selected_options[option] + ".nii.gz")
             out_img = nib.Nifti1Image(brik_arr, nii_affine)
@@ -319,16 +319,16 @@ def check_centrality_params(method_option, threshold_option, threshold):
         )
 
     # Check threshold option
-    if type(threshold_option) is list:
+    if isinstance(threshold_option, list):
         threshold_option = threshold_option[0]
-    if type(threshold_option) is int:
+    if isinstance(threshold_option, int):
         if threshold_option < len(valid_options["centrality"]["threshold_options"]):
             threshold_option = valid_options["centrality"]["threshold_options"][
                 threshold_option
             ]
         else:
             raise ThresholdOptionError(threshold_option, method_option)
-    elif type(threshold_option) is not str:
+    elif not isinstance(threshold_option, str):
         raise TypeError(
             "Threshold option must be a string, but type '%s' "
             "provided" % type(threshold_option).__name__
@@ -386,9 +386,7 @@ class MethodOptionError(ValueError):
 
 
 class ThresholdError(ValueError):
-    """Raised when a selected threshold value is not supported for a
-    selected threshold option.
-    """
+    """Selected threshold value is not supported for selected threshold option."""
 
     def __init__(self, threshold_option, threshold):
         self.threshold_option = threshold_option
@@ -402,22 +400,20 @@ class ThresholdError(ValueError):
         else:
             raise ThresholdOptionError(threshold_option)
         self.message += (
-            "and less than or equal to 1.\n Currently it is set " f"at {threshold}"
+            f"and less than or equal to 1.\n Currently it is set at {threshold}"
         )
         super().__init__(self.message)
 
 
 class ThresholdOptionError(ValueError):
-    """Raised when a selected threshold option is not supported for a
-    selected centrality measure.
-    """
+    """Selected threshold option is not supported for selected centrality measure."""
 
     def __init__(self, threshold_option, method_option=None):
         self.method_option = method_option
         self.threshold_option = threshold_option
         self.message = f"Threshold option '{threshold_option}' not supported"
         if self.method_option:
-            self.message += " for network centrality measure " f"'{method_option}'"
+            self.message += f" for network centrality measure '{method_option}'"
         self.message += "; fix this in the pipeline config"
         if (
             method_option == "local_functional_connectivity_density"

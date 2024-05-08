@@ -40,6 +40,7 @@ from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
 from CPAC.registration.registration import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
 from CPAC.utils.bids_utils import res_in_filename
+from CPAC.utils.configuration import Configuration
 from CPAC.utils.datasource import (
     create_anat_datasource,
     create_func_datasource,
@@ -56,7 +57,7 @@ from CPAC.utils.monitoring import (
     WFLOGGER,
 )
 from CPAC.utils.outputs import Outputs
-from CPAC.utils.typing import LIST_OR_STR, TUPLE
+from CPAC.utils.typing import ListOrStr, TUPLE
 from CPAC.utils.utils import (
     check_prov_for_regtool,
     create_id_string,
@@ -226,7 +227,7 @@ class ResourcePool:
 
     @staticmethod
     def get_raw_label(resource: str) -> str:
-        """Removes ``desc-*`` label."""
+        """Remove ``desc-*`` label."""
         for tag in resource.split("_"):
             if "desc-" in tag:
                 resource = resource.replace(f"{tag}_", "")
@@ -259,10 +260,9 @@ class ResourcePool:
                 f"Pipe idx: {pipe_idx}\nKey: {key}\nVal: {val}\n"
             )
             raise Exception(msg)
-        else:
-            if "json" not in self.rpool[resource][pipe_idx]:
-                self.rpool[resource][pipe_idx]["json"] = {}
-            self.rpool[resource][pipe_idx]["json"][key] = val
+        if "json" not in self.rpool[resource][pipe_idx]:
+            self.rpool[resource][pipe_idx]["json"] = {}
+        self.rpool[resource][pipe_idx]["json"][key] = val
 
     def get_json_info(self, resource, pipe_idx, key):
         # TODO: key checks
@@ -281,13 +281,14 @@ class ResourcePool:
             return None
         if isinstance(prov[-1], list):
             return prov[-1][-1].split(":")[0]
-        elif isinstance(prov[-1], str):
+        if isinstance(prov[-1], str):
             return prov[-1].split(":")[0]
         return None
 
     def regressor_dct(self, cfg) -> dict:
-        """Returns the regressor dictionary for the current strategy if
-        one exists. Raises KeyError otherwise.
+        """Return the regressor dictionary for the current strategy if one exists.
+
+        Raises KeyError otherwise.
         """
         # pylint: disable=attribute-defined-outside-init
         if hasattr(self, "_regressor_dct"):  # memoized
@@ -300,14 +301,18 @@ class ResourcePool:
         )
         _nr = cfg["nuisance_corrections", "2-nuisance_regression"]
         if not hasattr(self, "timeseries"):
-            self.regressors = {reg["Name"]: reg for reg in _nr["Regressors"]}
+            if _nr["Regressors"]:
+                self.regressors = {reg["Name"]: reg for reg in _nr["Regressors"]}
+            else:
+                self.regressors = []
         if self.check_rpool("parsed_regressors"):  # ingressed regressor
             # name regressor workflow without regressor_prov
             strat_name = _nr["ingress_regressors"]["Regressors"]["Name"]
             if strat_name in self.regressors:
                 self._regressor_dct = self.regressors[strat_name]
                 return self._regressor_dct
-            raise key_error
+            self.regressor_dct = _nr["ingress_regressors"]["Regressors"]
+            return self.regressor_dct
         prov = self.get_cpac_provenance("desc-confounds_timeseries")
         strat_name_components = prov[-1].split("_")
         for _ in list(range(prov[-1].count("_"))):
@@ -387,7 +392,7 @@ class ResourcePool:
 
     def get(
         self,
-        resource: LIST_OR_STR,
+        resource: ListOrStr,
         pipe_idx: Optional[str] = None,
         report_fetched: Optional[bool] = False,
         optional: Optional[bool] = False,
@@ -437,10 +442,10 @@ class ResourcePool:
                 return (connect["data"], fetched)
             connect, fetched = self.get(resource, report_fetched=report_fetched)
             return (connect["data"], fetched)
-        elif pipe_idx:
+        if pipe_idx:
             return self.get(resource, pipe_idx=pipe_idx)["data"]
-        elif quick_single or len(self.get(resource)) == 1:
-            for key, val in self.get(resource).items():
+        if quick_single or len(self.get(resource)) == 1:
+            for _key, val in self.get(resource).items():
                 return val["data"]
         return self.get(resource)["data"]
 
@@ -502,7 +507,7 @@ class ResourcePool:
                 "\n[!] Developer info: the CpacProvenance "
                 f"entry for {prov} has to be a list.\n"
             )
-            raise Exception(msg)
+            raise TypeError(msg)
         last_entry = get_last_prov_entry(prov)
         resource = last_entry.split(":")[0]
         return (resource, str(prov))
@@ -514,7 +519,7 @@ class ResourcePool:
                 "\n[!] Developer info: the CpacProvenance "
                 f"entry for {prov_str!s} has to be a string.\n"
             )
-            raise Exception(msg)
+            raise TypeError(msg)
         return ast.literal_eval(prov_str)
 
     @staticmethod
@@ -541,7 +546,7 @@ class ResourcePool:
     def flatten_prov(self, prov):
         if isinstance(prov, str):
             return [prov]
-        elif isinstance(prov, list):
+        if isinstance(prov, list):
             flat_prov = []
             for entry in prov:
                 if isinstance(entry, list):
@@ -574,7 +579,7 @@ class ResourcePool:
                         continue
                     linked.append(fetched_resource)
                 resource_list += linked
-                if len(linked) < 2:
+                if len(linked) < 2:  # noqa: PLR2004
                     continue
                 linked_resources.append(linked)
             else:
@@ -887,14 +892,11 @@ class ResourcePool:
             # not a strat_pool or no movement parameters in strat_pool
             return False
 
-    def filter_name(self, cfg) -> str:
+    def filter_name(self, cfg: Configuration) -> str:
         """
-        In a strat_pool with filtered movement parameters, return the
-        name of the filter for this strategy.
+        Return the name of the filter for this strategy.
 
-        Returns
-        -------
-        str
+        In a strat_pool with filtered movement parameters.
         """
         motion_filters = cfg[
             "functional_preproc",
@@ -932,7 +934,10 @@ class ResourcePool:
             # or lfcd [binarized or weighted]
             mask = "template-specification-file"
         elif "space-template" in label:
-            mask = "space-template_res-derivative_desc-bold_mask"
+            if "space-template_res-derivative_desc-bold_mask" in self.rpool.keys():
+                mask = "space-template_res-derivative_desc-bold_mask"
+            else:
+                mask = "space-template_desc-bold_mask"
         else:
             mask = "space-bold_desc-brain_mask"
 
@@ -948,7 +953,7 @@ class ResourcePool:
             if label in Outputs.to_smooth:
                 for smooth_opt in self.smooth_opts:
                     sm = spatial_smoothing(
-                        f"{label}_smooth_{smooth_opt}_" f"{pipe_x}",
+                        f"{label}_smooth_{smooth_opt}_{pipe_x}",
                         self.fwhm,
                         input_type,
                         smooth_opt,
@@ -1270,6 +1275,7 @@ class ResourcePool:
                             "atlas_id",
                             "fwhm",
                             "subdir",
+                            "extension",
                         ],
                         output_names=["out_filename"],
                         function=create_id_string,
@@ -1328,8 +1334,22 @@ class ResourcePool:
                                     )
                                 )
                             )
-                nii_name = pe.Node(Rename(), name=f"nii_{resource_idx}_" f"{pipe_x}")
+                nii_name = pe.Node(Rename(), name=f"nii_{resource_idx}_{pipe_x}")
                 nii_name.inputs.keep_ext = True
+
+                if resource in Outputs.ciftis:
+                    nii_name.inputs.keep_ext = False
+                    id_string.inputs.extension = Outputs.ciftis[resource]
+                else:
+                    nii_name.inputs.keep_ext = True
+
+                if resource in Outputs.giftis:
+                    nii_name.inputs.keep_ext = False
+                    id_string.inputs.extension = f"{Outputs.giftis[resource]}.gii"
+
+                else:
+                    nii_name.inputs.keep_ext = True
+
                 wf.connect(id_string, "out_filename", nii_name, "format_string")
 
                 node, out = self.rpool[resource][pipe_idx]["data"]
@@ -1352,7 +1372,7 @@ class ResourcePool:
                 write_json.inputs.json_data = json_info
 
                 wf.connect(id_string, "out_filename", write_json, "filename")
-                ds = pe.Node(DataSink(), name=f"sinker_{resource_idx}_" f"{pipe_x}")
+                ds = pe.Node(DataSink(), name=f"sinker_{resource_idx}_{pipe_x}")
                 ds.inputs.parameterization = False
                 ds.inputs.base_directory = out_dct["out_dir"]
                 ds.inputs.encrypt_bucket_keys = cfg.pipeline_setup["Amazon-AWS"][
@@ -1380,7 +1400,7 @@ class ResourcePool:
         outputs_logger.info(expected_outputs)
 
     def node_data(self, resource, **kwargs):
-        """Factory function to create NodeData objects.
+        """Create NodeData objects.
 
         Parameters
         ----------
@@ -1483,9 +1503,13 @@ class NodeBlock:
             raise NameError(msg)
 
     def grab_tiered_dct(self, cfg, key_list):
-        cfg_dct = cfg
+        cfg_dct = cfg.dict()
         for key in key_list:
-            cfg_dct = cfg_dct.__getitem__(key)
+            try:
+                cfg_dct = cfg_dct.get(key, {})
+            except KeyError as ke:
+                msg = "[!] The config provided to the node block is not valid"
+                raise KeyError(msg) from ke
         return cfg_dct
 
     def connect_block(self, wf, cfg, rpool):
@@ -1532,7 +1556,7 @@ class NodeBlock:
                         "option_val field must contain a list of "
                         "a list.\n"
                     )
-                    raise Exception(msg)
+                    raise ValueError(msg)
                 for option_config in option_key:
                     # option_config is a list of pipe config levels down to the option
                     if config:
@@ -1602,13 +1626,13 @@ class NodeBlock:
                 if config:
                     try:
                         key_list = config + switch
-                    except TypeError:
+                    except TypeError as te:
                         msg = (
                             "\n\n[!] Developer info: Docstring error "
                             f"for {name}, make sure the 'config' or "
                             "'switch' fields are lists.\n\n"
                         )
-                        raise Exception(msg)
+                        raise TypeError(msg) from te
                     switch = self.grab_tiered_dct(cfg, key_list)
                 elif isinstance(switch[0], list):
                     # we have multiple switches, which is designed to only work if
@@ -1813,8 +1837,7 @@ class NodeBlock:
 
 
 def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
-    """Wrap a list of node block functions to make them easier to use within
-    other node blocks.
+    """Wrap a list of node block functions to use within other node blocks.
 
     Example usage:
 
@@ -1891,7 +1914,7 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id
     anat_flow = create_anat_datasource(f"anat_T1w_gather_{part_id}_{ses_id}")
 
     anat = {}
-    if type(data_paths["anat"]) is str:
+    if isinstance(data_paths["anat"], str):
         anat["T1"] = data_paths["anat"]
     elif "T1w" in data_paths["anat"]:
         anat["T1"] = data_paths["anat"]["T1w"]
@@ -1926,69 +1949,93 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id
 
 
 def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
-    if "anat" not in data_paths:
+    try:
+        fs_path = os.path.join(cfg.pipeline_setup["freesurfer_dir"], part_id)
+    except KeyError:
         WFLOGGER.warning("No FreeSurfer data present.")
         return rpool
 
-    if "freesurfer_dir" in data_paths["anat"]:
-        fs_ingress = create_general_datasource("gather_freesurfer_dir")
-        fs_ingress.inputs.inputnode.set(
-            unique_id=unique_id,
-            data=data_paths["anat"]["freesurfer_dir"],
-            creds_path=data_paths["creds_path"],
-            dl_dir=cfg.pipeline_setup["working_directory"]["path"],
-        )
-        rpool.set_data(
-            "freesurfer-subject-dir",
-            fs_ingress,
-            "outputspec.data",
-            {},
-            "",
-            "freesurfer_config_ingress",
-        )
+    # fs_path = os.path.join(cfg.pipeline_setup['freesurfer_dir'], part_id)
+    if not os.path.exists(fs_path):
+        if "sub" in part_id:
+            fs_path = os.path.join(
+                cfg.pipeline_setup["freesurfer_dir"], part_id.replace("sub-", "")
+            )
+        else:
+            fs_path = os.path.join(
+                cfg.pipeline_setup["freesurfer_dir"], ("sub-" + part_id)
+            )
 
-        recon_outs = {
-            "pipeline-fs_raw-average": "mri/rawavg.mgz",
-            "pipeline-fs_subcortical-seg": "mri/aseg.mgz",
-            "pipeline-fs_brainmask": "mri/brainmask.mgz",
-            "pipeline-fs_wmparc": "mri/wmparc.mgz",
-            "pipeline-fs_T1": "mri/T1.mgz",
-            "pipeline-fs_hemi-L_desc-surface_curv": "surf/lh.curv",
-            "pipeline-fs_hemi-R_desc-surface_curv": "surf/rh.curv",
-            "pipeline-fs_hemi-L_desc-surfaceMesh_pial": "surf/lh.pial",
-            "pipeline-fs_hemi-R_desc-surfaceMesh_pial": "surf/rh.pial",
-            "pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm": "surf/lh.smoothwm",
-            "pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm": "surf/rh.smoothwm",
-            "pipeline-fs_hemi-L_desc-surfaceMesh_sphere": "surf/lh.sphere",
-            "pipeline-fs_hemi-R_desc-surfaceMesh_sphere": "surf/rh.sphere",
-            "pipeline-fs_hemi-L_desc-surfaceMap_sulc": "surf/lh.sulc",
-            "pipeline-fs_hemi-R_desc-surfaceMap_sulc": "surf/rh.sulc",
-            "pipeline-fs_hemi-L_desc-surfaceMap_thickness": "surf/lh.thickness",
-            "pipeline-fs_hemi-R_desc-surfaceMap_thickness": "surf/rh.thickness",
-            "pipeline-fs_hemi-L_desc-surfaceMap_volume": "surf/lh.volume",
-            "pipeline-fs_hemi-R_desc-surfaceMap_volume": "surf/rh.volume",
-            "pipeline-fs_hemi-L_desc-surfaceMesh_white": "surf/lh.white",
-            "pipeline-fs_hemi-R_desc-surfaceMesh_white": "surf/rh.white",
-            "pipeline-fs_xfm": "mri/transforms/talairach.lta",
-        }
+        # patch for flo-specific data
+        if not os.path.exists(fs_path):
+            subj_ses = part_id + "-" + ses_id
+            fs_path = os.path.join(cfg.pipeline_setup["freesurfer_dir"], subj_ses)
+            if not os.path.exists(fs_path):
+                WFLOGGER.info("No FreeSurfer data found for subject %s", part_id)
+                return rpool
 
-        for key, outfile in recon_outs.items():
-            fullpath = os.path.join(data_paths["anat"]["freesurfer_dir"], outfile)
-            if os.path.exists(fullpath):
-                fs_ingress = create_general_datasource(f"gather_fs_{key}_dir")
-                fs_ingress.inputs.inputnode.set(
-                    unique_id=unique_id,
-                    data=fullpath,
-                    creds_path=data_paths["creds_path"],
-                    dl_dir=cfg.pipeline_setup["working_directory"]["path"],
-                )
-                rpool.set_data(
-                    key, fs_ingress, "outputspec.data", {}, "", f"fs_{key}_ingress"
-                )
-            else:
-                warnings.warn(
-                    str(LookupError("\n[!] Path does not exist for " f"{fullpath}.\n"))
-                )
+    # Check for double nested subj names
+    if os.path.exists(os.path.join(fs_path, os.path.basename(fs_path))):
+        fs_path = os.path.join(fs_path, part_id)
+
+    fs_ingress = create_general_datasource("gather_freesurfer_dir")
+    fs_ingress.inputs.inputnode.set(
+        unique_id=unique_id,
+        data=fs_path,
+        creds_path=data_paths["creds_path"],
+        dl_dir=cfg.pipeline_setup["working_directory"]["path"],
+    )
+    rpool.set_data(
+        "freesurfer-subject-dir",
+        fs_ingress,
+        "outputspec.data",
+        {},
+        "",
+        "freesurfer_config_ingress",
+    )
+
+    recon_outs = {
+        "pipeline-fs_raw-average": "mri/rawavg.mgz",
+        "pipeline-fs_subcortical-seg": "mri/aseg.mgz",
+        "pipeline-fs_brainmask": "mri/brainmask.mgz",
+        "pipeline-fs_wmparc": "mri/wmparc.mgz",
+        "pipeline-fs_T1": "mri/T1.mgz",
+        "pipeline-fs_hemi-L_desc-surface_curv": "surf/lh.curv",
+        "pipeline-fs_hemi-R_desc-surface_curv": "surf/rh.curv",
+        "pipeline-fs_hemi-L_desc-surfaceMesh_pial": "surf/lh.pial",
+        "pipeline-fs_hemi-R_desc-surfaceMesh_pial": "surf/rh.pial",
+        "pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm": "surf/lh.smoothwm",
+        "pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm": "surf/rh.smoothwm",
+        "pipeline-fs_hemi-L_desc-surfaceMesh_sphere": "surf/lh.sphere",
+        "pipeline-fs_hemi-R_desc-surfaceMesh_sphere": "surf/rh.sphere",
+        "pipeline-fs_hemi-L_desc-surfaceMap_sulc": "surf/lh.sulc",
+        "pipeline-fs_hemi-R_desc-surfaceMap_sulc": "surf/rh.sulc",
+        "pipeline-fs_hemi-L_desc-surfaceMap_thickness": "surf/lh.thickness",
+        "pipeline-fs_hemi-R_desc-surfaceMap_thickness": "surf/rh.thickness",
+        "pipeline-fs_hemi-L_desc-surfaceMap_volume": "surf/lh.volume",
+        "pipeline-fs_hemi-R_desc-surfaceMap_volume": "surf/rh.volume",
+        "pipeline-fs_hemi-L_desc-surfaceMesh_white": "surf/lh.white",
+        "pipeline-fs_hemi-R_desc-surfaceMesh_white": "surf/rh.white",
+        "pipeline-fs_xfm": "mri/transforms/talairach.lta",
+    }
+
+    for key, outfile in recon_outs.items():
+        fullpath = os.path.join(fs_path, outfile)
+        if os.path.exists(fullpath):
+            fs_ingress = create_general_datasource(f"gather_fs_{key}_dir")
+            fs_ingress.inputs.inputnode.set(
+                unique_id=unique_id,
+                data=fullpath,
+                creds_path=data_paths["creds_path"],
+                dl_dir=cfg.pipeline_setup["working_directory"]["path"],
+            )
+            rpool.set_data(
+                key, fs_ingress, "outputspec.data", {}, "", f"fs_{key}_ingress"
+            )
+        else:
+            warnings.warn(
+                str(LookupError(f"\n[!] Path does not exist for {fullpath}.\n"))
+            )
 
     return rpool
 
@@ -2235,7 +2282,7 @@ def json_outdir_ingress(rpool, filepath, exts, data_label, json):
                         "this to your friendly local C-PAC "
                         f"developer:\n\n{data_label!s}\n"
                     )
-                    raise Exception(msg)
+                    raise IOError(msg)
 
             # remove the integer at the end of the desc-* variant, we will
             # get the unique pipe_idx from the CpacProvenance below
@@ -2556,6 +2603,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
 def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     """
+    Initialize a new ResourcePool.
 
     data_paths format:
       {'anat': {
@@ -2573,7 +2621,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
        'site_id': 'site-ID',
        'subject_id': 'sub-01',
        'unique_id': 'ses-1',
-       'derivatives_dir': '{derivatives_dir path}'}.
+       'derivatives_dir': '{derivatives_dir path}'}
     """
     # TODO: refactor further, integrate with the ingress_data functionality
     # TODO: used for BIDS-Derivatives (below), and possible refactoring of

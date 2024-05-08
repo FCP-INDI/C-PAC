@@ -1,4 +1,4 @@
-# Copyright (C) 2023  C-PAC Developers
+# Copyright (C) 2023-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -32,41 +32,41 @@ from CPAC.utils.docs import DOCS_URL_PREFIX
 __doc__ = __doc__.replace(r"{DOCS_URL_PREFIX}", DOCS_URL_PREFIX)  # noqa: A001
 
 if sys.version_info >= (3, 8):
-    from typing import Literal
-
-    LITERAL = Literal
+    from typing import Literal as TypingLiteral
 else:
-    from typing_extensions import Literal
+    from typing_extensions import Literal as TypingLiteral
 
-    LITERAL = Literal
 if sys.version_info >= (3, 9):
-    from collections.abc import Iterable
+    from collections.abc import Iterable as TypingIterable
 
     DICT = dict
     LIST = list
 else:
-    from typing import Dict, Iterable, List
+    from typing import Dict, Iterable as TypingIterable, List
 
     DICT = Dict
     LIST = List
 if sys.version_info >= (3, 10):
-    LIST_OR_STR = LIST[str] | str  # pylint: disable=invalid-name
+    ListOrStr = list[str] | str  # pylint: disable=invalid-name
     TUPLE = tuple
 else:
     from typing import Tuple
 
-    LIST_OR_STR = Union[LIST[str], str]  # pylint: disable=invalid-name
+    ListOrStr = Union[LIST[str], str]  # pylint: disable=invalid-name
     TUPLE = Tuple
-ITERABLE = Iterable
-PATHSTR = Union[Path, str]
+
 ConfigKeyType = Union[str, LIST[str]]
+Iterable = TypingIterable
+Literal = TypingLiteral
+PathStr = Union[Path, str]
+
 __all__ = [
     "ConfigKeyType",
     "DICT",
-    "ITERABLE",
+    "Iterable",
     "LIST",
-    "LIST_OR_STR",
-    "LITERAL",
-    "PATHSTR",
+    "ListOrStr",
+    "Literal",
+    "PathStr",
     "TUPLE",
 ]

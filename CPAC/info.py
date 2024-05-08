@@ -173,7 +173,7 @@ VERSION = __version__
 STATUS = "stable"
 REQUIREMENTS = [
     "boto3",
-    "ciftify",
+    "ciftify @ git+https://git@github.com/fcp-indi/ciftify#egg=ciftify",
     "click",
     "click-aliases",
     "configparser",
