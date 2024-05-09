@@ -14,8 +14,11 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""C-PAC pipeline engine utilities"""
+"""C-PAC pipeline engine utilities."""
+
+from itertools import chain
 from typing import Union
+
 from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
 
@@ -23,7 +26,7 @@ MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
 
 def name_fork(resource_idx, cfg, json_info, out_dct):
-    """Create and insert entities for forkpoints
+    """Create and insert entities for forkpoints.
 
     Parameters
     ----------
@@ -41,41 +44,51 @@ def name_fork(resource_idx, cfg, json_info, out_dct):
 
     out_dct : dict
     """
-    if cfg.switch_is_on(['functional_preproc',
-                         'motion_estimates_and_correction',
-                         'motion_estimate_filter', 'run']):
+    if cfg.switch_is_on(
+        [
+            "functional_preproc",
+            "motion_estimates_and_correction",
+            "motion_estimate_filter",
+            "run",
+        ]
+    ):
         filt_value = None
         _motion_variant = {
-            _key: json_info['CpacVariant'][_key]
+            _key: json_info["CpacVariant"][_key]
             for _key in MOVEMENT_FILTER_KEYS
-            if _key in json_info.get('CpacVariant', {})}
-        if 'unfiltered-' in resource_idx:
-            resource_idx = resource_idx.replace('unfiltered-', '')
-            filt_value = 'none'
+            if _key in json_info.get("CpacVariant", {})
+        }
+        if "unfiltered-" in resource_idx:
+            resource_idx = resource_idx.replace("unfiltered-", "")
+            filt_value = "none"
         else:
             try:
-                filt_value = [
-                    json_info['CpacVariant'][_k][0].replace(
-                        'motion_estimate_filter_', ''
-                    ) for _k, _v in _motion_variant.items()
-                    if _v][0]
-            except IndexError:
-                filt_value = 'none'
-        resource_idx, out_dct = _update_resource_idx(resource_idx, out_dct,
-                                                     'filt', filt_value)
-    if cfg.switch_is_on(['nuisance_corrections',
-                         '2-nuisance_regression', 'run']):
-        reg_value = None
-        if ('regressors' in json_info.get('CpacVariant', {})
-                and json_info['CpacVariant']['regressors']):
-            reg_value = json_info['CpacVariant'][
-                'regressors'
-            ][0].replace('nuisance_regressors_generation_', '')
-        elif cfg.switch_is_off(['nuisance_corrections',
-                                '2-nuisance_regression', 'run']):
-            reg_value = 'Off'
-        resource_idx, out_dct = _update_resource_idx(resource_idx, out_dct,
-                                                     'reg', reg_value)
+                filt_value = next(
+                    json_info["CpacVariant"][_k][0].replace(
+                        "motion_estimate_filter_", ""
+                    )
+                    for _k, _v in _motion_variant.items()
+                    if _v
+                )
+            except (IndexError, KeyError):
+                filt_value = "none"
+        resource_idx, out_dct = _update_resource_idx(
+            resource_idx, out_dct, "filt", filt_value
+        )
+    if cfg.switch_is_on(["nuisance_corrections", "2-nuisance_regression", "run"]):
+        variants = [
+            variant.split("_")[-1]
+            for variant in chain.from_iterable(
+                json_info.get("CpacVariant", {}).values()
+            )
+            if variant.startswith("nuisance_regressors_generation")
+        ]
+        if cfg.switch_is_off(["nuisance_corrections", "2-nuisance_regression", "run"]):
+            variants.append("Off")
+        reg_value = variants[0] if variants else None
+        resource_idx, out_dct = _update_resource_idx(
+            resource_idx, out_dct, "reg", reg_value
+        )
     return resource_idx, out_dct
 
 
@@ -117,7 +130,7 @@ def present_outputs(outputs: dict, keys: list) -> dict:
 
 
 def source_set(sources: Union[str, list, set]) -> set:
-    """Given a CpacProvenance, return a set of {resource}:{source} strings
+    """Given a CpacProvenance, return a set of {resource}:{source} strings.
 
     Parameters
     ----------
@@ -191,7 +204,7 @@ def source_set(sources: Union[str, list, set]) -> set:
 def _update_resource_idx(resource_idx, out_dct, key, value):
     """
     Given a resource_idx and an out_dct, insert fork-based keys as
-    appropriate
+    appropriate.
 
     Parameters
     ----------
@@ -211,6 +224,5 @@ def _update_resource_idx(resource_idx, out_dct, key, value):
     """
     if value is not None:
         resource_idx = insert_entity(resource_idx, key, value)
-        out_dct['filename'] = insert_entity(out_dct['filename'], key,
-                                            value)
+        out_dct["filename"] = insert_entity(out_dct["filename"], key, value)
     return resource_idx, out_dct

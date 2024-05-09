@@ -14,17 +14,21 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Tests for requisite surface prerequisites"""
+"""Tests for requisite surface prerequisites."""
+
 import os
+
 import pytest
+
 from CPAC.utils.tests.test_utils import _installation_check
 
 
 @pytest.mark.parametrize("executable", ["bc", "csh"])
-@pytest.mark.skipif("FREESURFER_HOME" not in os.environ or
-                    not os.path.exists(os.environ['FREESURFER_HOME']),
-                    reason="We don't need these dependencies if we don't"
-                           "have FreeSurfer.")
+@pytest.mark.skipif(
+    "FREESURFER_HOME" not in os.environ
+    or not os.path.exists(os.environ["FREESURFER_HOME"]),
+    reason="We don't need these dependencies if we don't have FreeSurfer.",
+)
 def test_executable(executable):
-    """Make sure executable is installed"""
+    """Make sure executable is installed."""
     _installation_check(executable, "--version")

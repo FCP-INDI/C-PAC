@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.6.dev1
+# Version 1.8.8.dev1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -59,26 +59,6 @@ nuisance_corrections:
     # Select which nuisance signal corrections to apply
     Regressors:
       - Name: default
-        Motion:
-          include_delayed: On
-          include_squared: On
-          include_delayed_squared: On
-        aCompCor:
-          summary:
-            method: DetrendPC
-            components: 5
-          tissues:
-          - WhiteMatter
-          - CerebrospinalFluid
-          extraction_resolution: 2
-        CerebrospinalFluid:
-          summary: Mean
-          extraction_resolution: 2
-          erode_mask: On
-        GlobalSignal:
-          summary: Mean
-        PolyOrt:
-          degree: 2
         Bandpass:
           bottom_frequency: 0.01
           top_frequency: 0.1
@@ -113,13 +93,12 @@ nuisance_corrections:
         # If using erosion, using both proportion and millimeters is not recommended.
         gm_erosion_prop: 0.6
 
-    # this is a fork point
+    # this is not a fork point
     # Run nuisance regression in native or template space
-    #   - If set to [native, template], the number of outputs will be double what it would be if only one space were chosen. Nuisance regression will only be run once per fork.
     #   - If set to template, will use the brain mask configured in
     #     ``functional_preproc: func_masking: FSL_AFNI: brain_mask``
-    #   - If ``registration_workflows: functional_registration: func_registration_to_template: apply_trasnform: using: single_step_resampling_from_stc``, this must only be set to template
-    space: [template]
+    #   - If ``registration_workflows: functional_registration: func_registration_to_template: apply_trasnform: using: single_step_resampling_from_stc``, this must be set to template
+    space: template
     ingress_regressors:
       run: On
       Regressors:

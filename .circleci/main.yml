@@ -1,4 +1,4 @@
---- 
+---
 version: 2.1
 # Singularity started failing to set up on Circle circa May 2023, so those tests are currently disabled
 
@@ -139,7 +139,7 @@ commands:
             pip install -r dev/circleci_data/requirements.txt
       - save_cache:
           key: pip-ci-requirements-{{ checksum "dev/circleci_data/requirements.txt" }}-3.10.10
-          paths: 
+          paths:
             - /opt/circleci/.pyenv/versions/3.10.10
   set-up-variant:
     parameters:
@@ -237,7 +237,7 @@ jobs:
           path: test-results
       - save_cache:
           key: coverage-docker-<< parameters.variant >>-{{ .Revision }}
-          paths: 
+          paths:
             - .coverage.docker
             - .coverage.docker-<< parameters.variant >>
   pytest-singularity:
@@ -266,7 +266,7 @@ jobs:
           path: test-results
       - save_cache:
           key: coverage-singularity-<< parameters.variant >>-{{ .Revision }}
-          paths: 
+          paths:
             - .coverage.singularity
             - .coverage.singularity-<<parameters.variant >>
 workflows:

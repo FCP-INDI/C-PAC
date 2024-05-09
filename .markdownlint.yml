@@ -20,3 +20,7 @@ MD013: false
 # no duplicate headers
 MD024:
   siblings_only: true
+# allow specific inline HTML elements
+MD033:
+  allowed_elements:
+  - span

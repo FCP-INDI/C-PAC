@@ -1,5 +1,5 @@
 # CPAC Group-Level Analysis Configuration YAML file
-# Version 1.8.6.dev1
+# Version 1.8.8.dev1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -34,7 +34,7 @@ pipeline_setup:
     remove_working_dir: True
 
   log_directory:
-    
+
     # Whether to write log details of the pipeline run to the logging files.
     run_logging: True
 
@@ -315,20 +315,20 @@ qpp:
   # Run Quasi Periodic Pattern Analysis
   run: [1]
 
-  scan_inclusion:  
+  scan_inclusion:
 
-  session_inclusion:  
-  
+  session_inclusion:
+
   stratification:
 
   permutations:  100
-  
+
   window:  30
 
   initial_threshold: 0.2
-  
+
   final_threshold: 0.3
-  
+
   initial_threshold_iterations :  20
 
   qpp_iterations :  15

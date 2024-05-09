@@ -14,10 +14,23 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""C-PAC Configuration module"""
-from .configuration import check_pname, Configuration, Preconfiguration, \
-                           preconfig_yaml, set_subject
-from . import configuration, diff
+"""C-PAC Configuration module."""
 
-__all__ = ['check_pname', 'Configuration', 'configuration', 'diff',
-           'Preconfiguration', 'preconfig_yaml', 'set_subject']
+from . import configuration, diff
+from .configuration import (
+    check_pname,
+    Configuration,
+    preconfig_yaml,
+    Preconfiguration,
+    set_subject,
+)
+
+__all__ = [
+    "check_pname",
+    "Configuration",
+    "configuration",
+    "diff",
+    "Preconfiguration",
+    "preconfig_yaml",
+    "set_subject",
+]
