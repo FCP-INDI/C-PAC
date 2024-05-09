@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2023  C-PAC Developers
+# Copyright (C) 2022-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM ghcr.io/fcp-indi/c-pac/stage-base:lite-v1.8.6.dev1
+FROM ghcr.io/fcp-indi/c-pac/stage-base:lite-v1.8.8.dev1
 LABEL org.opencontainers.image.description "Full C-PAC image without FreeSurfer"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
@@ -29,9 +29,9 @@ COPY dev/docker_data /code/docker_data
 RUN rm -Rf /code/docker_data/checksum && \
     mv /code/docker_data/* /code && \
     rm -Rf /code/docker_data && \
-    chmod +x /code/run.py && \
-    rm -Rf /code/run-with-freesurfer.sh
-ENTRYPOINT ["/code/run.py"]
+    chmod +x /code/CPAC/_entrypoints/run.py && \
+    rm -Rf /code/CPAC/_entrypoints/run-with-freesurfer.sh
+ENTRYPOINT ["/code/CPAC/_entrypoints/run.py"]
 
 # link libraries & clean up
 # link libraries & clean up

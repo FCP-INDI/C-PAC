@@ -32,22 +32,26 @@
 # Modifications Copyright (C) 2022-2023  C-PAC Developers
 
 # This file is part of C-PAC.
-"""This file contains defines parameters for CPAC that we use to fill
+"""Metadata for building C-PAC.
+
+This file contains defines parameters for CPAC that we use to fill
 settings in setup.py, the CPAC top-level docstring, and for building the
 docs.  In setup.py in particular, we exec this file, so it cannot import CPAC.
 This script was borrowed from and inspired by nipype's info.py file
-(https://github.com/nipy/nipype/blob/08391871/nipype/info.py)."""
+(https://github.com/nipy/nipype/blob/08391871/nipype/info.py).
+"""
+
 # CPAC version information.  An empty _version_extra corresponds to a
 # full release.  'dev' as a _version_extra string means this is a development
 # version
 _version_major = 1
 _version_minor = 8
-_version_micro = 6
-_version_extra = ''
+_version_micro = 8
+_version_extra = "dev1"
 
 
 def get_cpac_gitversion():
-    """CPAC version as reported by the last commit in git
+    """CPAC version as reported by the last commit in git.
 
     Returns
     -------
@@ -58,51 +62,50 @@ def get_cpac_gitversion():
     import os
     import subprocess
 
-    gitpath = os.path.realpath(os.path.join(os.path.dirname(__file__),
-                                            os.path.pardir))
+    gitpath = os.path.realpath(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
-    gitpathgit = os.path.join(gitpath, '.git')
+    gitpathgit = os.path.join(gitpath, ".git")
     if not os.path.exists(gitpathgit):
         return None
 
     ver = None
 
     try:
-        o, _ = subprocess.Popen('git describe --always', shell=True,
-                                cwd=gitpath, stdout=subprocess.PIPE
-                                ).communicate()
+        o, _ = subprocess.Popen(
+            "git describe --always", shell=True, cwd=gitpath, stdout=subprocess.PIPE
+        ).communicate()
     except Exception:
         pass
     else:
-        ver = o.decode().strip().split('-')[-1]
+        ver = o.decode().strip().split("-")[-1]
 
     return ver
 
 
-if 'dev' in _version_extra:
+if "dev" in _version_extra:
     gitversion = get_cpac_gitversion()
     if gitversion:
-        _version_extra = f'dev1+{gitversion}'
+        _version_extra = f"{_version_extra}+{gitversion}"
 
 
-__version__ = "%s.%s.%s" % (_version_major,
-                            _version_minor,
-                            _version_micro)
+__version__ = "%s.%s.%s" % (_version_major, _version_minor, _version_micro)
 
 if _version_extra:
-    __version__ += "%s" % _version_extra
+    __version__ += ".%s" % _version_extra
 
-ga_tracker = 'UA-19224662-10'
+ga_tracker = "UA-19224662-10"
 
-CLASSIFIERS = ["Development Status :: 4 - Beta",
-               "Environment :: Console",
-               "Intended Audience :: Science/Research",
-               "Operating System :: OS Independent",
-               "Programming Language :: Python",
-               "Topic :: Scientific/Engineering"]
+CLASSIFIERS = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+]
 
 # pylint: disable=invalid-name
-description = 'Configurable Pipeline for the Analysis of Connectomes'
+description = "Configurable Pipeline for the Analysis of Connectomes"
 
 # Note: this long_description is actually a copy/paste from the top-level
 # README.md, so that it shows up nicely on PyPI.  So please remember to edit
@@ -149,9 +152,9 @@ pipeline, there will likely still be a few bugs that we did not catch. If you
 find a bug, have a question that is not answered in the User Guide, or would
 like to suggest a new feature, please create an issue on CPAC github issue
 page: https://github.com/FCP-INDI/C-PAC/issues?state=open
-"""  # noqa: E501
-CYTHON_MIN_VERSION = '0.12.1'
-NAME = 'CPAC'
+"""
+CYTHON_MIN_VERSION = "0.12.1"
+NAME = "CPAC"
 MAINTAINER = "C-PAC developers"
 MAINTAINER_EMAIL = "CNL@childmind.org"
 DESCRIPTION = description
@@ -165,12 +168,12 @@ PLATFORMS = "OS Independent"
 MAJOR = _version_major
 MINOR = _version_minor
 MICRO = _version_micro
-ISRELEASE = _version_extra == ''
+ISRELEASE = _version_extra == ""
 VERSION = __version__
-STATUS = 'stable'
+STATUS = "stable"
 REQUIREMENTS = [
     "boto3",
-    "ciftify",
+    "ciftify @ git+https://git@github.com/fcp-indi/ciftify#egg=ciftify",
     "click",
     "click-aliases",
     "configparser",
@@ -204,9 +207,6 @@ REQUIREMENTS = [
     "semver",
     "traits",
     "voluptuous>=0.12.0",
-    "xvfbwrapper"
+    "xvfbwrapper",
 ]
-UNET_REQUIREMENTS = [
-    "torch==1.13.1",
-    "torchvision==0.14.1"
-]
+UNET_REQUIREMENTS = ["torch==1.13.1", "torchvision==0.14.1"]

@@ -1,0 +1,80 @@
+# Copyright (C) 2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+fail_fast: false
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.2
+    hooks:
+    - id: ruff
+      args: [--fix]
+    - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+    - id: check-case-conflict
+    - id: end-of-file-fixer
+      exclude: '.*\.?sv|.*\.pkl(z)?'
+    - id: mixed-line-ending
+      args:
+      - --fix=lf
+    - id: trailing-whitespace
+      exclude: '.*\.tsv'
+    - id: check-json
+    - id: pretty-format-json
+      args:
+      - --autofix
+      - --indent=4
+      - --no-sort-keys
+    - id: check-merge-conflict
+    - id: check-yaml
+    - id: check-toml
+
+  - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+    rev: v2.12.0
+    hooks:
+    # pretty-format-yaml is disabled because it doesn't support the "YAML" directive https://yaml.org/spec/1.1/#id895631
+    # - id: pretty-format-yaml
+    #   args:
+    #   - --autofix
+    #   - --indent=2
+    - id: pretty-format-toml
+      exclude: ^poetry.lock$
+      args:
+      - --autofix
+      - --indent=2
+      - --no-sort
+
+  - repo: local
+    hooks:
+      - id: autoversioning
+        name: Update Dockerfiles and version comments
+        entry: .github/scripts/autoversioning.sh
+        language: script
+        files: '.*Dockerfile$|.*\.yaml$|^CPAC/info\.py$'
+      - id: update-yaml-comments
+        name: Update YAML comments
+        entry: CPAC/utils/configuration/yaml_template.py
+        language: python
+        files: '^CPAC/resources/configs/pipeline_config_.*\.ya?ml'
+        additional_dependencies:
+          - "click"
+          - "nipype"
+          - "pathvalidate"
+          - "pyyaml"
+          - "voluptuous"
