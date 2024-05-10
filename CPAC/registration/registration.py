@@ -1181,7 +1181,8 @@ def create_wf_calculate_ants_warp(
                 'inverse_warp_field',
                 'composite_transform',
                 'wait',
-                'normalized_output_brain']), name='outputspec')
+                'normalized_output_brain',
+                'normalized_output_brain_mask']), name='outputspec')
 
     # use ANTS to warp the masked anatomical image to a template image
     '''
@@ -1204,7 +1205,8 @@ def create_wf_calculate_ants_warp(
                                                      'interp',
                                                      'reg_with_skull'],
                                         output_names=['warp_list',
-                                                      'warped_image'],
+                                                      'warped_image',
+                                                      'warped_mask'],
                                         function=hardcoded_reg,
                                         imports=reg_imports),
                 name='calc_ants_warp',
@@ -1343,6 +1345,9 @@ def create_wf_calculate_ants_warp(
         calculate_ants_warp, 'warped_image',
         outputspec, 'normalized_output_brain')
 
+    calc_ants_warp_wf.connect(
+        calculate_ants_warp, 'warped_mask',
+        outputspec, 'normalized_output_brain_mask')
     return calc_ants_warp_wf
 
 
@@ -1785,6 +1790,8 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
     outputs = {
         f'space-{sym}template_desc-preproc_{orig}': (
             ants_reg_anat_mni, 'outputspec.normalized_output_brain'),
+        f'space-{sym}template_desc-{orig}_mask': (
+            ants_reg_anat_mni, 'outputspec.normalized_output_brain_mask'),
         f'from-{orig}_to-{sym}{tmpl}template_mode-image_xfm': (
             write_composite_xfm, 'output_image'),
         f'from-{sym}{tmpl}template_to-{orig}_mode-image_xfm': (
@@ -2223,6 +2230,7 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                            "template space.",
             "Template": "T1w-template",
         },
+        "space-template_desc-T1w_mask": {"Template": "T1w-template"},
         "from-T1w_to-template_mode-image_desc-linear_xfm": {
             "Description": "Linear (affine) transform from T1w native space "
                            "to T1w-template space.",
