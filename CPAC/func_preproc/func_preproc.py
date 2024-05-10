@@ -1346,7 +1346,7 @@ def anat_brain_mask_to_bold_res(wf_name, cfg, pipe_num):
     option_key=['functional_preproc', 'func_masking', 'using'],
     option_val='Anatomical_Resampled',
     inputs=['desc-preproc_bold', 'T1w-template-funcreg', 'space-template_desc-preproc_T1w',
-            'space-template_desc-T1w_mask'],
+            'space-template_desc-brain_mask'],
     outputs=['space-template_res-bold_desc-brain_T1w', 'space-template_desc-bold_mask', 'space-bold_desc-brain_mask']
 )
 def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -1366,7 +1366,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
     # applywarp --rel --interp=nn -i ${FreeSurferBrainMask}.nii.gz -r ${WD}/${T1wImageFile}.${FinalfMRIResolution} --premat=$FSLDIR/etc/flirtsch/ident.mat -o ${WD}/${FreeSurferBrainMaskFile}.${FinalfMRIResolution}.nii.gz
     anat_brain_mask_to_func_res = anat_brain_mask_to_bold_res(wf_name='anat_brain_mask_to_bold_res', cfg=cfg, pipe_num=pipe_num)
     
-    node, out = strat_pool.get_data('space-template_desc-T1w_mask')
+    node, out = strat_pool.get_data('space-template_desc-brain_mask')
     wf.connect(node, out, anat_brain_mask_to_func_res, 'inputspec.space-template_desc-T1w_mask')
 
     wf.connect(anat_brain_to_func_res, 'outputspec.space-template_res-bold_desc-brain_T1w',

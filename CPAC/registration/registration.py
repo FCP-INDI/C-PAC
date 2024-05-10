@@ -2346,23 +2346,6 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                                           f'{direction}-longitudinal')
                     outputs[new_key] = outputs[key]
                     del outputs[key]
-
-    ants_apply_warp_t1_brain_mask_to_template = pe.Node(interface=ants.ApplyTransforms(),
-                                            name=f'ANTS-ABCD_T1_to_template_{pipe_num}')
-    ants_apply_warp_t1_brain_mask_to_template.inputs.dimension = 3
-    ants_apply_warp_t1_brain_mask_to_template.inputs.print_out_composite_warp_file = True
-    ants_apply_warp_t1_brain_mask_to_template.inputs.output_image = 'ANTs_CombinedInvWarp.nii.gz'
-
-    node, out = strat_pool.get_data(['space-T1w_desc-brain_mask'])
-    wf.connect(node, out, ants_apply_warp_t1_brain_mask_to_template, 'input_image')
-
-    node, out = strat_pool.get_data('T1w-template')
-    wf.connect(node, out, ants_apply_warp_t1_brain_mask_to_template, 'reference_image')
-
-    _, out = outputs['from-T1w_to-template_mode-image_xfm']
-    wf.connect(_, out, ants_apply_warp_t1_brain_mask_to_template, 'transforms')
-    outputs.update({'space-template_desc-T1w_mask': (ants_apply_warp_t1_brain_mask_to_template, 'output_image')})
-
     return (wf, outputs)
 
 
@@ -3752,7 +3735,7 @@ def warp_timeseries_to_T1template_deriv(wf, cfg, strat_pool, pipe_num,
         "T1w-brain-template-funcreg",
         "T1w-template-funcreg",
         "space-template_desc-preproc_T1w",
-        "space-template_desc-T1w_mask",
+        "space-template_desc-brain_mask",
     ],
     outputs={
         "space-template_desc-preproc_bold": {
@@ -3991,7 +3974,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
 
     anat_brain_mask_to_func_res = anat_brain_mask_to_bold_res(wf_name='anat_brain_mask_to_bold_res', cfg=cfg, pipe_num=pipe_num)
     
-    node, out = strat_pool.get_data('space-template_desc-T1w_mask')
+    node, out = strat_pool.get_data('space-template_desc-brain_mask')
     wf.connect(node, out, anat_brain_mask_to_func_res, 'inputspec.space-template_desc-T1w_mask')
 
     wf.connect(anat_brain_to_func_res, 'outputspec.space-template_res-bold_desc-brain_T1w',
