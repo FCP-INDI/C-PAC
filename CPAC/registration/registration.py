@@ -1181,8 +1181,7 @@ def create_wf_calculate_ants_warp(
                 'inverse_warp_field',
                 'composite_transform',
                 'wait',
-                'normalized_output_brain',
-                'normalized_output_brain_mask']), name='outputspec')
+                'normalized_output_brain']), name='outputspec')
 
     # use ANTS to warp the masked anatomical image to a template image
     '''
@@ -1205,8 +1204,7 @@ def create_wf_calculate_ants_warp(
                                                      'interp',
                                                      'reg_with_skull'],
                                         output_names=['warp_list',
-                                                      'warped_image',
-                                                      'warped_mask'],
+                                                      'warped_image'],
                                         function=hardcoded_reg,
                                         imports=reg_imports),
                 name='calc_ants_warp',
@@ -1345,9 +1343,6 @@ def create_wf_calculate_ants_warp(
         calculate_ants_warp, 'warped_image',
         outputspec, 'normalized_output_brain')
 
-    calc_ants_warp_wf.connect(
-        calculate_ants_warp, 'warped_mask',
-        outputspec, 'normalized_output_brain_mask')
     return calc_ants_warp_wf
 
 
@@ -1790,8 +1785,6 @@ def ANTs_registration_connector(wf_name, cfg, params, orig="T1w",
     outputs = {
         f'space-{sym}template_desc-preproc_{orig}': (
             ants_reg_anat_mni, 'outputspec.normalized_output_brain'),
-        f'space-{sym}template_desc-{orig}_mask': (
-            ants_reg_anat_mni, 'outputspec.normalized_output_brain_mask'),
         f'from-{orig}_to-{sym}{tmpl}template_mode-image_xfm': (
             write_composite_xfm, 'output_image'),
         f'from-{sym}{tmpl}template_to-{orig}_mode-image_xfm': (
@@ -2354,6 +2347,22 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                                           f'{direction}-longitudinal')
                     outputs[new_key] = outputs[key]
                     del outputs[key]
+
+    ants_apply_warp_t1_brain_mask_to_template = pe.Node(interface=ants.ApplyTransforms(),
+                                            name=f'ANTS-ABCD_T1_to_template_{pipe_num}')
+    ants_apply_warp_t1_brain_mask_to_template.inputs.dimension = 3
+    ants_apply_warp_t1_brain_mask_to_template.inputs.print_out_composite_warp_file = True
+    ants_apply_warp_t1_brain_mask_to_template.inputs.output_image = 'ANTs_CombinedInvWarp.nii.gz'
+
+    node, out = strat_pool.get_data(['space-T1w_desc-brain_mask'])
+    wf.connect(node, out, ants_apply_warp_t1_brain_mask_to_template, 'input_image')
+
+    node, out = strat_pool.get_data('T1w-template')
+    wf.connect(node, out, ants_apply_warp_t1_brain_mask_to_template, 'reference_image')
+
+    _, out = outputs['from-T1w_to-template_mode-image_xfm']
+    wf.connect(_, out, ants_apply_warp_t1_brain_mask_to_template, 'transforms')
+    outputs.update({'space-template_desc-T1w_mask': (ants_apply_warp_t1_brain_mask_to_template, 'output_image')})
 
     return (wf, outputs)
 
