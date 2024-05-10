@@ -2223,7 +2223,6 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                            "template space.",
             "Template": "T1w-template",
         },
-        "space-template_desc-T1w_mask": {"Template": "T1w-template"},
         "from-T1w_to-template_mode-image_desc-linear_xfm": {
             "Description": "Linear (affine) transform from T1w native space "
                            "to T1w-template space.",
