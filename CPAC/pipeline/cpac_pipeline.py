@@ -469,7 +469,7 @@ def run_workflow(
         set_up_random_state_logger(log_dir)
 
     try:
-        workflow = build_workflow(subject_id, sub_dict, c, p_name, num_ants_cores)
+        workflow = build_workflow(subject_id, sub_dict, c, p_name)
     except Exception as exception:
         WFLOGGER.exception("Building workflow failed")
         raise exception
