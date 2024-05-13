@@ -3723,7 +3723,7 @@ def warp_timeseries_to_T1template_deriv(wf, cfg, strat_pool, pipe_num,
     option_key=["apply_transform", "using"],
     option_val="abcd",
     inputs=[
-        ("desc-preproc_bold", "bold", "motion-basefile",
+        ("desc-preproc_bold", "desc-reorient_bold", "motion-basefile",
          "coordinate-transformation"),
         "from-T1w_to-template_mode-image_xfm",
         "from-bold_to-T1w_mode-image_desc-linear_xfm",
@@ -3807,7 +3807,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     extract_func_roi.inputs.t_min = 0
     extract_func_roi.inputs.t_size = 3
 
-    node, out = strat_pool.get_data('bold')
+    node, out = strat_pool.get_data('desc-reorient_bold')
     wf.connect(node, out, extract_func_roi, 'in_file')
 
     # fslmaths "$fMRIFolder"/"$NameOffMRI"_gdc_warp -mul 0 "$fMRIFolder"/"$NameOffMRI"_gdc_warp
@@ -3826,7 +3826,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None
 
     split_func.inputs.dimension = 't'
 
-    node, out = strat_pool.get_data('bold')
+    node, out = strat_pool.get_data('desc-reorient_bold')
     wf.connect(node, out, split_func, 'in_file')
 
     ### Loop starts! ###
