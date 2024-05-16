@@ -197,7 +197,6 @@ REQUIREMENTS = [
     "psutil",
     "PyBASC",
     "pybids",
-    "pygraphviz",
     "PyPEER @ https://github.com/shnizzedy/PyPEER/archive/6965d2b2bea0fef824e885fec33a8e0e6bd50a97.zip",
     "python-dateutil",
     "pyyaml",

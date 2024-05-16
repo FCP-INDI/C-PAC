@@ -81,6 +81,7 @@ def main(**extra_args):
         platforms=PLATFORMS,
         version=VERSION,
         install_requires=REQUIREMENTS,
+        extras_require={"graphviz": ["pygraphviz"]},
         configuration=configuration,
         scripts=glob("scripts/*"),
         entry_points={"console_scripts": ["cpac = CPAC.__main__:main"]},
