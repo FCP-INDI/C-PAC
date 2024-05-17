@@ -56,7 +56,7 @@ def cli_version(
     with Popen(command, stdout=PIPE, stderr=STDOUT, shell=True) as _command:
         _version = _command.stdout.read().decode("utf-8")
         _command_poll = _command.poll()
-        if _command_poll is None or int(_command_poll) == 127:
+        if _command_poll is None or int(_command_poll) == 127:  # noqa: PLR2004
             # handle missing command
             return {}
     if formatting is not None:
@@ -80,19 +80,23 @@ def last_line(stdout: str) -> str:
     return stdout
 
 
-def _version_sort(_version_item):
+def _version_sort(_version_item) -> str:
     """Key to report by case-insensitive dependecy name."""
     return _version_item[0].lower()
 
 
-PYTHON_PACKAGES = dict(
-    sorted(
-        {
-            getattr(d, "name", d.metadata["Name"]): d.version
-            for d in list(distributions())
-        }.items(),
-        key=_version_sort,
+def sorted_versions(versions: dict) -> dict:
+    """Sort versions by case-insensitive names."""
+    return dict(
+        sorted(
+            ((name, version) for name, version in versions.items() if name),
+            key=_version_sort,
+        )
     )
+
+
+PYTHON_PACKAGES = sorted_versions(
+    {getattr(d, "name", d.metadata["Name"]): d.version for d in list(distributions())}
 )
 
 
@@ -130,18 +134,16 @@ def requirements() -> dict:
     return reqs
 
 
-REPORTED = dict(
-    sorted(
-        {
-            **cli_version("ldd --version", formatting=first_line),
-            "Python": sys.version.replace("\n", " ").replace("  ", " "),
-            **cli_version(
-                "3dECM -help",
-                delimiter="_",
-                formatting=lambda _: last_line(_).split("{")[-1].rstrip("}"),
-            ),
-        }.items(),
-        key=_version_sort,
-    )
+REPORTED = sorted_versions(
+    {
+        **cli_version("ldd --version", formatting=first_line),
+        "Python": sys.version.replace("\n", " ").replace("  ", " "),
+        **cli_version(
+            "3dECM -help",
+            delimiter="_",
+            formatting=lambda _: last_line(_).split("{")[-1].rstrip("}"),
+        ),
+    }
 )
+
 REQUIREMENTS = requirements()
