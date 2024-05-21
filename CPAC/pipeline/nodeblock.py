@@ -1,10 +1,26 @@
+# Copyright (C) 2023-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Class and decorator for NodeBlock functions."""
 
 from typing import Any, Callable, Dict, List, Optional, Union
 
 
 class NodeBlockFunction:
-    """Stores a reference to the nodeblock function and all of its meta-data."""
+    """Store a reference to the nodeblock function and all of its meta-data."""
 
     def __init__(
         self,
@@ -86,7 +102,10 @@ class NodeBlockFunction:
         return self.func(wf, cfg, strat_pool, pipe_num, opt)
 
     def legacy_nodeblock_dict(self):
-        """Returns nodeblock metadata as a dictionary. Helper for compatibility reasons."""
+        """Return nodeblock metadata as a dictionary.
+
+        Helper for compatibility reasons.
+        """
         return {
             "name": self.name,
             "config": self.config,
@@ -98,6 +117,7 @@ class NodeBlockFunction:
         }
 
     def __repr__(self) -> str:
+        """Return reproducible string representation of a NodeBlockFunction."""
         return (
             f"NodeBlockFunction({self.func.__module__}."
             f'{self.func.__name__}, "{self.name}", '
@@ -108,6 +128,7 @@ class NodeBlockFunction:
         )
 
     def __str__(self) -> str:
+        """Return string representation of a NodeBlockFunction."""
         return f"NodeBlockFunction({self.name})"
 
 
@@ -119,9 +140,11 @@ def nodeblock(
     option_val: Optional[Union[str, List[str]]] = None,
     inputs: Optional[List[Union[str, list, tuple]]] = None,
     outputs: Optional[Union[List[str], Dict[str, Any]]] = None,
-):
+) -> NodeBlockFunction:
     """
-    Define a node block: Connections to the pipeline configuration and to other node blocks.
+    Define a node block.
+
+    Connections to the pipeline configuration and to other node blocks.
 
     Parameters
     ----------
@@ -144,10 +167,6 @@ def nodeblock(
     outputs
         ResourcePool keys indicating files generated or updated by the NodeBlock, optionally including metadata
         for the outputs' respective sidecars.
-
-    Returns
-    -------
-
     """
     return lambda func: NodeBlockFunction(
         func,

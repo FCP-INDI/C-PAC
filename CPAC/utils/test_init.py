@@ -33,8 +33,7 @@ from CPAC.utils.typing import LIST
 
 def create_dummy_node(name: str, fields: Optional[LIST[str]] = None):
     """
-    Create a dummy IdentityInterface Node source for resources upstream
-    in a graph from a section to be tested.
+    Create a dummy IdentityInterface source for upstream resources.
 
     Parameters
     ----------
@@ -57,8 +56,7 @@ def create_dummy_node(name: str, fields: Optional[LIST[str]] = None):
 # Return tests data config file
 def populate_template_config(config_type: str) -> str:
     """
-    Function to read in a template config file from the
-    CPAC_RESOURCE_DIR and populate it with actual filepaths.
+    Populate a template config file from CPAC_RESOURCE_DIR with actual filepaths.
 
     Parameters
     ----------
@@ -112,7 +110,7 @@ def populate_template_config(config_type: str) -> str:
 # Populate all of the template paths
 def populate_all_templates():
     """
-    Function to populate all of the template files.
+    Populate all of the template files.
 
     Parameters
     ----------
@@ -153,8 +151,7 @@ def populate_all_templates():
 # Get the AWS credentials
 def return_aws_creds():
     """
-    Function to return the AWS credentials file given by the
-    CPAC_AWS_CREDS environment variable.
+    Return the AWS credentials file given by the CPAC_AWS_CREDS environment variable.
 
     Parameters
     ----------
@@ -185,7 +182,7 @@ def return_aws_creds():
 # Get the default test bucket name
 def default_bucket_name():
     """
-    Function to return the default S3 bucket name used in test suite.
+    Return the default S3 bucket name used in test suite.
 
     Parameters
     ----------
@@ -205,8 +202,9 @@ def default_bucket_name():
 # Grab all nifti files within directory
 def return_all_niis(base_dir):
     """
-    Function to walk through a base directory and all subsequent files
-    and return the filepaths of all nifti files found.
+    Walk through a base directory and all subsequent files.
+
+    Return the filepaths of all nifti files found.
 
     Parameters
     ----------
@@ -238,8 +236,7 @@ def return_all_niis(base_dir):
 # Download the CPAC resource dir from S3
 def download_cpac_resources_from_s3(local_base):
     """
-    Function to download the CPAC testing resources directory from
-    S3.
+    Download the CPAC testing resources directory from S3.
 
     Parameters
     ----------
@@ -289,8 +286,9 @@ def download_cpac_resources_from_s3(local_base):
 # Look for CPAC_RESOURCE_DIR to be in environment
 def return_resource_dir():
     """
-    Function to return the filepath of the CPAC_RESOURCE_DIR; note the
-    CPAC_RESOURCE_DIR environment variable must be set.
+    Return the filepath of the CPAC_RESOURCE_DIR.
+
+    Note the CPAC_RESOURCE_DIR environment variable must be set.
 
     Parameters
     ----------
@@ -366,8 +364,7 @@ def return_resource_subfolder(subfolder):
 # Return test strategies obj file
 def return_strats_obj():
     """
-    Function to return the file path of the strategies obj file from
-    the CPAC_RESOURCE_DIR.
+    Return the file path of the strategies obj file from the CPAC_RESOURCE_DIR.
 
     Parameters
     ----------
@@ -393,8 +390,7 @@ def return_strats_obj():
 # Return tests subject list
 def return_subject_list():
     """
-    Function to return the file path of the subject list file from
-    the CPAC_RESOURCE_DIR.
+    Return the file path of the subject list file from the CPAC_RESOURCE_DIR.
 
     Parameters
     ----------
@@ -420,8 +416,7 @@ def return_subject_list():
 # Return the test subjects measure directories
 def return_subj_measure_dirs(measure):
     """
-    Function to grab the base directories of the test subject's output
-    files for a given measure or workflow.
+    Grab the base directories of subject's output files for a given measure or workflow.
 
     Parameters
     ----------
@@ -461,8 +456,9 @@ def return_subj_measure_dirs(measure):
 # Get subject for individual tests
 def return_test_subj():
     """
-    Function to return the subject id; note the
-    CPAC_RESOURCE_DIR environment variable must be set.
+    Return the subject id.
+
+    Note the CPAC_RESOURCE_DIR environment variable must be set.
 
     Parameters
     ----------
@@ -500,15 +496,13 @@ def return_test_subj():
             % (test_subj, site_dir)
         )
         raise Exception(err_msg)
-    else:
-        return test_subj
+    return test_subj
 
 
 # Smooth nifti file
 def smooth_nii_file(self, nii_file, fwhm, mask_file=None):
     """
-    Function to Gaussian smooth nifti files and optionally using a mask
-    on the smoothed data.
+    Gaussian smooth nifti files and optionally use a mask on the smoothed data.
 
     Parameters
     ----------
@@ -591,8 +585,7 @@ def download_resource_from_s3(s3_url_path):
 # Setup log file
 def setup_test_logger(logger_name, log_file, level, to_screen=False):
     """
-    Function to initialize and configure a logger that can write to file
-    and (optionally) the screen.
+    Initialize and configure a logger that can write to file and (optionally) the screen.
 
     Parameters
     ----------
@@ -651,8 +644,7 @@ def pearson_correlation(nii_1, nii_2):
 # Calculate concordance correlation coefficient
 def concordance(x, y):
     """
-    Return the concordance correlation coefficient as defined by
-    Lin (1989).
+    Return the concordance correlation coefficient as defined by Lin (1989).
 
     Parameters
     ----------
@@ -675,7 +667,7 @@ def concordance(x, y):
     if len(x_shape) != 1 or len(y_shape) != 1:
         err_msg = "Inputs must be 1D lists or arrays."
         raise ValueError(err_msg)
-    elif x_shape != y_shape:
+    if x_shape != y_shape:
         err_msg = (
             "Length of the two inputs must be equal.\n"
             "Length of x: %d\nLength of y: %d" % (len(x), len(y))

@@ -149,7 +149,7 @@ def _grab_first_path(mem_x_path):
     return mem_x_path
 
 
-class Node(pe.Node):
+class Node(pe.Node):  # noqa: D101
     # pylint: disable=empty-docstring,too-many-instance-attributes
     __doc__ = _doctest_skiplines(
         pe.Node.__doc__, {"    >>> realign.inputs.in_files = 'functional.nii'"}
@@ -176,7 +176,7 @@ class Node(pe.Node):
         self.verbose_logger = None
         self._mem_x = {}
         if "mem_x" in kwargs and isinstance(kwargs["mem_x"], (tuple, list)):
-            if len(kwargs["mem_x"]) == 3:
+            if len(kwargs["mem_x"]) == 3:  # noqa: PLR2004
                 (
                     self._mem_x["multiplier"],
                     self._mem_x["file"],
@@ -184,7 +184,7 @@ class Node(pe.Node):
                 ) = kwargs["mem_x"]
             else:
                 self._mem_x["mode"] = "xyzt"
-                if len(kwargs["mem_x"]) == 2:
+                if len(kwargs["mem_x"]) == 2:  # noqa: PLR2004
                     (self._mem_x["multiplier"], self._mem_x["file"]) = kwargs["mem_x"]
                 else:
                     self._mem_x["multiplier"] = kwargs["mem_x"]
@@ -193,7 +193,9 @@ class Node(pe.Node):
             delattr(self, "_mem_x")
         setattr(self, "skip_timeout", False)
 
-    orig_sig_params = list(signature(pe.Node).parameters.items())
+    _orig_sig_params: ClassVar[list[tuple[str, Parameter]]] = list(
+        signature(pe.Node).parameters.items()
+    )
 
     __init__.__signature__ = Signature(
         parameters=[
@@ -205,14 +207,16 @@ class Node(pe.Node):
                     "mem_gb", Parameter.POSITIONAL_OR_KEYWORD, default=DEFAULT_MEM_GB
                 ),
             )[1]
-            for p in orig_sig_params[:-1]
+            for p in _orig_sig_params[:-1]
         ]
         + [
             Parameter("mem_x", Parameter.KEYWORD_ONLY, default=None),
             Parameter("throttle", Parameter.KEYWORD_ONLY, default=False),
-            orig_sig_params[-1][1],
+            _orig_sig_params[-1][1],
         ]
     )
+
+    del _orig_sig_params
 
     __init__.__doc__ = re.sub(
         r"(?<!\s):",
@@ -260,8 +264,10 @@ class Node(pe.Node):
         ),
     )  # pylint: disable=line-too-long
 
-    def _add_flags(self, flags):
+    def _add_flags(self, flags: list[str] | tuple[str, str]) -> None:
         r"""
+        Update an interface's flags by adding (list) or replacing (tuple).
+
         Parameters
         ----------
         flags : list or tuple
@@ -685,7 +691,7 @@ class Workflow(pe.Workflow):
         self,
         dotfilename="graph.dot",
         graph2use="hierarchical",
-        format="png",
+        format="png",  # noqa: A002
         simple_form=True,
     ):
         graphtypes = ["orig", "flat", "hierarchical", "exec", "colored"]
@@ -801,7 +807,7 @@ def export_graph(
     use_execgraph=False,
     show_connectinfo=False,
     dotfilename="graph.dot",
-    format="png",
+    format="png",  # noqa: A002
     simple_form=True,
 ):
     """Display the graph layout of the pipeline.
