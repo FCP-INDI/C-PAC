@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -18,7 +18,7 @@
 
 import os
 import sys
-from typing import Optional
+from typing import ClassVar, Literal, Optional
 
 import numpy as np
 import pandas as pd
@@ -30,7 +30,6 @@ from nipype.interfaces.base import File, TraitedSpec, traits
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.pytest import skipif
-from CPAC.utils.typing import Literal, TUPLE
 
 
 def motion_power_statistics(
@@ -395,10 +394,9 @@ def calculate_FD_P(in_file):
     [
         "import os",
         "import sys",
-        "from typing import Optional",
+        "from typing import Literal, Optional",
         "import numpy as np",
         "from CPAC.utils.pytest import skipif",
-        "from CPAC.utils.typing import Literal, TUPLE",
     ]
 )
 @skipif(sys.version_info < (3, 10), reason="Test requires Python 3.10 or higher")
@@ -406,7 +404,7 @@ def calculate_FD_J(
     in_file: str,
     calc_from: Literal["affine", "rms"],
     center: Optional[np.ndarray] = None,
-) -> TUPLE[str, np.ndarray]:
+) -> tuple[str, np.ndarray]:
     """
     Calculate framewise displacement as per Jenkinson et al. 2002.
 
@@ -742,7 +740,7 @@ class ImageTo1DInputSpec(AFNICommandInputSpec):
         keep_extension=True,
     )
 
-    _methods = [
+    _methods: ClassVar[list[str]] = [
         "enorm",
         "dvars",
         "rms",

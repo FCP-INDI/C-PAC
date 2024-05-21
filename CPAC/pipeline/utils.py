@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2023  C-PAC Developers
+# Copyright (C) 2021-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -17,7 +17,6 @@
 """C-PAC pipeline engine utilities."""
 
 from itertools import chain
-from typing import Union
 
 from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
@@ -129,7 +128,7 @@ def present_outputs(outputs: dict, keys: list) -> dict:
     return {key: outputs[key] for key in keys if key in outputs}
 
 
-def source_set(sources: Union[str, list, set]) -> set:
+def source_set(sources: str | list | set) -> set:
     """Given a CpacProvenance, return a set of {resource}:{source} strings.
 
     Parameters

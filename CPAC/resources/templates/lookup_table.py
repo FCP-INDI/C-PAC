@@ -26,8 +26,6 @@ from typing import Optional
 from bids.layout import parse_file_entities
 from numpy import loadtxt
 
-from CPAC.utils.typing import TUPLE
-
 LOOKUP_TABLE = {
     row[0].replace(r"$FSLDIR", environ["FSLDIR"]): (
         row[1],
@@ -66,7 +64,7 @@ def format_identifier(identifier: str, desc: Optional[str] = None) -> str:
     return identifier
 
 
-def lookup_identifier(template_path: str) -> TUPLE[str, None]:
+def lookup_identifier(template_path: str) -> tuple[str, None]:
     """Return a standard template identifier for a packaged template, if known.
 
     Otherwise, returns the literal string 'template'.

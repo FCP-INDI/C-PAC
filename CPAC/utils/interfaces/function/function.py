@@ -60,7 +60,6 @@ from nipype.utils.filemanip import ensure_list
 from nipype.utils.functions import getsource
 
 from CPAC.utils.docs import outdent_lines
-from CPAC.utils.typing import LIST, TUPLE
 
 _AUTOLOGGING_IMPORTS = [
     "from CPAC.utils.monitoring.custom_logging import FMLOGGER, IFLOGGER, UTLOGGER,"
@@ -68,7 +67,7 @@ _AUTOLOGGING_IMPORTS = [
 ]
 
 
-def _as_module(fxn: str, ns: dict) -> TUPLE[str, dict]:
+def _as_module(fxn: str, ns: dict) -> tuple[str, dict]:
     """Get full module name and namespace."""
     module = inspect.getmodule(fxn).__name__
     return f"{module}.{fxn.__name__}", _module_imports(module, ns, fxn.__name__)
@@ -111,7 +110,7 @@ def get_function_name_from_source(function_source: str) -> str:
 
 
 def create_function_from_source(
-    function_source: str, imports: Optional[LIST[str]] = None, ns: Optional[dict] = None
+    function_source: str, imports: Optional[list[str]] = None, ns: Optional[dict] = None
 ):
     """Return a function object from a function source.
 
@@ -237,7 +236,7 @@ class Function(NipypeFunction):
             self._out[name] = None
 
     @staticmethod
-    def sig_imports(imports: LIST[str]) -> Callable:
+    def sig_imports(imports: list[str]) -> Callable:
         """Set an ``ns_imports`` attribute on a function for Function-node functions.
 
         This can be useful for classes needed for decorators, typehints

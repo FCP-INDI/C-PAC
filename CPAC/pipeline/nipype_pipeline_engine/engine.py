@@ -54,7 +54,7 @@ from copy import deepcopy
 from inspect import Parameter, Signature, signature
 import os
 import re
-from typing import Any, ClassVar, Optional, Union
+from typing import Any, ClassVar, Optional
 
 from numpy import prod
 from traits.trait_base import Undefined
@@ -75,7 +75,6 @@ from nipype.utils.filemanip import fname_presuffix
 from nipype.utils.functions import getsource
 
 from CPAC.utils.monitoring import getLogger, WFLOGGER
-from CPAC.utils.typing import DICT
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
@@ -325,7 +324,7 @@ class Node(pe.Node):  # noqa: D101
             estimated memory usage (GB)
         """
 
-        def parse_multiplicand(multiplicand: Any) -> Optional[Union[int, float]]:
+        def parse_multiplicand(multiplicand: Any) -> Optional[int | float]:
             """Return a numeric value or None for a multiplicand."""
             if self._debug:
                 self.verbose_logger.debug(
@@ -429,7 +428,7 @@ class Node(pe.Node):  # noqa: D101
         return self._mem_gb
 
     @property
-    def mem_x(self) -> Optional[DICT[str, Union[int, float, str]]]:
+    def mem_x(self) -> Optional[dict[str, int | float | str]]:
         """Get dict of 'multiplier', 'file', and 'multiplier mode'.
 
         'multiplier' is a memory multiplier.
@@ -486,8 +485,8 @@ class MapNode(Node, pe.MapNode):
         if not self.name.endswith("_"):
             self.name = f"{self.name}_"
 
-    _parameters: ClassVar[DICT[str, Parameter]] = {}
-    _custom_params: ClassVar[DICT[str, Union[bool, float]]] = {
+    _parameters: ClassVar[dict[str, Parameter]] = {}
+    _custom_params: ClassVar[dict[str, bool | float]] = {
         "mem_gb": DEFAULT_MEM_GB,
         "throttle": False,
     }

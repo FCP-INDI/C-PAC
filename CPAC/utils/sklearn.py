@@ -32,13 +32,13 @@
 """Code from scikit-learn (https://github.com/scikit-learn/scikit-learn)."""
 
 import numbers
-from typing import Union
+from typing import Optional
 
 import numpy as np
 from numpy.random import RandomState
 
 
-def check_random_state(seed: Union[None, int, RandomState]) -> RandomState:
+def check_random_state(seed: Optional[int | RandomState]) -> RandomState:
     """Turn seed into a np.random.RandomState instance.
 
     Parameters

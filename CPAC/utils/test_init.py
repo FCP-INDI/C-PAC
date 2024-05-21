@@ -28,10 +28,9 @@ from nipype.interfaces.utility import IdentityInterface
 
 from CPAC.pipeline.nipype_pipeline_engine import Node
 from CPAC.utils.monitoring import UTLOGGER
-from CPAC.utils.typing import LIST
 
 
-def create_dummy_node(name: str, fields: Optional[LIST[str]] = None):
+def create_dummy_node(name: str, fields: Optional[list[str]] = None):
     """
     Create a dummy IdentityInterface source for upstream resources.
 
