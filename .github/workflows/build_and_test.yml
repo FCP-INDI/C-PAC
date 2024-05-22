@@ -16,6 +16,8 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 name: Build and test C-PAC
 
+permissions:
+  packages: write
 
 on:
   workflow_call:
