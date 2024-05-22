@@ -32,6 +32,7 @@ from CPAC.utils.monitoring import failed_to_start, log_nodes_cb, WFLOGGER
 # Run condor jobs
 def run_condor_jobs(c, config_file, subject_list_file, p_name):
     # Import packages
+    import subprocess
     from time import strftime
 
     try:
@@ -650,7 +651,7 @@ def run(
         if c.pipeline_setup["system_config"]["num_participants_at_once"] == 1:
             for sub in sublist:
                 try:
-                    run_workflow(
+                    exitcode = run_workflow(
                         sub,
                         c,
                         True,

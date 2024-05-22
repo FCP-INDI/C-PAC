@@ -229,7 +229,7 @@ def run_workflow(
     plugin="MultiProc",
     plugin_args=None,
     test_config=False,
-):
+) -> int:
     """Prepare and, optionally, run the C-PAC workflow.
 
     Parameters
@@ -252,9 +252,9 @@ def run_workflow(
 
     Returns
     -------
-    workflow : nipype workflow
-        the prepared nipype workflow object containing the parameters
-        specified in the config
+    exitcode :
+       0 for success
+       1 for general failure
     """
     from CPAC.utils.datasource import bidsier_prefix
 
@@ -507,283 +507,282 @@ def run_workflow(
             "file, the pipeline was built successfully, but was "
             "not run"
         )
-    else:
-        working_dir = os.path.join(
-            c.pipeline_setup["working_directory"]["path"], workflow.name
-        )
+        return 0  # return success code
 
-        # if c.write_debugging_outputs:
-        #    with open(os.path.join(working_dir, 'resource_pool.pkl'), 'wb') as f:
-        #        pickle.dump(strat_list, f)
+    working_dir = os.path.join(
+        c.pipeline_setup["working_directory"]["path"], workflow.name
+    )
 
-        # if c.pipeline_setup['working_directory']['regenerate_outputs']:
+    # if c.write_debugging_outputs:
+    #    with open(os.path.join(working_dir, 'resource_pool.pkl'), 'wb') as f:
+    #        pickle.dump(strat_list, f)
 
-        #     erasable = list(find_files(working_dir, '*sink*')) + \
-        #         list(find_files(working_dir, '*link*')) + \
-        #         list(find_files(working_dir, '*log*'))
+    # if c.pipeline_setup['working_directory']['regenerate_outputs']:
 
-        #     for f in erasable:
-        #         if os.path.isfile(f):
-        #             os.remove(f)
-        #         else:
-        #             shutil.rmtree(f)
+    #     erasable = list(find_files(working_dir, '*sink*')) + \
+    #         list(find_files(working_dir, '*link*')) + \
+    #         list(find_files(working_dir, '*log*'))
 
-        if hasattr(c, "trim") and c.trim:
-            WFLOGGER.warning(
-                """
+    #     for f in erasable:
+    #         if os.path.isfile(f):
+    #             os.remove(f)
+    #         else:
+    #             shutil.rmtree(f)
+
+    if hasattr(c, "trim") and c.trim:
+        WFLOGGER.warning(
+            """
 Trimming is an experimental feature, and if used wrongly, it can
 lead to unreproducible results.
 It is useful for performance optimization, but only if used correctly.
 Please, make yourself aware of how it works and its assumptions:
-    - The pipeline configuration has not changed;
-    - The data configuration / BIDS directory has not changed;
-    - The files from the output directory has not changed;
-    - Your softwares versions has not changed;
-    - Your C-PAC version has not changed;
-    - You do not have access to the working directory.
+- The pipeline configuration has not changed;
+- The data configuration / BIDS directory has not changed;
+- The files from the output directory has not changed;
+- Your softwares versions has not changed;
+- Your C-PAC version has not changed;
+- You do not have access to the working directory.
 """
-            )
+        )
 
-            workflow, _ = the_trimmer(
-                workflow,
-                output_dir=c.pipeline_setup["output_directory"]["path"],
-                s3_creds_path=input_creds_path,
-            )
+        workflow, _ = the_trimmer(
+            workflow,
+            output_dir=c.pipeline_setup["output_directory"]["path"],
+            s3_creds_path=input_creds_path,
+        )
 
-        pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
+    pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
 
-        workflow_result = None
+    workflow_result = None
+    exitcode = 0
+    try:
+        subject_info["resource_pool"] = []
+
+        # for strat_no, strat in enumerate(strat_list):
+        #    strat_label = 'strat_%d' % strat_no
+        #    subject_info[strat_label] = strat.get_name()
+        #    subject_info['resource_pool'].append(strat.get_resource_pool())
+
+        subject_info["status"] = "Running"
+
+        # Create callback logger
+        cb_log_filename = os.path.join(log_dir, "callback.log")
+
         try:
-            subject_info["resource_pool"] = []
+            if not os.path.exists(os.path.dirname(cb_log_filename)):
+                os.makedirs(os.path.dirname(cb_log_filename))
+        except IOError:
+            pass
 
-            # for strat_no, strat in enumerate(strat_list):
-            #    strat_label = 'strat_%d' % strat_no
-            #    subject_info[strat_label] = strat.get_name()
-            #    subject_info['resource_pool'].append(strat.get_resource_pool())
+        # Add handler to callback log file
+        set_up_logger("callback", cb_log_filename, "debug", log_dir, mock=True)
 
-            subject_info["status"] = "Running"
+        # Log initial information from all the nodes
+        log_nodes_initial(workflow)
 
-            # Create callback logger
-            cb_log_filename = os.path.join(log_dir, "callback.log")
+        # Add status callback function that writes in callback log
+        nipype_version = REQUIREMENTS["nipype"]
+        if nipype.__version__ != nipype_version:
+            WFLOGGER.warning(
+                "This version of Nipype may not be compatible with CPAC v%s,"
+                " please install Nipype version %s\n",
+                CPAC.__version__,
+                nipype_version,
+            )
 
-            try:
-                if not os.path.exists(os.path.dirname(cb_log_filename)):
-                    os.makedirs(os.path.dirname(cb_log_filename))
-            except IOError:
-                pass
+        if plugin_args["n_procs"] == 1:
+            plugin = "Linear"
+        if not plugin or plugin == "LegacyMultiProc":
+            plugin = LegacyMultiProcPlugin(plugin_args)
+        elif plugin == "MultiProc":
+            plugin = MultiProcPlugin(plugin_args)
 
-            # Add handler to callback log file
-            set_up_logger("callback", cb_log_filename, "debug", log_dir, mock=True)
+        try:
+            # Actually run the pipeline now, for the current subject
+            workflow_result = workflow.run(plugin=plugin, plugin_args=plugin_args)
+        except UnicodeDecodeError:
+            msg = (
+                "C-PAC migrated from Python 2 to Python 3 in v1.6.2 (see "
+                "release notes). Your working directory contains Python 2 "
+                "pickles, probably from an older version of C-PAC. If you "
+                "want to continue to use this working directory, run\n\n"
+                "docker run -i --rm --user $(id -u):$(id -g) "
+                "-v /path/to/working_dir:/working "
+                "fcpindi/c-pac:latest /bids_dir /outputs cli -- "
+                "utils repickle /working\n"
+                "\nor\n\n"
+                "singularity run "
+                "C-PAC_latest.sif /bids_dir /outputs cli -- "
+                "utils repickle /path/to/working_dir\n\n"
+                "before running C-PAC >=v1.6.2"
+            )
+            raise EnvironmentError(msg)
 
-            # Log initial information from all the nodes
-            log_nodes_initial(workflow)
+        # PyPEER kick-off
+        # if c.PyPEER['run']:
+        #    from CPAC.pypeer.peer import prep_for_pypeer
+        #    prep_for_pypeer(c.PyPEER['eye_scan_names'], c.PyPEER['data_scan_names'],
+        #                    c.PyPEER['eye_mask_path'], c.pipeline_setup['output_directory']['path'], subject_id,
+        #                    pipeline_ids, c.PyPEER['stimulus_path'], c.PyPEER['minimal_nuisance_correction']['peer_gsr'],
+        #                    c.PyPEER['minimal_nuisance_correction']['peer_scrub'], c.PyPEER['minimal_nuisance_correction']['scrub_thresh'])
 
-            # Add status callback function that writes in callback log
-            nipype_version = REQUIREMENTS["nipype"]
-            if nipype.__version__ != nipype_version:
-                WFLOGGER.warning(
-                    "This version of Nipype may not be compatible with CPAC v%s,"
-                    " please install Nipype version %s\n",
-                    CPAC.__version__,
-                    nipype_version,
-                )
+        # Dump subject info pickle file to subject log dir
+        subject_info["status"] = "Completed"
 
-            if plugin_args["n_procs"] == 1:
-                plugin = "Linear"
-            if not plugin or plugin == "LegacyMultiProc":
-                plugin = LegacyMultiProcPlugin(plugin_args)
-            elif plugin == "MultiProc":
-                plugin = MultiProcPlugin(plugin_args)
+        subject_info_file = os.path.join(log_dir, f"subject_info_{subject_id}.pkl")
+        with open(subject_info_file, "wb") as info:
+            pickle.dump(list(subject_info), info)
 
-            try:
-                # Actually run the pipeline now, for the current subject
-                workflow_result = workflow.run(plugin=plugin, plugin_args=plugin_args)
-            except UnicodeDecodeError:
-                msg = (
-                    "C-PAC migrated from Python 2 to Python 3 in v1.6.2 (see "
-                    "release notes). Your working directory contains Python 2 "
-                    "pickles, probably from an older version of C-PAC. If you "
-                    "want to continue to use this working directory, run\n\n"
-                    "docker run -i --rm --user $(id -u):$(id -g) "
-                    "-v /path/to/working_dir:/working "
-                    "fcpindi/c-pac:latest /bids_dir /outputs cli -- "
-                    "utils repickle /working\n"
-                    "\nor\n\n"
-                    "singularity run "
-                    "C-PAC_latest.sif /bids_dir /outputs cli -- "
-                    "utils repickle /path/to/working_dir\n\n"
-                    "before running C-PAC >=v1.6.2"
-                )
-                raise EnvironmentError(msg)
+        # have this check in case the user runs cpac_runner from terminal and
+        # the timing parameter list is not supplied as usual by the GUI
+        if pipeline_timing_info is not None:
+            # pipeline_timing_info list:
+            #  [0] - unique pipeline ID
+            #  [1] - pipeline start time stamp (first click of 'run' from GUI)
+            #  [2] - number of subjects in subject list
+            unique_pipeline_id = pipeline_timing_info[0]
+            pipeline_start_stamp = pipeline_timing_info[1]
+            num_subjects = pipeline_timing_info[2]
 
-            # PyPEER kick-off
-            # if c.PyPEER['run']:
-            #    from CPAC.pypeer.peer import prep_for_pypeer
-            #    prep_for_pypeer(c.PyPEER['eye_scan_names'], c.PyPEER['data_scan_names'],
-            #                    c.PyPEER['eye_mask_path'], c.pipeline_setup['output_directory']['path'], subject_id,
-            #                    pipeline_ids, c.PyPEER['stimulus_path'], c.PyPEER['minimal_nuisance_correction']['peer_gsr'],
-            #                    c.PyPEER['minimal_nuisance_correction']['peer_scrub'], c.PyPEER['minimal_nuisance_correction']['scrub_thresh'])
+            # elapsed time data list:
+            #  [0] - elapsed time in minutes
+            elapsed_time_data = []
 
-            # Dump subject info pickle file to subject log dir
-            subject_info["status"] = "Completed"
+            elapsed_time_data.append(int(((time.time() - pipeline_start_time) / 60)))
 
-            subject_info_file = os.path.join(log_dir, f"subject_info_{subject_id}.pkl")
-            with open(subject_info_file, "wb") as info:
-                pickle.dump(list(subject_info), info)
+            # elapsedTimeBin list:
+            #  [0] - cumulative elapsed time (minutes) across all subjects
+            #  [1] - number of times the elapsed time has been appended
+            #        (effectively a measure of how many subjects have run)
 
-            # have this check in case the user runs cpac_runner from terminal and
-            # the timing parameter list is not supplied as usual by the GUI
-            if pipeline_timing_info is not None:
-                # pipeline_timing_info list:
-                #  [0] - unique pipeline ID
-                #  [1] - pipeline start time stamp (first click of 'run' from GUI)
-                #  [2] - number of subjects in subject list
-                unique_pipeline_id = pipeline_timing_info[0]
-                pipeline_start_stamp = pipeline_timing_info[1]
-                num_subjects = pipeline_timing_info[2]
+            # TODO
+            # write more doc for all this
+            # warning in .csv that some runs may be partial
+            # code to delete .tmp file
 
-                # elapsed time data list:
-                #  [0] - elapsed time in minutes
-                elapsed_time_data = []
+            timing_temp_file_path = os.path.join(
+                c.pipeline_setup["log_directory"]["path"],
+                f"{unique_pipeline_id}_pipeline_timing.tmp",
+            )
 
-                elapsed_time_data.append(
-                    int(((time.time() - pipeline_start_time) / 60))
-                )
-
-                # elapsedTimeBin list:
-                #  [0] - cumulative elapsed time (minutes) across all subjects
-                #  [1] - number of times the elapsed time has been appended
-                #        (effectively a measure of how many subjects have run)
-
-                # TODO
-                # write more doc for all this
-                # warning in .csv that some runs may be partial
-                # code to delete .tmp file
-
-                timing_temp_file_path = os.path.join(
-                    c.pipeline_setup["log_directory"]["path"],
-                    f"{unique_pipeline_id}_pipeline_timing.tmp",
-                )
-
-                if not os.path.isfile(timing_temp_file_path):
-                    elapsedTimeBin = []
-                    elapsedTimeBin.append(0)
-                    elapsedTimeBin.append(0)
-
-                    with open(timing_temp_file_path, "wb") as handle:
-                        pickle.dump(elapsedTimeBin, handle)
-
-                with open(timing_temp_file_path, "rb") as handle:
-                    elapsedTimeBin = pickle.loads(handle.read())
-
-                elapsedTimeBin[0] = elapsedTimeBin[0] + elapsed_time_data[0]
-                elapsedTimeBin[1] = elapsedTimeBin[1] + 1
+            if not os.path.isfile(timing_temp_file_path):
+                elapsedTimeBin = []
+                elapsedTimeBin.append(0)
+                elapsedTimeBin.append(0)
 
                 with open(timing_temp_file_path, "wb") as handle:
                     pickle.dump(elapsedTimeBin, handle)
 
-                # this happens once the last subject has finished running!
-                if elapsedTimeBin[1] == num_subjects:
-                    pipelineTimeDict = {}
-                    pipelineTimeDict["Pipeline"] = c.pipeline_setup["pipeline_name"]
-                    pipelineTimeDict["Cores_Per_Subject"] = c.pipeline_setup[
-                        "system_config"
-                    ]["max_cores_per_participant"]
-                    pipelineTimeDict["Simultaneous_Subjects"] = c.pipeline_setup[
-                        "system_config"
-                    ]["num_participants_at_once"]
-                    pipelineTimeDict["Number_of_Subjects"] = num_subjects
-                    pipelineTimeDict["Start_Time"] = pipeline_start_stamp
-                    pipelineTimeDict["End_Time"] = strftime("%Y-%m-%d_%H:%M:%S")
-                    pipelineTimeDict["Elapsed_Time_(minutes)"] = elapsedTimeBin[0]
-                    pipelineTimeDict["Status"] = "Complete"
+            with open(timing_temp_file_path, "rb") as handle:
+                elapsedTimeBin = pickle.loads(handle.read())
 
-                    gpaTimeFields = [
-                        "Pipeline",
-                        "Cores_Per_Subject",
-                        "Simultaneous_Subjects",
-                        "Number_of_Subjects",
-                        "Start_Time",
-                        "End_Time",
-                        "Elapsed_Time_(minutes)",
-                        "Status",
-                    ]
-                    timeHeader = dict(zip(gpaTimeFields, gpaTimeFields))
+            elapsedTimeBin[0] = elapsedTimeBin[0] + elapsed_time_data[0]
+            elapsedTimeBin[1] = elapsedTimeBin[1] + 1
 
-                    with open(
-                        os.path.join(
-                            c.pipeline_setup["log_directory"]["path"],
-                            "cpac_individual_timing"
-                            f"_{c.pipeline_setup['pipeline_name']}.csv",
-                        ),
-                        "a",
-                    ) as timeCSV, open(
-                        os.path.join(
-                            c.pipeline_setup["log_directory"]["path"],
-                            "cpac_individual_timing_%s.csv"
-                            % c.pipeline_setup["pipeline_name"],
-                        ),
-                        "r",
-                    ) as readTimeCSV:
-                        timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
-                        timeReader = csv.DictReader(readTimeCSV)
+            with open(timing_temp_file_path, "wb") as handle:
+                pickle.dump(elapsedTimeBin, handle)
 
-                        headerExists = False
-                        for line in timeReader:
-                            if "Start_Time" in line:
-                                headerExists = True
+            # this happens once the last subject has finished running!
+            if elapsedTimeBin[1] == num_subjects:
+                pipelineTimeDict = {}
+                pipelineTimeDict["Pipeline"] = c.pipeline_setup["pipeline_name"]
+                pipelineTimeDict["Cores_Per_Subject"] = c.pipeline_setup[
+                    "system_config"
+                ]["max_cores_per_participant"]
+                pipelineTimeDict["Simultaneous_Subjects"] = c.pipeline_setup[
+                    "system_config"
+                ]["num_participants_at_once"]
+                pipelineTimeDict["Number_of_Subjects"] = num_subjects
+                pipelineTimeDict["Start_Time"] = pipeline_start_stamp
+                pipelineTimeDict["End_Time"] = strftime("%Y-%m-%d_%H:%M:%S")
+                pipelineTimeDict["Elapsed_Time_(minutes)"] = elapsedTimeBin[0]
+                pipelineTimeDict["Status"] = "Complete"
 
-                        if not headerExists:
-                            timeWriter.writerow(timeHeader)
+                gpaTimeFields = [
+                    "Pipeline",
+                    "Cores_Per_Subject",
+                    "Simultaneous_Subjects",
+                    "Number_of_Subjects",
+                    "Start_Time",
+                    "End_Time",
+                    "Elapsed_Time_(minutes)",
+                    "Status",
+                ]
+                timeHeader = dict(zip(gpaTimeFields, gpaTimeFields))
 
-                        timeWriter.writerow(pipelineTimeDict)
+                with open(
+                    os.path.join(
+                        c.pipeline_setup["log_directory"]["path"],
+                        "cpac_individual_timing"
+                        f"_{c.pipeline_setup['pipeline_name']}.csv",
+                    ),
+                    "a",
+                ) as timeCSV, open(
+                    os.path.join(
+                        c.pipeline_setup["log_directory"]["path"],
+                        "cpac_individual_timing_%s.csv"
+                        % c.pipeline_setup["pipeline_name"],
+                    ),
+                    "r",
+                ) as readTimeCSV:
+                    timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
+                    timeReader = csv.DictReader(readTimeCSV)
 
-                    # remove the temp timing file now that it is no longer needed
-                    os.remove(timing_temp_file_path)
+                    headerExists = False
+                    for line in timeReader:
+                        if "Start_Time" in line:
+                            headerExists = True
 
-            # Upload logs to s3 if s3_str in output directory
-            if c.pipeline_setup["output_directory"]["path"].lower().startswith("s3://"):
-                try:
-                    # Store logs in s3 output director/logs/...
-                    s3_log_dir = os.path.join(
-                        c.pipeline_setup["output_directory"]["path"],
-                        "logs",
-                        os.path.basename(log_dir),
-                    )
-                    bucket_name = c.pipeline_setup["output_directory"]["path"].split(
-                        "/"
-                    )[2]
-                    bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+                    if not headerExists:
+                        timeWriter.writerow(timeHeader)
 
-                    # Collect local log files
-                    local_log_files = []
-                    for root, _, files in os.walk(log_dir):
-                        local_log_files.extend(
-                            [os.path.join(root, fil) for fil in files]
-                        )
-                    # Form destination keys
-                    s3_log_files = [
-                        loc.replace(log_dir, s3_log_dir) for loc in local_log_files
-                    ]
-                    # Upload logs
-                    aws_utils.s3_upload(
-                        bucket,
-                        (local_log_files, s3_log_files),
-                        encrypt=c["pipeline_setup", "Amazon-AWS", "s3_encryption"],
-                    )
-                    # Delete local log files
-                    for log_f in local_log_files:
-                        os.remove(log_f)
+                    timeWriter.writerow(pipelineTimeDict)
 
-                except Exception as exc:
-                    err_msg = "Unable to upload CPAC log files in: %s.\nError: %s"
-                    FMLOGGER.error(err_msg, log_dir, exc)
+                # remove the temp timing file now that it is no longer needed
+                os.remove(timing_temp_file_path)
 
-        except Exception:
-            import traceback
+        # Upload logs to s3 if s3_str in output directory
+        if c.pipeline_setup["output_directory"]["path"].lower().startswith("s3://"):
+            try:
+                # Store logs in s3 output director/logs/...
+                s3_log_dir = os.path.join(
+                    c.pipeline_setup["output_directory"]["path"],
+                    "logs",
+                    os.path.basename(log_dir),
+                )
+                bucket_name = c.pipeline_setup["output_directory"]["path"].split("/")[2]
+                bucket = fetch_creds.return_bucket(creds_path, bucket_name)
 
-            traceback.print_exc()
-            execution_info = """
+                # Collect local log files
+                local_log_files = []
+                for root, _, files in os.walk(log_dir):
+                    local_log_files.extend([os.path.join(root, fil) for fil in files])
+                # Form destination keys
+                s3_log_files = [
+                    loc.replace(log_dir, s3_log_dir) for loc in local_log_files
+                ]
+                # Upload logs
+                aws_utils.s3_upload(
+                    bucket,
+                    (local_log_files, s3_log_files),
+                    encrypt=c["pipeline_setup", "Amazon-AWS", "s3_encryption"],
+                )
+                # Delete local log files
+                for log_f in local_log_files:
+                    os.remove(log_f)
+
+            except Exception as exc:
+                err_msg = "Unable to upload CPAC log files in: %s.\nError: %s"
+                FMLOGGER.error(err_msg, log_dir, exc)
+
+    except Exception:
+        # If we want to throw other exit codes, we can catch various
+        # specific exceptions to do so
+        import traceback
+
+        exitcode = 1
+        traceback.print_exc()
+        execution_info = """
 
 Error of subject workflow {workflow}
 
@@ -797,44 +796,45 @@ CPAC run error:
     {output_check}
 """
 
-        finally:
-            if workflow:
-                if os.path.exists(cb_log_filename):
-                    resource_report(cb_log_filename, num_cores_per_sub, WFLOGGER)
+    finally:
+        if workflow:
+            if os.path.exists(cb_log_filename):
+                resource_report(cb_log_filename, num_cores_per_sub, WFLOGGER)
 
-                WFLOGGER.info(
-                    "%s",
-                    execution_info.format(
-                        workflow=workflow.name,
-                        pipeline=c.pipeline_setup["pipeline_name"],
-                        log_dir=c.pipeline_setup["log_directory"]["path"],
-                        elapsed=(time.time() - pipeline_start_time) / 60,
-                        run_start=pipeline_start_datetime,
-                        run_finish=strftime("%Y-%m-%d %H:%M:%S"),
-                        output_check=check_outputs(
-                            c.pipeline_setup["output_directory"]["path"],
-                            log_dir,
-                            c.pipeline_setup["pipeline_name"],
-                            c["subject_id"],
-                        ),
+            WFLOGGER.info(
+                "%s",
+                execution_info.format(
+                    workflow=workflow.name,
+                    pipeline=c.pipeline_setup["pipeline_name"],
+                    log_dir=c.pipeline_setup["log_directory"]["path"],
+                    elapsed=(time.time() - pipeline_start_time) / 60,
+                    run_start=pipeline_start_datetime,
+                    run_finish=strftime("%Y-%m-%d %H:%M:%S"),
+                    output_check=check_outputs(
+                        c.pipeline_setup["output_directory"]["path"],
+                        log_dir,
+                        c.pipeline_setup["pipeline_name"],
+                        c["subject_id"],
                     ),
+                ),
+            )
+
+            if workflow_result is not None:
+                workflow_meta.stage = "post"
+                save_workflow_json(
+                    filename=os.path.join(log_dir, workflow_meta.filename()),
+                    workflow=workflow_result,
+                    meta=workflow_meta,
+                    custom_serializer=cpac_flowdump_serializer,
                 )
 
-                if workflow_result is not None:
-                    workflow_meta.stage = "post"
-                    save_workflow_json(
-                        filename=os.path.join(log_dir, workflow_meta.filename()),
-                        workflow=workflow_result,
-                        meta=workflow_meta,
-                        custom_serializer=cpac_flowdump_serializer,
-                    )
-
-                # Remove working directory when done
-                if c.pipeline_setup["working_directory"]["remove_working_dir"]:
-                    remove_workdir(working_dir)
-                # Remove just .local from working directory
-                else:
-                    remove_workdir(os.path.join(os.environ["CPAC_WORKDIR"], ".local"))
+            # Remove working directory when done
+            if c.pipeline_setup["working_directory"]["remove_working_dir"]:
+                remove_workdir(working_dir)
+            # Remove just .local from working directory
+            else:
+                remove_workdir(os.path.join(os.environ["CPAC_WORKDIR"], ".local"))
+        return exitcode
 
 
 def remove_workdir(wdpath: str) -> None:
