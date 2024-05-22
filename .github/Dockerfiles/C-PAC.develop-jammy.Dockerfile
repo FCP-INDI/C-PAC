@@ -22,7 +22,7 @@ USER root
 # install C-PAC
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 COPY . /code
-RUN pip cache purge && pip install -e /code
+RUN pip cache purge && pip install -e "/code[graphviz]"
 # set up runscript
 COPY dev/docker_data /code/docker_data
 RUN rm -Rf /code/docker_data/checksum && \

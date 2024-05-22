@@ -9,14 +9,15 @@ from CPAC.utils.configuration import Configuration
 
 @pytest.mark.parametrize("plugin", [MultiProcPlugin(), False, "MultiProc", None])
 def test_plugin_param(plugin):
-    """If we pass a non-string to run_workflow, a TypeError should
-    be raised. Otherwise, we should get an KeyError from our empty
-    `sub_dict`.
+    """We should get an KeyError from our empty `sub_dict`.
+
+    If we pass a non-string to run_workflow, a TypeError should be raised.
     """
     cfg = Configuration()
 
     with pytest.raises((TypeError, KeyError)) as e:
-        run_workflow({}, cfg, False, plugin=plugin)
+        exitcode = run_workflow({}, cfg, False, plugin=plugin)
+        assert exitcode != 0
     if isinstance(plugin, str) or plugin is None:
         assert e.typename == "KeyError"
     else:

@@ -14,8 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from nipype.interfaces import afni, fsl
-import nipype.interfaces.utility as util
+from nipype.interfaces import afni, fsl, utility as util
 from nipype.interfaces.utility import Function
 
 from CPAC.connectome.connectivity_matrix import (
@@ -590,7 +589,7 @@ def gen_roi_timeseries(data_file, template, output_type):
     return oneD_file
 
 
-def gen_voxel_timeseries(data_file, template):
+def gen_voxel_timeseries(data_file: str, template: str) -> str:
     """
     Extract timeseries for each voxel in the data that is present in the input mask.
 
@@ -600,20 +599,11 @@ def gen_voxel_timeseries(data_file, template):
         path to input functional data
     template : string (nifti file)
         path to input mask in functional native space
-    output_type : list
-        list of two boolean values suggesting
-        the output types - numpy npz file and csv
-        format
 
     Returns
     -------
-    out_list : list of files
-        Based on ouput_type options method returns a list containing
-        path to npz and csv file having timeseries of each voxel in
-        the data that is present in the input mask.The row header
-        corresponds to voxel's xyz cordinates and column headers corresponds
-        to the volume index in the csv. By default it outputs afni compatible
-        1D file with mean of timeseries of voxels across timepoints.
+    oneD_file : str
+        Path to the created .1D file containing the mean timeseries vector.
 
     Raises
     ------
@@ -633,21 +623,16 @@ def gen_voxel_timeseries(data_file, template):
     header_data = datafile.header
     qform = header_data.get_qform()
     sorted_list = []
-    vol_dict = {}
 
     tmp_file = os.path.splitext(os.path.basename(template))[0]
     tmp_file = os.path.splitext(tmp_file)[0]
     oneD_file = os.path.abspath("mask_" + tmp_file + ".1D")
     f = open(oneD_file, "wt")
 
-    x, y, z = unit_data.shape
-
     node_array = img_data[unit_data != 0]
     node_array = node_array.T
     time_points = node_array.shape[0]
     for t in range(0, time_points):
-        string = f"vol {t}"
-        vol_dict[string] = node_array[t]
         f.write(str(np.round(np.mean(node_array[t]), 6)))
         f.write("\n")
         val = node_array[t].tolist()
@@ -661,9 +646,9 @@ def gen_voxel_timeseries(data_file, template):
     writer = csv.writer(f, delimiter=str(","), quoting=csv.QUOTE_MINIMAL)
     one = np.array([1])
     headers = ["volume/xyz"]
-    cordinates = np.argwhere(unit_data != 0)
-    for val in range(len(cordinates)):
-        ijk_mat = np.concatenate([cordinates[val], one])
+    coordinates = np.argwhere(unit_data != 0)
+    for val in range(len(coordinates)):
+        ijk_mat = np.concatenate([coordinates[val], one])
         ijk_mat = ijk_mat.T
         product = np.dot(qform, ijk_mat)
         val = tuple(product.tolist()[0:3])
