@@ -23,7 +23,7 @@ USER root
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 COPY . /code
 COPY --from=ghcr.io/fcp-indi/c-pac_templates:latest /cpac_templates /cpac_templates
-RUN pip cache purge && pip install -e /code
+RUN pip cache purge && pip install -e "/code[graphviz]"
 # set up runscript
 COPY dev/docker_data /code/docker_data
 RUN rm -Rf /code/docker_data/checksum && \

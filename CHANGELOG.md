@@ -16,9 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+### Added
+
+- `pyproject.toml` file with `[build-system]` defined.
+
+### Changed
+
+- Moved `pygraphviz` from requirements to `graphviz` optional dependencies group.
+
 ### Fixed
 
-- A bug in which AWS S3 encryption was looked for in Nipype config instead of pipeline config (only affected uploading logs)
+- A bug in which AWS S3 encryption was looked for in Nipype config instead of pipeline config (only affected uploading logs).
 
 ## [1.8.7] - 2024-05-03
 
