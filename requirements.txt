@@ -30,7 +30,7 @@ pybids==0.15.6
 PyPEER @ https://github.com/shnizzedy/PyPEER/archive/6965d2b2bea0fef824e885fec33a8e0e6bd50a97.zip
 python-dateutil==2.8.2
 PyYAML==6.0
-requests==2.31.0
+requests==2.32.0
 scikit-learn==1.2.2
 scipy==1.11.1
 sdcflows==2.4.0
