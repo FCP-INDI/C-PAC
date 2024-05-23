@@ -1,4 +1,6 @@
 """
+Generate XCP-stype quality control files.
+
 .. seealso::
 
       `User Guide: Generate eXtensible Connectivity Pipeline-style quality control files <https://fcp-indi.github.io/docs/user/xcpqc>`_
@@ -171,7 +173,9 @@ def dvcorr(dvars, fdj):
     return np.corrcoef(dvars, fdj[1:])[0, 1]
 
 
-def generate_xcp_qc(
+# This function is for a function node for which
+# Nipype will connect many other nodes as inputs
+def generate_xcp_qc(  # noqa: PLR0913
     sub,
     ses,
     task,
@@ -191,8 +195,8 @@ def generate_xcp_qc(
     dvars_after,
     template,
 ):
-    # pylint: disable=too-many-arguments, too-many-locals, invalid-name
-    """Generate an RBC-style QC CSV.
+    """
+    Generate an RBC-style QC CSV.
 
     Parameters
     ----------
@@ -450,6 +454,7 @@ def get_bids_info(subject, scan, wf_name):
     },
 )
 def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate an XCP-style quality-control file."""
     # pylint: disable=invalid-name, unused-argument
     if cfg[
         "nuisance_corrections", "2-nuisance_regression", "run"
