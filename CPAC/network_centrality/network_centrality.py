@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2023  C-PAC Developers
+# Copyright (C) 2015-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 from nipype.interfaces.afni.preprocess import DegreeCentrality, LFCD
 from nipype.pipeline.engine import Workflow
@@ -24,7 +24,6 @@ from CPAC.network_centrality.utils import ThresholdOptionError
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.interfaces.afni import AFNI_GTE_21_1_1, ECM
-from CPAC.utils.typing import LIST
 
 
 @docstring_parameter(
@@ -35,12 +34,12 @@ from CPAC.utils.typing import LIST
 def create_centrality_wf(
     wf_name: str,
     method_option: str,
-    weight_options: LIST[str],
+    weight_options: list[str],
     threshold_option: str,
     threshold: float,
     num_threads: Optional[int] = 1,
     memory_gb: Optional[float] = 1.0,
-    base_dir: Optional[Union[Path, str]] = None,
+    base_dir: Optional[Path | str] = None,
 ) -> Workflow:
     """
     Function to create the afni-based centrality workflow.

@@ -13,8 +13,6 @@ jobs:
         variant:
           - ''
           - lite
-          - ABCD-HCP
-          - fMRIPrep-LTS
     env:
       GITHUB_TOKEN: ${{ secrets.API_PACKAGE_READ_DELETE }}
       IMAGE: c-pac

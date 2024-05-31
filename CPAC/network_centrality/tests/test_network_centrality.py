@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2023  C-PAC Developers
+# Copyright (C) 2015-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -22,7 +22,6 @@ import pytest
 from CPAC.network_centrality.network_centrality import create_centrality_wf
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.interfaces.afni import AFNI_SEMVER
-from CPAC.utils.typing import LIST
 
 _DATA_DIR = Path(__file__).parent / "data"
 """Path to test data directory"""
@@ -43,14 +42,12 @@ _DATA_DIR = Path(__file__).parent / "data"
 @pytest.mark.skipif(AFNI_SEMVER == "0.0.0", reason="AFNI not installed")
 def test_create_centrality_wf(
     method_option: str,
-    weight_options: LIST[str],
+    weight_options: list[str],
     threshold_option: str,
     threshold: float,
     tmpdir: Path,
 ) -> None:
-    """Integration test of
-    ~CPAC.network_centrality.network_centrality.create_centrality_wf.
-    """
+    """Integration test of ~CPAC.network_centrality.network_centrality.create_centrality_wf."""
     wf_name = (
         f'test_{method_option[0]}'
         f'{"".join([_[0] for _ in weight_options])}'

@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2023  C-PAC Developers
+# Copyright (C) 2022-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,9 +14,9 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Utilities for determining BIDS standard template identifiers
-(https://bids-specification.readthedocs.io/en/stable/99-appendices/08-coordinate-systems.html#standard-template-identifiers)
-from in-container template paths.
+"""Determine BIDS standard template identifiers from in-container template paths.
+
+See `Standard template identifiers <https://bids-specification.readthedocs.io/en/stable/99-appendices/08-coordinate-systems.html#standard-template-identifiers>`_.
 """
 
 from os import environ, path as op
@@ -25,8 +25,6 @@ from typing import Optional
 
 from bids.layout import parse_file_entities
 from numpy import loadtxt
-
-from CPAC.utils.typing import TUPLE
 
 LOOKUP_TABLE = {
     row[0].replace(r"$FSLDIR", environ["FSLDIR"]): (
@@ -42,7 +40,7 @@ LOOKUP_TABLE = {
 
 
 def format_identifier(identifier: str, desc: Optional[str] = None) -> str:
-    """Function to create an identifier string from a name and description.
+    """Create an identifier string from a name and description.
 
     Parameters
     ----------
@@ -66,10 +64,10 @@ def format_identifier(identifier: str, desc: Optional[str] = None) -> str:
     return identifier
 
 
-def lookup_identifier(template_path: str) -> TUPLE[str, None]:
-    """Function to return a standard template identifier for a packaged
-    template, if known. Otherwise, returns the literal string
-    'template'.
+def lookup_identifier(template_path: str) -> tuple[str, None]:
+    """Return a standard template identifier for a packaged template, if known.
+
+    Otherwise, returns the literal string 'template'.
 
     Parameters
     ----------

@@ -14,9 +14,10 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+from collections.abc import Iterable
 import os
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 import nibabel as nib
 
@@ -25,7 +26,6 @@ from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.monitoring import IFLOGGER
-from CPAC.utils.typing import Iterable, LIST
 
 
 def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
@@ -75,9 +75,9 @@ def convert_pvalue_to_r(datafile, p_value, two_tailed=False):
 
 
 def merge_lists(
-    deg_list: Optional[LIST[str]] = None,
-    eig_list: Optional[LIST[str]] = None,
-    lfcd_list: Optional[LIST[str]] = None,
+    deg_list: Optional[list[str]] = None,
+    eig_list: Optional[list[str]] = None,
+    lfcd_list: Optional[list[str]] = None,
 ):
     """Actually do the list merging.
 
@@ -219,21 +219,18 @@ def create_merge_node(pipe_num: int) -> Node:
 
 @Function.sig_imports(
     [
-        "from typing import Union",
+        "from collections.abc import Iterable",
         "import os",
         "from pathlib import Path",
         "import nibabel as nib",
         "from CPAC.pipeline.schema import valid_options",
         "from CPAC.utils.docs import docstring_parameter",
-        "from CPAC.utils.typing import Iterable, LIST",
     ]
 )
 @docstring_parameter(
     weight_options=tuple(valid_options["centrality"]["weight_options"])
 )
-def sep_nifti_subbriks(
-    nifti_file: Union[Path, str], out_names: Iterable[str]
-) -> LIST[str]:
+def sep_nifti_subbriks(nifti_file: Path | str, out_names: Iterable[str]) -> list[str]:
     """Separate sub-briks of niftis and save specified out
 
     Parameters

@@ -25,9 +25,9 @@ from click import BadParameter
 import pkg_resources as p
 import yaml
 
-from CPAC.utils.typing import ConfigKeyType, TUPLE
 from .diff import dct_diff
 
+CONFIG_KEY_TYPE = str | list[str]
 SPECIAL_REPLACEMENT_STRINGS = {r"${resolution_for_anat}", r"${func_resolution}"}
 
 
@@ -434,7 +434,7 @@ class Configuration:
                 d[keys[0]] = value
         return d
 
-    def _check_if_switch(self, key: ConfigKeyType, error: bool = False) -> bool:
+    def _check_if_switch(self, key: CONFIG_KEY_TYPE, error: bool = False) -> bool:
         """Check if a given entity is a switch.
 
         Parameters
@@ -472,7 +472,7 @@ class Configuration:
             raise TypeError(msg)
         return False
 
-    def _switch_bool(self, key: ConfigKeyType, value: bool, exclusive: bool) -> bool:
+    def _switch_bool(self, key: CONFIG_KEY_TYPE, value: bool, exclusive: bool) -> bool:
         """Return True if the key is set to the given value or False otherwise.
 
         Parameters
@@ -500,7 +500,7 @@ class Configuration:
                 return value in self[key]
         return False
 
-    def switch_is_off(self, key: ConfigKeyType, exclusive: bool = False) -> bool:
+    def switch_is_off(self, key: CONFIG_KEY_TYPE, exclusive: bool = False) -> bool:
         """Return True if the key is set to 'off' OR 'on' and 'off' or False otherwise.
 
         Used for tracking forking.
@@ -538,7 +538,7 @@ class Configuration:
         self._check_if_switch(key, True)
         return self._switch_bool(key, False, exclusive)
 
-    def switch_is_on(self, key: ConfigKeyType, exclusive: bool = False) -> bool:
+    def switch_is_on(self, key: CONFIG_KEY_TYPE, exclusive: bool = False) -> bool:
         """Return True if the key is set to 'on' OR 'on' and 'off' or False otherwise.
 
         Used for tracking forking.
@@ -576,7 +576,7 @@ class Configuration:
         self._check_if_switch(key, True)
         return self._switch_bool(key, True, exclusive)
 
-    def switch_is_on_off(self, key: ConfigKeyType) -> bool:
+    def switch_is_on_off(self, key: CONFIG_KEY_TYPE) -> bool:
         """Return True if the key is set to both 'on' and 'off' or False otherwise.
 
         Used for tracking forking.
@@ -757,7 +757,7 @@ class Preconfiguration(Configuration):
 
 def set_subject(
     sub_dict: dict, pipe_config: "Configuration", p_name: Optional[str] = None
-) -> TUPLE[str, str, str]:
+) -> tuple[str, str, str]:
     """Set pipeline name and log directory path for a given sub_dict.
 
     Parameters

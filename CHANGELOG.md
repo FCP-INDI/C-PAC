@@ -28,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A bug in which AWS S3 encryption was looked for in Nipype config instead of pipeline config (only affected uploading logs).
 
+### Removed
+
+- Variant image recipes.
+  - `ABCD-HCP`
+  - `fMRIPrep-LTS`
+- Typehinting support for Python < 3.10.
+
 ## [1.8.7] - 2024-05-03
 
 ### Added

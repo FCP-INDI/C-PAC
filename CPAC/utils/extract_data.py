@@ -17,13 +17,12 @@
 import glob
 import logging
 import os
+from pathlib import Path
 import string
 import sys
 from typing import BinaryIO, Optional
 
 import yaml
-
-from CPAC.utils.typing import PathStr
 
 logger = logging.getLogger("extract_data_logs")
 if logger.handlers:
@@ -724,7 +723,7 @@ class Configuration(object):
             setattr(self, key, config_map[key])
 
 
-def run(data_config: PathStr) -> None:
+def run(data_config: Path | str) -> None:
     """Run a data config.
 
     Parameters
