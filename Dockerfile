@@ -1,6 +1,6 @@
 FROM docker.io/fcpindi/c-pac:release-v1.3.0
 LABEL org.opencontainers.image.authors="The C-PAC Team <CNL@childmind.org>" \
-      org.opencontainers.image.version="1.3.0.post2"
+      org.opencontainers.image.version="1.3.0.post3.dev1"
 ARG BIDS_VALIDATOR_VERSION="1.2.3"
 
 # Install the validator
