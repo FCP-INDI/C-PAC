@@ -1398,7 +1398,8 @@ def select_model_files(model, ftest, model_name):
 
 
 def check(params_dct, subject, scan, val, throw_exception):
-
+    if val == "TR" and "TR" not in params_dct and "RepetitionTime" in params_dct:
+        return check(params_dct, subject, scan, "RepetitionTime", throw_exception)
     if isinstance(params_dct[val], dict):
         ret_val = params_dct[val][scan]
     else:
