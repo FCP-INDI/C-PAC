@@ -261,7 +261,7 @@ def run_T1w_longitudinal(sublist, cfg):
 
 
 def run(
-    subject_list_file,
+    bids_table,
     config_file=None,
     p_name=None,
     plugin=None,
@@ -299,20 +299,21 @@ def run(
         )
 
     # Init variables
-    sublist = None
-    if ".yaml" in subject_list_file or ".yml" in subject_list_file:
-        subject_list_file = os.path.realpath(subject_list_file)
-    else:
-        from CPAC.utils.bids_utils import (
-            bids_gen_cpac_sublist,
-            collect_bids_files_configs,
-        )
+    sublist = bids_table
 
-        (file_paths, config) = collect_bids_files_configs(subject_list_file, None)
-        sublist = bids_gen_cpac_sublist(subject_list_file, file_paths, config, None)
-        if not sublist:
-            WFLOGGER.error("Did not find data in %s", subject_list_file)
-            return 1
+    # if ".yaml" in subject_list_file or ".yml" in subject_list_file:
+    #     subject_list_file = os.path.realpath(subject_list_file)
+    # else:
+    #     from CPAC.utils.bids_utils import (
+    #         bids_gen_cpac_sublist,
+    #         collect_bids_files_configs,
+    #     )
+
+    #     (file_paths, config) = collect_bids_files_configs(subject_list_file, None)
+    #     sublist = bids_gen_cpac_sublist(subject_list_file, file_paths, config, None)
+    #     if not sublist:
+    #         WFLOGGER.error("Did not find data in %s", subject_list_file)
+    #         return 1
 
     # take date+time stamp for run identification purposes
     unique_pipeline_id = strftime("%Y%m%d%H%M%S")
@@ -400,38 +401,38 @@ def run(
     p_name = check_pname(p_name, c)
 
     # Load in subject list
-    try:
-        if not sublist:
-            sublist = yaml.safe_load(open(subject_list_file, "r"))
-    except:
-        msg = "Subject list is not in proper YAML format. Please check your file"
-        raise FileNotFoundError(msg)
+    # try:
+    #     if not sublist:
+    #         sublist = yaml.safe_load(open(subject_list_file, "r"))
+    # except:
+    #     msg = "Subject list is not in proper YAML format. Please check your file"
+    #     raise FileNotFoundError(msg)
 
     # Populate subject scan map
-    sub_scan_map = {}
-    try:
-        for sub in sublist:
-            if sub["unique_id"]:
-                s = sub["subject_id"] + "_" + sub["unique_id"]
-            else:
-                s = sub["subject_id"]
-            scan_ids = ["scan_anat"]
+    # sub_scan_map = {}
+    # try:
+    #     for sub in sublist:
+    #         if sub["unique_id"]:
+    #             s = sub["subject_id"] + "_" + sub["unique_id"]
+    #         else:
+    #             s = sub["subject_id"]
+    #         scan_ids = ["scan_anat"]
 
-            if "func" in sub:
-                for id in sub["func"]:
-                    scan_ids.append("scan_" + str(id))
+    #         if "func" in sub:
+    #             for id in sub["func"]:
+    #                 scan_ids.append("scan_" + str(id))
 
-            if "rest" in sub:
-                for id in sub["rest"]:
-                    scan_ids.append("scan_" + str(id))
+    #         if "rest" in sub:
+    #             for id in sub["rest"]:
+    #                 scan_ids.append("scan_" + str(id))
 
-            sub_scan_map[s] = scan_ids
-    except Exception as e:
-        msg = (
-            "\n\nERROR: Subject list file not in proper format - check if you loaded"
-            " the correct file?\nError name: cpac_runner_0001\n\n"
-        )
-        raise ValueError(msg) from e
+    #         sub_scan_map[s] = scan_ids
+    # except Exception as e:
+    #     msg = (
+    #         "\n\nERROR: Subject list file not in proper format - check if you loaded"
+    #         " the correct file?\nError name: cpac_runner_0001\n\n"
+    #     )
+    #     raise ValueError(msg) from e
 
     pipeline_timing_info = []
     pipeline_timing_info.append(unique_pipeline_id)
@@ -472,6 +473,7 @@ def run(
         if not os.path.exists(c.pipeline_setup["working_directory"]["path"]):
             try:
                 os.makedirs(c.pipeline_setup["working_directory"]["path"])
+
             except:
                 err = (
                     "\n\n[!] CPAC says: Could not create the working "
@@ -662,6 +664,8 @@ def run(
                         test_config,
                     )
                 except Exception as exception:  # pylint: disable=broad-except
+                    print(f"Failed to start {set_subject(sub, c)[2]}")
+                    print(exception)
                     exitcode = 1
                     failed_to_start(set_subject(sub, c)[2], exception)
             return exitcode

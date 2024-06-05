@@ -221,7 +221,7 @@ faulthandler.enable()
 
 
 def run_workflow(
-    sub_dict,
+    sub_group,
     c,
     run,
     pipeline_timing_info=None,
@@ -234,8 +234,8 @@ def run_workflow(
 
     Parameters
     ----------
-    sub_dict : dictionary
-        subject dictionary with anatomical and functional image paths
+    sub_group :
+        subject group with anatomical and functional image paths
     c : Configuration object
         CPAC pipeline configuration dictionary object
     run : boolean
@@ -270,7 +270,7 @@ def run_workflow(
     # Assure that changes on config will not affect other parts
     c = copy.copy(c)
 
-    subject_id, p_name, log_dir = set_subject(sub_dict, c)
+    subject_id, p_name, log_dir = set_subject(sub_group, c)
     c["subject_id"] = subject_id
 
     set_up_logger(
@@ -352,21 +352,21 @@ def run_workflow(
         c.pipeline_setup["system_config"]["max_cores_per_participant"]
     ) * int(c.pipeline_setup["system_config"]["num_participants_at_once"])
 
-    try:
-        creds_path = sub_dict["creds_path"]
-        if creds_path and "none" not in creds_path.lower():
-            if os.path.exists(creds_path):
-                input_creds_path = os.path.abspath(creds_path)
-            else:
-                err_msg = (
-                    f'Credentials path: "{creds_path}" for subject "{subject_id}" was'
-                    " not found. Check this path and try again."
-                )
-                raise FileNotFoundError(err_msg)
-        else:
-            input_creds_path = None
-    except KeyError:
-        input_creds_path = None
+    # try:
+    #     creds_path = sub_group["creds_path"]
+    #     if creds_path and "none" not in creds_path.lower():
+    #         if os.path.exists(creds_path):
+    #             input_creds_path = os.path.abspath(creds_path)
+    #         else:
+    #             err_msg = (
+    #                 f'Credentials path: "{creds_path}" for subject "{subject_id}" was'
+    #                 " not found. Check this path and try again."
+    #             )
+    #             raise FileNotFoundError(err_msg)
+    #     else:
+    #         input_creds_path = None
+    # except KeyError:
+    #     input_creds_path = None
 
     information = """
     Environment
@@ -425,7 +425,7 @@ def run_workflow(
     subject_info = {}
     subject_info["subject_id"] = subject_id
     subject_info["start_time"] = pipeline_start_time
-
+    print("Here")
     check_centrality_degree = c.network_centrality["run"] and (
         len(c.network_centrality["degree_centrality"]["weight_options"]) != 0
         or len(c.network_centrality["eigenvector_centrality"]["weight_options"]) != 0
@@ -469,7 +469,7 @@ def run_workflow(
         set_up_random_state_logger(log_dir)
 
     try:
-        workflow = build_workflow(subject_id, sub_dict, c, p_name)
+        workflow = build_workflow(subject_id, sub_group, c, p_name)
     except Exception as exception:
         WFLOGGER.exception("Building workflow failed")
         raise exception
@@ -858,9 +858,7 @@ def initialize_nipype_wf(cfg, sub_data_dct, name=""):
     if name:
         name = f"_{name}"
 
-    workflow_name = (
-        f'cpac{name}_{sub_data_dct["subject_id"]}_{sub_data_dct["unique_id"]}'
-    )
+    workflow_name = f"cpac{name}_{sub_data_dct[0][0]}_{sub_data_dct[0][1]}"
     wf = pe.Workflow(name=workflow_name)
     wf.base_dir = cfg.pipeline_setup["working_directory"]["path"]
     wf.config["execution"] = {
@@ -1214,37 +1212,37 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
     return wf
 
 
-def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
+def build_workflow(subject_id, sub_group, cfg, pipeline_name=None):
     """Build a C-PAC workflow for a single subject."""
     from CPAC.utils.datasource import gather_extraction_maps
 
     # Workflow setup
-    wf = initialize_nipype_wf(cfg, sub_dict, name=pipeline_name)
+    wf = initialize_nipype_wf(cfg, sub_group, name=pipeline_name)
 
     # Extract credentials path if it exists
-    try:
-        creds_path = sub_dict["creds_path"]
-        if creds_path and "none" not in creds_path.lower():
-            if os.path.exists(creds_path):
-                input_creds_path = os.path.abspath(creds_path)
-            else:
-                err_msg = (
-                    f'Credentials path: "{creds_path}" for subject "{subject_id}" was'
-                    " not found. Check this path and try again."
-                )
-                raise FileNotFoundError(err_msg)
-        else:
-            input_creds_path = None
-    except KeyError:
-        input_creds_path = None
+    # try:
+    #     creds_path = sub_group["creds_path"]
+    #     if creds_path and "none" not in creds_path.lower():
+    #         if os.path.exists(creds_path):
+    #             input_creds_path = os.path.abspath(creds_path)
+    #         else:
+    #             err_msg = (
+    #                 f'Credentials path: "{creds_path}" for subject "{subject_id}" was'
+    #                 " not found. Check this path and try again."
+    #             )
+    #             raise FileNotFoundError(err_msg)
+    #     else:
+    #         input_creds_path = None
+    # except KeyError:
+    #     input_creds_path = None
 
-    cfg.pipeline_setup["input_creds_path"] = input_creds_path
+    # cfg.pipeline_setup["input_creds_path"] = input_creds_path
 
     # """""""""""""""""""""""""""""""""""""""""""""""""""
     # PREPROCESSING
     # """""""""""""""""""""""""""""""""""""""""""""""""""
 
-    wf, rpool = initiate_rpool(wf, cfg, sub_dict)
+    wf, rpool = initiate_rpool(wf, cfg, sub_group)
 
     pipeline_blocks = build_anat_preproc_stack(rpool, cfg)
 
@@ -1289,8 +1287,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
 
         # Distortion/Susceptibility Correction
         distcor_blocks = []
-        if "fmap" in sub_dict:
-            fmap_keys = sub_dict["fmap"]
+        if "fmap" in sub_group[0]:
+            fmap_keys = sub_group[1]["ent__suffix"].values
             if "phasediff" in fmap_keys or "phase1" in fmap_keys:
                 if "magnitude" in fmap_keys or "magnitude1" in fmap_keys:
                     distcor_blocks.append(distcor_phasediff_fsl_fugue)
@@ -1626,15 +1624,15 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
         ]:
             if errorstring in lookup_error.args[0]:
                 missing_key = errorstrings[errorstrings.index(errorstring) + 1]
-        if missing_key and missing_key.endswith("_bold") and "func" not in sub_dict:
+        if missing_key and missing_key.endswith("_bold") and "func" not in sub_group:
             raise FileNotFoundError(
                 "The provided pipeline configuration requires functional "
                 "data but no functional data were found for "
                 + "/".join(
                     [
-                        sub_dict[key]
+                        sub_group[key]
                         for key in ["site", "subject_id", "unique_id"]
-                        if key in sub_dict
+                        if key in sub_group
                     ]
                 )
                 + ". Please check "

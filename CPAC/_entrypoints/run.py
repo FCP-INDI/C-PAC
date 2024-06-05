@@ -779,6 +779,14 @@ def run_main():
                 args.skip_bids_validator,
                 only_one_anat=False,
             )
+            from bids2table import bids2table
+
+            table = bids2table(bids_dir, workers=10)
+            bids_table = table[
+                (table["ent__ext"].str.contains(".nii"))
+                & (table["ent__datatype"].notnull())
+            ]
+            grouped_tab = bids_table.groupby(["ent__sub", "ent__ses"])
         else:
             sub_list = load_cpac_data_config(
                 args.data_config_file, args.participant_label, args.aws_input_creds
@@ -824,7 +832,7 @@ def run_main():
             data_hash = hash_data_config(sub_list)
             data_config_file = f"cpac_data_config_{data_hash}_{st}.yml"
 
-        sublogdirs = [set_subject(sub, c)[2] for sub in sub_list]
+        sublogdirs = [set_subject(sub, c)[2] for sub in grouped_tab]
         # write out the data configuration file
         data_config_file = os.path.join(sublogdirs[0], data_config_file)
         with open(data_config_file, "w", encoding="utf-8") as _f:
@@ -919,7 +927,7 @@ def run_main():
 
             WFLOGGER.info("Starting participant level processing")
             exitcode = CPAC.pipeline.cpac_runner.run(
-                data_config_file,
+                grouped_tab,
                 pipeline_config_file,
                 plugin="MultiProc" if plugin_args["n_procs"] > 1 else "Linear",
                 plugin_args=plugin_args,

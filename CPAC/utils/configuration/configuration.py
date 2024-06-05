@@ -756,7 +756,7 @@ class Preconfiguration(Configuration):
 
 
 def set_subject(
-    sub_dict: dict, pipe_config: "Configuration", p_name: Optional[str] = None
+    sub_group, pipe_config: "Configuration", p_name: Optional[str] = None
 ) -> TUPLE[str, str, str]:
     """Set pipeline name and log directory path for a given sub_dict.
 
@@ -796,9 +796,9 @@ def set_subject(
     >>> log_dir.endswith(f'{p_name}/{subject_id}')
     True
     """
-    subject_id = sub_dict["subject_id"]
-    if sub_dict.get("unique_id"):
-        subject_id += f'_{sub_dict["unique_id"]}'
+    subject_id = sub_group[0][0]
+    if sub_group[0][1]:
+        subject_id += f"_{sub_group[0][1]}"
     p_name = check_pname(p_name, pipe_config)
     log_dir = os.path.join(
         pipe_config.pipeline_setup["log_directory"]["path"], p_name, subject_id
