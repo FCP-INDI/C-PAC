@@ -136,6 +136,12 @@ def requirements() -> dict:
 
 REPORTED = sorted_versions(
     {
+        **cli_version(
+            "bids-validator --version",
+            dependency="bids-validator",
+            in_result=False,
+            formatting=first_line,
+        ),
         **cli_version("ldd --version", formatting=first_line),
         "Python": sys.version.replace("\n", " ").replace("  ", " "),
         **cli_version(

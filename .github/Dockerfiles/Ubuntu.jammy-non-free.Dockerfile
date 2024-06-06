@@ -65,8 +65,7 @@ RUN groupadd -r c-pac \
     && update-locale LANG="en_US.UTF-8" \
     # # install bids-validator
     && curl -fsSL https://raw.githubusercontent.com/tj/n/master/bin/n | bash -s lts \
-    && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \
-    npm install -g "bids-validator@${BIDS_VALIDATOR_VERSION}"
+    && npm install -g "bids-validator@${BIDS_VALIDATOR_VERSION}"
 
 COPY --from=c-pac_templates /cpac_templates /cpac_templates
 COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global /opt/dcan-tools/pipeline/global
