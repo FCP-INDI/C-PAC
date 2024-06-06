@@ -119,9 +119,12 @@ def requirements() -> dict:
 
 
 REPORTED = dict(sorted({
-    **cli_version('ldd --version', formatting=first_line),
-    'Python': sys.version.replace('\n', ' ').replace('  ', ' '),
-    **cli_version('3dECM -help', delimiter='_',
-                  formatting=lambda _: last_line(_).split('{')[-1].rstrip('}'))
+    **cli_version("bids-validator --version", dependency="bids-validator",
+                  in_result=False, formatting=first_line),
+    **cli_version("ldd --version", formatting=first_line),
+    "Python": sys.version.replace("\n", " ").replace("  ", " "),
+    **cli_version("3dECM -help", delimiter="_",
+                  formatting=lambda _: last_line(_).split("{")[-1].rstrip("}"))
 }.items(), key=_version_sort))
+
 REQUIREMENTS = requirements()
