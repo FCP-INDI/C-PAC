@@ -2612,6 +2612,31 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
     return rpool
 
+def ingress_all_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
+
+    for data in data_paths[1].iterrows():
+        suffix = data[1]["ent__suffix"]
+        datatype = data[1]["ent__datatype"]
+        filepath = data[1]["finfo__file_path"]
+        desc = data[1]["ent__desc"]
+
+        data_flow = create_general_datasource(f"gather_{datatype}_{suffix}")
+        data_flow.inputs.inputnode.set(
+            unique_id=unique_id,
+            data=filepath,
+            creds_path=None,
+            dl_dir=cfg.pipeline_setup["working_directory"]["path"],
+        )
+        rpool.set_data(
+            f"{datatype}_{suffix}",
+            data_flow,
+            "outputspec.data",
+            {},
+            "",
+            f"{datatype}_{suffix}_ingress",
+        )
+
+    return rpool
 
 def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     print("Initiating RPOOOOOOOOOOOOOL")
@@ -2643,10 +2668,6 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     if data_paths:
         part_id = data_paths[0][0]
         ses_id = data_paths[0][1]
-        # if "creds_path" not in data_paths:
-        #     creds_path = None
-        # else:
-        #     creds_path = data_paths["creds_path"]
         unique_id = f"{part_id}_{ses_id}"
 
     elif part_id:
@@ -2656,37 +2677,18 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     rpool = ResourcePool(name=unique_id, cfg=cfg)
 
     if data_paths:
-        # ingress outdir
-        # try:
-        #     if (
-        #         data_paths["derivatives_dir"]
-        #         and cfg.pipeline_setup["outdir_ingress"]["run"]
-        #     ):
-        #         wf, rpool = ingress_output_dir(
-        #             wf,
-        #             cfg,
-        #             rpool,
-        #             unique_id,
-        #             data_paths,
-        #             part_id,
-        #             ses_id,
-        #             creds_path=None,
-        #         )
-        # except:
-        rpool = ingress_raw_anat_data(
+        rpool = ingress_all_data(
             wf, rpool, cfg, data_paths, unique_id, part_id, ses_id
         )
-        if not data_paths[1].loc[data_paths[1]["ent__datatype"] == "func"].empty:
-            wf, rpool, diff, blip, fmap_rp_list = ingress_raw_func_data(
-                wf, rpool, cfg, data_paths, unique_id, part_id, ses_id
-            )
 
     # grab any file paths from the pipeline config YAML
     creds_path = None
     rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
 
     # output files with 4 different scans
-
+    print(rpool.get_entire_rpool())
+    import sys
+    sys.exit()
     return (wf, rpool)
 
 
