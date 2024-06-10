@@ -82,7 +82,7 @@ jobs:
             cd ${{ env.SSH_WORK_DIR }}
             if pip show "${{ env.SLURM_TESTING_PACKAGE }}" > /dev/null 2>&1; then
                 # If the package is installed, upgrade it
-                python3 -m pip install --user --upgrade "https://github.com/${{ env.SLURM_TESTING_REPO }}/archive/${{ env.SLURM_TESTING_BRANCH }}.zip"
+                python3 -m pip install --user --upgrade --force-reinstall "https://github.com/${{ env.SLURM_TESTING_REPO }}/archive/${{ env.SLURM_TESTING_BRANCH }}.zip"
             else
                 # If the package is not installed, install it
                 python3 -m pip install --user "https://github.com/${{ env.SLURM_TESTING_REPO }}/archive/${{ env.SLURM_TESTING_BRANCH }}.zip"
