@@ -16,5 +16,5 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 
 [build-system]
-requires = ["nipype==1.8.6", "numpy==1.25.1", "pyyaml==6.0", "setuptools==68.0.0", "voluptuous==0.13.1"]
+requires = ["nipype==1.8.6", "numpy==1.25.1", "pyyaml==6.0", "setuptools<60.0", "voluptuous==0.13.1"]
 build-backend = "setuptools.build_meta"
