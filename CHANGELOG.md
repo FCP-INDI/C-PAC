@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - A bug in which AWS S3 encryption was looked for in Nipype config instead of pipeline config (only affected uploading logs).
+- Restored `bids-validator` functionality.
 
 ### Removed
 
