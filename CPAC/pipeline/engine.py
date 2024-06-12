@@ -875,6 +875,40 @@ class ResourcePool:
 
         return wf
 
+    
+
+    def build_rpool(self, data_paths):
+        import pandas as pd
+        for x in data_paths[1].iterrows():
+            run = x[1]['ent__run']
+            task = x[1]['ent__task']
+            suffix = x[1]['ent__suffix']
+            data_type = x[1]['ent__datatype']
+            data_path = x[1]['finfo__file_path']
+            desc = x[1]['ent__desc']
+            extra_entities = x[1]['ent__extra_entities']
+            meta_data = 'meta_data_here'
+
+            desc_suffix = f"desc-{desc}_{suffix}" if pd.notnull(desc) and pd.notnull(suffix) else None
+
+            # Set key to suffix
+            key = suffix
+
+            # Create dictionary with 'key' as keys and initialize with default values
+            self.rpool.setdefault(key, [])
+
+            # Define data_description based on data_type
+            data_description = {"data_type": data_type, "task": task, "run": run} if data_type == 'func' else {"data_type": data_type}
+
+            # Append a dictionary containing data_path, json_data, extra_entities, meta_data, data_description and desc_suffix (if it exists)
+            self.rpool[key].append({
+                "data": data_path,
+                "json": extra_entities,
+                "data_description": data_description,
+                "meta_data": meta_data,
+                "desc_suffix": desc_suffix if desc_suffix else None
+            })
+    
     @property
     def filtered_movement(self) -> bool:
         """
@@ -2614,32 +2648,36 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
 def ingress_all_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
 
-    for data in data_paths[1].iterrows():
-        suffix = data[1]["ent__suffix"]
-        datatype = data[1]["ent__datatype"]
-        filepath = data[1]["finfo__file_path"]
-        desc = data[1]["ent__desc"]
 
-        data_flow = create_general_datasource(f"gather_{datatype}_{suffix}")
-        data_flow.inputs.inputnode.set(
-            unique_id=unique_id,
-            data=filepath,
-            creds_path=None,
-            dl_dir=cfg.pipeline_setup["working_directory"]["path"],
-        )
-        rpool.set_data(
-            f"{datatype}_{suffix}",
-            data_flow,
-            "outputspec.data",
-            {},
-            "",
-            f"{datatype}_{suffix}_ingress",
-        )
+
+
+ #### One way to do it
+
+    # for data in data_paths[1].iterrows():
+    #     suffix = data[1]["ent__suffix"]
+    #     datatype = data[1]["ent__datatype"]
+    #     filepath = data[1]["finfo__file_path"]
+    #     desc = data[1]["ent__desc"]
+
+    #     data_flow = create_general_datasource(f"gather_{datatype}_{suffix}")
+    #     data_flow.inputs.inputnode.set(
+    #         unique_id=unique_id,
+    #         data=filepath,
+    #         creds_path=None,
+    #         dl_dir=cfg.pipeline_setup["working_directory"]["path"],
+    #     )
+    #     rpool.set_data(
+    #         f"{datatype}_{suffix}",
+    #         data_flow,
+    #         "outputspec.data",
+    #         {},
+    #         "",
+    #         f"{datatype}_{suffix}_ingress",
+    #     )
 
     return rpool
 
 def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
-    print("Initiating RPOOOOOOOOOOOOOL")
     """
     Initialize a new ResourcePool.
 
@@ -2676,19 +2714,22 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
 
     rpool = ResourcePool(name=unique_id, cfg=cfg)
 
-    if data_paths:
-        rpool = ingress_all_data(
-            wf, rpool, cfg, data_paths, unique_id, part_id, ses_id
-        )
+    # if data_paths:
+    #     rpool = ingress_all_data(
+    #         wf, rpool, cfg, data_paths, unique_id, part_id, ses_id
+    #     )
+    rpool.build_rpool(data_paths)
 
     # grab any file paths from the pipeline config YAML
-    creds_path = None
-    rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
+    # creds_path = None
+    # rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
 
     # output files with 4 different scans
     print(rpool.get_entire_rpool())
     import sys
     sys.exit()
+
+
     return (wf, rpool)
 
 

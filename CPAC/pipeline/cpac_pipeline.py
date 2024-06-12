@@ -425,7 +425,6 @@ def run_workflow(
     subject_info = {}
     subject_info["subject_id"] = subject_id
     subject_info["start_time"] = pipeline_start_time
-    print("Here")
     check_centrality_degree = c.network_centrality["run"] and (
         len(c.network_centrality["degree_centrality"]["weight_options"]) != 0
         or len(c.network_centrality["eigenvector_centrality"]["weight_options"]) != 0

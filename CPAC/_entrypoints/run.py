@@ -787,6 +787,7 @@ def run_main():
                 & (table["ent__datatype"].notnull())
             ]
             grouped_tab = bids_table.groupby(["ent__sub", "ent__ses"])
+            print(grouped_tab.count())
         else:
             sub_list = load_cpac_data_config(
                 args.data_config_file, args.participant_label, args.aws_input_creds
