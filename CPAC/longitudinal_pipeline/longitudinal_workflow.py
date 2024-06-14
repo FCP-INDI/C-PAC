@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
-from typing import Union
 
 from nipype.interfaces import fsl
 import nipype.interfaces.io as nio
@@ -77,7 +76,7 @@ def create_datasink(
     session_id="",
     strat_name="",
     map_node_iterfield=None,
-) -> Union[pe.Node, pe.MapNode]:
+) -> pe.Node | pe.MapNode:
     """
     Parameters
     ----------

@@ -20,7 +20,6 @@ import fnmatch
 import os
 
 from CPAC.utils.monitoring import WFLOGGER
-from CPAC.utils.typing import LIST
 
 
 def load_config_yml(config_file: str) -> dict:
@@ -54,7 +53,7 @@ def load_config_yml(config_file: str) -> dict:
     return config
 
 
-def load_text_file(filepath: str, label: str = "file") -> LIST[str]:
+def load_text_file(filepath: str, label: str = "file") -> list[str]:
     """Load a text file and returns the lines in a list.
 
     Parameters

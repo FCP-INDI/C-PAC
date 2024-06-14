@@ -17,7 +17,6 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from logging import basicConfig, INFO
 import os
-from typing import Union
 
 import click
 from click_aliases import ClickAliasedGroup
@@ -565,7 +564,7 @@ def test():
 @test.command(aliases=["run_suite"])
 @click.option("--list", "-l", "show_list", is_flag=True)
 @click.option("--filter", "-f", "pipeline_filter", default="")
-def run_suite(show_list: Union[bool, str] = False, pipeline_filter=""):
+def run_suite(show_list: bool | str = False, pipeline_filter=""):
     from CPAC.pipeline import cpac_runner
 
     test_config_dir = p.resource_filename(

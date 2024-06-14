@@ -45,7 +45,7 @@ h5py==3.8.0
 importlib-metadata==6.8.0
 lxml==4.9.2
 pip==23.3
-setuptools==68.0.0
+setuptools<60.0
 urllib3==1.26.18
 wheel==0.40.0
 zipp==3.16.0

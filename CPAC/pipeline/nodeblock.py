@@ -1,47 +1,63 @@
+# Copyright (C) 2023-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Class and decorator for NodeBlock functions."""
 
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Optional
 
 
 class NodeBlockFunction:
-    """Stores a reference to the nodeblock function and all of its meta-data."""
+    """Store a reference to the nodeblock function and all of its meta-data."""
 
     def __init__(
         self,
         func: Callable,
         name: Optional[str] = None,
-        config: Optional[List[str]] = None,
-        switch: Optional[Union[List[str], List[List[str]]]] = None,
-        option_key: Optional[Union[str, List[str]]] = None,
-        option_val: Optional[Union[str, List[str]]] = None,
-        inputs: Optional[List[Union[str, list, tuple]]] = None,
-        outputs: Optional[Union[List[str], Dict[str, Any]]] = None,
+        config: Optional[list[str]] = None,
+        switch: Optional[list[str] | list[list[str]]] = None,
+        option_key: Optional[str | list[str]] = None,
+        option_val: Optional[str | list[str]] = None,
+        inputs: Optional[list[str | list | tuple]] = None,
+        outputs: Optional[list[str] | dict[str, Any]] = None,
     ) -> None:
         self.func = func
         """Nodeblock function reference."""
         self.name: Optional[str] = name
         """Used in the graph and logging to identify the NodeBlock and its component nodes."""
-        self.config: Optional[List[str]] = config
+        self.config: Optional[list[str]] = config
         """
         Indicates the nested keys in a C-PAC pipeline configuration should configure a NodeBlock built from this
         function. If config is set to ``None``, then all other configuration-related entities must be specified from the
         root of the configuration.
         """
-        self.switch: Optional[Union[List[str], List[List[str]]]] = switch
+        self.switch: Optional[list[str] | list[list[str]]] = switch
         """
         Indicates any keys that should evaluate to True for this NodeBlock to be active. A list of lists of strings
         indicates multiple switches that must all be True to run, and is currently only an option if config is set to
         ``None``.
         """
-        self.option_key: Optional[Union[str, List[str]]] = option_key
+        self.option_key: Optional[str | list[str]] = option_key
         """
         Indicates the nested keys (starting at the nested key indicated by config) that should configure this NodeBlock.
         """
-        self.option_val: Optional[Union[str, List[str]]] = option_val
+        self.option_val: Optional[str | list[str]] = option_val
         """Indicates values for which this NodeBlock should be active."""
-        self.inputs: Optional[List[Union[str, list, tuple]]] = inputs
+        self.inputs: Optional[list[str | list | tuple]] = inputs
         """ResourcePool keys indicating resources needed for the NodeBlock's functionality."""
-        self.outputs: Optional[Union[List[str], Dict[str, Any]]] = outputs
+        self.outputs: Optional[list[str] | dict[str, Any]] = outputs
         """
         ResourcePool keys indicating resources generated or updated by the NodeBlock, optionally including metadata
         for the outputs' respective sidecars.
@@ -86,7 +102,10 @@ class NodeBlockFunction:
         return self.func(wf, cfg, strat_pool, pipe_num, opt)
 
     def legacy_nodeblock_dict(self):
-        """Returns nodeblock metadata as a dictionary. Helper for compatibility reasons."""
+        """Return nodeblock metadata as a dictionary.
+
+        Helper for compatibility reasons.
+        """
         return {
             "name": self.name,
             "config": self.config,
@@ -98,6 +117,7 @@ class NodeBlockFunction:
         }
 
     def __repr__(self) -> str:
+        """Return reproducible string representation of a NodeBlockFunction."""
         return (
             f"NodeBlockFunction({self.func.__module__}."
             f'{self.func.__name__}, "{self.name}", '
@@ -108,20 +128,23 @@ class NodeBlockFunction:
         )
 
     def __str__(self) -> str:
+        """Return string representation of a NodeBlockFunction."""
         return f"NodeBlockFunction({self.name})"
 
 
 def nodeblock(
     name: Optional[str] = None,
-    config: Optional[List[str]] = None,
-    switch: Optional[Union[List[str], List[List[str]]]] = None,
-    option_key: Optional[Union[str, List[str]]] = None,
-    option_val: Optional[Union[str, List[str]]] = None,
-    inputs: Optional[List[Union[str, list, tuple]]] = None,
-    outputs: Optional[Union[List[str], Dict[str, Any]]] = None,
+    config: Optional[list[str]] = None,
+    switch: Optional[list[str] | list[list[str]]] = None,
+    option_key: Optional[str | list[str]] = None,
+    option_val: Optional[str | list[str]] = None,
+    inputs: Optional[list[str | list | tuple]] = None,
+    outputs: Optional[list[str] | dict[str, Any]] = None,
 ):
     """
-    Define a node block: Connections to the pipeline configuration and to other node blocks.
+    Define a node block.
+
+    Connections to the pipeline configuration and to other node blocks.
 
     Parameters
     ----------
@@ -144,10 +167,6 @@ def nodeblock(
     outputs
         ResourcePool keys indicating files generated or updated by the NodeBlock, optionally including metadata
         for the outputs' respective sidecars.
-
-    Returns
-    -------
-
     """
     return lambda func: NodeBlockFunction(
         func,
