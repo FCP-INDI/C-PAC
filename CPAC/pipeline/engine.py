@@ -887,7 +887,7 @@ class ResourcePool:
             data_path = x[1]['finfo__file_path']
             desc = x[1]['ent__desc']
             extra_entities = x[1]['ent__extra_entities']
-            meta_data = 'meta_data_here'
+            metadata = 'metadata_here'
 
             desc_suffix = f"desc-{desc}_{suffix}" if pd.notnull(desc) and pd.notnull(suffix) else None
 
@@ -903,10 +903,11 @@ class ResourcePool:
             # Append a dictionary containing data_path, json_data, extra_entities, meta_data, data_description and desc_suffix (if it exists)
             self.rpool[key].append({
                 "data": data_path,
-                "json": extra_entities,
-                "data_description": data_description,
-                "meta_data": meta_data,
-                "desc_suffix": desc_suffix if desc_suffix else None
+                #"json": extra_entities,
+                #"data_description": data_description,
+                "metadata": metadata,
+                #"desc_suffix": desc_suffix if desc_suffix else None
+                "strat": "ingress"
             })
     
     @property
@@ -1445,6 +1446,12 @@ class ResourcePool:
         NodeData
         """
         return NodeData(self, resource, **kwargs)
+
+class StratPool(ResourcePool):
+    pass
+
+class Resource(StratPool):
+    pass
 
 
 class NodeBlock:
