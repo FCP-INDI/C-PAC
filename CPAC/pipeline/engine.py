@@ -1419,35 +1419,67 @@ class ResourcePool:
         CpacProvenance = ('strat:ingress',)
         for index, row in data_paths[1].iterrows():
             # Get the BIDS style combined key
-            resource = Resource(row)
-            key = resource.generate_bids_name()
-
-            data_path = resource.finfo['finfo__file_path']
-            metadata = 'metadata_here' # exchange with row['meta__json']
-
-            self.rpool.setdefault(key, [])
-            self.rpool[key].append({
-                CpacProvenance:{
-                    "data": data_path,
+            resource = Resource(row, CpacProvenance)
+            # making the rpool a list so that the duplicates are appended rather than overwritten
+            self.rpool.setdefault(resource.name, [])
+            self.rpool[resource.name].append({
+                resource.CpacProvenance:{
+                    "data": resource.finfo['finfo__file_path'],
                     "json": {
-                        "CpacProvenance": CpacProvenance,
-                        "CpacConfig": 'cfg', # replace with self.cfg ?
-                        "metadata": metadata,
-                    },
-                    "resource": resource,
-                }
+                       # "CpacProvenance": CpacProvenance,
+                       # "CpacConfig": 'cfg', # replace with self.cfg ?
+                        "metadata": 'metadata_here', # replace with resource.metadata
+                    }
+                },
+                "resource": resource
             })
+    
+    def write_to_disk(self, path):
+        for resources in self.rpool.values():
+            for item in resources:
+                print(item['resource'].write_to_disk(path))
+
+        
 from dataclasses import dataclass
-@dataclass
-class Resource():
-    def __init__(self, row):
+
+class Resource(BIDSFile):
+    row: dict
+    CpacProvenance: tuple
+    ds: dict
+    entity: dict
+    finfo: dict
+    metadata: dict
+    entity_to_bids_key: dict
+    name: str
+    rel_path: str
+
+    def __init__(self, row, CpacProvenance=()):
+
+        self.CpacProvenance = CpacProvenance
         self.row = row
         #extra stuff
         self.ds = {k: v for k, v in row.items() if k.startswith('ds')}
         self.entity = {k: v for k, v in row.items() if k.startswith('ent')}
         self.finfo = {k: v for k, v in row.items() if k.startswith('finfo')}
         self.metadata = row['meta__json']
+        self.filename = self.finfo['finfo__file_path'].split("/")[-1]
+        self.rel_path = f"{self.entity['ent__sub']}/{self.entity['ent__ses']}/{self.entity['ent__datatype']}"
+
+        super().__init__(
+            self.ds['ds__dataset'],
+            self.ds['ds__dataset_path'],
+            self.finfo['finfo__file_path'],
+            self.entity,
+            self.metadata,           
+        )
+
         self.entity_to_bids_key = {
+             
+            # These are the keys that are used in generating the Resource names.
+            # The order of the keys does matter and affects the Resource names.
+            # Some of the keys can me commented or uncommented to include or exclude them from the Resource names.
+            # If the keys are duplicated then the values are appended as a list.
+
             #'ent__sub': 'sub',
             #'ent__ses': 'ses',
             'ent__sample': 'sample',
@@ -1479,8 +1511,9 @@ class Resource():
             'ent__suffix': 'suffix',
             #'ent__ext': 'ext'
         }
-
-    def generate_bids_name(self):
+        self.name = self.generate_resource_name()
+    
+    def generate_resource_name(self):
         bids_key_value_pairs = []
         for col, bids_key in self.entity_to_bids_key.items():
             if pd.notnull(self.row[col]) and self.row[col] != '':
@@ -1497,7 +1530,23 @@ class Resource():
         bids_style_combined = '_'.join(bids_key_value_pairs)
         return bids_style_combined
     
-    
+    # write to disk
+    def write_to_disk(self, path):
+        import shutil
+        try:
+            path_to_write = os.path.join(path, self.rel_path)
+            os.makedirs(path_to_write, exist_ok=True)
+            # Copy the NIFTI file
+            shutil.copy(self.finfo['finfo__file_path'], path_to_write)
+            # Write the JSON file
+            json_path = os.path.join(path_to_write, f"{self.filename.replace('.nii.gz', '.json')}")
+            with open(json_path, 'w') as f:
+                f.write(json.dumps(self.metadata, indent=4))
+            return f"successfully written to {path_to_write}"
+        except Exception as e:
+            WFLOGGER.error(f"Error writing to disk: {e}")
+            print(f"Error writing to disk: {e}")
+        
 
 class StratPool(ResourcePool):
     pass
@@ -2780,7 +2829,8 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     # rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
 
     # output files with 4 different scans
-    print(rpool.get_entire_rpool())
+    #print(rpool.get_entire_rpool())
+    rpool.write_to_disk(cfg.pipeline_setup["working_directory"]["path"])
     import sys
     sys.exit()
 
