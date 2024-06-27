@@ -51,6 +51,8 @@ from CPAC.utils.docs import DOCS_URL_PREFIX
 from CPAC.utils.monitoring import failed_to_start, FMLOGGER, log_nodes_cb, WFLOGGER
 from CPAC.utils.utils import update_nested_dict
 
+from bids2table import bids2table
+
 simplefilter(action="ignore", category=FutureWarning)
 DEFAULT_TMP_DIR = "/tmp"
 
@@ -779,21 +781,21 @@ def run_main():
                 args.skip_bids_validator,
                 only_one_anat=False,
             )
-            from bids2table import bids2table
+            # Initializing the bidstable on the bids_directory
+            bids_table = bids2table(bids_dir, workers=10)
 
-            table = bids2table(bids_dir, workers=10)
-            bids_table = table[
-                (table["ent__ext"].str.contains(".nii"))
-                & (table["ent__datatype"].notnull())
-            ]
-            # fillna
-            bids_table['ent__ses'] = bids_table['ent__ses'].fillna('None')
-            grouped_tab = bids_table.groupby(["ent__sub", "ent__ses"])
-            
-        else:
-            sub_list = load_cpac_data_config(
-                args.data_config_file, args.participant_label, args.aws_input_creds
-            )
+            try:
+                # fillna
+                bids_table['ent__ses'] = bids_table['ent__ses'].fillna('None')
+                grouped_tab = bids_table.groupby(["ent__sub", "ent__ses"])
+            except Exception as e:
+                WFLOGGER.warning("Could not create bids table: %s", e)
+                print("Could not create bids table: %s", e)
+                sys.exit(1)
+        # else:
+        #     sub_list = load_cpac_data_config(
+        #         args.data_config_file, args.participant_label, args.aws_input_creds
+        #     )
         list(sub_list)
         sub_list = sub_list_filter_by_labels(
             sub_list, {"T1w": args.T1w_label, "bold": args.bold_label}

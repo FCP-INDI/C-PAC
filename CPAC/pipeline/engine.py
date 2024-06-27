@@ -24,6 +24,8 @@ import os
 import re
 from typing import Optional, Union
 import warnings
+import pandas as pd
+from bids2table import BIDSTable, BIDSFile, join_bids_path, parse_bids_entities
 
 from nipype import config
 from nipype.interfaces.utility import Rename
@@ -876,40 +878,6 @@ class ResourcePool:
         return wf
 
     
-
-    def build_rpool(self, data_paths):
-        import pandas as pd
-        for x in data_paths[1].iterrows():
-            run = x[1]['ent__run']
-            task = x[1]['ent__task']
-            suffix = x[1]['ent__suffix']
-            data_type = x[1]['ent__datatype']
-            data_path = x[1]['finfo__file_path']
-            desc = x[1]['ent__desc']
-            extra_entities = x[1]['ent__extra_entities']
-            metadata = 'metadata_here'
-
-            desc_suffix = f"desc-{desc}_{suffix}" if pd.notnull(desc) and pd.notnull(suffix) else None
-
-            # Set key to suffix
-            key = suffix
-
-            # Create dictionary with 'key' as keys and initialize with default values
-            self.rpool.setdefault(key, [])
-
-            # Define data_description based on data_type
-            data_description = {"data_type": data_type, "task": task, "run": run} if data_type == 'func' else {"data_type": data_type}
-
-            # Append a dictionary containing data_path, json_data, extra_entities, meta_data, data_description and desc_suffix (if it exists)
-            self.rpool[key].append({
-                "data": data_path,
-                #"json": extra_entities,
-                #"data_description": data_description,
-                "metadata": metadata,
-                #"desc_suffix": desc_suffix if desc_suffix else None
-                "strat": "ingress"
-            })
-    
     @property
     def filtered_movement(self) -> bool:
         """
@@ -1447,12 +1415,92 @@ class ResourcePool:
         """
         return NodeData(self, resource, **kwargs)
 
+    def build_rpool(self, data_paths):
+        CpacProvenance = ('strat:ingress',)
+        for index, row in data_paths[1].iterrows():
+            # Get the BIDS style combined key
+            resource = Resource(row)
+            key = resource.generate_bids_name()
+
+            data_path = resource.finfo['finfo__file_path']
+            metadata = 'metadata_here' # exchange with row['meta__json']
+
+            self.rpool.setdefault(key, [])
+            self.rpool[key].append({
+                CpacProvenance:{
+                    "data": data_path,
+                    "json": {
+                        "CpacProvenance": CpacProvenance,
+                        "CpacConfig": 'cfg', # replace with self.cfg ?
+                        "metadata": metadata,
+                    },
+                    "resource": resource,
+                }
+            })
+from dataclasses import dataclass
+@dataclass
+class Resource():
+    def __init__(self, row):
+        self.row = row
+        #extra stuff
+        self.ds = {k: v for k, v in row.items() if k.startswith('ds')}
+        self.entity = {k: v for k, v in row.items() if k.startswith('ent')}
+        self.finfo = {k: v for k, v in row.items() if k.startswith('finfo')}
+        self.metadata = row['meta__json']
+        self.entity_to_bids_key = {
+            #'ent__sub': 'sub',
+            #'ent__ses': 'ses',
+            'ent__sample': 'sample',
+            #'ent__task': 'task', 
+            'ent__acq': 'acq', 
+            'ent__ce': 'ce', 
+            'ent__trc': 'trc', 
+            'ent__stain': 'stain', 
+            'ent__rec': 'rec', 
+            'ent__dir': 'dir',  
+            'ent__mod': 'mod', 
+            'ent__echo': 'echo', 
+            'ent__flip': 'flip', 
+            'ent__inv': 'inv', 
+            'ent__mt': 'mt', 
+            'ent__part': 'part', 
+            'ent__proc': 'proc', 
+            'ent__hemi': 'hemi', 
+            'ent__space': 'space', 
+            'ent__split': 'split', 
+            'ent__recording': 'recording', 
+            'ent__chunk': 'chunk', 
+            'ent__atlas': 'atlas', 
+            'ent__res': 'res', 
+            'ent__den': 'den', 
+            'ent__label': 'label',
+            'ent__extra_entities': 'extra_entities', 
+            'ent__desc': 'desc',  
+            'ent__suffix': 'suffix',
+            #'ent__ext': 'ext'
+        }
+
+    def generate_bids_name(self):
+        bids_key_value_pairs = []
+        for col, bids_key in self.entity_to_bids_key.items():
+            if pd.notnull(self.row[col]) and self.row[col] != '':
+                value = str(self.row[col]) if pd.notna(self.row[col]) else ''
+                if bids_key in ['suffix']:
+                    bids_key_value_pairs.append(value)
+                elif bids_key in ['extra_entities']:
+                    value = ast.literal_eval(value)
+                    for key, value in value.items():
+                        bids_key_value_pairs.append(f"{key}-{value}")
+                else:
+                    bids_key_value_pair = f"{bids_key}-{value}"
+                    bids_key_value_pairs.append(bids_key_value_pair)
+        bids_style_combined = '_'.join(bids_key_value_pairs)
+        return bids_style_combined
+    
+    
+
 class StratPool(ResourcePool):
     pass
-
-class Resource(StratPool):
-    pass
-
 
 class NodeBlock:
     def __init__(self, node_block_functions, debug=False):
