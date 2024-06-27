@@ -1541,10 +1541,11 @@ class Resource(BIDSFile):
             os.makedirs(path_to_write, exist_ok=True)
             # Copy the NIFTI file
             shutil.copy(self.finfo['finfo__file_path'], path_to_write)
-            # Write the JSON file
-            json_path = os.path.join(path_to_write, f"{self.filename.replace('.nii.gz', '.json')}")
-            with open(json_path, 'w') as f:
-                f.write(json.dumps(self.metadata, indent=4))
+            # Write the JSON file only if the ext is .nii.gz
+            if self.filename.endswith('.nii.gz'):
+                json_path = os.path.join(path_to_write, f"{self.filename.replace('.nii.gz', '.json')}")
+                with open(json_path, 'w') as f:
+                    f.write(json.dumps(self.metadata, indent=4))
             return f"successfully written to {path_to_write}"
         except Exception as e:
             WFLOGGER.error(f"Error writing to disk: {e}")
