@@ -1463,7 +1463,10 @@ class Resource(BIDSFile):
         self.finfo = {k: v for k, v in row.items() if k.startswith('finfo')}
         self.metadata = row['meta__json']
         self.filename = self.finfo['finfo__file_path'].split("/")[-1]
-        self.rel_path = f"{self.entity['ent__sub']}/{self.entity['ent__ses']}/{self.entity['ent__datatype']}"
+        self.rel_path = f"sub-{self.entity['ent__sub']}"
+        if self.entity['ent__ses'] != "None":
+            self.rel_path += f"/ses-{self.entity['ent__ses']}"
+        self.rel_path += f"/{self.entity['ent__datatype']}"
 
         super().__init__(
             self.ds['ds__dataset'],
