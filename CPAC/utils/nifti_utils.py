@@ -1,13 +1,32 @@
+# Copyright (C) 2019-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Utlities for NIfTI images."""
+
 import os
+
 import numpy as np
-import six
 import nibabel as nib
 
 
-def nifti_image_input(image):
-    """
-    Test if an input is a path or a nifti.image and the image loaded through
-    nibabel
+def nifti_image_input(
+    image: str | nib.nifti1.Nifti1Image,
+) -> nib.nifti1.Nifti1Image:
+    """Test if an input is a path or a nifti.image and the image loaded through nibabel.
+
     Parameters
     ----------
     image : str or nibabel.nifti1.Nifti1Image
@@ -21,18 +40,21 @@ def nifti_image_input(image):
     """
     if isinstance(image, nib.nifti1.Nifti1Image):
         img = image
-    elif isinstance(image, six.string_types):
+    elif isinstance(image, str):
         if not os.path.exists(image):
-            raise ValueError(str(image) + " does not exist.")
-        else:
-            img = nib.load(image)
+            msg = f"{image} does not exist."
+            raise FileNotFoundError(msg)
+        img = nib.load(image)
     else:
-        raise TypeError("Image can be either a string or a nifti1.Nifti1Image")
+        msg = "Image can be either a string or a nifti1.Nifti1Image"
+        raise TypeError(msg)
     return img
+
 
 def more_zeros_than_ones(image):
     """
-    Return True is there is more zeros than other values in a given nifti image.
+    Return True if there are more zeros than other values in a given nifti image.
+
     Parameters
     ----------
     image : str or nibabel.nifti1.Nifti1Image
@@ -43,26 +65,17 @@ def more_zeros_than_ones(image):
     -------
     more_zeros : boolean
     """
-    if isinstance(image, nib.nifti1.Nifti1Image):
-        img = image
-    elif isinstance(image, six.string_types):
-        if not os.path.exists(image):
-            raise ValueError(str(image) + " does not exist.")
-        else:
-            img = nib.load(image)
-    else:
-        raise TypeError("Image can be either a string or a nifti1.Nifti1Image")
-
+    img = nifti_image_input(image)
     data = img.get_fdata()
     nb_zeros = len(np.where(data == 0)[0])
     size = data.size
-    more_zeros = nb_zeros > size - nb_zeros
-    return more_zeros
+    return nb_zeros > size - nb_zeros
 
 
 def inverse_nifti_values(image):
     """
-    Replace zeros by ones and non-zero values by 1
+    Replace zeros by ones and non-zero values by 1.
+
     Parameters
     ----------
     image : str or nibabel.nifti1.Nifti1Image
@@ -73,16 +86,7 @@ def inverse_nifti_values(image):
     -------
     output : Nibabel Nifti1Image
     """
-    if isinstance(image, nib.nifti1.Nifti1Image):
-        img = image
-    elif isinstance(image, six.string_types):
-        if not os.path.exists(image):
-            raise ValueError(str(image) + " does not exist.")
-        else:
-            img = nib.load(image)
-    else:
-        raise TypeError("Image can be either a string or a nifti1.Nifti1Image")
-
+    img = nifti_image_input(image)
     data = img.get_fdata()
     zeros = np.where(data)
     out_data = np.ones(data.shape)

@@ -1,0 +1,45 @@
+extend-exclude = ["dev/docker_data/get-pip_23.0.1.py"]
+target-version = "py310"
+
+[format]
+line-ending = "auto"  # proposed setting to add next release: line-ending = "lf"
+
+[lint]
+extend-select = ["A", "C4", "D", "EM", "F541", "G", "I", "ICN", "NPY", "PL", "RET", "RSE", "RUF", "Q", "T20", "UP032", "W"]  # proposed rules to add next release cycle: ["B904", "LOG007", "TRY002", "TRY201", "TRY400", "TRY401"]
+external = ["T20"]  # Don't autoremove 'noqa` comments for these rules
+
+[lint.per-file-ignores]
+"CPAC/func_preproc/func_preproc.py" = ["E402"]
+"CPAC/utils/sklearn.py" = ["RUF003"]
+"CPAC/utils/utils.py" = ["T201"]  # until `repickle` is removed
+"setup.py" = ["D1"]
+
+[lint.flake8-import-conventions.extend-aliases]
+"CPAC.pipeline.cpac_group_runner" = "cgr"
+"nibabel" = "nib"
+"nipype.interfaces.io" = "nio"
+"networkx" = "nx"
+"pkg_resources" = "p"
+"CPAC.pipeline.nipype_pipeline_engine" = "pe"
+
+[lint.isort]
+combine-as-imports = true
+force-sort-within-sections = true
+known-first-party = ["CPAC"]
+no-lines-before = ["collab", "other-first-party", "local-folder"]
+order-by-type = false
+section-order = ["future", "standard-library", "third-party", "collab", "other-first-party", "first-party", "local-folder"]
+
+[lint.isort.sections]
+"collab" = ["nibabel", "nilearn", "nipype", "PyBASC", "pybids", "scipy", "spython"]
+"other-first-party" = ["flowdump", "indi_aws", "indi_schedulers", "PyPEER"]
+
+[lint.pydocstyle]
+convention = "numpy"
+ignore-decorators = ["CPAC.utils.docs.docstring_parameter"]
+
+[lint.pylint]
+max-args = 10
+max-branches = 50
+max-returns = 12
+max-statements = 100

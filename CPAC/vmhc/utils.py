@@ -1,23 +1,19 @@
 def get_img_nvols(in_files):
-
     """
-    Calculates the number of volumes in the given nifti image
+    Calculates the number of volumes in the given nifti image.
 
     Parameters
     ----------
-
     in_files : string (nifti file)
 
     Returns
     -------
-
     out : int
         number of volumes of input nifti file
 
     """
-
-    out = None
     from nibabel import load
+
     img = load(in_files)
     hdr = img.header
     nvols = None
@@ -25,30 +21,21 @@ def get_img_nvols(in_files):
         nvols = int(hdr.get_data_shape()[3])
     else:
         nvols = 1
-    out = nvols
-
-    return out
+    return nvols
 
 
 def get_operand_expression(nvols):
-
     """
-    Generates operand string
+    Generates operand string.
 
     Parameters
     ----------
-
     nvols : int
 
     Returns
     -------
-
     expr : string
 
     """
-
-    expr = None
     vol = int(nvols)
-    expr = ('a*sqrt(%d-3)' % vol)
-
-    return expr
+    return "a*sqrt(%d-3)" % vol

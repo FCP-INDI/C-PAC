@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,38 +14,36 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from CPAC.pipeline.nodeblock import nodeblock
-import nipype.interfaces.utility as util
-from nipype.interfaces import afni, fsl
+from nipype.interfaces import afni, fsl, utility as util
 from nipype.interfaces.utility import Function
 
-from CPAC.connectome.connectivity_matrix import create_connectome_afni, \
-                                                create_connectome_nilearn, \
-                                                get_connectome_method
+from CPAC.connectome.connectivity_matrix import (
+    create_connectome_afni,
+    create_connectome_nilearn,
+    get_connectome_method,
+)
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.utils.datasource import create_roi_mask_dataflow, \
-                                  create_spatial_map_dataflow, \
-                                  resample_func_roi
+from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.utils.datasource import (
+    create_roi_mask_dataflow,
+    create_spatial_map_dataflow,
+    resample_func_roi,
+)
+from CPAC.utils.monitoring import FMLOGGER
 
 
-def get_voxel_timeseries(wf_name='voxel_timeseries'):
+def get_voxel_timeseries(wf_name: str = "voxel_timeseries") -> pe.Workflow:
     """
-    Workflow to extract time series for each voxel
-    in the data that is present in the input mask
+    Extract time series for each voxel in data that are present in the input mask.
 
     Parameters
     ----------
     wf_name : string
         name of the workflow
 
-    Returns
-    -------
-    wflow : workflow object
-        workflow object
-
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/timeseries/timeseries_analysis.py>`_
 
     Workflow Inputs::
 
@@ -76,40 +74,38 @@ def get_voxel_timeseries(wf_name='voxel_timeseries'):
     >>> wf.run()  # doctest: +SKIP
 
     """
-
     wflow = pe.Workflow(name=wf_name)
 
-    inputNode = pe.Node(util.IdentityInterface(fields=['rest',
-                                                       'output_type']),
-                        name='inputspec')
-    inputNode_mask = pe.Node(util.IdentityInterface(fields=['mask']),
-                                name='input_mask')
+    inputNode = pe.Node(
+        util.IdentityInterface(fields=["rest", "output_type"]), name="inputspec"
+    )
+    inputNode_mask = pe.Node(util.IdentityInterface(fields=["mask"]), name="input_mask")
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['mask_outputs']),
-                        name='outputspec')
+    outputNode = pe.Node(
+        util.IdentityInterface(fields=["mask_outputs"]), name="outputspec"
+    )
 
-    timeseries_voxel = pe.Node(util.Function(input_names=['data_file',
-                                                          'template'],
-                                            output_names=['oneD_file'],
-                                            function=gen_voxel_timeseries),
-                              name='timeseries_voxel')
+    timeseries_voxel = pe.Node(
+        util.Function(
+            input_names=["data_file", "template"],
+            output_names=["oneD_file"],
+            function=gen_voxel_timeseries,
+        ),
+        name="timeseries_voxel",
+    )
 
-    wflow.connect(inputNode, 'rest',
-                  timeseries_voxel, 'data_file')
-    #wflow.connect(inputNode, 'output_type',
+    wflow.connect(inputNode, "rest", timeseries_voxel, "data_file")
+    # wflow.connect(inputNode, 'output_type',
     #              timeseries_voxel, 'output_type')
-    wflow.connect(inputNode_mask, 'mask',
-                  timeseries_voxel, 'template')
+    wflow.connect(inputNode_mask, "mask", timeseries_voxel, "template")
 
-    wflow.connect(timeseries_voxel, 'oneD_file',
-                  outputNode, 'mask_outputs')
+    wflow.connect(timeseries_voxel, "oneD_file", outputNode, "mask_outputs")
 
     return wflow
 
 
 def clean_roi_csv(roi_csv):
-    """Remove the file path comments from every other row of the output of
-    AFNI's 3dROIstats.
+    """Remove file path comments from every other row of AFNI's 3dROIstats output.
 
     3dROIstats has a -nobriklab and a -quiet option, but neither remove the
     file path comments while retaining the ROI label header, which is needed.
@@ -131,10 +127,11 @@ def clean_roi_csv(roi_csv):
         path to CSV
     """
     import os
-    import pandas as pd
-    import numpy as np
 
-    with open(roi_csv, 'r') as f:
+    import numpy as np
+    import pandas as pd
+
+    with open(roi_csv, "r") as f:
         csv_lines = f.readlines()
 
     # flag whether to re-write
@@ -142,55 +139,38 @@ def clean_roi_csv(roi_csv):
 
     edited_lines = []
     for line in csv_lines:
-        line = line.replace('\t\t\t', '')
-        line = line.replace('\t\t', '')
-        line = line.replace('\t', ',')
-        line = line.replace('#,', '#')
-        if '#' in line:
-            if '/' in line and '.' in line:
+        line = line.replace("\t\t\t", "")
+        line = line.replace("\t\t", "")
+        line = line.replace("\t", ",")
+        line = line.replace("#,", "#")
+        if "#" in line:
+            if "/" in line and "." in line:
                 modified = True
                 continue
-            if 'Sub-brick' in line:
+            if "Sub-brick" in line:
                 modified = True
                 continue
         edited_lines.append(line)
 
     if modified:
         edited_roi_csv = os.path.join(os.getcwd(), os.path.basename(roi_csv))
-        with open(edited_roi_csv, 'wt') as f:
+        with open(edited_roi_csv, "wt") as f:
             for line in edited_lines:
                 f.write(line)
-        edited_roi_csv = edited_roi_csv
     else:
         edited_roi_csv = roi_csv
 
-    data = pd.read_csv(edited_roi_csv, sep=',', header=1)
+    data = pd.read_csv(edited_roi_csv, sep=",", header=1)
     data = data.dropna(axis=1)
     roi_array = np.transpose(data.values)
 
     return roi_array, edited_roi_csv
 
 
-def write_roi_npz(roi_csv, out_type=None):
-
-    roi_npz = None
-    roi_outputs = [roi_csv[0]]
-
-    if not out_type:
-        return roi_outputs
-    elif out_type[1]:
-        np_roi_data = genfromtxt(roi_csv[0], delimiter=',')
-        roi_npz = os.path.join(os.getcwd(), 'roi_stats.npz')
-        with open(roi_npz, 'wb') as f:
-            np.savez(f, np_roi_data)
-        roi_outputs.append(roi_npz)
-
-    return roi_outputs
-
-
-def get_roi_timeseries(wf_name='roi_timeseries'):
+def get_roi_timeseries(wf_name: str = "roi_timeseries") -> pe.Workflow:
     """
-    Workflow to extract timeseries for each node in the ROI mask.
+    Extract timeseries for each node in the ROI mask.
+
     For each node, mean across all the timepoint is calculated and stored
     in csv and npz format.
 
@@ -199,14 +179,9 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
     wf_name : string
         name of the workflow
 
-    Returns
-    -------
-    wflow : workflow object
-        workflow object
-
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/timeseries/timeseries_analysis.py>`_
 
     Workflow Inputs::
 
@@ -238,81 +213,64 @@ def get_roi_timeseries(wf_name='roi_timeseries'):
     >>> wf.run()  # doctest: +SKIP
 
     """
-
     wflow = pe.Workflow(name=wf_name)
 
-    inputNode = pe.Node(util.IdentityInterface(fields=['rest']),
-                        name='inputspec')
+    inputNode = pe.Node(util.IdentityInterface(fields=["rest"]), name="inputspec")
 
-    inputnode_roi = pe.Node(util.IdentityInterface(fields=['roi']),
-                            name='input_roi')
+    inputnode_roi = pe.Node(util.IdentityInterface(fields=["roi"]), name="input_roi")
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['roi_ts',
-                                                        'roi_csv']),
-                         name='outputspec')
+    outputNode = pe.Node(
+        util.IdentityInterface(fields=["roi_ts", "roi_csv"]), name="outputspec"
+    )
 
-    timeseries_roi = pe.Node(interface=afni.ROIStats(),
-                             name='3dROIstats',
-                             mem_gb=0.4,
-                             mem_x=(756789500459879 / 37778931862957161709568,
-                                    'in_file'))
+    timeseries_roi = pe.Node(
+        interface=afni.ROIStats(),
+        name="3dROIstats",
+        mem_gb=0.4,
+        mem_x=(756789500459879 / 37778931862957161709568, "in_file"),
+    )
     timeseries_roi.inputs.quiet = False
     timeseries_roi.inputs.args = "-1Dformat"
     # TODO: add -mask_f2short for float parcellation mask
     # if parcellation mask has float values
     #     timeseries_roi.inputs.mask_f2short = True
 
-    wflow.connect(inputNode, 'rest',
-                  timeseries_roi, 'in_file')
+    wflow.connect(inputNode, "rest", timeseries_roi, "in_file")
 
-    wflow.connect(inputnode_roi, 'roi',
-                  timeseries_roi, 'mask_file')
+    wflow.connect(inputnode_roi, "roi", timeseries_roi, "mask_file")
 
-    clean_csv_imports = ['import os']
-    clean_csv = pe.Node(util.Function(input_names=['roi_csv'],
-                                      output_names=['roi_array',
-                                                    'edited_roi_csv'],
-                                      function=clean_roi_csv,
-                                      imports=clean_csv_imports),
-                        name='clean_roi_csv')
+    clean_csv_imports = ["import os"]
+    clean_csv = pe.Node(
+        util.Function(
+            input_names=["roi_csv"],
+            output_names=["roi_array", "edited_roi_csv"],
+            function=clean_roi_csv,
+            imports=clean_csv_imports,
+        ),
+        name="clean_roi_csv",
+    )
 
-    wflow.connect(timeseries_roi, 'out_file', clean_csv, 'roi_csv')
-    wflow.connect(clean_csv, 'roi_array', outputNode, 'roi_ts')
-    wflow.connect(clean_csv, 'edited_roi_csv', outputNode, 'roi_csv')
-
-    #write_npz_imports = ['import os', 'import numpy as np',
-    #                     'from numpy import genfromtxt']
-    #write_npz = pe.Node(util.Function(input_names=['roi_csv', 'out_type'],
-    #                                  output_names=['roi_output_npz'],
-    #                                  function=write_roi_npz,
-    #                                  imports=write_npz_imports),
-    #                    name='write_roi_npz')
-    #wflow.connect(clean_csv, 'edited_roi_csv', write_npz, 'roi_csv')
-    #wflow.connect(inputNode, 'output_type', write_npz, 'out_type')
-    #wflow.connect(write_npz, 'roi_output_npz', outputNode, 'roi_outputs')
+    wflow.connect(timeseries_roi, "out_file", clean_csv, "roi_csv")
+    wflow.connect(clean_csv, "roi_array", outputNode, "roi_ts")
+    wflow.connect(clean_csv, "edited_roi_csv", outputNode, "roi_csv")
 
     return wflow
 
 
-def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
+def get_spatial_map_timeseries(wf_name: str = "spatial_map_timeseries") -> pe.Workflow:
     """
-    Workflow to regress each provided spatial
-    map to the subjects functional 4D file in order
-    to return a timeseries for each of the maps
+    Regress each provided spatial map to the subjects functional 4D file...
+
+    ...in order to return a timeseries for each of the maps.
 
     Parameters
     ----------
     wf_name : string
         name of the workflow
 
-    Returns
-    -------
-    wflow : workflow object
-        workflow object
-
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/timeseries/timeseries_analysis.py>`_
 
     Workflow Inputs::
 
@@ -345,40 +303,40 @@ def get_spatial_map_timeseries(wf_name='spatial_map_timeseries'):
     >>> wf.run()  # doctest: +SKIP
 
     """
-
     wflow = pe.Workflow(name=wf_name)
 
-    inputNode = pe.Node(util.IdentityInterface
-                        (fields=['subject_rest',
-                                 'subject_mask',
-                                 'spatial_map',
-                                 'demean']),
-                        name='inputspec')
+    inputNode = pe.Node(
+        util.IdentityInterface(
+            fields=["subject_rest", "subject_mask", "spatial_map", "demean"]
+        ),
+        name="inputspec",
+    )
 
-    outputNode = pe.Node(util.IdentityInterface(
-        fields=['subject_timeseries']),
-                         name='outputspec')
+    outputNode = pe.Node(
+        util.IdentityInterface(fields=["subject_timeseries"]), name="outputspec"
+    )
 
-    spatialReg = pe.Node(interface=fsl.GLM(),
-                         name='spatial_regression',
-                         mem_gb=0.2,
-                         mem_x=(1708448960473801 / 302231454903657293676544,
-                                'in_file'))
+    spatialReg = pe.Node(
+        interface=fsl.GLM(),
+        name="spatial_regression",
+        mem_gb=0.2,
+        mem_x=(1708448960473801 / 302231454903657293676544, "in_file"),
+    )
 
-    spatialReg.inputs.out_file = 'spatial_map_timeseries.txt'
+    spatialReg.inputs.out_file = "spatial_map_timeseries.txt"
 
-    wflow.connect(inputNode, 'subject_rest', spatialReg, 'in_file')
-    wflow.connect(inputNode, 'subject_mask', spatialReg, 'mask')
-    wflow.connect(inputNode, 'spatial_map', spatialReg, 'design')
-    wflow.connect(inputNode, 'demean', spatialReg, 'demean')
-    wflow.connect(spatialReg, 'out_file', outputNode, 'subject_timeseries')
+    wflow.connect(inputNode, "subject_rest", spatialReg, "in_file")
+    wflow.connect(inputNode, "subject_mask", spatialReg, "mask")
+    wflow.connect(inputNode, "spatial_map", spatialReg, "design")
+    wflow.connect(inputNode, "demean", spatialReg, "demean")
+    wflow.connect(spatialReg, "out_file", outputNode, "subject_timeseries")
 
     return wflow
 
 
-def get_vertices_timeseries(wf_name='vertices_timeseries'):
+def get_vertices_timeseries(wf_name="vertices_timeseries"):
     """
-    Workflow to get vertices time series from a FreeSurfer surface file
+    Workflow to get vertices time series from a FreeSurfer surface file.
 
     Parameters
     ----------
@@ -392,7 +350,7 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/timeseries/timeseries_analysis.py>`_
 
     Workflow Inputs::
 
@@ -416,36 +374,37 @@ def get_vertices_timeseries(wf_name='vertices_timeseries'):
     >>> wf.base_dir = './'
     >>> wf.run()  # doctest: +SKIP
     """
-
     wflow = pe.Workflow(name=wf_name)
 
-    inputNode = pe.Node(util.IdentityInterface(fields=['lh_surface_file',
-                                                       'rh_surface_file']),
-                        name='inputspec')
+    inputNode = pe.Node(
+        util.IdentityInterface(fields=["lh_surface_file", "rh_surface_file"]),
+        name="inputspec",
+    )
 
-    timeseries_surface = pe.Node(util.Function(input_names=['rh_surface_file',
-                                                            'lh_surface_file'],
-                                               output_names=['out_file'],
-                                               function=gen_vertices_timeseries),
-                                 name='timeseries_surface')
+    timeseries_surface = pe.Node(
+        util.Function(
+            input_names=["rh_surface_file", "lh_surface_file"],
+            output_names=["out_file"],
+            function=gen_vertices_timeseries,
+        ),
+        name="timeseries_surface",
+    )
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['surface_outputs']),
-                         name='outputspec')
+    outputNode = pe.Node(
+        util.IdentityInterface(fields=["surface_outputs"]), name="outputspec"
+    )
 
-    wflow.connect(inputNode, 'rh_surface_file',
-                  timeseries_surface, 'rh_surface_file')
-    wflow.connect(inputNode, 'lh_surface_file',
-                  timeseries_surface, 'lh_surface_file')
+    wflow.connect(inputNode, "rh_surface_file", timeseries_surface, "rh_surface_file")
+    wflow.connect(inputNode, "lh_surface_file", timeseries_surface, "lh_surface_file")
 
-    wflow.connect(timeseries_surface, 'out_file',
-                  outputNode, 'surface_outputs')
+    wflow.connect(timeseries_surface, "out_file", outputNode, "surface_outputs")
 
     return wflow
 
 
-def get_normalized_moments(wf_name='normalized_moments'):
+def get_normalized_moments(wf_name="normalized_moments"):
     """
-    Workflow to calculate the normalized moments for skewedness calculations
+    Workflow to calculate the normalized moments for skewedness calculations.
 
     Parameters
     ----------
@@ -459,7 +418,7 @@ def get_normalized_moments(wf_name='normalized_moments'):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/timeseries/timeseries_analysis.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/timeseries/timeseries_analysis.py>`_
 
     Workflow Inputs::
 
@@ -479,31 +438,31 @@ def get_normalized_moments(wf_name='normalized_moments'):
     >>> wf.base_dir = './'  # doctest: +SKIP
     >>> wf.run()  # doctest: +SKIP
     """
-
     wflow = pe.Workflow(name=wf_name)
 
-    inputNode = pe.Node(util.IdentityInterface(fields=['spatial_timeseries']),
-                        name='inputspec')
+    inputNode = pe.Node(
+        util.IdentityInterface(fields=["spatial_timeseries"]), name="inputspec"
+    )
 
     # calculate normalized moments
     # output of this node is a list, 'moments'
-    norm_moments = pe.Node(util.CalculateNormalizedMoments(moment='3'),
-                           name='norm_moments')
+    norm_moments = pe.Node(
+        util.CalculateNormalizedMoments(moment="3"), name="norm_moments"
+    )
 
-    outputNode = pe.Node(util.IdentityInterface(fields=['moments_outputs']),
-                         name='outputspec')
+    outputNode = pe.Node(
+        util.IdentityInterface(fields=["moments_outputs"]), name="outputspec"
+    )
 
-    wflow.connect(inputNode, 'spatial_timeseries',
-                  norm_moments, 'timeseries_file')
-    wflow.connect(norm_moments, 'moments', outputNode, 'moments_outputs')
+    wflow.connect(inputNode, "spatial_timeseries", norm_moments, "timeseries_file")
+    wflow.connect(norm_moments, "moments", outputNode, "moments_outputs")
 
     return wflow
 
 
 def gen_roi_timeseries(data_file, template, output_type):
     """
-    Method to extract mean of voxel across
-    all timepoints for each node in roi mask
+    Extract mean of voxel across all timepoints for each node in roi mask.
 
     Parameters
     ----------
@@ -528,23 +487,27 @@ def gen_roi_timeseries(data_file, template, output_type):
     Exception
 
     """
-    import nibabel as nib
     import csv
-    import numpy as np
     import os
     import shutil
+
+    import numpy as np
+    import nibabel as nib
 
     unit_data = nib.load(template).get_fdata()
     # Cast as rounded-up integer
     unit_data = np.int64(np.ceil(unit_data))
     datafile = nib.load(data_file)
     img_data = datafile.get_fdata()
-    vol = img_data.shape[3]
+    img_data.shape[3]
 
     if unit_data.shape != img_data.shape[:3]:
-        raise Exception('\n\n[!] CPAC says: Invalid Shape Error.'
-                        'Please check the voxel dimensions. '
-                        'Data and roi should have the same shape.\n\n')
+        msg = (
+            "\n\n[!] CPAC says: Invalid Shape Error."
+            "Please check the voxel dimensions. "
+            "Data and roi should have the same shape.\n\n"
+        )
+        raise Exception(msg)
 
     nodes = np.unique(unit_data).tolist()
     sorted_list = []
@@ -552,36 +515,32 @@ def gen_roi_timeseries(data_file, template, output_type):
     out_list = []
 
     # extracting filename from input template
-    tmp_file = os.path.splitext(
-                    os.path.basename(template))[0]
+    tmp_file = os.path.splitext(os.path.basename(template))[0]
     tmp_file = os.path.splitext(tmp_file)[0]
-    oneD_file = os.path.abspath('roi_' + tmp_file + '.1D')
-    txt_file = os.path.abspath('roi_' + tmp_file + '.txt')
-    csv_file = os.path.abspath('roi_' + tmp_file + '.csv')
-    numpy_file = os.path.abspath('roi_' + tmp_file + '.npz')
+    oneD_file = os.path.abspath("roi_" + tmp_file + ".1D")
+    txt_file = os.path.abspath("roi_" + tmp_file + ".txt")
+    os.path.abspath("roi_" + tmp_file + ".csv")
+    os.path.abspath("roi_" + tmp_file + ".npz")
 
     nodes.sort()
     for n in nodes:
         if n > 0:
             node_array = img_data[unit_data == n]
-            node_str = 'node_{0}'.format(n)
+            node_str = f"node_{n}"
             avg = np.mean(node_array, axis=0)
             avg = np.round(avg, 6)
-            list1 = [n] + avg.tolist()
+            list1 = [n, *avg.tolist()]
             sorted_list.append(list1)
             node_dict[node_str] = avg.tolist()
 
     # writing to 1Dfile
-    print("writing 1D file..")
-
-    f = open(oneD_file, 'w')
-    writer = csv.writer(f, delimiter=',')
+    FMLOGGER.info("writing 1D file..")
+    f = open(oneD_file, "w")
+    writer = csv.writer(f, delimiter=",")
 
     value_list = []
 
-    new_keys = sorted([
-        int(float(key.split('node_')[1])) for key in node_dict
-    ])
+    new_keys = sorted([int(float(key.split("node_")[1])) for key in node_dict])
 
     roi_number_list = [str(n) for n in new_keys]
 
@@ -590,7 +549,7 @@ def gen_roi_timeseries(data_file, template, output_type):
         roi_number_str.append("#" + number)
 
     for key in new_keys:
-        value_list.append(str('{0}\n'.format(node_dict['node_{0}'.format(key)])))
+        value_list.append(str("{0}\n".format(node_dict[f"node_{key}"])))
 
     column_list = list(zip(*value_list))
 
@@ -607,9 +566,9 @@ def gen_roi_timeseries(data_file, template, output_type):
     out_list.append(txt_file)
 
     # if csv is required
-    '''
+    """
     if output_type[0]:
-        print("writing csv file..")
+        FMLOGGER.info("writing csv file..")
         f = open(csv_file, 'wt')
         writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_MINIMAL)
         headers = ['node/volume'] + np.arange(vol).tolist()
@@ -620,20 +579,19 @@ def gen_roi_timeseries(data_file, template, output_type):
 
     # if npz file is required
     if output_type[1]:
-        print("writing npz file..")
+        FMLOGGER.info("writing npz file..")
         np.savez(numpy_file, roi_data=value_list, roi_numbers=roi_number_list)
         out_list.append(numpy_file)
 
     return out_list
-    '''
+    """
 
     return oneD_file
 
 
-def gen_voxel_timeseries(data_file, template):
+def gen_voxel_timeseries(data_file: str, template: str) -> str:
     """
-    Method to extract timeseries for each voxel
-    in the data that is present in the input mask
+    Extract timeseries for each voxel in the data that is present in the input mask.
 
     Parameters
     ----------
@@ -641,30 +599,22 @@ def gen_voxel_timeseries(data_file, template):
         path to input functional data
     template : string (nifti file)
         path to input mask in functional native space
-    output_type : list
-        list of two boolean values suggesting
-        the output types - numpy npz file and csv
-        format
 
     Returns
     -------
-    out_list : list of files
-        Based on ouput_type options method returns a list containing
-        path to npz and csv file having timeseries of each voxel in
-        the data that is present in the input mask.The row header
-        corresponds to voxel's xyz cordinates and column headers corresponds
-        to the volume index in the csv. By default it outputs afni compatible
-        1D file with mean of timeseries of voxels across timepoints.
+    oneD_file : str
+        Path to the created .1D file containing the mean timeseries vector.
 
     Raises
     ------
     Exception
 
     """
-    import nibabel as nib
-    import numpy as np
     import csv
     import os
+
+    import numpy as np
+    import nibabel as nib
 
     unit = nib.load(template)
     unit_data = unit.get_fdata()
@@ -673,40 +623,32 @@ def gen_voxel_timeseries(data_file, template):
     header_data = datafile.header
     qform = header_data.get_qform()
     sorted_list = []
-    vol_dict = {}
-    out_list = []
 
-    tmp_file = os.path.splitext(
-                  os.path.basename(template))[0]
+    tmp_file = os.path.splitext(os.path.basename(template))[0]
     tmp_file = os.path.splitext(tmp_file)[0]
-    oneD_file = os.path.abspath('mask_' + tmp_file + '.1D')
-    f = open(oneD_file, 'wt')
-
-    x, y, z = unit_data.shape
+    oneD_file = os.path.abspath("mask_" + tmp_file + ".1D")
+    f = open(oneD_file, "wt")
 
     node_array = img_data[unit_data != 0]
     node_array = node_array.T
     time_points = node_array.shape[0]
     for t in range(0, time_points):
-        string = 'vol {0}'.format(t)
-        vol_dict[string] = node_array[t]
         f.write(str(np.round(np.mean(node_array[t]), 6)))
-        f.write('\n')
+        f.write("\n")
         val = node_array[t].tolist()
         val.insert(0, t)
         sorted_list.append(val)
 
     f.close()
 
-    csv_file = os.path.abspath('mask_' + tmp_file + '.csv')
-    f = open(csv_file, 'wt')
-    writer = csv.writer(f, delimiter=str(','),
-                        quoting=csv.QUOTE_MINIMAL)
+    csv_file = os.path.abspath("mask_" + tmp_file + ".csv")
+    f = open(csv_file, "wt")
+    writer = csv.writer(f, delimiter=str(","), quoting=csv.QUOTE_MINIMAL)
     one = np.array([1])
-    headers = ['volume/xyz']
-    cordinates = np.argwhere(unit_data != 0)
-    for val in range(len(cordinates)):
-        ijk_mat = np.concatenate([cordinates[val], one])
+    headers = ["volume/xyz"]
+    coordinates = np.argwhere(unit_data != 0)
+    for val in range(len(coordinates)):
+        ijk_mat = np.concatenate([coordinates[val], one])
         ijk_mat = ijk_mat.T
         product = np.dot(qform, ijk_mat)
         val = tuple(product.tolist()[0:3])
@@ -715,19 +657,12 @@ def gen_voxel_timeseries(data_file, template):
     writer.writerows(sorted_list)
     f.close()
 
-    #if output_type[1]:
-    #    numpy_file = os.path.abspath('mask_' + tmp_file + '.npz')
-    #    np.savez(numpy_file, **dict(vol_dict))
-    #    out_list.append(numpy_file)
-
     return oneD_file
 
 
-def gen_vertices_timeseries(rh_surface_file,
-                        lh_surface_file):
+def gen_vertices_timeseries(rh_surface_file, lh_surface_file):
     """
-    Method to extract timeseries from vertices
-    of a freesurfer surface file
+    Extract timeseries from vertices of a freesurfer surface file.
 
     Parameters
     ----------
@@ -742,61 +677,58 @@ def gen_vertices_timeseries(rh_surface_file,
         list of vertices timeseries csv files
 
     """
+    import os
 
     import gradunwarp
     import numpy as np
-    import os
 
     out_list = []
-    rh_file = os.path.splitext(
-                    os.path.basename(rh_surface_file))[0] + '_rh.csv'
+    rh_file = os.path.splitext(os.path.basename(rh_surface_file))[0] + "_rh.csv"
     mghobj1 = gradunwarp.mgh.MGH()
 
     mghobj1.load(rh_surface_file)
     vol = mghobj1.vol
     (x, y) = vol.shape
-#        print "rh shape", x, y
+    #        IFLOGGER.info("rh shape %s %s", x, y)
 
-    np.savetxt(rh_file, vol, delimiter='\t')
+    np.savetxt(rh_file, vol, delimiter="\t")
     out_list.append(rh_file)
 
-    lh_file = os.path.splitext(os.path.basename(lh_surface_file))[0] + '_lh.csv'
+    lh_file = os.path.splitext(os.path.basename(lh_surface_file))[0] + "_lh.csv"
     mghobj2 = gradunwarp.mgh.MGH()
 
     mghobj2.load(lh_surface_file)
     vol = mghobj2.vol
     (x, y) = vol.shape
-#        print "lh shape", x, y
+    #        IFLOGGER.info("lh shape %s %s", x, y)
 
-    np.savetxt(lh_file,
-               vol,
-               delimiter=',')
+    np.savetxt(lh_file, vol, delimiter=",")
     out_list.append(lh_file)
 
     return out_list
 
 
-def resample_function() -> 'Function':
+def resample_function() -> "Function":
     """
-    Returns a Function interface for
-    `CPAC.utils.datasource.resample_func_roi`
+    Return a Function interface for :py:func:`~CPAC.utils.datasource.resample_func_roi`.
 
     Returns
     -------
     Function
     """
-    return Function(input_names=['in_func', 'in_roi', 'realignment',
-                                 'identity_matrix'],
-                    output_names=['out_func', 'out_roi'],
-                    function=resample_func_roi, as_module=True)
+    return Function(
+        input_names=["in_func", "in_roi", "realignment", "identity_matrix"],
+        output_names=["out_func", "out_roi"],
+        function=resample_func_roi,
+        as_module=True,
+    )
 
 
 @nodeblock(
     name="timeseries_extraction_AVG",
     config=["timeseries_extraction"],
     switch=["run"],
-    inputs=["space-template_desc-preproc_bold",
-            "space-template_desc-bold_mask"],
+    inputs=["space-template_desc-preproc_bold", "space-template_desc-bold_mask"],
     outputs=[
         "space-template_desc-Mean_timeseries",
         "space-template_desc-ndmg_correlations",
@@ -808,126 +740,157 @@ def resample_function() -> 'Function':
     ],
 )
 def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
-    resample_functional_roi = pe.Node(resample_function(),
-                                      name='resample_functional_roi_'
-                                           f'{pipe_num}')
-    realignment = cfg.timeseries_extraction['realignment']
+    resample_functional_roi = pe.Node(
+        resample_function(), name=f"resample_functional_roi_{pipe_num}"
+    )
+    realignment = cfg.timeseries_extraction["realignment"]
     resample_functional_roi.inputs.realignment = realignment
-    resample_functional_roi.inputs.identity_matrix = \
-    cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
+    resample_functional_roi.inputs.identity_matrix = cfg.registration_workflows[
+        "functional_registration"
+    ]["func_registration_to_template"]["FNIRT_pipelines"]["identity_matrix"]
 
     roi_dataflow = create_roi_mask_dataflow(
-        cfg.timeseries_extraction['tse_atlases']['Avg'],
-        f'roi_dataflow_{pipe_num}')
-
-    roi_dataflow.inputs.inputspec.set(
-        creds_path=cfg.pipeline_setup['input_creds_path'],
-        dl_dir=cfg.pipeline_setup['working_directory']['path']
+        cfg.timeseries_extraction["tse_atlases"]["Avg"], f"roi_dataflow_{pipe_num}"
     )
 
-    roi_timeseries = get_roi_timeseries(f'roi_timeseries_{pipe_num}')
-    #roi_timeseries.inputs.inputspec.output_type = cfg.timeseries_extraction[
+    roi_dataflow.inputs.inputspec.set(
+        creds_path=cfg.pipeline_setup["input_creds_path"],
+        dl_dir=cfg.pipeline_setup["working_directory"]["path"],
+    )
+
+    roi_timeseries = get_roi_timeseries(f"roi_timeseries_{pipe_num}")
+    # roi_timeseries.inputs.inputspec.output_type = cfg.timeseries_extraction[
     #    'roi_tse_outputs']
 
     node, out = strat_pool.get_data("space-template_desc-preproc_bold")
-    wf.connect(node, out, resample_functional_roi, 'in_func')
+    wf.connect(node, out, resample_functional_roi, "in_func")
 
-    wf.connect(roi_dataflow, 'outputspec.out_file',
-               resample_functional_roi, 'in_roi')
+    wf.connect(roi_dataflow, "outputspec.out_file", resample_functional_roi, "in_roi")
 
     # connect it to the roi_timeseries
     # workflow.connect(roi_dataflow, 'outputspec.out_file',
     #                  roi_timeseries, 'input_roi.roi')
-    wf.connect(resample_functional_roi, 'out_roi',
-               roi_timeseries, 'input_roi.roi')
-    wf.connect(resample_functional_roi, 'out_func',
-               roi_timeseries, 'inputspec.rest')
+    wf.connect(resample_functional_roi, "out_roi", roi_timeseries, "input_roi.roi")
+    wf.connect(resample_functional_roi, "out_func", roi_timeseries, "inputspec.rest")
 
     # create the graphs:
     # - connectivity matrix
     matrix_outputs = {}
-    for cm_measure in cfg['timeseries_extraction', 'connectivity_matrix',
-                          'measure']:
-        for cm_tool in [tool for tool in cfg['timeseries_extraction',
-                        'connectivity_matrix', 'using'] if tool != 'ndmg']:
+    for cm_measure in cfg["timeseries_extraction", "connectivity_matrix", "measure"]:
+        for cm_tool in [
+            tool
+            for tool in cfg["timeseries_extraction", "connectivity_matrix", "using"]
+            if tool != "ndmg"
+        ]:
             implementation = get_connectome_method(cm_measure, cm_tool)
             if implementation is NotImplemented:
                 continue
 
-            if cm_tool == 'Nilearn':
+            if cm_tool == "Nilearn":
                 timeseries_correlation = create_connectome_nilearn(
-                    name=f'connectomeNilearn{cm_measure}_{pipe_num}'
+                    name=f"connectomeNilearn{cm_measure}_{pipe_num}"
                 )
 
             elif cm_tool == "AFNI":
                 timeseries_correlation = create_connectome_afni(
-                    name=f'connectomeAfni{cm_measure}_{pipe_num}',
+                    name=f"connectomeAfni{cm_measure}_{pipe_num}",
                     method=cm_measure,
-                    pipe_num=pipe_num
+                    pipe_num=pipe_num,
                 )
-                brain_mask_node, brain_mask_out = strat_pool.get_data([
-                    'space-template_desc-bold_mask'])
-                if 'func_to_ROI' in realignment:
+                brain_mask_node, brain_mask_out = strat_pool.get_data(
+                    ["space-template_desc-bold_mask"]
+                )
+                if "func_to_ROI" in realignment:
                     resample_brain_mask_roi = pe.Node(
-                        resample_function(),
-                        name=f'resample_brain_mask_roi_{pipe_num}')
+                        resample_function(), name=f"resample_brain_mask_roi_{pipe_num}"
+                    )
                     resample_brain_mask_roi.inputs.realignment = realignment
                     resample_brain_mask_roi.inputs.identity_matrix = (
-                        cfg.registration_workflows['functional_registration'][
-                            'func_registration_to_template'
-                        ]['FNIRT_pipelines']['identity_matrix'])
-                    wf.connect([
-                        (brain_mask_node, resample_brain_mask_roi, [
-                            (brain_mask_out, 'in_func')]),
-                        (roi_dataflow, resample_brain_mask_roi, [
-                            ('outputspec.out_file', 'in_roi')]),
-                        (resample_brain_mask_roi, timeseries_correlation, [
-                            ('out_func', 'inputspec.mask')])])
+                        cfg.registration_workflows["functional_registration"][
+                            "func_registration_to_template"
+                        ]["FNIRT_pipelines"]["identity_matrix"]
+                    )
+                    wf.connect(
+                        [
+                            (
+                                brain_mask_node,
+                                resample_brain_mask_roi,
+                                [(brain_mask_out, "in_func")],
+                            ),
+                            (
+                                roi_dataflow,
+                                resample_brain_mask_roi,
+                                [("outputspec.out_file", "in_roi")],
+                            ),
+                            (
+                                resample_brain_mask_roi,
+                                timeseries_correlation,
+                                [("out_func", "inputspec.mask")],
+                            ),
+                        ]
+                    )
                 else:
-                    wf.connect(brain_mask_node, brain_mask_out,
-                               timeseries_correlation, 'inputspec.mask')
+                    wf.connect(
+                        brain_mask_node,
+                        brain_mask_out,
+                        timeseries_correlation,
+                        "inputspec.mask",
+                    )
 
             timeseries_correlation.inputs.inputspec.method = cm_measure
-            wf.connect([
-                (roi_dataflow, timeseries_correlation, [
-                    ('outputspec.out_name', 'inputspec.atlas_name')]),
-                (resample_functional_roi, timeseries_correlation, [
-                    ('out_roi', 'inputspec.in_rois'),
-                    ('out_func', 'inputspec.in_file')])])
+            wf.connect(
+                [
+                    (
+                        roi_dataflow,
+                        timeseries_correlation,
+                        [("outputspec.out_name", "inputspec.atlas_name")],
+                    ),
+                    (
+                        resample_functional_roi,
+                        timeseries_correlation,
+                        [
+                            ("out_roi", "inputspec.in_rois"),
+                            ("out_func", "inputspec.in_file"),
+                        ],
+                    ),
+                ]
+            )
 
-            output_desc = ''.join(term.lower().capitalize() for term in [
-                cm_measure, cm_tool])
-            matrix_outputs[f'space-template_desc-{output_desc}_correlations'
-                           ] = (timeseries_correlation, 'outputspec.out_file')
+            output_desc = "".join(
+                term.lower().capitalize() for term in [cm_measure, cm_tool]
+            )
+            matrix_outputs[f"space-template_desc-{output_desc}_correlations"] = (
+                timeseries_correlation,
+                "outputspec.out_file",
+            )
 
     outputs = {
-        'space-template_desc-Mean_timeseries': (
-            roi_timeseries, 'outputspec.roi_csv'),
-        'atlas_name': (roi_dataflow, 'outputspec.out_name'),
-        **matrix_outputs
+        "space-template_desc-Mean_timeseries": (roi_timeseries, "outputspec.roi_csv"),
+        "atlas_name": (roi_dataflow, "outputspec.out_name"),
+        **matrix_outputs,
     }
     # - NDMG
-    if 'ndmg' in cfg['timeseries_extraction', 'connectivity_matrix', 'using']:
+    if "ndmg" in cfg["timeseries_extraction", "connectivity_matrix", "using"]:
         # pylint: disable=import-outside-toplevel
         from CPAC.utils.ndmg_utils import ndmg_create_graphs
 
-        ndmg_graph_imports = ['import os',
-                              'from CPAC.utils.ndmg_utils import graph']
-        ndmg_graph = pe.Node(Function(
-            input_names=['ts', 'labels'],
-            output_names=['out_file'],
-            function=ndmg_create_graphs,
-            imports=ndmg_graph_imports,
-            as_module=True
-        ), name=f'ndmg_graphs_{pipe_num}',
-           mem_gb=0.664,
-           mem_x=(1928411764134803 / 302231454903657293676544, 'ts'))
+        ndmg_graph_imports = ["import os", "from CPAC.utils.ndmg_utils import graph"]
+        ndmg_graph = pe.Node(
+            Function(
+                input_names=["ts", "labels"],
+                output_names=["out_file"],
+                function=ndmg_create_graphs,
+                imports=ndmg_graph_imports,
+                as_module=True,
+            ),
+            name=f"ndmg_graphs_{pipe_num}",
+            mem_gb=0.664,
+            mem_x=(1928411764134803 / 302231454903657293676544, "ts"),
+        )
 
-        wf.connect(roi_timeseries, 'outputspec.roi_ts', ndmg_graph, 'ts')
-        wf.connect(roi_dataflow, 'outputspec.out_file', ndmg_graph, 'labels')
-        outputs['space-template_desc-ndmg_correlations'
-                ] = (ndmg_graph, 'out_file')
+        wf.connect(roi_timeseries, "outputspec.roi_ts", ndmg_graph, "ts")
+        wf.connect(roi_dataflow, "outputspec.out_file", ndmg_graph, "labels")
+        outputs["space-template_desc-ndmg_correlations"] = (ndmg_graph, "out_file")
 
     return (wf, outputs)
 
@@ -940,44 +903,43 @@ def timeseries_extraction_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-Voxel_timeseries", "atlas_name"],
 )
 def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
-
-    resample_functional_to_mask = pe.Node(resample_function(),
-                                          name='resample_functional_to_mask_'
-                                               f'{pipe_num}')
+    resample_functional_to_mask = pe.Node(
+        resample_function(), name=f"resample_functional_to_mask_{pipe_num}"
+    )
 
     resample_functional_to_mask.inputs.realignment = cfg.timeseries_extraction[
-        'realignment']
-    resample_functional_to_mask.inputs.identity_matrix = \
-    cfg.registration_workflows['functional_registration'][
-        'func_registration_to_template']['FNIRT_pipelines']['identity_matrix']
+        "realignment"
+    ]
+    resample_functional_to_mask.inputs.identity_matrix = cfg.registration_workflows[
+        "functional_registration"
+    ]["func_registration_to_template"]["FNIRT_pipelines"]["identity_matrix"]
 
-    mask_dataflow = create_roi_mask_dataflow(cfg.timeseries_extraction[
-                                                 'tse_atlases']['Voxel'],
-                                             f'mask_dataflow_{pipe_num}')
+    mask_dataflow = create_roi_mask_dataflow(
+        cfg.timeseries_extraction["tse_atlases"]["Voxel"], f"mask_dataflow_{pipe_num}"
+    )
 
-    voxel_timeseries = get_voxel_timeseries(
-        f'voxel_timeseries_{pipe_num}')
-    #voxel_timeseries.inputs.inputspec.output_type = cfg.timeseries_extraction[
+    voxel_timeseries = get_voxel_timeseries(f"voxel_timeseries_{pipe_num}")
+    # voxel_timeseries.inputs.inputspec.output_type = cfg.timeseries_extraction[
     #    'roi_tse_outputs']
-
 
     node, out = strat_pool.get_data("space-template_desc-preproc_bold")
     # resample the input functional file to mask
-    wf.connect(node, out,
-                     resample_functional_to_mask, 'in_func')
-    wf.connect(mask_dataflow, 'outputspec.out_file',
-                     resample_functional_to_mask, 'in_roi')
+    wf.connect(node, out, resample_functional_to_mask, "in_func")
+    wf.connect(
+        mask_dataflow, "outputspec.out_file", resample_functional_to_mask, "in_roi"
+    )
 
     # connect it to the voxel_timeseries
-    wf.connect(resample_functional_to_mask, 'out_roi',
-                     voxel_timeseries, 'input_mask.mask')
-    wf.connect(resample_functional_to_mask, 'out_func',
-                     voxel_timeseries, 'inputspec.rest')
+    wf.connect(
+        resample_functional_to_mask, "out_roi", voxel_timeseries, "input_mask.mask"
+    )
+    wf.connect(
+        resample_functional_to_mask, "out_func", voxel_timeseries, "inputspec.rest"
+    )
 
     outputs = {
-        'desc-Voxel_timeseries':
-            (voxel_timeseries, 'outputspec.mask_outputs'),
-        'atlas_name': (mask_dataflow, 'outputspec.out_name')
+        "desc-Voxel_timeseries": (voxel_timeseries, "outputspec.mask_outputs"),
+        "atlas_name": (mask_dataflow, "outputspec.out_name"),
     }
 
     return (wf, outputs)
@@ -987,67 +949,85 @@ def timeseries_extraction_Voxel(wf, cfg, strat_pool, pipe_num, opt=None):
     name="spatial_regression",
     config=["timeseries_extraction"],
     switch=["run"],
-    inputs=["space-template_desc-preproc_bold", 
-            ["space-template_desc-bold_mask",
-            "space-template_desc-brain_mask"]],
+    inputs=[
+        "space-template_desc-preproc_bold",
+        ["space-template_desc-bold_mask", "space-template_desc-brain_mask"],
+    ],
     outputs=["desc-SpatReg_timeseries", "atlas_name"],
 )
 def spatial_regression(wf, cfg, strat_pool, pipe_num, opt=None):
-    '''Performs spatial regression, extracting the spatial map timeseries of
-    the given atlases.
+    """Perform spatial regression.
+
+    Extracts the spatial map timeseries of the given atlases.
 
     Note: this is a standalone function for when only spatial regression is
           selected for the given atlases - if dual regression is selected,
           that spatial regression is performed in the dual_regression function
-    '''
-
+    """
     resample_spatial_map_to_native_space = pe.Node(
         interface=fsl.FLIRT(),
-        name=f'resample_spatial_map_to_native_space_{pipe_num}',
+        name=f"resample_spatial_map_to_native_space_{pipe_num}",
         mem_gb=3.4,
-        mem_x=(5381614225492473 / 1208925819614629174706176, 'in_file'))
+        mem_x=(5381614225492473 / 1208925819614629174706176, "in_file"),
+    )
 
     resample_spatial_map_to_native_space.inputs.set(
-        interp='nearestneighbour',
+        interp="nearestneighbour",
         apply_xfm=True,
-        in_matrix_file=cfg.registration_workflows['functional_registration'][
-            'func_registration_to_template']['FNIRT_pipelines'][
-            'identity_matrix'])
+        in_matrix_file=cfg.registration_workflows["functional_registration"][
+            "func_registration_to_template"
+        ]["FNIRT_pipelines"]["identity_matrix"],
+    )
 
     spatial_map_dataflow = create_spatial_map_dataflow(
-        cfg.timeseries_extraction['tse_atlases']['SpatialReg'],
-        f'spatial_map_dataflow_{pipe_num}')
+        cfg.timeseries_extraction["tse_atlases"]["SpatialReg"],
+        f"spatial_map_dataflow_{pipe_num}",
+    )
 
     spatial_map_dataflow.inputs.inputspec.set(
-        creds_path=cfg.pipeline_setup['input_creds_path'],
-        dl_dir=cfg.pipeline_setup['working_directory']['path'])
+        creds_path=cfg.pipeline_setup["input_creds_path"],
+        dl_dir=cfg.pipeline_setup["working_directory"]["path"],
+    )
 
     spatial_map_timeseries = get_spatial_map_timeseries(
-        f'spatial_map_timeseries_{pipe_num}')
+        f"spatial_map_timeseries_{pipe_num}"
+    )
     spatial_map_timeseries.inputs.inputspec.demean = True
 
     node, out = strat_pool.get_data("space-template_desc-preproc_bold")
 
     # resample the input functional file and functional mask
     # to spatial map
-    wf.connect(node, out, resample_spatial_map_to_native_space, 'reference')
-    wf.connect(spatial_map_dataflow, 'select_spatial_map.out_file',
-               resample_spatial_map_to_native_space, 'in_file')
+    wf.connect(node, out, resample_spatial_map_to_native_space, "reference")
+    wf.connect(
+        spatial_map_dataflow,
+        "select_spatial_map.out_file",
+        resample_spatial_map_to_native_space,
+        "in_file",
+    )
 
-    wf.connect(node, out, spatial_map_timeseries, 'inputspec.subject_rest')
+    wf.connect(node, out, spatial_map_timeseries, "inputspec.subject_rest")
 
     # connect it to the spatial_map_timeseries
-    wf.connect(resample_spatial_map_to_native_space, 'out_file',
-               spatial_map_timeseries, 'inputspec.spatial_map')
+    wf.connect(
+        resample_spatial_map_to_native_space,
+        "out_file",
+        spatial_map_timeseries,
+        "inputspec.spatial_map",
+    )
 
-    node, out = strat_pool.get_data(['space-template_desc-bold_mask', 'space-template_desc-brain_mask'])
-    wf.connect(node, out, spatial_map_timeseries, 'inputspec.subject_mask')
+    node, out = strat_pool.get_data(
+        ["space-template_desc-bold_mask", "space-template_desc-brain_mask"]
+    )
+    wf.connect(node, out, spatial_map_timeseries, "inputspec.subject_mask")
 
     # 'atlas_name' will be an iterable and will carry through
     outputs = {
-        'desc-SpatReg_timeseries':
-            (spatial_map_timeseries, 'outputspec.subject_timeseries'),
-        'atlas_name': (spatial_map_dataflow, 'select_spatial_map.out_name')
+        "desc-SpatReg_timeseries": (
+            spatial_map_timeseries,
+            "outputspec.subject_timeseries",
+        ),
+        "atlas_name": (spatial_map_dataflow, "select_spatial_map.out_name"),
     }
 
     return (wf, outputs)

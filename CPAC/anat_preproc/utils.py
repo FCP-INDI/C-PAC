@@ -1,59 +1,135 @@
 # -*- coding: utf-8 -*-
+from numpy import zeros
+from nibabel import load as nib_load, Nifti1Image
 import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from nibabel import load as nib_load, Nifti1Image
-from numpy import zeros
+
 
 def get_shape(nifti_image):
     return nib_load(nifti_image).shape
 
+
 def pad(cropped_image_path, target_image_path):
     """
-    Pad a cropped image to match the dimensions of a target image along the z-axis, 
+    Pad a cropped image to match the dimensions of a target image along the z-axis,
     while keeping padded image aligned with target_image.
 
-    Parameters:
+    Parameters
+    ----------
     - cropped_image_path (str): The file path to the cropped image (NIfTI format).
     - target_image_path (str): The file path to the target image (NIfTI format).
 
-    Returns:
+    Returns
+    -------
     - str: The file path to the saved padded image (NIfTI format).
 
-    The function loads cropped and target iamges, calculates the z-dimension shift required for alignment such 
+    The function loads cropped and target iamges, calculates the z-dimension shift required for alignment such
     that the mask generated from padded image will work correctly on the target image. The result padded image is
     saved as an NIfTI file in the working directory/node and file path is returned as output.
 
     Note: The function assumes that the input images are in NIfTI format and have compatible dimensions. The cropped
     and target image should only differ in z-axis dimension.
     """
-    from numpy import asanyarray, zeros_like, ndarray
-    from nibabel import load, save, Nifti1Image
-    from os import path, getcwd
+    from os import getcwd, path
     from typing import Optional
+
+    from numpy import asanyarray, ndarray, zeros_like
+    from nibabel import load, Nifti1Image, save
 
     cropped_image: Optional[ndarray] = asanyarray(load(cropped_image_path).dataobj)
     target_image: Optional[ndarray] = asanyarray(load(target_image_path).dataobj)
 
     # Taking 1 slice to calculate the z dimension shift from top
-    center_row:int =target_image.shape[0]//2
-    center_column:int = target_image.shape[1]//2
-    z_slice_cropped_image: Optional[ndarray] = cropped_image[center_row, center_column, :]
+    center_row: int = target_image.shape[0] // 2
+    center_column: int = target_image.shape[1] // 2
+    z_slice_cropped_image: Optional[ndarray] = cropped_image[
+        center_row, center_column, :
+    ]
     z_slice_target_image: Optional[ndarray] = target_image[center_row, center_column, :]
 
     for z_shift in range(len(z_slice_target_image) - len(z_slice_cropped_image) + 1):
-        if (z_slice_target_image[z_shift:z_shift+len(z_slice_cropped_image)] == z_slice_cropped_image).all():
+        if (
+            z_slice_target_image[z_shift : z_shift + len(z_slice_cropped_image)]
+            == z_slice_cropped_image
+        ).all():
             break
 
     padded_image_matrix: Optional[ndarray] = zeros_like(target_image)
-    padded_image_matrix[:, :, z_shift:cropped_image.shape[2]+z_shift] = cropped_image
-    padded_image_path:str = path.join(getcwd(),"padded_image_T1w.nii.gz")
+    padded_image_matrix[:, :, z_shift : cropped_image.shape[2] + z_shift] = (
+        cropped_image
+    )
+    padded_image_path: str = path.join(getcwd(), "padded_image_T1w.nii.gz")
     cropped_image = load(cropped_image_path)
-    save(Nifti1Image(padded_image_matrix, affine=cropped_image.affine), padded_image_path)
+    save(
+        Nifti1Image(padded_image_matrix, affine=cropped_image.affine), padded_image_path
+    )
     return padded_image_path
 
-def fsl_aff_to_rigid(in_xfm, out_name):
 
+def get_shape(nifti_image):
+    return nib_load(nifti_image).shape
+
+
+def pad(cropped_image_path, target_image_path):
+    """
+    Pad a cropped image to match the dimensions of a target image along the z-axis,...
+
+    ...while keeping padded image aligned with target_image.
+
+    Parameters
+    ----------
+    - cropped_image_path (str): The file path to the cropped image (NIfTI format).
+    - target_image_path (str): The file path to the target image (NIfTI format).
+
+    Returns
+    -------
+    - str: The file path to the saved padded image (NIfTI format).
+
+    The function loads cropped and target iamges, calculates the z-dimension shift required for alignment such
+    that the mask generated from padded image will work correctly on the target image. The result padded image is
+    saved as an NIfTI file in the working directory/node and file path is returned as output.
+
+    Note: The function assumes that the input images are in NIfTI format and have compatible dimensions. The cropped
+    and target image should only differ in z-axis dimension.
+    """
+    from os import getcwd, path
+    from typing import Optional
+
+    from numpy import asanyarray, ndarray, zeros_like
+    from nibabel import load, save
+
+    cropped_image: Optional[ndarray] = asanyarray(load(cropped_image_path).dataobj)
+    target_image: Optional[ndarray] = asanyarray(load(target_image_path).dataobj)
+
+    # Taking 1 slice to calculate the z dimension shift from top
+    center_row: int = target_image.shape[0] // 2
+    center_column: int = target_image.shape[1] // 2
+    z_slice_cropped_image: Optional[ndarray] = cropped_image[
+        center_row, center_column, :
+    ]
+    z_slice_target_image: Optional[ndarray] = target_image[center_row, center_column, :]
+
+    for z_shift in range(len(z_slice_target_image) - len(z_slice_cropped_image) + 1):
+        if (
+            z_slice_target_image[z_shift : z_shift + len(z_slice_cropped_image)]
+            == z_slice_cropped_image
+        ).all():
+            break
+
+    padded_image_matrix: Optional[ndarray] = zeros_like(target_image)
+    padded_image_matrix[:, :, z_shift : cropped_image.shape[2] + z_shift] = (
+        cropped_image
+    )
+    padded_image_path: str = path.join(getcwd(), "padded_image_T1w.nii.gz")
+    cropped_image = load(cropped_image_path)
+    save(
+        Nifti1Image(padded_image_matrix, affine=cropped_image.affine), padded_image_path
+    )
+    return padded_image_path
+
+
+def fsl_aff_to_rigid(in_xfm, out_name):
     out_mat = os.path.join(os.getcwd(), out_name)
 
     #   Script for getting a 6 DOF approx to a 12 DOF standard transformation
@@ -135,8 +211,8 @@ def fsl_aff_to_rigid(in_xfm, out_name):
     ainv = linalg.inv(a)
 
     # vectors v are in MNI space, vectors w are in native space
-    v21 = (x2 - x1)
-    v31 = (x3 - x1)
+    v21 = x2 - x1
+    v31 = x3 - x1
     # normalise and force orthogonality
     v21 = v21 / linalg.norm(v21)
     v31 = v31 - multiply(v31.T * v21, v21)
@@ -173,13 +249,13 @@ def fsl_aff_to_rigid(in_xfm, out_name):
     r[0:3, 3] = trans[0:3]
 
     # Save out the result
-    savetxt(out_mat, r, fmt='%14.10f')
+    savetxt(out_mat, r, fmt="%14.10f")
 
     return out_mat
 
 
 def freesurfer_hemispheres(wf, reconall, pipe_num):
-    """Function to return various hemisphere-specific FreeSurfer outputs.
+    """Return various hemisphere-specific FreeSurfer outputs.
 
     Parameters
     ----------
@@ -196,61 +272,86 @@ def freesurfer_hemispheres(wf, reconall, pipe_num):
 
     outputs : dict
     """
+
     def split_hemi(multi_file):
         # pylint: disable=invalid-name
         lh = None
         rh = None
         for filepath in multi_file:
-            if 'lh.' in filepath:
+            if "lh." in filepath:
                 lh = filepath
-            if 'rh.' in filepath:
+            if "rh." in filepath:
                 rh = filepath
         return (lh, rh)
 
-    def split_hemi_interface():
-        """Returns a function interface for split_hemi."""
-        return util.Function(input_names=['multi_file'],
-                             output_names=['lh', 'rh'],
-                             function=split_hemi)
+    def split_hemi_interface() -> util.Function:
+        """Return a function interface for split_hemi."""
+        return util.Function(
+            input_names=["multi_file"], output_names=["lh", "rh"], function=split_hemi
+        )
 
     splits = {
-        label: pe.Node(split_hemi_interface(),
-                       name=f'split_{label}_{pipe_num}') for
-        label in ['curv', 'pial', 'smoothwm', 'sphere', 'sulc', 'thickness',
-                  'volume', 'white']
+        label: pe.Node(split_hemi_interface(), name=f"split_{label}_{pipe_num}")
+        for label in [
+            "curv",
+            "pial",
+            "smoothwm",
+            "sphere",
+            "sulc",
+            "thickness",
+            "volume",
+            "white",
+        ]
     }
     for label in splits:
-        wf.connect(reconall, label, splits[label], 'multi_file')
+        wf.connect(reconall, label, splits[label], "multi_file")
     outputs = {
-        'pipeline-fs_hemi-L_desc-surface_curv': (splits['curv'], 'lh'),
-        'pipeline-fs_hemi-R_desc-surface_curv': (splits['curv'], 'rh'),
-        'pipeline-fs_hemi-L_desc-surfaceMesh_pial': (splits['pial'], 'lh'),
-        'pipeline-fs_hemi-R_desc-surfaceMesh_pial': (splits['pial'], 'rh'),
-        'pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm': (splits['smoothwm'], 'lh'),
-        'pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm': (splits['smoothwm'], 'rh'),
-        'pipeline-fs_hemi-L_desc-surfaceMesh_sphere': (splits['sphere'], 'lh'),
-        'pipeline-fs_hemi-R_desc-surfaceMesh_sphere': (splits['sphere'], 'rh'),
-        'pipeline-fs_hemi-L_desc-surfaceMap_sulc': (splits['sulc'], 'lh'),
-        'pipeline-fs_hemi-R_desc-surfaceMap_sulc': (splits['sulc'], 'rh'),
-        'pipeline-fs_hemi-L_desc-surfaceMap_thickness': (splits['thickness'], 'lh'),
-        'pipeline-fs_hemi-R_desc-surfaceMap_thickness': (splits['thickness'], 'rh'),
-        'pipeline-fs_hemi-L_desc-surfaceMap_volume': (splits['volume'], 'lh'),
-        'pipeline-fs_hemi-R_desc-surfaceMap_volume': (splits['volume'], 'rh'),
-        'pipeline-fs_hemi-L_desc-surfaceMesh_white': (splits['white'], 'lh'),
-        'pipeline-fs_hemi-R_desc-surfaceMesh_white': (splits['white'], 'rh')}
+        "pipeline-fs_hemi-L_desc-surface_curv": (splits["curv"], "lh"),
+        "pipeline-fs_hemi-R_desc-surface_curv": (splits["curv"], "rh"),
+        "pipeline-fs_hemi-L_desc-surfaceMesh_pial": (splits["pial"], "lh"),
+        "pipeline-fs_hemi-R_desc-surfaceMesh_pial": (splits["pial"], "rh"),
+        "pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm": (splits["smoothwm"], "lh"),
+        "pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm": (splits["smoothwm"], "rh"),
+        "pipeline-fs_hemi-L_desc-surfaceMesh_sphere": (splits["sphere"], "lh"),
+        "pipeline-fs_hemi-R_desc-surfaceMesh_sphere": (splits["sphere"], "rh"),
+        "pipeline-fs_hemi-L_desc-surfaceMap_sulc": (splits["sulc"], "lh"),
+        "pipeline-fs_hemi-R_desc-surfaceMap_sulc": (splits["sulc"], "rh"),
+        "pipeline-fs_hemi-L_desc-surfaceMap_thickness": (splits["thickness"], "lh"),
+        "pipeline-fs_hemi-R_desc-surfaceMap_thickness": (splits["thickness"], "rh"),
+        "pipeline-fs_hemi-L_desc-surfaceMap_volume": (splits["volume"], "lh"),
+        "pipeline-fs_hemi-R_desc-surfaceMap_volume": (splits["volume"], "rh"),
+        "pipeline-fs_hemi-L_desc-surfaceMesh_white": (splits["white"], "lh"),
+        "pipeline-fs_hemi-R_desc-surfaceMesh_white": (splits["white"], "rh"),
+    }
 
     return wf, outputs
 
 
-def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
-                                   shrink_fac_bot_lim, avoid_vent, niter,
-                                   pushout, touchup, fill_hole, avoid_eyes,
-                                   use_edge, exp_frac, NN_smooth, smooth_final,
-                                   push_to_edge, use_skull, perc_int,
-                                   max_inter_iter, blur_fwhm, fac, monkey,
-                                   mask_vol):
+def create_3dskullstrip_arg_string(
+    shrink_fac,
+    var_shrink_fac,
+    shrink_fac_bot_lim,
+    avoid_vent,
+    niter,
+    pushout,
+    touchup,
+    fill_hole,
+    avoid_eyes,
+    use_edge,
+    exp_frac,
+    NN_smooth,
+    smooth_final,
+    push_to_edge,
+    use_skull,
+    perc_int,
+    max_inter_iter,
+    blur_fwhm,
+    fac,
+    monkey,
+    mask_vol,
+):
     """
-    Method to return option string for 3dSkullStrip
+    Return option string for 3dSkullStrip.
 
     Parameters
     ----------
@@ -313,7 +414,7 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
 
     monkey : boolean
         Use monkey option in SkullStripping
-    
+
     mask_vol : boolean
         Output a mask volume instead of a skull-stripped volume.
 
@@ -321,95 +422,94 @@ def create_3dskullstrip_arg_string(shrink_fac, var_shrink_fac,
     -------
     opt_str : string
         Command args
-    
+
     """
+    expr = ""
+    defaults = {
+        "fill_hole": 10 if touchup else 0,
+        "shrink_fac": 0.6,
+        "shrink_fac_bot_lim": 0.4 if use_edge else 0.65,
+        "niter": 250,
+        "exp_frac": 0.1,
+        "NN_smooth": 72,
+        "smooth_final": 20,
+        "perc_int": 0,
+        "max_inter_iter": 4,
+        "blur_fwhm": 0,
+        "fac": 1.0,
+        "monkey": False,
+        "mask_vol": False,
+    }
 
-    expr = ''
-    defaults = dict(
-        fill_hole=10 if touchup else 0,
-        shrink_fac=0.6,
-        shrink_fac_bot_lim=0.4 if use_edge else 0.65,
-        niter=250,
-        exp_frac=0.1,
-        NN_smooth=72,
-        smooth_final=20,
-        perc_int=0,
-        max_inter_iter=4,
-        blur_fwhm=0,
-        fac=1.0,
-        monkey=False,
-        mask_vol=False
-    )
-
-    if float(shrink_fac) != defaults['shrink_fac']:
-        expr += ' -shrink_fac {0}'.format(shrink_fac)
+    if float(shrink_fac) != defaults["shrink_fac"]:
+        expr += f" -shrink_fac {shrink_fac}"
 
     if not var_shrink_fac:
-        expr += ' -no_var_shrink_fac'
+        expr += " -no_var_shrink_fac"
 
     if mask_vol:
-        expr += ' -mask_vol'
+        expr += " -mask_vol"
 
     if monkey:
-        expr += ' -monkey'
+        expr += " -monkey"
 
-    if float(shrink_fac_bot_lim) != defaults['shrink_fac_bot_lim']:
-        expr += ' -shrink_fac_bot_lim {0}'.format(shrink_fac_bot_lim)
+    if float(shrink_fac_bot_lim) != defaults["shrink_fac_bot_lim"]:
+        expr += f" -shrink_fac_bot_lim {shrink_fac_bot_lim}"
 
     if not use_edge:
-        expr += ' -no_use_edge'
+        expr += " -no_use_edge"
 
     if not avoid_vent:
-        expr += ' -no_avoid_vent'
+        expr += " -no_avoid_vent"
 
-    if int(niter) != defaults['niter']:
-        expr += ' -niter {0}'.format(niter)
+    if int(niter) != defaults["niter"]:
+        expr += f" -niter {niter}"
 
     if not pushout:
-        expr += ' -no_pushout'
+        expr += " -no_pushout"
 
     if not touchup:
-        expr += ' -no_touchup'
+        expr += " -no_touchup"
 
-    if int(fill_hole) != defaults['fill_hole']:
-        expr += ' -fill_hole {0}'.format(fill_hole)
+    if int(fill_hole) != defaults["fill_hole"]:
+        expr += f" -fill_hole {fill_hole}"
 
     if not avoid_eyes:
-        expr += ' -no_avoid_eyes'
+        expr += " -no_avoid_eyes"
 
-    if float(exp_frac) != defaults['exp_frac']:
-        expr += ' -exp_frac {0}'.format(exp_frac)
+    if float(exp_frac) != defaults["exp_frac"]:
+        expr += f" -exp_frac {exp_frac}"
 
-    if int(NN_smooth) != defaults['NN_smooth']:
-        expr += ' -NN_smooth {0}'.format(NN_smooth)
+    if int(NN_smooth) != defaults["NN_smooth"]:
+        expr += f" -NN_smooth {NN_smooth}"
 
-    if int(smooth_final) != defaults['smooth_final']:
-        expr += ' -smooth_final {0}'.format(smooth_final)
+    if int(smooth_final) != defaults["smooth_final"]:
+        expr += f" -smooth_final {smooth_final}"
 
     if push_to_edge:
-        expr += ' -push_to_edge'
+        expr += " -push_to_edge"
 
     if use_skull:
-        expr += ' -use_skull'
+        expr += " -use_skull"
 
-    if float(perc_int) != defaults['perc_int']:
-        expr += ' -perc_int {0}'.format(perc_int)
+    if float(perc_int) != defaults["perc_int"]:
+        expr += f" -perc_int {perc_int}"
 
-    if int(max_inter_iter) != defaults['max_inter_iter']:
-        expr += ' -max_inter_iter {0}'.format(max_inter_iter)
+    if int(max_inter_iter) != defaults["max_inter_iter"]:
+        expr += f" -max_inter_iter {max_inter_iter}"
 
-    if float(blur_fwhm) != defaults['blur_fwhm']:
-        expr += ' -blur_fwhm {0}'.format(blur_fwhm)
+    if float(blur_fwhm) != defaults["blur_fwhm"]:
+        expr += f" -blur_fwhm {blur_fwhm}"
 
-    if float(fac) != defaults['fac']:
-        expr += ' -fac {0}'.format(fac)
+    if float(fac) != defaults["fac"]:
+        expr += f" -fac {fac}"
 
     return expr
 
 
 def mri_convert(in_file, reslice_like=None, out_file=None, args=None):
     """
-    Method to convert files from mgz to nifti format
+    Convert files from mgz to nifti format.
 
     Parameters
     ----------
@@ -417,24 +517,24 @@ def mri_convert(in_file, reslice_like=None, out_file=None, args=None):
         A path of mgz input file
     args : string
         Arguments of mri_convert
+
     Returns
     -------
     out_file : string
         A path of nifti output file
     """
-
     import os
 
     if out_file is None:
-        out_file = in_file.replace('.mgz','.nii.gz')
+        out_file = in_file.replace(".mgz", ".nii.gz")
 
-    cmd = 'mri_convert %s %s' % (in_file, out_file)
+    cmd = "mri_convert %s %s" % (in_file, out_file)
 
     if reslice_like is not None:
-        cmd = cmd + ' -rl ' + reslice_like
+        cmd = cmd + " -rl " + reslice_like
 
     if args is not None:
-        cmd = cmd + ' ' +args
+        cmd = cmd + " " + args
 
     os.system(cmd)
 
@@ -442,12 +542,11 @@ def mri_convert(in_file, reslice_like=None, out_file=None, args=None):
 
 
 def wb_command(in_file):
-
     import os
 
-    out_file = in_file.replace('.nii.gz','_fill_holes.nii.gz')
+    out_file = in_file.replace(".nii.gz", "_fill_holes.nii.gz")
 
-    cmd = 'wb_command -volume-fill-holes %s %s' % (in_file, out_file)
+    cmd = "wb_command -volume-fill-holes %s %s" % (in_file, out_file)
 
     os.system(cmd)
 
@@ -455,35 +554,42 @@ def wb_command(in_file):
 
 
 def fslmaths_command(in_file, number, out_file_suffix):
-
     import os
 
-    out_filename = in_file.replace('.nii.gz', out_file_suffix+'.nii.gz')
+    out_filename = in_file.replace(".nii.gz", out_file_suffix + ".nii.gz")
 
-    out_file = os.path.join(os.getcwd(), out_filename[out_filename.rindex('/')+1:])
+    out_file = os.path.join(os.getcwd(), out_filename[out_filename.rindex("/") + 1 :])
 
-    cmd = 'fslmaths %s -div %f -mul 150 -abs %s' % (in_file, number, out_file)
+    cmd = "fslmaths %s -div %f -mul 150 -abs %s" % (in_file, number, out_file)
 
     os.system(cmd)
 
     return out_file
 
+
 def normalize_wmparc(source_file, target_file, xfm, out_file):
-    from CPAC.utils.monitoring.custom_logging import log_subprocess
     import os
 
-    cmd = ['mri_vol2vol', '--mov', source_file, \
-                '--targ', target_file, '--o', out_file, '--lta', xfm]
+    from CPAC.utils.monitoring.custom_logging import log_subprocess
+
+    cmd = [
+        "mri_vol2vol",
+        "--mov",
+        source_file,
+        "--targ",
+        target_file,
+        "--o",
+        out_file,
+        "--lta",
+        xfm,
+    ]
     log_subprocess(cmd)
-    output = os.path.join(os.getcwd(), out_file)
-    return output
+    return os.path.join(os.getcwd(), out_file)
+
 
 """This module provides interfaces for workbench -volume-remove-islands commands"""
-from nipype.interfaces.base import TraitedSpec, File, traits, CommandLineInputSpec
+from nipype.interfaces.base import CommandLineInputSpec, File, TraitedSpec
 from nipype.interfaces.workbench.base import WBCommand
-from nipype import logging
-
-iflogger = logging.getLogger("nipype.interface")
 
 
 class VolumeRemoveIslandsInputSpec(CommandLineInputSpec):
@@ -503,7 +609,6 @@ class VolumeRemoveIslandsInputSpec(CommandLineInputSpec):
     )
 
 
-
 class VolumeRemoveIslandsOutputSpec(TraitedSpec):
     out_file = File(exists=True, desc="the output ROI volume")
 
@@ -515,7 +620,7 @@ class VolumeRemoveIslands(WBCommand):
     REMOVE ISLANDS FROM AN ROI VOLUME
     wb_command -volume-remove-islands
         <volume-in> - the input ROI volume
-        <volume-out> - output - the output ROI volume
+        <volume-out> - output - the output ROI volume.
 
         Finds all face-connected parts of the ROI, and zeros out all but the
         largest one.
@@ -524,5 +629,4 @@ class VolumeRemoveIslands(WBCommand):
 
     input_spec = VolumeRemoveIslandsInputSpec
     output_spec = VolumeRemoveIslandsOutputSpec
-    _cmd = "wb_command -volume-remove-islands" 
-    
+    _cmd = "wb_command -volume-remove-islands"

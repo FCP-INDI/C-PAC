@@ -59,7 +59,7 @@ InflateExtraScale=1
 T1wImage="T1w_acpc_dc"
 T1wFolder="T1w" #Location of T1w images
 T2wFolder="T2w" #Location of T1w images
-T2wImage="T2w_acpc_dc" 
+T2wImage="T2w_acpc_dc"
 AtlasSpaceFolder="MNINonLinear"
 NativeFolder="Native"
 FreeSurferInput="T1w_acpc_dc_restore_1mm"
@@ -98,8 +98,8 @@ BiasFieldOutput="BiasField"
 Jacobian="NonlinearRegJacobians.nii.gz"
 
 
-T1wFolder="$StudyFolder"/"$T1wFolder" 
-T2wFolder="$StudyFolder"/"$T2wFolder" 
+T1wFolder="$StudyFolder"/"$T1wFolder"
+T2wFolder="$StudyFolder"/"$T2wFolder"
 AtlasSpaceFolder="$StudyFolder"/"$AtlasSpaceFolder"
 AtlasTransform="$AtlasSpaceFolder"/xfms/"$AtlasTransform"
 InverseAtlasTransform="$AtlasSpaceFolder"/xfms/"$InverseAtlasTransform"

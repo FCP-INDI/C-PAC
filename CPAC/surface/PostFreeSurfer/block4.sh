@@ -127,7 +127,7 @@ for Hemisphere in L R ; do
 		hemisphere="r"
 		Structure="CORTEX_RIGHT"
 	fi
-    
+
     #If desired, run MSMSulc folding-based registration to FS_LR initialized with FS affine
 	if [ ${RegName} = "MSMSulc" ] ; then
 		#Calculate Affine Transform and Apply
@@ -165,7 +165,7 @@ for Hemisphere in L R ; do
     wb_command -metric-merge "$AtlasSpaceFolder"/"$NativeFolder"/"$Subject"."$Hemisphere".StrainJ_MSMSulc.native.shape.gii -metric "$AtlasSpaceFolder"/"$NativeFolder"/"$Subject"."$Hemisphere".Strain_MSMSulc.native.shape.gii -column 1
     wb_command -metric-merge "$AtlasSpaceFolder"/"$NativeFolder"/"$Subject"."$Hemisphere".StrainR_MSMSulc.native.shape.gii -metric "$AtlasSpaceFolder"/"$NativeFolder"/"$Subject"."$Hemisphere".Strain_MSMSulc.native.shape.gii -column 2
     wb_command -metric-math "ln(var) / ln (2)" "$AtlasSpaceFolder"/"$NativeFolder"/"$Subject"."$Hemisphere".StrainJ_MSMSulc.native.shape.gii -var var "$AtlasSpaceFolder"/"$NativeFolder"/"$Subject"."$Hemisphere".StrainJ_MSMSulc.native.shape.gii
-    wb_command -metric-math "ln(var) / ln (2)" "$AtlasSpaceFolder"/"$NativeFolder"/"$Subject"."$Hemisphere".StrainR_MSMSulc.native.shape.gii -var var "$AtlasSpaceFolder"/"$NativeFolder"/"$Subject"."$Hemisphere".StrainR_MSMSulc.native.shape.gii  
+    wb_command -metric-math "ln(var) / ln (2)" "$AtlasSpaceFolder"/"$NativeFolder"/"$Subject"."$Hemisphere".StrainR_MSMSulc.native.shape.gii -var var "$AtlasSpaceFolder"/"$NativeFolder"/"$Subject"."$Hemisphere".StrainR_MSMSulc.native.shape.gii
     rm "$AtlasSpaceFolder"/"$NativeFolder"/"$Subject"."$Hemisphere".Strain_MSMSulc.native.shape.gii
 
 		RegSphere="${AtlasSpaceFolder}/${NativeFolder}/${Subject}.${Hemisphere}.sphere.MSMSulc.native.surf.gii"
@@ -274,4 +274,3 @@ for Hemisphere in L R ; do
 		wb_command -add-to-spec-file "$T1wFolder"/fsaverage_LR"$LowResMesh"k/"$Subject"."$LowResMesh"k_fs_LR.wb.spec $Structure "$T1wFolder"/fsaverage_LR"$LowResMesh"k/"$Subject"."$Hemisphere".very_inflated."$LowResMesh"k_fs_LR.surf.gii
 	done
 done
-

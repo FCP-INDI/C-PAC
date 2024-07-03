@@ -23,7 +23,7 @@ on:
         required: true
   workflow_dispatch:
 
-jobs: 
+jobs:
   test:
     name: Regression Test - Lite
     environment: ACCESS
