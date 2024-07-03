@@ -19,13 +19,12 @@ import copy
 import hashlib
 from itertools import chain
 import json
-import logging
 import os
 import re
 from typing import Optional
 import warnings
 
-from nipype import config
+from nipype import config, logging
 from nipype.interfaces.utility import Rename
 
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
