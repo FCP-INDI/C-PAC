@@ -730,7 +730,6 @@ def ingress_func_metadata(
                 "effective_echo_spacing",
             ],
             function=get_scan_params,
-            imports=["from CPAC.utils.utils import check, try_fetch_parameter"],
         ),
         name=f"bold_scan_params_{subject_id}{name_suffix}",
     )

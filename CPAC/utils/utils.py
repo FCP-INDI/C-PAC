@@ -33,6 +33,7 @@ import yaml
 
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.docs import deprecated
+from CPAC.utils.interfaces.function import Function
 from CPAC.utils.monitoring import FMLOGGER, WFLOGGER
 
 CONFIGS_DIR = os.path.abspath(
@@ -648,6 +649,14 @@ def try_fetch_parameter(scan_parameters, subject, scan, keys):
     return None
 
 
+@Function.sig_imports(
+    [
+        "import json",
+        "import os",
+        "from CPAC.utils.utils import check, fetch_and_convert,"
+        " try_fetch_parameter, VALID_PATTERNS",
+    ]
+)
 def get_scan_params(
     subject_id,
     scan,
@@ -685,16 +694,6 @@ def get_scan_params(
     pe_direction : str
     effective_echo_spacing : float
     """
-    import json
-    import os
-    import warnings
-
-    from CPAC.utils.utils import (
-        check,
-        fetch_and_convert,
-        try_fetch_parameter,
-        VALID_PATTERNS,
-    )
 
     def check2(val):
         return val if val is None or val == "" or isinstance(val, str) else int(val)
@@ -875,7 +874,7 @@ def get_scan_params(
         # checking if the unit of TR and slice timing match or not
         # if slice timing in ms convert TR to ms as well
         if TR and max_slice_offset > TR:
-            warnings.warn(
+            WFLOGGER.warn(
                 "TR is in seconds and slice timings are in "
                 "milliseconds. Converting TR into milliseconds"
             )
@@ -885,7 +884,7 @@ def get_scan_params(
 
     elif TR and TR > 10:  # noqa: PLR2004
         # check to see, if TR is in milliseconds, convert it into seconds
-        warnings.warn("TR is in milliseconds, Converting it into seconds")
+        WFLOGGER.warn("TR is in milliseconds, Converting it into seconds")
         TR = TR / 1000.0
         WFLOGGER.info("New TR value %s s", TR)
         unit = "s"
