@@ -689,6 +689,13 @@ def get_scan_params(
     import os
     import warnings
 
+    from CPAC.utils.utils import (
+        check,
+        fetch_and_convert,
+        try_fetch_parameter,
+        VALID_PATTERNS,
+    )
+
     def check2(val):
         return val if val is None or val == "" or isinstance(val, str) else int(val)
 
