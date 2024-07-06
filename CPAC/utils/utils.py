@@ -25,7 +25,7 @@ import json
 import numbers
 import os
 import pickle
-from typing import Any
+from typing import Any, Literal, Optional, overload
 
 import numpy as np
 from voluptuous.error import Invalid
@@ -47,6 +47,7 @@ with open(
     os.path.join(CONFIGS_DIR, "1.7-1.8-deprecations.yml"), "r", encoding="utf-8"
 ) as _f:
     NESTED_CONFIG_DEPRECATIONS = yaml.safe_load(_f)
+PE_DIRECTION = Literal["i", "i-", "j", "j-", "k", "k-", ""]
 VALID_PATTERNS = [
     "alt+z",
     "altplus",
@@ -472,17 +473,92 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     return out_file
 
 
+@overload
+def fetch(
+    scan_parameters: dict,
+    scan: Optional[str] = None,
+    keys: Optional[list[str]] = None,
+    *,
+    match_case: Literal[False],
+) -> Any: ...
+@overload
+def fetch(
+    scan_parameters: dict,
+    scan: Optional[str] = None,
+    keys: Optional[list[str]] = None,
+    *,
+    match_case: Literal[True],
+) -> tuple[Any, tuple[str, str]]: ...
+def fetch(scan_parameters, scan, keys, *, match_case=False):
+    """Fetch the first found parameter from a scan params dictionary.
+
+    Returns
+    -------
+    value
+        The value of the parameter.
+
+    keys, optional
+        The matched keys (only if ``match_case is True``)
+    """
+    if match_case:
+        keys = {key.lower(): key for key in keys}
+        scan_param_keys = {key.lower(): key for key in scan_parameters.keys()}
+        scan_parameters = {key.lower(): value for key, value in scan_parameters.items()}
+    for key in keys:
+        if key in scan_parameters:
+            if match_case:
+                return check(scan_parameters, None, scan, key, True), (
+                    keys[key],
+                    scan_param_keys[key],
+                )
+            return check(scan_parameters, None, scan, key, True)
+    msg = f"None of {keys} found in {list(scan_parameters.keys())}."
+    raise KeyError(msg)
+
+
 def fetch_and_convert(
-    scan_parameters: dict, scan: str, keys: list[str], convert_to: type, fallback: Any
+    scan_parameters: dict,
+    scan: str,
+    keys: list[str],
+    convert_to: type,
+    fallback: Optional[Any] = None,
 ) -> Any:
-    """Fetch a parameter from a scan parameters dictionary and convert it to a given type.
+    """Fetch a parameter from a scan params dictionary and convert it to a given type.
 
     Catch TypeError exceptions and return a fallback value in those cases.
+
+    Returns
+    -------
+    value
+        The gathered parameter coerced to the specified type, if possible.
+        ``fallback`` otherwise.
     """
+    value: Any = fallback
+    fallback_message = f"Falling back to {fallback} ({type(fallback)})."
+
     try:
-        value = convert_to(scan_parameters, None, scan, keys)
+        raw_value = fetch(scan_parameters, scan, keys)
+    except KeyError:
+        try:
+            raw_value, matched_keys = fetch(
+                scan_parameters, scan, keys, match_case=True
+            )
+        except KeyError:
+            WFLOGGER.warning(
+                f"None of {keys} found in {list(scan_parameters.keys())}. "
+                f"{fallback_message}"
+            )
+            return fallback
+        WFLOGGER.warning(
+            f"None exact match found. Using case-insenitive match: '{matched_keys[0]}'"
+            f" ≅ '{matched_keys[1]}'."
+        )
+    try:
+        value = convert_to(raw_value)
     except TypeError:
-        value = fallback
+        WFLOGGER.warning(
+            f"Could not convert {value} to {convert_to}. {fallback_message}"
+        )
     return value
 
 
@@ -625,74 +701,61 @@ def check_random_state(seed):
     )
 
 
-def try_fetch_parameter(scan_parameters, subject, scan, keys):
-    """Try to fetch a parameter from a scan parameters dictionary."""
-    scan_parameters = {k.lower(): v for k, v in scan_parameters.items()}
-
-    for _key in keys:
-        key = _key.lower()
-
-        if key not in scan_parameters:
-            continue
-
-        if isinstance(scan_parameters[key], dict):
-            value = scan_parameters[key][scan]
-        else:
-            value = scan_parameters[key]
-
-        # Explicit none value
-        if value == "None":
-            return None
-
-        if value is not None:
-            return value
-    return None
-
-
 @Function.sig_imports(
     [
         "import json",
         "import os",
-        "from CPAC.utils.utils import check, fetch_and_convert,"
-        " try_fetch_parameter, VALID_PATTERNS",
+        "from CPAC.utils.utils import check, fetch_and_convert," " VALID_PATTERNS",
     ]
 )
 def get_scan_params(
-    subject_id,
-    scan,
-    pipeconfig_start_indx,
-    pipeconfig_stop_indx,
-    data_config_scan_params=None,
-):
+    subject_id: str,
+    scan: str,
+    pipeconfig_start_indx: int,
+    pipeconfig_stop_indx: Optional[int | str],
+    data_config_scan_params: Optional[dict | str] = None,
+) -> tuple[
+    Optional[str],
+    Optional[str],
+    Optional[int],
+    Optional[int],
+    Optional[int],
+    Optional[int],
+    PE_DIRECTION,
+    Optional[float],
+]:
     """Extract slice timing correction parameters and scan parameters.
 
     Parameters
     ----------
-    subject_id : str
+    subject_id
         subject id
-    scan : str
+    scan
         scan id
-    pipeconfig_start_indx : int
+    pipeconfig_start_indx
         starting volume index as provided in the pipeline config yaml file
-    pipeconfig_stop_indx : int
+    pipeconfig_stop_indx
         ending volume index as provided in the pipeline config yaml file
-    data_config_scan_params : str
-        file path to scan parameter JSON file listed in data config yaml file
+    data_config_scan_params
+        file path to scan parameter JSON file listed in data config yaml file or loaded
+        paramater dictionary
 
     Returns
     -------
-    TR : a string
+    TR
         TR value
-    pattern : a string
+    tpattern
         slice aquisition pattern string or file path
-    ref_slice : an integer
-        reference slice which is used to allign all other slices
-    first_tr : an integer
-        starting TR or starting volume index
-    last_tr : an integer
-        ending TR or ending volume index
-    pe_direction : str
-    effective_echo_spacing : float
+    ref_slice
+        index of reference slice which is used to allign all other slices
+    first_tr
+        index of starting TR or starting volume index
+    last_tr
+        index of ending TR or ending volume index
+    pe_direction
+        https://bids-specification.readthedocs.io/en/stable/glossary.html#phaseencodingdirection-metadata
+    effective_echo_spacing
+        https://bids-specification.readthedocs.io/en/stable/glossary.html#effectiveechospacing-metadata
     """
 
     def check2(val):
@@ -700,7 +763,7 @@ def get_scan_params(
 
     # initialize vars to empty
     TR = pattern = ref_slice = first_tr = last_tr = pe_direction = ""
-    unit = "s"
+    unit: Literal["ms", "s"] = "s"
     effective_echo_spacing = template = None
 
     if isinstance(pipeconfig_stop_indx, str):
@@ -750,24 +813,24 @@ def get_scan_params(
             # TODO: better handling of errant key values!!!
             # TODO: use schema validator to deal with it
             # get details from the configuration
-            TR = fetch_and_convert(
+            TR: Optional[float] = fetch_and_convert(
                 params_dct, scan, ["TR", "RepetitionTime"], float, None
             )
-            template = fetch_and_convert(
+            template: Optional[str] = fetch_and_convert(
                 params_dct, scan, ["Template", "template"], str, None
             )
 
-            pattern = str(
-                try_fetch_parameter(
-                    params_dct,
-                    subject_id,
-                    scan,
-                    ["acquisition", "SliceTiming", "SliceAcquisitionOrder"],
-                )
+            pattern: str = fetch_and_convert(
+                params_dct,
+                scan,
+                ["acquisition", "SliceTiming", "SliceAcquisitionOrder"],
+                str,
+                "",
             )
 
-            ref_slice = check(params_dct, subject_id, scan, "reference", False)
-            ref_slice = int(ref_slice) if ref_slice else ref_slice
+            ref_slice: Optional[int] = fetch_and_convert(
+                params_dct, scan, ["reference"], int, None
+            )
 
             first_tr = check(params_dct, subject_id, scan, "first_TR", False)
             first_tr = check2(first_tr) if first_tr else first_tr
@@ -874,7 +937,7 @@ def get_scan_params(
         # checking if the unit of TR and slice timing match or not
         # if slice timing in ms convert TR to ms as well
         if TR and max_slice_offset > TR:
-            WFLOGGER.warn(
+            WFLOGGER.warning(
                 "TR is in seconds and slice timings are in "
                 "milliseconds. Converting TR into milliseconds"
             )
@@ -884,7 +947,7 @@ def get_scan_params(
 
     elif TR and TR > 10:  # noqa: PLR2004
         # check to see, if TR is in milliseconds, convert it into seconds
-        WFLOGGER.warn("TR is in milliseconds, Converting it into seconds")
+        WFLOGGER.warning("TR is in milliseconds, Converting it into seconds")
         TR = TR / 1000.0
         WFLOGGER.info("New TR value %s s", TR)
         unit = "s"
