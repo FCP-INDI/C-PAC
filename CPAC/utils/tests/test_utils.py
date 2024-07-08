@@ -13,7 +13,7 @@ from CPAC.utils.monitoring.custom_logging import log_subprocess
 from CPAC.utils.utils import (
     check_config_resources,
     check_system_deps,
-    fetch_and_convert,
+    ScanParameters,
 )
 
 SCAN_PARAMS = {
@@ -84,10 +84,8 @@ def test_fetch_and_convert(
     caplog: LogCaptureFixture, scan_params: str, convert_to: type
 ) -> None:
     """Test functionality to fetch and convert scan parameters."""
-    params = SCAN_PARAMS[scan_params]["params"]
-    TR = fetch_and_convert(
-        scan_parameters=params,
-        scan="scan",
+    params = ScanParameters(SCAN_PARAMS[scan_params]["params"], "subject", "scan")
+    TR = params.fetch_and_convert(
         keys=["TR", "RepetitionTime"],
         convert_to=convert_to,
     )
@@ -98,9 +96,7 @@ def test_fetch_and_convert(
         assert "Using case-insenitive match: 'TR' ≅ 'tr'." in caplog.text
     else:
         assert "Using case-insenitive match: 'TR' ≅ 'tr'." not in caplog.text
-    not_TR = fetch_and_convert(
-        scan_parameters=params,
-        scan="scan",
+    not_TR = params.fetch_and_convert(
         keys=["NotTR", "NotRepetitionTime"],
         convert_to=convert_to,
     )
