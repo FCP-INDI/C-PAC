@@ -1,3 +1,19 @@
+# Copyright (C) 2021-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 import subprocess
 import sys
@@ -11,6 +27,8 @@ from nipype.interfaces.fsl import (
 )
 import nipype.interfaces.utility as util
 from nipype.pipeline import engine as pe
+
+from CPAC.utils.interfaces import Function
 
 
 def run_HCP_gradient_unwarp(phase_vol, input_coeffs):
@@ -49,7 +67,7 @@ def run_convertwarp(cw_trilinear, cw_fullWarp_abs):
         f"--warp1={cw_fullWarp_abs}",
         "--relout",
         f"--out={out_file}",
-        f"--j={jac_out}",
+        f"--j={out_jac}",
     ]
     subprocess.check_output(cmd)
 
@@ -64,7 +82,7 @@ def gradient_distortion_correction(wf, inp_image, name):
 
     grad_unwarp_imports = ["import os", "import subprocess"]
     grad_unwarp = pe.Node(
-        util.Function(
+        Function(
             input_names=["phase_vol", "input_coeffs"],
             output_names=["trilinear", "abs_fullWarp"],
             function=run_HCP_gradient_unwarp,
@@ -78,7 +96,7 @@ def gradient_distortion_correction(wf, inp_image, name):
 
     convertwarp_imports = ["import os", "import subprocess"]
     convert_warp = pe.Node(
-        util.Function(
+        Function(
             input_names=["cw_trilinear", "cw_fullWarp_abs"],
             output_names=["out_file_cw", "out_jac_cw"],
             function=run_convertwarp,
@@ -248,8 +266,9 @@ def phase_encode(
 
 
 def z_pad(name="z_pad"):
-    """Pad in Z by one slice if odd so that topup does not complain
-    (slice consists of zeros that will be dilated by following step).
+    """Pad in Z by one slice if odd so that topup does not complain.
+
+    (Slice consists of zeros that will be dilated by following step).
     """
     wf = pe.Workflow(name=name)
 

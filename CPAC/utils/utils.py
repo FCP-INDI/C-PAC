@@ -132,7 +132,7 @@ def get_flag_wf(wf_name="get_flag"):
     input_node = pe.Node(util.IdentityInterface(fields=["in_flag"]), name="inputspec")
 
     get_flag = pe.Node(
-        util.Function(input_names=["in_flag"], function=_get_flag), name="get_flag"
+        Function(input_names=["in_flag"], function=_get_flag), name="get_flag"
     )
 
     wf.connect(input_node, "in_flag", get_flag, "in_flag")
@@ -322,7 +322,7 @@ def get_zscore(map_node=False, wf_name="z_score"):
         )
 
         op_string = pe.MapNode(
-            util.Function(
+            Function(
                 input_names=["mean", "std_dev"],
                 output_names=["op_string"],
                 function=get_operand_string,
@@ -345,7 +345,7 @@ def get_zscore(map_node=False, wf_name="z_score"):
         )
 
         op_string = pe.Node(
-            util.Function(
+            Function(
                 input_names=["mean", "std_dev"],
                 output_names=["op_string"],
                 function=get_operand_string,
@@ -400,7 +400,7 @@ def get_fisher_zscore(input_name, map_node=False, wf_name="fisher_z_score"):
     if map_node:
         # node to separate out
         fisher_z_score = pe.MapNode(
-            util.Function(
+            Function(
                 input_names=["correlation_file", "timeseries_one_d", "input_name"],
                 output_names=["out_file"],
                 function=compute_fisher_z_score,
@@ -410,7 +410,7 @@ def get_fisher_zscore(input_name, map_node=False, wf_name="fisher_z_score"):
         )
     else:
         fisher_z_score = pe.Node(
-            util.Function(
+            Function(
                 input_names=["correlation_file", "timeseries_one_d", "input_name"],
                 output_names=["out_file"],
                 function=compute_fisher_z_score,

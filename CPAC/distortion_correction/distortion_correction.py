@@ -131,7 +131,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
         == "AFNI"
     ):
         skullstrip_args = pe.Node(
-            util.Function(
+            Function(
                 input_names=["shrink_fac"],
                 output_names=["expr"],
                 function=create_afni_arg,
@@ -667,7 +667,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
         "import sys",
     ]
     phase_encoding = pe.Node(
-        util.Function(
+        Function(
             input_names=[
                 "unwarp_dir",
                 "phase_one",
@@ -710,7 +710,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
 
     topup_imports = ["import os", "import subprocess"]
     run_topup = pe.Node(
-        util.Function(
+        Function(
             input_names=["merged_file", "acqparams"],
             output_names=[
                 "out_fieldcoef",
@@ -732,7 +732,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(phase_encoding, "acq_params", run_topup, "acqparams")
 
     choose_phase = pe.Node(
-        util.Function(
+        Function(
             input_names=["phase_imgs", "unwarp_dir"],
             output_names=["out_phase_image", "vnum"],
             function=choose_phase_image,
@@ -746,7 +746,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, choose_phase, "unwarp_dir")
 
     vnum_base = pe.Node(
-        util.Function(
+        Function(
             input_names=[
                 "vnum",
                 "motion_mat_list",
@@ -797,7 +797,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     name = "PhaseTwo_aw"
 
     vnum_base_two = pe.Node(
-        util.Function(
+        Function(
             input_names=[
                 "vnum",
                 "motion_mat_list",
@@ -840,7 +840,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     name = "PhaseOne_aw"
 
     vnum_base_one = pe.Node(
-        util.Function(
+        Function(
             input_names=[
                 "vnum",
                 "motion_mat_list",
