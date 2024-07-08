@@ -16,7 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Function interfaces for seg_preproc."""
 
-from CPAC.utils.interfaces import Function
+from CPAC.utils.interfaces.function.function import Function
 
 
 def pick_tissue_from_labels_file_interface(input_names=None):
