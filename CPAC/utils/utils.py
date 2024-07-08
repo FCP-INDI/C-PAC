@@ -473,122 +473,161 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
     return out_file
 
 
-@overload
-def fetch(
-    scan_parameters: dict,
-    subject: Optional[str] = None,
-    scan: Optional[str] = None,
-    keys: Optional[list[str]] = None,
-    *,
-    match_case: Literal[False],
-) -> Any: ...
-@overload
-def fetch(
-    scan_parameters: dict,
-    subject: Optional[str] = None,
-    scan: Optional[str] = None,
-    keys: Optional[list[str]] = None,
-    *,
-    match_case: Literal[True],
-) -> tuple[Any, tuple[str, str]]: ...
-def fetch(scan_parameters, subject, scan, keys, *, match_case=False):
-    """Fetch the first found parameter from a scan params dictionary.
+class ScanParameters:
+    """A dictionary of scan parameters and access methods."""
 
-    Returns
-    -------
-    value
-        The value of the parameter.
-
-    keys, optional
-        The matched keys (only if ``match_case is True``)
-    """
-    if match_case:
-        keys = {key.lower(): key for key in keys}
-        scan_param_keys = {key.lower(): key for key in scan_parameters.keys()}
-        scan_parameters = {key.lower(): value for key, value in scan_parameters.items()}
-    for key in keys:
-        if key in scan_parameters:
-            if match_case:
-                return check(scan_parameters, subject, scan, key, True), (
-                    keys[key],
-                    scan_param_keys[key],
+    def __init__(self, scan_parameters: str | dict, subject_id: str, scan: str):
+        """Initialize ScanParameters dict and metadata."""
+        self.subject = subject_id
+        self.scan = scan
+        if ".json" in scan_parameters:
+            if not os.path.exists(scan_parameters):
+                err = (
+                    "\n[!] WARNING: Scan parameters JSON file listed in your data"
+                    f" configuration file does not exist:\n{scan_parameters}"
                 )
-            return check(scan_parameters, subject, scan, key, True)
-    msg = f"None of {keys} found in {list(scan_parameters.keys())}."
-    raise KeyError(msg)
+                raise FileNotFoundError(err)
+            with open(scan_parameters, "r") as f:
+                self.params: dict = json.load(f)
+        elif isinstance(scan_parameters, dict):
+            self.params = scan_parameters
+        else:
+            err = (
+                "\n\n[!] Could not read the format of the scan parameters "
+                "information included in the data configuration file for "
+                f"the participant {self.subject}.\n\n"
+            )
+            raise OSError(err)
 
+    def check(self, val_to_check: str, throw_exception: bool):
+        """Check that a value is populated for a given key in a parameters dictionary."""
+        if val_to_check not in self.params:
+            if throw_exception:
+                msg = f"Missing Value for {val_to_check} for participant {self.subject}"
+                raise ValueError(msg)
+            return None
 
-def fetch_and_convert(
-    scan_parameters: dict,
-    subject: str,
-    scan: str,
-    keys: list[str],
-    convert_to: type,
-    fallback: Optional[Any] = None,
-    warn_typeerror: bool = True,
-) -> Any:
-    """Fetch a parameter from a scan params dictionary and convert it to a given type.
+        if isinstance(self.params[val_to_check], dict):
+            ret_val = self.params[val_to_check][self.scan]
+        else:
+            ret_val = self.params[val_to_check]
 
-    Catch TypeError exceptions and return a fallback value in those cases.
+        if ret_val == "None":
+            if throw_exception:
+                msg = (
+                    f"'None' parameter value for {val_to_check} for"
+                    f" participant {self.subject}."
+                )
+                raise ValueError(msg)
+            ret_val = None
 
-    Parameters
-    ----------
-    scan_parameters
-        dictionary of scan metadata
+        if ret_val == "" and throw_exception:
+            msg = f"Missing value for {val_to_check} for participant {self.subject}."
+            raise ValueError(msg)
 
-    subject
-        the subject ID
+        return ret_val
 
-    scan
-        the scan ID
+    @overload
+    def fetch(
+        self,
+        keys: Optional[list[str]] = None,
+        *,
+        match_case: Literal[False],
+    ) -> Any: ...
+    @overload
+    def fetch(
+        self,
+        keys: Optional[list[str]] = None,
+        *,
+        match_case: Literal[True],
+    ) -> tuple[Any, tuple[str, str]]: ...
+    def fetch(self, keys, *, match_case=False):
+        """Fetch the first found parameter from a scan params dictionary.
 
-    keys
-        if multiple keys provided, the value corresponding to the first found will be
-        returned
+        Returns
+        -------
+        value
+            The value of the parameter.
 
-    convert_to
-        the type to return if possible
+        keys, optional
+            The matched keys (only if ``match_case is True``)
+        """
+        if match_case:
+            keys = {key.lower(): key for key in keys}
+            scan_param_keys = {key.lower(): key for key in self.params.keys()}
+            scan_parameters = {key.lower(): value for key, value in self.params.items()}
+        else:
+            scan_parameters = self.params
+        for key in keys:
+            if key in scan_parameters:
+                if match_case:
+                    return self.check(key, True), (
+                        keys[key],
+                        scan_param_keys[key],
+                    )
+                return self.check(key, True)
+        msg = f"None of {keys} found in {list(scan_parameters.keys())}."
+        raise KeyError(msg)
 
-    fallback
-        a value to return if the keys are not found in ``scan_parameters``
+    def fetch_and_convert(
+        self,
+        keys: list[str],
+        convert_to: Optional[type] = None,
+        fallback: Optional[Any] = None,
+        warn_typeerror: bool = True,
+    ) -> Any:
+        """Fetch a parameter from a scan params dictionary and convert it to a given type.
 
-    warn_typeerror
-        log a warning if value cannot be converted to ``convert_to`` type?
+        Catch TypeError exceptions and return a fallback value in those cases.
 
-    Returns
-    -------
-    value
-        The gathered parameter coerced to the specified type, if possible.
-        ``fallback`` otherwise.
-    """
-    value: Any = fallback
-    fallback_message = f"Falling back to {fallback} ({type(fallback)})."
+        Parameters
+        ----------
+        keys
+            if multiple keys provided, the value corresponding to the first found will be
+            returned
 
-    try:
-        raw_value = fetch(scan_parameters, subject, scan, keys)
-    except KeyError:
+        convert_to
+            the type to return if possible
+
+        fallback
+            a value to return if the keys are not found in ``scan_parameters``
+
+        warn_typeerror
+            log a warning if value cannot be converted to ``convert_to`` type?
+
+        Returns
+        -------
+        value
+            The gathered parameter coerced to the specified type, if possible.
+            ``fallback`` otherwise.
+        """
+        value: Any = fallback
+        fallback_message = f"Falling back to {fallback} ({type(fallback)})."
+
         try:
-            raw_value, matched_keys = fetch(
-                scan_parameters, subject, scan, keys, match_case=True
-            )
+            raw_value = self.fetch(keys)
         except KeyError:
+            try:
+                raw_value, matched_keys = self.fetch(keys, match_case=True)
+            except KeyError:
+                WFLOGGER.warning(
+                    f"None of {keys} found in {list(self.params.keys())}. "
+                    f"{fallback_message}"
+                )
+                return fallback
             WFLOGGER.warning(
-                f"None of {keys} found in {list(scan_parameters.keys())}. "
-                f"{fallback_message}"
+                f"None exact match found. Using case-insenitive match: '{matched_keys[0]}'"
+                f" ≅ '{matched_keys[1]}'."
             )
-            return fallback
-        WFLOGGER.warning(
-            f"None exact match found. Using case-insenitive match: '{matched_keys[0]}'"
-            f" ≅ '{matched_keys[1]}'."
-        )
-    try:
-        value = convert_to(raw_value)
-    except TypeError:
-        if warn_typeerror:
-            WFLOGGER.warning(
-                f"Could not convert {value} to {convert_to}. {fallback_message}"
-            )
-    return value
+        if convert_to:
+            try:
+                value = convert_to(raw_value)
+            except TypeError:
+                if warn_typeerror:
+                    WFLOGGER.warning(
+                        f"Could not convert {value} to {convert_to}. {fallback_message}"
+                    )
+        return value
 
 
 def get_operand_string(mean, std_dev):
@@ -676,35 +715,6 @@ def correlation(matrix1, matrix2, match_rows=False, z_scored=False, symmetric=Fa
     return r
 
 
-def check(params_dct, subject_id, scan_id, val_to_check, throw_exception):
-    """Check that a value is populated for a given key in a parameters dictionary."""
-    if val_to_check not in params_dct:
-        if throw_exception:
-            msg = f"Missing Value for {val_to_check} for participant {subject_id}"
-            raise ValueError(msg)
-        return None
-
-    if isinstance(params_dct[val_to_check], dict):
-        ret_val = params_dct[val_to_check][scan_id]
-    else:
-        ret_val = params_dct[val_to_check]
-
-    if ret_val == "None":
-        if throw_exception:
-            msg = (
-                f"'None' Parameter Value for {val_to_check} for"
-                f" participant {subject_id}"
-            )
-            raise ValueError(msg)
-        ret_val = None
-
-    if ret_val == "" and throw_exception:
-        msg = f"Missing Value for {val_to_check} for participant {subject_id}"
-        raise ValueError(msg)
-
-    return ret_val
-
-
 def check_random_state(seed):
     """
     Turn seed into a np.random.RandomState instance.
@@ -735,7 +745,7 @@ def check_random_state(seed):
         "import json",
         "import os",
         "from typing import Literal, Optional",
-        "from CPAC.utils.utils import fetch_and_convert, PE_DIRECTION, VALID_PATTERNS",
+        "from CPAC.utils.utils import ScanParameters, PE_DIRECTION, VALID_PATTERNS",
     ]
 )
 def get_scan_params(
@@ -795,57 +805,32 @@ def get_scan_params(
     if isinstance(pipeconfig_stop_indx, str):
         if "End" in pipeconfig_stop_indx or "end" in pipeconfig_stop_indx:
             pipeconfig_stop_indx = None
-    if data_config_scan_params:
-        if ".json" in data_config_scan_params:
-            if not os.path.exists(data_config_scan_params):
-                err = (
-                    "\n[!] WARNING: Scan parameters JSON file listed in your data"
-                    f" configuration file does not exist:\n{data_config_scan_params}"
-                )
-                raise FileNotFoundError(err)
-            with open(data_config_scan_params, "r") as f:
-                params_dct: dict = json.load(f)
-        elif isinstance(data_config_scan_params, dict):
-            params_dct = data_config_scan_params
-        else:
-            err = (
-                "\n\n[!] Could not read the format of the scan parameters "
-                "information included in the data configuration file for "
-                f"the participant {subject_id}.\n\n"
-            )
-            raise OSError(err)
-        # TODO: better handling of errant key values!!!
-        # TODO: use schema validator to deal with it
-        # get details from the configuration
-        tr: float | Literal[""] = fetch_and_convert(
-            params_dct, subject_id, scan, ["RepetitionTime", "TR"], float, ""
-        )
-        template: Optional[str] = fetch_and_convert(
-            params_dct, subject_id, scan, ["Template", "template"], str
-        )
-        pattern: Optional[str] = fetch_and_convert(
-            params_dct,
-            subject_id,
-            scan,
-            ["acquisition", "SliceTiming", "SliceAcquisitionOrder"],
-            str,
-            None,
-        )
-        ref_slice: Optional[int | str] = fetch_and_convert(
-            params_dct, subject_id, scan, ["reference"], int, None
-        )
-        first_tr: Optional[int | str] = fetch_and_convert(
-            params_dct, subject_id, scan, ["first_TR"], int, pipeconfig_start_indx
-        )
-        last_tr: Optional[int | str] = fetch_and_convert(
-            params_dct, subject_id, scan, ["last_TR"], int, pipeconfig_stop_indx
-        )
-        pe_direction: PE_DIRECTION = fetch_and_convert(
-            params_dct, subject_id, scan, ["PhaseEncodingDirection"], str, ""
-        )
-        effective_echo_spacing: Optional[float] = fetch_and_convert(
-            params_dct, subject_id, scan, ["EffectiveEchoSpacing"], float
-        )
+    params = ScanParameters(data_config_scan_params, subject_id, scan)
+    # TODO: better handling of errant key values!!!
+    # TODO: use schema validator to deal with it
+    # get details from the configuration
+    tr: float | Literal[""] = params.fetch_and_convert(
+        ["RepetitionTime", "TR"], float, ""
+    )
+    template: Optional[str] = params.fetch_and_convert(["Template", "template"], str)
+    pattern: Optional[str] = params.fetch_and_convert(
+        ["acquisition", "SliceTiming", "SliceAcquisitionOrder"],
+        str,
+        None,
+    )
+    ref_slice: Optional[int | str] = params.fetch_and_convert(["reference"], int, None)
+    first_tr: Optional[int | str] = params.fetch_and_convert(
+        ["first_TR"], int, pipeconfig_start_indx
+    )
+    last_tr: Optional[int | str] = params.fetch_and_convert(
+        ["last_TR"], int, pipeconfig_stop_indx
+    )
+    pe_direction: PE_DIRECTION = params.fetch_and_convert(
+        ["PhaseEncodingDirection"], str, ""
+    )
+    effective_echo_spacing: Optional[float] = params.fetch_and_convert(
+        ["EffectiveEchoSpacing"], float
+    )
 
     """
     if not pattern:
