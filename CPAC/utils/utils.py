@@ -533,6 +533,7 @@ class ScanParameters:
         keys: Optional[list[str]] = None,
         *,
         match_case: Literal[False],
+        throw_exception: bool,
     ) -> Any: ...
     @overload
     def fetch(
@@ -540,8 +541,9 @@ class ScanParameters:
         keys: Optional[list[str]] = None,
         *,
         match_case: Literal[True],
+        throw_exception: bool,
     ) -> tuple[Any, tuple[str, str]]: ...
-    def fetch(self, keys, *, match_case=False):
+    def fetch(self, keys, *, match_case=False, throw_exception=True):
         """Fetch the first found parameter from a scan params dictionary.
 
         Returns
@@ -551,6 +553,9 @@ class ScanParameters:
 
         keys, optional
             The matched keys (only if ``match_case is True``)
+
+        throw_exception
+            Raise an exception if value is ``""`` or ``None``?
         """
         if match_case:
             keys = {key.lower(): key for key in keys}
@@ -561,11 +566,11 @@ class ScanParameters:
         for key in keys:
             if key in scan_parameters:
                 if match_case:
-                    return self.check(key, True), (
+                    return self.check(key, throw_exception), (
                         keys[key],
                         scan_param_keys[key],
                     )
-                return self.check(key, True)
+                return self.check(key, throw_exception)
         msg = f"None of {keys} found in {list(scan_parameters.keys())}."
         raise KeyError(msg)
 
@@ -575,6 +580,7 @@ class ScanParameters:
         convert_to: Optional[type] = None,
         fallback: Optional[Any] = None,
         warn_typeerror: bool = True,
+        throw_exception: bool = False,
     ) -> Any:
         """Fetch a parameter from a scan params dictionary and convert it to a given type.
 
@@ -595,6 +601,9 @@ class ScanParameters:
         warn_typeerror
             log a warning if value cannot be converted to ``convert_to`` type?
 
+        throw_exception
+            raise an error for empty string or NoneTypes?
+
         Returns
         -------
         value
@@ -605,10 +614,12 @@ class ScanParameters:
         fallback_message = f"Falling back to {fallback} ({type(fallback)})."
 
         try:
-            raw_value = self.fetch(keys)
+            raw_value = self.fetch(keys, throw_exception=throw_exception)
         except KeyError:
             try:
-                raw_value, matched_keys = self.fetch(keys, match_case=True)
+                raw_value, matched_keys = self.fetch(
+                    keys, match_case=True, throw_exception=throw_exception
+                )
             except KeyError:
                 WFLOGGER.warning(
                     f"None of {keys} found in {list(self.params.keys())}. "
@@ -622,7 +633,7 @@ class ScanParameters:
         if convert_to:
             try:
                 value = convert_to(raw_value)
-            except TypeError:
+            except (TypeError, ValueError):
                 if warn_typeerror:
                     WFLOGGER.warning(
                         f"Could not convert {value} to {convert_to}. {fallback_message}"
@@ -820,10 +831,10 @@ def get_scan_params(
     )
     ref_slice: Optional[int | str] = params.fetch_and_convert(["reference"], int, None)
     first_tr: Optional[int | str] = params.fetch_and_convert(
-        ["first_TR"], int, pipeconfig_start_indx
+        ["first_TR"], int, pipeconfig_start_indx, False
     )
     last_tr: Optional[int | str] = params.fetch_and_convert(
-        ["last_TR"], int, pipeconfig_stop_indx
+        ["last_TR"], int, pipeconfig_stop_indx, False
     )
     pe_direction: PE_DIRECTION = params.fetch_and_convert(
         ["PhaseEncodingDirection"], str, ""

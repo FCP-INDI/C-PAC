@@ -10,6 +10,7 @@ from CPAC.func_preproc import get_motion_ref
 from CPAC.pipeline.nodeblock import NodeBlockFunction
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring.custom_logging import log_subprocess
+from CPAC.utils.tests import old_functions
 from CPAC.utils.utils import (
     check_config_resources,
     check_system_deps,
@@ -30,10 +31,18 @@ SCAN_PARAMS = {
             "tr": 2.5,
             "acquisition": "seq+z",
             "reference": "24",
-            "first_tr": "",
-            "last_tr": "",
+            "first_TR": 1,
+            "last_TR": "",
         },
         "expected_TR": 2.5,
+    },
+    "nested": {
+        "params": {
+            "TR": {"scan": 3},
+            "first_TR": {"scan": 0},
+            "last_TR": {"scan": 450},
+        },
+        "expected_TR": 3,
     },
 }
 
@@ -78,7 +87,7 @@ def test_check_config_resources():
     assert "threads available (2)" in error_string
 
 
-@pytest.mark.parametrize("scan_params", ["BIDS", "C-PAC"])
+@pytest.mark.parametrize("scan_params", ["BIDS", "C-PAC", "nested"])
 @pytest.mark.parametrize("convert_to", [int, float, str])
 def test_fetch_and_convert(
     caplog: LogCaptureFixture, scan_params: str, convert_to: type
@@ -89,8 +98,25 @@ def test_fetch_and_convert(
         keys=["TR", "RepetitionTime"],
         convert_to=convert_to,
     )
-    assert (TR == convert_to(SCAN_PARAMS[scan_params]["expected_TR"])) and isinstance(
-        TR, convert_to
+    if TR and "RepetitionTime" in params.params:
+        old_TR = convert_to(
+            old_functions.check(
+                params.params, params.subject, params.scan, "RepetitionTime", False
+            )
+        )
+        assert TR == old_TR
+    try:
+        old_TR = convert_to(
+            old_functions.try_fetch_parameter(
+                params.params, params.subject, params.scan, ["TR", "RepetitionTime"]
+            )
+        )
+    except TypeError:
+        old_TR = None
+    assert (
+        (TR == convert_to(SCAN_PARAMS[scan_params]["expected_TR"]))
+        and isinstance(TR, convert_to)
+        and TR == old_TR
     )
     if scan_params == "C-PAC":
         assert "Using case-insenitive match: 'TR' ≅ 'tr'." in caplog.text
@@ -101,6 +127,22 @@ def test_fetch_and_convert(
         convert_to=convert_to,
     )
     assert not_TR is None
+    if "first_TR" in params.params:
+        first_tr = params.fetch_and_convert(["first_TR"], int, 1, False)
+        old_first_tr = old_functions.check(
+            params.params, params.subject, params.scan, "first_TR", False
+        )
+        if old_first_tr:
+            old_first_tr = old_functions.check2(old_first_tr)
+        assert first_tr == old_first_tr
+    if "last_TR" in params.params:
+        last_tr = params.fetch_and_convert(["last_TR"], int, "", False)
+        old_last_tr = old_functions.check(
+            params.params, params.subject, params.scan, "last_TR", False
+        )
+        if old_last_tr:
+            old_last_tr = old_functions.check2(old_last_tr)
+        assert last_tr == old_last_tr
 
 
 @pytest.mark.parametrize("executable", ["Xvfb"])
