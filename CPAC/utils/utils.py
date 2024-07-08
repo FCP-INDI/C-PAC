@@ -476,6 +476,7 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
 @overload
 def fetch(
     scan_parameters: dict,
+    subject: Optional[str] = None,
     scan: Optional[str] = None,
     keys: Optional[list[str]] = None,
     *,
@@ -484,12 +485,13 @@ def fetch(
 @overload
 def fetch(
     scan_parameters: dict,
+    subject: Optional[str] = None,
     scan: Optional[str] = None,
     keys: Optional[list[str]] = None,
     *,
     match_case: Literal[True],
 ) -> tuple[Any, tuple[str, str]]: ...
-def fetch(scan_parameters, scan, keys, *, match_case=False):
+def fetch(scan_parameters, subject, scan, keys, *, match_case=False):
     """Fetch the first found parameter from a scan params dictionary.
 
     Returns
@@ -507,25 +509,51 @@ def fetch(scan_parameters, scan, keys, *, match_case=False):
     for key in keys:
         if key in scan_parameters:
             if match_case:
-                return check(scan_parameters, None, scan, key, True), (
+                return check(scan_parameters, subject, scan, key, True), (
                     keys[key],
                     scan_param_keys[key],
                 )
-            return check(scan_parameters, None, scan, key, True)
+            return check(scan_parameters, subject, scan, key, True)
     msg = f"None of {keys} found in {list(scan_parameters.keys())}."
     raise KeyError(msg)
 
 
 def fetch_and_convert(
     scan_parameters: dict,
+    subject: str,
     scan: str,
     keys: list[str],
     convert_to: type,
     fallback: Optional[Any] = None,
+    warn_typeerror: bool = True,
 ) -> Any:
     """Fetch a parameter from a scan params dictionary and convert it to a given type.
 
     Catch TypeError exceptions and return a fallback value in those cases.
+
+    Parameters
+    ----------
+    scan_parameters
+        dictionary of scan metadata
+
+    subject
+        the subject ID
+
+    scan
+        the scan ID
+
+    keys
+        if multiple keys provided, the value corresponding to the first found will be
+        returned
+
+    convert_to
+        the type to return if possible
+
+    fallback
+        a value to return if the keys are not found in ``scan_parameters``
+
+    warn_typeerror
+        log a warning if value cannot be converted to ``convert_to`` type?
 
     Returns
     -------
@@ -537,11 +565,11 @@ def fetch_and_convert(
     fallback_message = f"Falling back to {fallback} ({type(fallback)})."
 
     try:
-        raw_value = fetch(scan_parameters, scan, keys)
+        raw_value = fetch(scan_parameters, subject, scan, keys)
     except KeyError:
         try:
             raw_value, matched_keys = fetch(
-                scan_parameters, scan, keys, match_case=True
+                scan_parameters, subject, scan, keys, match_case=True
             )
         except KeyError:
             WFLOGGER.warning(
@@ -556,9 +584,10 @@ def fetch_and_convert(
     try:
         value = convert_to(raw_value)
     except TypeError:
-        WFLOGGER.warning(
-            f"Could not convert {value} to {convert_to}. {fallback_message}"
-        )
+        if warn_typeerror:
+            WFLOGGER.warning(
+                f"Could not convert {value} to {convert_to}. {fallback_message}"
+            )
     return value
 
 
@@ -705,13 +734,14 @@ def check_random_state(seed):
     [
         "import json",
         "import os",
-        "from CPAC.utils.utils import check, fetch_and_convert," " VALID_PATTERNS",
+        "from typing import Literal, Optional",
+        "from CPAC.utils.utils import fetch_and_convert, PE_DIRECTION, VALID_PATTERNS",
     ]
 )
 def get_scan_params(
     subject_id: str,
     scan: str,
-    pipeconfig_start_indx: int,
+    pipeconfig_start_indx: Optional[int | str],
     pipeconfig_stop_indx: Optional[int | str],
     data_config_scan_params: Optional[dict | str] = None,
 ) -> tuple[
@@ -742,7 +772,7 @@ def get_scan_params(
 
     Returns
     -------
-    TR
+    tr
         TR value
     tpattern
         slice aquisition pattern string or file path
@@ -757,12 +787,8 @@ def get_scan_params(
     effective_echo_spacing
         https://bids-specification.readthedocs.io/en/stable/glossary.html#effectiveechospacing-metadata
     """
-
-    def check2(val):
-        return val if val is None or val == "" or isinstance(val, str) else int(val)
-
     # initialize vars to empty
-    TR = pattern = ref_slice = first_tr = last_tr = pe_direction = ""
+    tr = pattern = ref_slice = first_tr = last_tr = pe_direction = ""
     unit: Literal["ms", "s"] = "s"
     effective_echo_spacing = template = None
 
@@ -777,78 +803,10 @@ def get_scan_params(
                     f" configuration file does not exist:\n{data_config_scan_params}"
                 )
                 raise FileNotFoundError(err)
-
             with open(data_config_scan_params, "r") as f:
-                params_dct = json.load(f)
-
-            # get details from the configuration
-            # if this is a JSON file, the key values are the BIDS format
-            # standard
-            # TODO: better handling of errant key values!!!
-            if "RepetitionTime" in params_dct.keys():
-                TR = float(check(params_dct, subject_id, scan, "RepetitionTime", False))
-            if "SliceTiming" in params_dct.keys():
-                pattern = str(check(params_dct, subject_id, scan, "SliceTiming", False))
-            elif "SliceAcquisitionOrder" in params_dct.keys():
-                pattern = str(
-                    check(params_dct, subject_id, scan, "SliceAcquisitionOrder", False)
-                )
-            if "PhaseEncodingDirection" in params_dct.keys():
-                pe_direction = str(
-                    check(params_dct, subject_id, scan, "PhaseEncodingDirection", False)
-                )
-            try:
-                "EffectiveEchoSpacing" in params_dct.keys()
-                effective_echo_spacing = float(
-                    check(params_dct, subject_id, scan, "EffectiveEchoSpacing", False)
-                )
-            except TypeError:
-                pass
-
-        elif len(data_config_scan_params) > 0 and isinstance(
-            data_config_scan_params, dict
-        ):
+                params_dct: dict = json.load(f)
+        elif isinstance(data_config_scan_params, dict):
             params_dct = data_config_scan_params
-
-            # TODO: better handling of errant key values!!!
-            # TODO: use schema validator to deal with it
-            # get details from the configuration
-            TR: Optional[float] = fetch_and_convert(
-                params_dct, scan, ["TR", "RepetitionTime"], float, None
-            )
-            template: Optional[str] = fetch_and_convert(
-                params_dct, scan, ["Template", "template"], str, None
-            )
-
-            pattern: str = fetch_and_convert(
-                params_dct,
-                scan,
-                ["acquisition", "SliceTiming", "SliceAcquisitionOrder"],
-                str,
-                "",
-            )
-
-            ref_slice: Optional[int] = fetch_and_convert(
-                params_dct, scan, ["reference"], int, None
-            )
-
-            first_tr = check(params_dct, subject_id, scan, "first_TR", False)
-            first_tr = check2(first_tr) if first_tr else first_tr
-
-            last_tr = check(params_dct, subject_id, scan, "last_TR", False)
-            last_tr = check2(last_tr) if last_tr else last_tr
-
-            pe_direction = check(
-                params_dct, subject_id, scan, "PhaseEncodingDirection", False
-            )
-            effective_echo_spacing = fetch_and_convert(
-                params_dct,
-                scan,
-                ["EffectiveEchoSpacing"],
-                float,
-                effective_echo_spacing,
-            )
-
         else:
             err = (
                 "\n\n[!] Could not read the format of the scan parameters "
@@ -856,9 +814,38 @@ def get_scan_params(
                 f"the participant {subject_id}.\n\n"
             )
             raise OSError(err)
-    first_tr = pipeconfig_start_indx if first_tr == "" or first_tr is None else first_tr
-    last_tr = pipeconfig_stop_indx if last_tr == "" or last_tr is None else last_tr
-    pattern = None if "None" in pattern or "none" in pattern else pattern
+        # TODO: better handling of errant key values!!!
+        # TODO: use schema validator to deal with it
+        # get details from the configuration
+        tr: float | Literal[""] = fetch_and_convert(
+            params_dct, subject_id, scan, ["RepetitionTime", "TR"], float, ""
+        )
+        template: Optional[str] = fetch_and_convert(
+            params_dct, subject_id, scan, ["Template", "template"], str
+        )
+        pattern: Optional[str] = fetch_and_convert(
+            params_dct,
+            subject_id,
+            scan,
+            ["acquisition", "SliceTiming", "SliceAcquisitionOrder"],
+            str,
+            None,
+        )
+        ref_slice: Optional[int | str] = fetch_and_convert(
+            params_dct, subject_id, scan, ["reference"], int, None
+        )
+        first_tr: Optional[int | str] = fetch_and_convert(
+            params_dct, subject_id, scan, ["first_TR"], int, pipeconfig_start_indx
+        )
+        last_tr: Optional[int | str] = fetch_and_convert(
+            params_dct, subject_id, scan, ["last_TR"], int, pipeconfig_stop_indx
+        )
+        pe_direction: PE_DIRECTION = fetch_and_convert(
+            params_dct, subject_id, scan, ["PhaseEncodingDirection"], str, ""
+        )
+        effective_echo_spacing: Optional[float] = fetch_and_convert(
+            params_dct, subject_id, scan, ["EffectiveEchoSpacing"], float
+        )
 
     """
     if not pattern:
@@ -934,26 +921,26 @@ def get_scan_params(
         slice_timings.sort()
         max_slice_offset = slice_timings[-1]
 
-        # checking if the unit of TR and slice timing match or not
-        # if slice timing in ms convert TR to ms as well
-        if TR and max_slice_offset > TR:
+        # checking if the unit of tr and slice timing match or not
+        # if slice timing in ms convert tr to ms as well
+        if tr and max_slice_offset > tr:
             WFLOGGER.warning(
-                "TR is in seconds and slice timings are in "
-                "milliseconds. Converting TR into milliseconds"
+                "tr is in seconds and slice timings are in "
+                "milliseconds. Converting tr into milliseconds"
             )
-            TR = TR * 1000
-            WFLOGGER.info("New TR value %s ms", TR)
+            tr = tr * 1000
+            WFLOGGER.info("New tr value %s ms", tr)
             unit = "ms"
 
-    elif TR and TR > 10:  # noqa: PLR2004
-        # check to see, if TR is in milliseconds, convert it into seconds
-        WFLOGGER.warning("TR is in milliseconds, Converting it into seconds")
-        TR = TR / 1000.0
-        WFLOGGER.info("New TR value %s s", TR)
+    elif tr and tr > 10:  # noqa: PLR2004
+        # check to see, if tr is in milliseconds, convert it into seconds
+        WFLOGGER.warning("tr is in milliseconds, Converting it into seconds")
+        tr = tr / 1000.0
+        WFLOGGER.info("New tr value %s s", tr)
         unit = "s"
 
     # swap back in
-    tr = f"{TR!s}{unit}" if TR else ""
+    tr = f"{tr!s}{unit}" if tr else ""
     tpattern = pattern
     start_indx = first_tr
     stop_indx = last_tr
