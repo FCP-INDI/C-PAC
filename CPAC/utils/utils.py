@@ -808,10 +808,7 @@ def get_scan_params(
     effective_echo_spacing
         https://bids-specification.readthedocs.io/en/stable/glossary.html#effectiveechospacing-metadata
     """
-    # initialize vars to empty
-    tr = pattern = ref_slice = first_tr = last_tr = pe_direction = ""
     unit: Literal["ms", "s"] = "s"
-    effective_echo_spacing = template = None
 
     if isinstance(pipeconfig_stop_indx, str):
         if "End" in pipeconfig_stop_indx or "end" in pipeconfig_stop_indx:
