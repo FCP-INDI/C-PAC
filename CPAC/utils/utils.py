@@ -921,18 +921,18 @@ def get_scan_params(
         # if slice timing in ms convert tr to ms as well
         if tr and max_slice_offset > tr:
             WFLOGGER.warning(
-                "tr is in seconds and slice timings are in "
-                "milliseconds. Converting tr into milliseconds"
+                "TR is in seconds and slice timings are in "
+                "milliseconds. Converting TR into milliseconds"
             )
             tr = tr * 1000
             WFLOGGER.info("New tr value %s ms", tr)
             unit = "ms"
 
     elif tr and tr > 10:  # noqa: PLR2004
-        # check to see, if tr is in milliseconds, convert it into seconds
-        WFLOGGER.warning("tr is in milliseconds, Converting it into seconds")
+        # check to see, if TR is in milliseconds, convert it into seconds
+        WFLOGGER.warning("TR is in milliseconds, Converting it into seconds")
         tr = tr / 1000.0
-        WFLOGGER.info("New tr value %s s", tr)
+        WFLOGGER.info("New TR value %s s", tr)
         unit = "s"
 
     # swap back in
