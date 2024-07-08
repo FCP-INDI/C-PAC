@@ -101,7 +101,13 @@ class NodeData:
         return f'{getattr(self.node, "name", str(self.node))} ({self.out})'
 
 
+class Resource:
+    """A single Resource and its methods."""
+
+
 class ResourcePool:
+    """All Resources."""
+
     def __init__(self, rpool=None, name=None, cfg=None, pipe_list=None):
         if not rpool:
             self.rpool = {}
@@ -1521,3 +1527,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     # output files with 4 different scans
 
     return (wf, rpool)
+
+
+class StratPool(ResourcePool):
+    """All resources for a strategy."""
