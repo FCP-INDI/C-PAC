@@ -165,7 +165,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
         == "BET"
     ):
         bet = pe.Node(
-            interface=fsl.BET(), name="distcor_phasediff_bet_skullstrip_{pipe_num}"
+            interface=fsl.BET(), name=f"distcor_phasediff_bet_skullstrip_{pipe_num}"
         )
         bet.inputs.output_type = "NIFTI_GZ"
         bet.inputs.frac = cfg.functional_preproc["distortion_correction"]["PhaseDiff"][
