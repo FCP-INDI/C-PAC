@@ -172,6 +172,7 @@ ISRELEASE = _version_extra == ""
 VERSION = __version__
 STATUS = "stable"
 REQUIREMENTS = [
+    "bids2table",
     "boto3",
     "ciftify @ git+https://git@github.com/fcp-indi/ciftify#egg=ciftify",
     "click",
