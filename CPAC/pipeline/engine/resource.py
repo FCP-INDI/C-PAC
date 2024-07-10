@@ -17,12 +17,14 @@
 """Resources and ResourcePools for C-PAC."""
 
 import ast
+from collections.abc import KeysView
 import copy
 from itertools import chain
 import os
 from pathlib import Path
 import re
-from typing import Optional
+from types import NoneType
+from typing import Any, Optional
 import warnings
 
 from nipype.interfaces import utility as util
@@ -39,7 +41,7 @@ from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
 from CPAC.registration.registration import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
 from CPAC.utils.bids_utils import res_in_filename
-from CPAC.utils.configuration import Configuration
+from CPAC.utils.configuration.configuration import Configuration, EmptyConfiguration
 from CPAC.utils.datasource import (
     calc_delta_te_and_asym_ratio,
     check_for_s3,
@@ -69,6 +71,78 @@ from CPAC.utils.utils import (
 )
 
 EXTS = [".nii", ".gz", ".mat", ".1D", ".txt", ".csv", ".rms", ".tsv"]
+
+
+class DataPaths:
+    """Store subject-session specific data paths."""
+
+    def __init__(self, *, data_paths: Optional[dict] = None, part_id: str = "") -> None:
+        """Initialize a ``DataPaths`` instance."""
+        if not data_paths:
+            data_paths = {}
+        if part_id and "part_id" in data_paths and part_id != data_paths["part_id"]:
+            WFLOGGER.warning(
+                "both 'part_id' (%s) and data_paths['part_id'] (%s) provided. "
+                "Using '%s'.",
+                part_id,
+                data_paths["part_id"],
+                part_id,
+            )
+        anat: dict[str, str] | str = data_paths.get("anat", {})
+        if isinstance(anat, str):
+            anat = {"T1": anat}
+        self.anat: dict[str, str] = anat
+        self.creds_path: Optional[str] = data_paths.get("creds_path")
+        self.fmap: Optional[dict] = data_paths.get("fmap")
+        self.func: dict[str, dict[str, str | dict]] = data_paths.get("func", {})
+        self.part_id: str = data_paths.get("subject_id", "")
+        self.site_id: str = data_paths.get("site_id", "")
+        self.ses_id: str = data_paths.get("unique_id", "")
+        self.unique_id: str = "_".join([self.part_id, self.ses_id])
+        self.derivatives_dir: Optional[str] = data_paths.get("derivatives_dir")
+
+    def __repr__(self) -> str:
+        """Return reproducible string representation of ``DataPaths`` instance."""
+        return f"DataPaths(data_paths={self.as_dict()})"
+
+    def __str__(self) -> str:
+        """Return string representation of a ``DataPaths`` instance."""
+        return f"<DataPaths({self.unique_id})>"
+
+    def as_dict(self) -> dict:
+        """Return ``data_paths`` dictionary.
+
+        data_paths format::
+
+           {"anat": {"T1w": "{T1w path}", "T2w": "{T2w path}"},
+            "creds_path": {None OR path to credentials CSV},
+            "func": {
+                "{scan ID}": {
+                    "scan": "{path to BOLD}",
+                    "scan_parameters": {scan parameter dictionary},
+                }
+            },
+            "site_id": "site-ID",
+            "subject_id": "sub-01",
+            "unique_id": "ses-1",
+            "derivatives_dir": "{derivatives_dir path}",}
+        """
+        return {
+            k: v
+            for k, v in {
+                key: getattr(self, key)
+                for key in [
+                    "anat",
+                    "creds_path",
+                    "func",
+                    "site_id",
+                    "subject_id",
+                    "unique_id",
+                    "derivatives_dir",
+                ]
+            }.items()
+            if v
+        }
 
 
 def generate_prov_string(prov: list[str]) -> tuple[str, str]:
@@ -253,30 +327,26 @@ class ResourcePool:
 
     def __init__(
         self,
-        rpool: Optional[dict] = None,
         name: str = "",
         cfg: Optional[Configuration] = None,
         pipe_list: Optional[list] = None,
         *,
-        creds_path: Optional[str] = None,
-        data_paths: Optional[dict] = None,
-        part_id: Optional[str] = None,
-        ses_id: Optional[str] = None,
-        unique_id: Optional[str] = None,
+        data_paths: Optional[DataPaths | dict] = None,
+        pipeline_name: str = "",
         wf: Optional[pe.Workflow] = None,
-        **kwargs,
     ):
         """Initialize a ResourcePool."""
-        self.creds_path = creds_path
+        if isinstance(data_paths, dict):
+            data_paths = DataPaths(data_paths=data_paths)
+        elif not data_paths:
+            data_paths = DataPaths()
         self.data_paths = data_paths
-        self.part_id = part_id
-        self.ses_id = ses_id
-        self.unique_id = unique_id
-        self._init_wf = wf
-        if not rpool:
-            self.rpool = {}
-        else:
-            self.rpool = rpool
+        # pass-through for convenient access
+        self.creds_path = self.data_paths.creds_path
+        self.part_id = self.data_paths.part_id
+        self.ses_id = self.data_paths.ses_id
+        self.unique_id = self.data_paths.unique_id
+        self.rpool = {}
 
         if not pipe_list:
             self.pipe_list = []
@@ -288,36 +358,67 @@ class ResourcePool:
 
         if cfg:
             self.cfg = cfg
-            self.logdir = cfg.pipeline_setup["log_directory"]["path"]
+        else:
+            self.cfg = EmptyConfiguration()
 
-            self.num_cpus = cfg.pipeline_setup["system_config"][
-                "max_cores_per_participant"
+        self.logdir = self._config_lookup(["pipeline_setup", "log_directory", "path"])
+        self.num_cpus = self._config_lookup(
+            ["pipeline_setup", "system_config", "max_cores_per_participant"]
+        )
+        self.num_ants_cores = self._config_lookup(
+            ["pipeline_setup", "system_config", "num_ants_threads"]
+        )
+
+        self.ants_interp = self._config_lookup(
+            [
+                "registration_workflows",
+                "functional_registration",
+                "func_registration_to_template",
+                "ANTs_pipelines",
+                "interpolation",
             ]
-            self.num_ants_cores = cfg.pipeline_setup["system_config"][
-                "num_ants_threads"
+        )
+        self.fsl_interp = self._config_lookup(
+            [
+                "registration_workflows",
+                "functional_registration",
+                "func_registration_to_template",
+                "FNIRT_pipelines",
+                "interpolation",
             ]
-
-            self.ants_interp = cfg.registration_workflows["functional_registration"][
-                "func_registration_to_template"
-            ]["ANTs_pipelines"]["interpolation"]
-            self.fsl_interp = cfg.registration_workflows["functional_registration"][
-                "func_registration_to_template"
-            ]["FNIRT_pipelines"]["interpolation"]
-
-            self.func_reg = cfg.registration_workflows["functional_registration"][
-                "func_registration_to_template"
-            ]["run"]
-
-            self.run_smoothing = (
-                "smoothed" in cfg.post_processing["spatial_smoothing"]["output"]
-            )
-            self.smoothing_bool = cfg.post_processing["spatial_smoothing"]["run"]
-            self.run_zscoring = "z-scored" in cfg.post_processing["z-scoring"]["output"]
-            self.zscoring_bool = cfg.post_processing["z-scoring"]["run"]
-            self.fwhm = cfg.post_processing["spatial_smoothing"]["fwhm"]
-            self.smooth_opts = cfg.post_processing["spatial_smoothing"][
-                "smoothing_method"
+        )
+        self.func_reg = self._config_lookup(
+            [
+                "registration_workflows",
+                "functional_registration",
+                "func_registration_to_template",
+                "run",
             ]
+        )
+
+        self.run_smoothing = "smoothed" in self._config_lookup(
+            ["post_processing", "spatial_smoothing", "output"], list
+        )
+        self.smoothing_bool = self._config_lookup(
+            ["post_processing", "spatial_smoothing", "run"]
+        )
+        self.run_zscoring = "z-scored" in self._config_lookup(
+            ["post_processing", "z-scoring", "output"], list
+        )
+        self.zscoring_bool = self._config_lookup(
+            ["post_processing", "z-scoring", "run"]
+        )
+        self.fwhm = self._config_lookup(
+            ["post_processing", "spatial_smoothing", "fwhm"]
+        )
+        self.smooth_opts = self._config_lookup(
+            ["post_processing", "spatial_smoothing", "smoothing_method"]
+        )
+
+        if wf:
+            self.wf = wf
+        else:
+            self.initialize_nipype_wf(pipeline_name)
 
         self.xfm = [
             "alff",
@@ -333,6 +434,21 @@ class ResourcePool:
             "desc-zstd_reho",
             "desc-sm-zstd_reho",
         ]
+        ingress_derivatives = False
+        try:
+            if self.data_paths.derivatives_dir and self._config_lookup(
+                ["pipeline_setup", "outdir_ingress", "run"], bool
+            ):
+                ingress_derivatives = True
+        except (AttributeError, KeyError, TypeError):
+            pass
+        if ingress_derivatives:
+            self.ingress_output_dir()
+        else:
+            self.ingress_raw_anat_data()
+            if data_paths.func:
+                self.ingress_raw_func_data()
+        self.ingress_pipeconfig_paths()
 
     def __repr__(self) -> str:
         """Return reproducible ResourcePool string."""
@@ -348,6 +464,27 @@ class ResourcePool:
         if self.name:
             return f"ResourcePool({self.name}): {list(self.rpool)}"
         return f"ResourcePool: {list(self.rpool)}"
+
+    def initialize_nipype_wf(self, name: str = "") -> None:
+        """Initialize a new nipype workflow."""
+        if name:
+            name = f"_{name}"
+        workflow_name = f"cpac{name}_{self.unique_id}"
+        self.wf = pe.Workflow(name=workflow_name)
+        self.wf.base_dir = self.cfg.pipeline_setup["working_directory"]["path"]
+        self.wf.config["execution"] = {
+            "hash_method": "timestamp",
+            "crashdump_dir": os.path.abspath(
+                self.cfg.pipeline_setup["log_directory"]["path"]
+            ),
+        }
+
+    def _config_lookup(self, keylist, fallback_type: type = NoneType) -> Any:
+        """Lookup a config key, return None if not found."""
+        try:
+            return self.cfg[keylist]
+        except (AttributeError, KeyError):
+            return fallback_type()
 
     def back_propogate_template_name(
         self, resource_idx: str, json_info: dict, id_string: "pe.Node"
@@ -369,7 +506,7 @@ class ResourcePool:
         if "template" in resource_idx and self.check_rpool("derivatives-dir"):
             if self.check_rpool("template"):
                 node, out = self.get_data("template")
-                self._init_wf.connect(node, out, id_string, "template_desc")
+                self.wf.connect(node, out, id_string, "template_desc")
         elif "Template" in json_info:
             id_string.inputs.template_desc = json_info["Template"]
         elif (
@@ -536,16 +673,12 @@ class ResourcePool:
     def get_entire_rpool(self):
         return self.rpool
 
-    def get_resources(self):
+    def keys(self) -> KeysView:
+        """Return rpool's keys."""
         return self.rpool.keys()
 
-    def copy_rpool(self):
-        return ResourcePool(
-            rpool=copy.deepcopy(self.get_entire_rpool()),
-            name=self.name,
-            cfg=self.cfg,
-            pipe_list=copy.deepcopy(self.pipe_list),
-        )
+    def get_resources(self):
+        return self.rpool.keys()
 
     @staticmethod
     def get_raw_label(resource: str) -> str:
@@ -863,10 +996,9 @@ class ResourcePool:
             return flat_prov
         return None
 
-    def get_strats(self, resources, debug=False):
+    def get_strats(self, resources, debug=False) -> dict[str | tuple, "StratPool"]:
         # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
         # TODO: (and it doesn't have to be)
-
         import itertools
 
         linked_resources = []
@@ -952,7 +1084,7 @@ class ResourcePool:
             # we now currently have "strats", the combined permutations of all the strategies, as a list of tuples, each tuple combining one version of input each, being one of the permutations.
             # OF ALL THE DIFFERENT INPUTS. and they are tagged by their fetched inputs with {name}:{strat}.
             # so, each tuple has ONE STRAT FOR EACH INPUT, so if there are three inputs, each tuple will have 3 items.
-            new_strats = {}
+            new_strats: dict[str | tuple, StratPool] = {}
 
             # get rid of duplicates - TODO: refactor .product
             strat_str_list = []
@@ -1055,7 +1187,7 @@ class ResourcePool:
                 # make the merged strat label from the multiple inputs
                 # strat_list is actually the merged CpacProvenance lists
                 pipe_idx = str(strat_list)
-                new_strats[pipe_idx] = ResourcePool()
+                new_strats[pipe_idx] = StratPool()
                 # new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
                 # placing JSON info at one level higher only for copy convenience
                 new_strats[pipe_idx].rpool["json"] = {}
@@ -1098,7 +1230,7 @@ class ResourcePool:
                     resource, pipe_idx = generate_prov_string(cpac_prov)
                     resource_strat_dct = self.rpool[resource][pipe_idx]
                     # remember, `resource_strat_dct` is the dct of 'data' and 'json'.
-                    new_strats[pipe_idx] = ResourcePool(
+                    new_strats[pipe_idx] = StratPool(
                         rpool={resource: resource_strat_dct}
                     )  # <----- again, new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
                     # placing JSON info at one level higher only for copy convenience
@@ -1429,9 +1561,9 @@ class ResourcePool:
                 # TODO: other stuff like acq- etc.
 
             for pipe_idx in self.rpool[resource]:
-                unique_id = self.get_name()
-                part_id = unique_id.split("_")[0]
-                ses_id = unique_id.split("_")[1]
+                unique_id = self.unique_id
+                part_id = self.part_id
+                ses_id = self.ses_id
 
                 if "ses-" not in ses_id:
                     ses_id = f"ses-{ses_id}"
@@ -1819,7 +1951,7 @@ class ResourcePool:
 
     def ingress_output_dir(self) -> None:
         """Ingress an output directory into a ResourcePool."""
-        dir_path = self.data_paths["derivatives_dir"]
+        dir_path = self.data_paths.derivatives_dir
 
         WFLOGGER.info("\nPulling outputs from %s.\n", dir_path)
 
@@ -1971,11 +2103,11 @@ class ResourcePool:
         blip = False
         fmap_rp_list = []
         fmap_TE_list = []
-        if "fmap" in self.data_paths:
+        if self.data_paths.fmap:
             second = False
-            for orig_key in self.data_paths["fmap"]:
+            for orig_key in self.data_paths.fmap:
                 gather_fmap = create_fmap_datasource(
-                    self.data_paths["fmap"], f"fmap_gather_{orig_key}_{self.part_id}"
+                    self.data_paths.fmap, f"fmap_gather_{orig_key}_{self.part_id}"
                 )
                 gather_fmap.inputs.inputnode.set(
                     subject=self.part_id,
@@ -2023,7 +2155,7 @@ class ResourcePool:
                     name=f"{key}_get_metadata{name_suffix}",
                 )
 
-                self._init_wf.connect(
+                self.wf.connect(
                     gather_fmap,
                     "outputspec.scan_params",
                     get_fmap_metadata,
@@ -2140,13 +2272,13 @@ class ResourcePool:
                         node, out_file = self.get(fmap_file)[
                             f"['{fmap_file}:fmap_TE_ingress']"
                         ]["data"]
-                        self._init_wf.connect(
+                        self.wf.connect(
                             node, out_file, gather_echoes, f"echotime_{idx}"
                         )
                     except KeyError:
                         pass
 
-                self._init_wf.connect(
+                self.wf.connect(
                     gather_echoes, "echotime_list", calc_delta_ratio, "echo_times"
                 )
 
@@ -2185,7 +2317,7 @@ class ResourcePool:
         )
 
         node, out = self.get("scan")["['scan:func_ingress']"]["data"]
-        self._init_wf.connect(node, out, scan_params, "scan")
+        self.wf.connect(node, out, scan_params, "scan")
 
         # Workaround for extracting metadata with ingress
         if self.check_rpool("derivatives-dir"):
@@ -2198,10 +2330,10 @@ class ResourcePool:
                 ),
                 name="selectrest_json",
             )
-            selectrest_json.inputs.rest_dict = self.data_paths
+            selectrest_json.inputs.rest_dict = self.data_paths.as_dict()
             selectrest_json.inputs.resource = "scan_parameters"
-            self._init_wf.connect(node, out, selectrest_json, "scan")
-            self._init_wf.connect(
+            self.wf.connect(node, out, selectrest_json, "scan")
+            self.wf.connect(
                 selectrest_json, "file_path", scan_params, "data_config_scan_params"
             )
 
@@ -2210,7 +2342,7 @@ class ResourcePool:
             node, out = self.get("scan-params")["['scan-params:scan_params_ingress']"][
                 "data"
             ]
-            self._init_wf.connect(node, out, scan_params, "data_config_scan_params")
+            self.wf.connect(node, out, scan_params, "data_config_scan_params")
 
         self.set_data("TR", scan_params, "tr", {}, "", "func_metadata_ingress")
         self.set_data(
@@ -2242,9 +2374,7 @@ class ResourcePool:
             node, out_file = self.get("effectiveEchoSpacing")[
                 "['effectiveEchoSpacing:func_metadata_ingress']"
             ]["data"]
-            self._init_wf.connect(
-                node, out_file, calc_delta_ratio, "effective_echo_spacing"
-            )
+            self.wf.connect(node, out_file, calc_delta_ratio, "effective_echo_spacing")
             self.set_data(
                 "deltaTE", calc_delta_ratio, "deltaTE", {}, "", "deltaTE_ingress"
             )
@@ -2372,7 +2502,7 @@ class ResourcePool:
 
     def ingress_raw_func_data(self):
         """Ingress raw functional data."""
-        func_paths_dct = self.data_paths["func"]
+        func_paths_dct = self.data_paths.func
 
         func_wf = self.create_func_datasource(
             func_paths_dct, f"func_ingress_{self.part_id}_{self.ses_id}"
@@ -2411,7 +2541,7 @@ class ResourcePool:
         ]
         if local_func_scans:
             # pylint: disable=protected-access
-            self._init_wf._local_func_scans = local_func_scans
+            self.wf._local_func_scans = local_func_scans
             if self.cfg.pipeline_setup["Debugging"]["verbose"]:
                 verbose_logger = getLogger("CPAC.engine")
                 verbose_logger.debug("local_func_scans: %s", local_func_scans)
@@ -2464,7 +2594,7 @@ class ResourcePool:
         )
         iterables.inputs.mask_paths = func_paths[mask_paths_key]
         iterables.inputs.ts_paths = func_paths[ts_paths_key]
-        self._init_wf.connect(ingress, "outputspec.scan", iterables, "scan")
+        self.wf.connect(ingress, "outputspec.scan", iterables, "scan")
 
         for key in func_paths:
             if key in (mask_paths_key, ts_paths_key):
@@ -2474,13 +2604,9 @@ class ResourcePool:
                     creds_path=self.creds_path,
                     dl_dir=self.cfg.pipeline_setup["working_directory"]["path"],
                 )
-                self._init_wf.connect(
-                    iterables, "out_scan", ingress_func, "inputnode.scan"
-                )
+                self.wf.connect(iterables, "out_scan", ingress_func, "inputnode.scan")
                 if key == mask_paths_key:
-                    self._init_wf.connect(
-                        iterables, "mask", ingress_func, "inputnode.data"
-                    )
+                    self.wf.connect(iterables, "mask", ingress_func, "inputnode.data")
                     self.set_data(
                         key,
                         ingress_func,
@@ -2490,7 +2616,7 @@ class ResourcePool:
                         f"outdir_{key}_ingress",
                     )
                 elif key == ts_paths_key:
-                    self._init_wf.connect(
+                    self.wf.connect(
                         iterables, "confounds", ingress_func, "inputnode.data"
                     )
                     self.set_data(
@@ -2504,19 +2630,15 @@ class ResourcePool:
 
     def ingress_raw_anat_data(self) -> None:
         """Ingress raw anatomical data."""
-        if "anat" not in self.data_paths:
+        if not self.data_paths.anat:
             WFLOGGER.warning("No anatomical data present.")
             return
 
-        anat_flow = create_anat_datasource(
-            f"anat_T1w_gather_{self.part_id}_{self.ses_id}"
-        )
+        anat_flow = create_anat_datasource(f"anat_T1w_gather_{self.unique_id}")
 
         anat = {}
-        if isinstance(self.data_paths["anat"], str):
-            anat["T1"] = self.data_paths["anat"]
-        elif "T1w" in self.data_paths["anat"]:
-            anat["T1"] = self.data_paths["anat"]["T1w"]
+        if "T1w" in self.data_paths.anat:
+            anat["T1"] = self.data_paths.anat["T1w"]
 
         if "T1" in anat:
             anat_flow.inputs.inputnode.set(
@@ -2528,13 +2650,13 @@ class ResourcePool:
             )
             self.set_data("T1w", anat_flow, "outputspec.anat", {}, "", "anat_ingress")
 
-        if "T2w" in self.data_paths["anat"]:
+        if "T2w" in self.data_paths.anat:
             anat_flow_T2 = create_anat_datasource(
                 f"anat_T2w_gather_{self.part_id}_{self.ses_id}"
             )
             anat_flow_T2.inputs.inputnode.set(
                 subject=self.part_id,
-                anat=self.data_paths["anat"]["T2w"],
+                anat=self.data_paths.anat["T2w"],
                 creds_path=self.creds_path,
                 dl_dir=self.cfg.pipeline_setup["working_directory"]["path"],
                 img_type="anat",
@@ -2547,91 +2669,19 @@ class ResourcePool:
             self.ingress_freesurfer()
 
 
-def initiate_rpool(
-    wf: pe.Workflow,
-    cfg: Configuration,
-    data_paths: Optional[dict] = None,
-    part_id: Optional[str] = None,
-) -> ResourcePool:
-    """
-    Initialize a new ResourcePool.
-
-    data_paths format::
-
-      {'anat': {
-            'T1w': '{T1w path}',
-            'T2w': '{T2w path}'
-        },
-       'creds_path': {None OR path to credentials CSV},
-       'func': {
-           '{scan ID}':
-               {
-                   'scan': '{path to BOLD}',
-                   'scan_parameters': {scan parameter dictionary}
-               }
-       },
-       'site_id': 'site-ID',
-       'subject_id': 'sub-01',
-       'unique_id': 'ses-1',
-       'derivatives_dir': '{derivatives_dir path}'}
-    """
-    # TODO: refactor further, integrate with the ingress_data functionality
-    # TODO: used for BIDS-Derivatives (below), and possible refactoring of
-    # TODO: the raw data config to use 'T1w' label instead of 'anat' etc.
-
-    kwargs = {"cfg": cfg, "wf": wf}
-    if data_paths:
-        part_id: str = data_paths["subject_id"]
-        ses_id: str = data_paths["unique_id"]
-        if "creds_path" not in data_paths:
-            creds_path = None
-        else:
-            creds_path: Optional[Path | str] = data_paths["creds_path"]
-        unique_id: str = f"{part_id}_{ses_id}"
-        kwargs.update(
-            {
-                "part_id": part_id,
-                "ses_id": ses_id,
-                "creds_path": creds_path,
-                "data_paths": data_paths,
-            }
-        )
-    elif part_id:
-        unique_id = part_id
-        creds_path = None
-        kwargs.update({"part_id": part_id, "creds_path": creds_path})
-    else:
-        unique_id = ""
-    kwargs.update({"unique_id": unique_id})
-
-    rpool = ResourcePool(name=unique_id, **kwargs)
-
-    if data_paths:
-        # ingress outdir
-        try:
-            if (
-                data_paths["derivatives_dir"]
-                and cfg.pipeline_setup["outdir_ingress"]["run"]
-            ):
-                rpool.ingress_output_dir()
-        except (AttributeError, KeyError):
-            rpool.ingress_raw_anat_data()
-            if "func" in data_paths:
-                rpool.ingress_raw_func_data()
-
-    # grab any file paths from the pipeline config YAML
-    rpool.ingress_pipeconfig_paths()
-
-    # output files with 4 different scans
-
-    return rpool._init_wf, rpool
-
-
 class StratPool(ResourcePool):
-    """All resources for a strategy."""
+    """A pool of ResourcePools keyed by strategy."""
 
-    def __init__(self):
-        """Initialize a ResourcePool."""
+    def __init__(self, rpool: Optional[dict[ResourcePool]] = None) -> None:
+        """Initialize a StratPool."""
+        if not rpool:
+            self.rpool = {}
+        else:
+            self.rpool = rpool
 
     def append_name(self, name):
         self.name.append(name)
+
+    def get_strats(self, resources, debug) -> None:
+        """ResourcePool method that is not valid for a StratPool."""
+        raise NotImplementedError

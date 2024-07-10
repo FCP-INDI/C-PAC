@@ -622,6 +622,13 @@ class Configuration:
         )
 
 
+class EmptyConfiguration(Configuration):
+    """A Configuration with all methods and no values."""
+
+    def __init__(self) -> None:
+        """Initialize an empty configuration."""
+
+
 def check_pname(p_name: str, pipe_config: Configuration) -> str:
     """Check / set `p_name`, the str representation of a pipeline for use in filetrees.
 

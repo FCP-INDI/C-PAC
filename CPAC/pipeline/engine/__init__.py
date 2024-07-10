@@ -21,10 +21,9 @@ from .engine import (
     run_node_blocks,
     wrap_block,
 )
-from .resource import initiate_rpool, NodeData, ResourcePool
+from .resource import NodeData, ResourcePool
 
 __all__ = [
-    "initiate_rpool",
     "NodeBlock",
     "NodeData",
     "ResourcePool",
