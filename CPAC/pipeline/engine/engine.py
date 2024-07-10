@@ -527,7 +527,7 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def run_node_blocks(blocks, data_paths, cfg=None):
     from CPAC.pipeline.engine import NodeBlock
-    from CPAC.pipeline.engine.resource import initiate_rpool
+    from CPAC.pipeline.engine.resource import ResourcePool
 
     if not cfg:
         cfg = {
@@ -540,7 +540,7 @@ def run_node_blocks(blocks, data_paths, cfg=None):
     # TODO: WE HAVE TO PARSE OVER UNIQUE ID'S!!!
 
     wf = pe.Workflow(name="node_blocks")
-    rpool = initiate_rpool(wf, cfg, data_paths)
+    rpool = ResourcePool(wf=wf, cfg=cfg, data_paths=data_paths)
     wf.base_dir = cfg.pipeline_setup["working_directory"]["path"]
     wf.config["execution"] = {
         "hash_method": "timestamp",

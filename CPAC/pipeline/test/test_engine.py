@@ -24,12 +24,8 @@ from CPAC.pipeline.cpac_pipeline import (
     build_anat_preproc_stack,
     build_workflow,
     connect_pipeline,
-    initialize_nipype_wf,
 )
-from CPAC.pipeline.engine import (
-    initiate_rpool,
-    ResourcePool,
-)
+from CPAC.pipeline.engine import ResourcePool
 from CPAC.utils.bids_utils import create_cpac_data_config
 from CPAC.utils.configuration import Configuration, Preconfiguration
 
@@ -53,14 +49,8 @@ def test_ingress_func_raw_data(
 ) -> None:
     """Test :py:method:~`CPAC.pipeline.engine.resource.ResourcePool.ingress_raw_func_data`."""
     cfg, sub_data_dct = _set_up_test(bids_examples, preconfig, tmp_path)
-    wf = initialize_nipype_wf(cfg, sub_data_dct)
-    part_id = sub_data_dct["subject_id"]
-    ses_id = sub_data_dct["unique_id"]
-    unique_id = f"{part_id}_{ses_id}"
-    rpool = ResourcePool(name=unique_id, cfg=cfg, data_paths=sub_data_dct, wf=wf)
-    if "func" in sub_data_dct:
-        rpool.ingress_raw_func_data()
-    rpool.gather_pipes(wf, cfg, all=True)
+    rpool = ResourcePool(cfg=cfg, data_paths=sub_data_dct)
+    rpool.gather_pipes(rpool.wf, cfg, all=True)
 
 
 @pytest.mark.parametrize("preconfig", ["default"])
@@ -69,21 +59,12 @@ def test_ingress_anat_raw_data(
 ) -> None:
     """Test :py:method:~`CPAC.pipeline.engine.resource.ResourcePool.ingress_raw_anat_data`."""
     cfg, sub_data_dct = _set_up_test(bids_examples, preconfig, tmp_path)
-    wf = initialize_nipype_wf(cfg, sub_data_dct)
-    part_id = sub_data_dct["subject_id"]
-    ses_id = sub_data_dct["unique_id"]
-    unique_id = f"{part_id}_{ses_id}"
     rpool = ResourcePool(
-        name=unique_id,
         cfg=cfg,
         data_paths=sub_data_dct,
-        unique_id=unique_id,
-        part_id=part_id,
-        ses_id=ses_id,
-        wf=wf,
     )
     rpool.ingress_raw_anat_data()
-    rpool.gather_pipes(wf, cfg, all=True)
+    rpool.gather_pipes(rpool.wf, cfg, all=True)
 
 
 @pytest.mark.parametrize("preconfig", ["default"])
@@ -92,20 +73,11 @@ def test_ingress_pipeconfig_data(
 ) -> None:
     """Test :py:method:~`CPAC.pipeline.engine.resource.ResourcePool.ingress_pipeconfig_paths`."""
     cfg, sub_data_dct = _set_up_test(bids_examples, preconfig, tmp_path)
-    wf = initialize_nipype_wf(cfg, sub_data_dct)
-    part_id = sub_data_dct["subject_id"]
-    ses_id = sub_data_dct["unique_id"]
-    unique_id = f"{part_id}_{ses_id}"
     rpool = ResourcePool(
-        name=unique_id,
         cfg=cfg,
         data_paths=sub_data_dct,
-        part_id=part_id,
-        ses_id=ses_id,
-        unique_id=unique_id,
     )
-    rpool.ingress_pipeconfig_paths()
-    rpool.gather_pipes(wf, cfg, all=True)
+    rpool.gather_pipes(rpool.wf, cfg, all=True)
 
 
 @pytest.mark.parametrize("preconfig", ["anat-only"])
@@ -115,10 +87,9 @@ def test_build_anat_preproc_stack(
     """Test :py:func:~`CPAC.pipeline.cpac_pipeline.build_anat_preproc_stack`."""
     cfg, sub_data_dct = _set_up_test(bids_examples, preconfig, tmp_path)
 
-    wf = initialize_nipype_wf(cfg, sub_data_dct)
-    rpool = initiate_rpool(wf, cfg, sub_data_dct)
+    rpool = ResourcePool(cfg=cfg, data_paths=sub_data_dct)
     pipeline_blocks = build_anat_preproc_stack(rpool, cfg)
-    wf = connect_pipeline(wf, cfg, rpool, pipeline_blocks)
+    wf = connect_pipeline(rpool.wf, cfg, rpool, pipeline_blocks)
     rpool.gather_pipes(wf, cfg)
 
 
@@ -126,7 +97,6 @@ def test_build_anat_preproc_stack(
 def test_build_workflow(bids_examples: Path, preconfig: str, tmp_path: Path) -> None:
     """Test :py:func:~`CPAC.pipeline.cpac_pipeline.build_workflow`."""
     cfg, sub_data_dct = _set_up_test(bids_examples, preconfig, tmp_path)
-    wf = initialize_nipype_wf(cfg, sub_data_dct)
-    rpool = initiate_rpool(wf, cfg, sub_data_dct)
+    rpool = ResourcePool(cfg=cfg, data_paths=sub_data_dct)
     wf = build_workflow(sub_data_dct["subject_id"], sub_data_dct, cfg)
     rpool.gather_pipes(wf, cfg)

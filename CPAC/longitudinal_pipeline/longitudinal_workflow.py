@@ -29,9 +29,8 @@ from CPAC.pipeline.cpac_pipeline import (
     build_segmentation_stack,
     build_T1w_registration_stack,
     connect_pipeline,
-    initialize_nipype_wf,
 )
-from CPAC.pipeline.engine import initiate_rpool
+from CPAC.pipeline.engine import ResourcePool
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.registration import (
     create_fsl_flirt_linear_reg,
@@ -429,16 +428,13 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         except KeyError:
             input_creds_path = None
 
-        workflow = initialize_nipype_wf(
-            config,
-            session,
-            # just grab the first one for the name
-            name="anat_longitudinal_pre-preproc",
+        rpool = ResourcePool(
+            cfg=config,
+            data_paths=session,
+            pipeline_name="anat_longitudinal_pre-preproc",
         )
-
-        rpool = initiate_rpool(workflow, config, session)
         pipeline_blocks = build_anat_preproc_stack(rpool, config)
-        workflow = connect_pipeline(workflow, config, rpool, pipeline_blocks)
+        workflow = connect_pipeline(rpool.wf, config, rpool, pipeline_blocks)
 
         session_wfs[unique_id] = rpool
 
@@ -474,13 +470,6 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                             )
 
     for strat in strats_brain_dct.keys():
-        wf = initialize_nipype_wf(
-            config,
-            sub_list[0],
-            # just grab the first one for the name
-            name=f"template_node_{strat}",
-        )
-
         config.pipeline_setup["pipeline_name"] = f"longitudinal_{orig_pipe_name}"
 
         template_node_name = f"longitudinal_anat_template_{strat}"
@@ -508,7 +497,9 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         template_node.inputs.input_skull_list = strats_head_dct[strat]
 
         long_id = f"longitudinal_{subject_id}_strat-{strat}"
-        rpool = initiate_rpool(wf, config, part_id=long_id)
+        rpool = ResourcePool(
+            cfg=config, part_id=long_id, pipeline_name=f"template_node_{strat}"
+        )
         rpool.set_data(
             "space-longitudinal_desc-brain_T1w",
             template_node,
@@ -551,7 +542,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 
         pipeline_blocks = build_segmentation_stack(rpool, config, pipeline_blocks)
 
-        wf = connect_pipeline(wf, config, rpool, pipeline_blocks)
+        wf = connect_pipeline(rpool.wf, config, rpool, pipeline_blocks)
 
         excl = [
             "space-longitudinal_desc-brain_T1w",
@@ -586,10 +577,9 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             except KeyError:
                 session["creds_path"] = None
 
-            wf = initialize_nipype_wf(config, session)
-            rpool = initiate_rpool(wf, config, session)
-
             config.pipeline_setup["pipeline_name"] = f"longitudinal_{orig_pipe_name}"
+            rpool = ResourcePool(cfg=config, data_paths=session)
+            wf = rpool.wf
             rpool.ingress_output_dir()
 
             select_node_name = f"select_{unique_id}"
@@ -651,15 +641,13 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         except KeyError:
             input_creds_path = None
         session["creds_path"] = input_creds_path
-        wf = initialize_nipype_wf(config, session)
-        rpool = initiate_rpool(wf, config, session)
-
+        rpool = ResourcePool(cfg=config, data_paths=session)
         pipeline_blocks = [
             warp_longitudinal_T1w_to_template,
             warp_longitudinal_seg_to_T1w,
         ]
 
-        wf = connect_pipeline(wf, config, rpool, pipeline_blocks)
+        wf = connect_pipeline(rpool.wf, config, rpool, pipeline_blocks)
 
         rpool.gather_pipes(wf, config)
 

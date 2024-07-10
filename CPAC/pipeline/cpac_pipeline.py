@@ -128,9 +128,8 @@ from CPAC.nuisance.nuisance import (
 )
 
 # pylint: disable=wrong-import-order
-from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import check_outputs
-from CPAC.pipeline.engine import initiate_rpool, NodeBlock
+from CPAC.pipeline.engine import NodeBlock, ResourcePool
 from CPAC.pipeline.nipype_pipeline_engine.plugins import (
     LegacyMultiProcPlugin,
     MultiProcPlugin,
@@ -856,24 +855,6 @@ def remove_workdir(wdpath: str) -> None:
         FMLOGGER.warning("Could not remove working directory %s", wdpath)
 
 
-def initialize_nipype_wf(cfg, sub_data_dct, name=""):
-    """Initialize a new nipype workflow."""
-    if name:
-        name = f"_{name}"
-
-    workflow_name = (
-        f'cpac{name}_{sub_data_dct["subject_id"]}_{sub_data_dct["unique_id"]}'
-    )
-    wf = pe.Workflow(name=workflow_name)
-    wf.base_dir = cfg.pipeline_setup["working_directory"]["path"]
-    wf.config["execution"] = {
-        "hash_method": "timestamp",
-        "crashdump_dir": os.path.abspath(cfg.pipeline_setup["log_directory"]["path"]),
-    }
-
-    return wf
-
-
 def load_cpac_pipe_config(pipe_config):
     """Load in pipeline config file."""
     config_file = os.path.realpath(pipe_config)
@@ -1074,7 +1055,6 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
             warp_wholeheadT1_to_template,
             warp_T1mask_to_template,
         ]
-
     if not rpool.check_rpool("desc-restore-brain_T1w"):
         reg_blocks.append(correct_restore_brain_intensity_abcd)
 
@@ -1176,7 +1156,6 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
     WFLOGGER.info(
         "Connecting pipeline blocks:\n%s", list_blocks(pipeline_blocks, indent=1)
     )
-
     previous_nb = None
     for block in pipeline_blocks:
         try:
@@ -1221,9 +1200,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
     """Build a C-PAC workflow for a single subject."""
     from CPAC.utils.datasource import gather_extraction_maps
 
-    # Workflow setup
-    wf = initialize_nipype_wf(cfg, sub_dict, name=pipeline_name)
-
     # Extract credentials path if it exists
     try:
         creds_path = sub_dict["creds_path"]
@@ -1247,8 +1223,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
     # PREPROCESSING
     # """""""""""""""""""""""""""""""""""""""""""""""""""
 
-    rpool = initiate_rpool(wf, cfg, sub_dict)
-
+    rpool = ResourcePool(cfg=cfg, data_paths=sub_dict, pipeline_name=pipeline_name)
     pipeline_blocks = build_anat_preproc_stack(rpool, cfg)
 
     # Anatomical to T1 template registration
@@ -1615,7 +1590,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
 
     # Connect the entire pipeline!
     try:
-        wf = connect_pipeline(wf, cfg, rpool, pipeline_blocks)
+        wf = connect_pipeline(rpool.wf, cfg, rpool, pipeline_blocks)
     except LookupError as lookup_error:
         missing_key = None
         errorstrings = [arg for arg in lookup_error.args[0].split("\n") if arg.strip()]
