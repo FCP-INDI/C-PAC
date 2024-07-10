@@ -15,7 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Global pytest configuration."""
+
 from pathlib import Path
+
 import pytest
 
 
@@ -23,11 +25,9 @@ import pytest
 def bids_examples(cache) -> Path:
     """Get cached example BIDS directories."""
     example_dir = cache.makedir("bids-examples")
-    bids_dirs = Path(example_dir / "bids-examples")
-    if not bids_dirs.exists():
+    bids_dir = Path(example_dir / "bids-examples")
+    if not bids_dir.exists():
         from git import Repo
 
-        Repo.clone_from(
-            "https://github.com/bids-standard/bids-examples.git", bids_dirs
-        )
-    return bids_dirs
+        Repo.clone_from("https://github.com/bids-standard/bids-examples.git", bids_dir)
+    return bids_dir

@@ -17,34 +17,17 @@
 """C-PAC engine."""
 
 from .engine import (
-    func_outdir_ingress,
-    ingress_freesurfer,
-    ingress_output_dir,
-    ingress_pipeconfig_paths,
-    ingress_raw_anat_data,
-    json_outdir_ingress,
     NodeBlock,
     run_node_blocks,
-    set_iterables,
-    strip_template,
     wrap_block,
 )
 from .resource import initiate_rpool, NodeData, ResourcePool
 
 __all__ = [
-    "func_outdir_ingress",
-    "ingress_freesurfer",
-    "ingress_raw_anat_data",
-    "ingress_output_dir",
-    "ingress_pipeconfig_paths",
-    "ingress_raw_func_data",
     "initiate_rpool",
-    "json_outdir_ingress",
     "NodeBlock",
     "NodeData",
     "ResourcePool",
     "run_node_blocks",
-    "set_iterables",
-    "strip_template",
     "wrap_block",
 ]

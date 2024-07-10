@@ -136,7 +136,7 @@ def get_flag_wf(wf_name="get_flag"):
     wf.connect(input_node, "in_flag", get_flag, "in_flag")
 
 
-def read_json(json_file):
+def read_json(json_file: str) -> dict:
     """Read a JSON file and return the contents as a dictionary."""
     try:
         with open(json_file, "r") as f:

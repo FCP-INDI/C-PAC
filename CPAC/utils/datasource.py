@@ -20,6 +20,7 @@ import csv
 import json
 from pathlib import Path
 import re
+from typing import Optional
 
 from voluptuous import RequiredFieldInvalid
 from nipype.interfaces import utility as util
@@ -28,9 +29,7 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.resources.templates.lookup_table import format_identifier, lookup_identifier
 from CPAC.utils import function
 from CPAC.utils.bids_utils import bids_remove_entity
-from CPAC.utils.interfaces.function import Function
 from CPAC.utils.monitoring import FMLOGGER
-from CPAC.utils.utils import get_scan_params
 
 
 def bidsier_prefix(unique_id):
@@ -64,7 +63,7 @@ def bidsier_prefix(unique_id):
     return "_".join(components)
 
 
-def get_rest(scan, rest_dict, resource="scan"):
+def get_rest(scan: str, rest_dict: dict, resource: str = "scan") -> Path | str:
     """Return the path of the chosen resource in the functional file dictionary.
 
     scan: the scan/series name or label
@@ -127,7 +126,7 @@ def select_model_files(model, ftest, model_name):
     return fts_file, con_file, grp_file, mat_file
 
 
-def check_func_scan(func_scan_dct, scan):
+def check_func_scan(func_scan_dct: dict, scan: str) -> None:
     """Run some checks on the functional timeseries-related files.
 
     For a given series/scan name or label.
@@ -166,119 +165,6 @@ def check_func_scan(func_scan_dct, scan):
             "\n\n"
         )
         raise ValueError(msg)
-
-
-def create_func_datasource(rest_dict, rpool, wf_name="func_datasource"):
-    """Return the functional timeseries-related file paths for each series/scan...
-
-    ...from the dictionary of functional files described in the data
-    configuration (sublist) YAML file.
-
-    Scan input (from inputnode) is an iterable.
-    """
-    import nipype.interfaces.utility as util
-
-    from CPAC.pipeline import nipype_pipeline_engine as pe
-
-    wf = pe.Workflow(name=wf_name)
-
-    inputnode = pe.Node(
-        util.IdentityInterface(
-            fields=["subject", "scan", "creds_path", "dl_dir"], mandatory_inputs=True
-        ),
-        name="inputnode",
-    )
-
-    outputnode = pe.Node(
-        util.IdentityInterface(
-            fields=["subject", "rest", "scan", "scan_params", "phase_diff", "magnitude"]
-        ),
-        name="outputspec",
-    )
-
-    # have this here for now because of the big change in the data
-    # configuration format
-    # (Not necessary with ingress - format does not comply)
-    if not rpool.check_rpool("derivatives-dir"):
-        check_scan = pe.Node(
-            function.Function(
-                input_names=["func_scan_dct", "scan"],
-                output_names=[],
-                function=check_func_scan,
-                as_module=True,
-            ),
-            name="check_func_scan",
-        )
-
-        check_scan.inputs.func_scan_dct = rest_dict
-        wf.connect(inputnode, "scan", check_scan, "scan")
-
-    # get the functional scan itself
-    selectrest = pe.Node(
-        function.Function(
-            input_names=["scan", "rest_dict", "resource"],
-            output_names=["file_path"],
-            function=get_rest,
-            as_module=True,
-        ),
-        name="selectrest",
-    )
-    selectrest.inputs.rest_dict = rest_dict
-    selectrest.inputs.resource = "scan"
-    wf.connect(inputnode, "scan", selectrest, "scan")
-
-    # check to see if it's on an Amazon AWS S3 bucket, and download it, if it
-    # is - otherwise, just return the local file path
-    check_s3_node = pe.Node(
-        function.Function(
-            input_names=["file_path", "creds_path", "dl_dir", "img_type"],
-            output_names=["local_path"],
-            function=check_for_s3,
-            as_module=True,
-        ),
-        name="check_for_s3",
-    )
-
-    wf.connect(selectrest, "file_path", check_s3_node, "file_path")
-    wf.connect(inputnode, "creds_path", check_s3_node, "creds_path")
-    wf.connect(inputnode, "dl_dir", check_s3_node, "dl_dir")
-    check_s3_node.inputs.img_type = "func"
-
-    wf.connect(inputnode, "subject", outputnode, "subject")
-    wf.connect(check_s3_node, "local_path", outputnode, "rest")
-    wf.connect(inputnode, "scan", outputnode, "scan")
-
-    # scan parameters CSV
-    select_scan_params = pe.Node(
-        function.Function(
-            input_names=["scan", "rest_dict", "resource"],
-            output_names=["file_path"],
-            function=get_rest,
-            as_module=True,
-        ),
-        name="select_scan_params",
-    )
-    select_scan_params.inputs.rest_dict = rest_dict
-    select_scan_params.inputs.resource = "scan_parameters"
-    wf.connect(inputnode, "scan", select_scan_params, "scan")
-
-    # if the scan parameters file is on AWS S3, download it
-    s3_scan_params = pe.Node(
-        function.Function(
-            input_names=["file_path", "creds_path", "dl_dir", "img_type"],
-            output_names=["local_path"],
-            function=check_for_s3,
-            as_module=True,
-        ),
-        name="s3_scan_params",
-    )
-
-    wf.connect(select_scan_params, "file_path", s3_scan_params, "file_path")
-    wf.connect(inputnode, "creds_path", s3_scan_params, "creds_path")
-    wf.connect(inputnode, "dl_dir", s3_scan_params, "dl_dir")
-    wf.connect(s3_scan_params, "local_path", outputnode, "scan_params")
-
-    return wf
 
 
 def create_fmap_datasource(fmap_dct, wf_name="fmap_datasource"):
@@ -374,7 +260,7 @@ def create_fmap_datasource(fmap_dct, wf_name="fmap_datasource"):
     return wf
 
 
-def get_fmap_phasediff_metadata(data_config_scan_params):
+def get_fmap_phasediff_metadata(data_config_scan_params: dict | str):
     """Return the scan parameters for a field map phasediff scan."""
     if (
         not isinstance(data_config_scan_params, dict)
@@ -513,299 +399,6 @@ def match_epi_fmaps(
     return (opposite_pe_epi, same_pe_epi)
 
 
-def ingress_func_metadata(
-    wf,
-    cfg,
-    rpool,
-    sub_dict,
-    subject_id,
-    input_creds_path,
-    unique_id=None,
-    num_strat=None,
-):
-    """Ingress metadata for functional scans."""
-    name_suffix = ""
-    for suffix_part in (unique_id, num_strat):
-        if suffix_part is not None:
-            name_suffix += f"_{suffix_part}"
-    # Grab field maps
-    diff = False
-    blip = False
-    fmap_rp_list = []
-    fmap_TE_list = []
-    if "fmap" in sub_dict:
-        second = False
-        for orig_key in sub_dict["fmap"]:
-            gather_fmap = create_fmap_datasource(
-                sub_dict["fmap"], f"fmap_gather_{orig_key}_{subject_id}"
-            )
-            gather_fmap.inputs.inputnode.set(
-                subject=subject_id,
-                creds_path=input_creds_path,
-                dl_dir=cfg.pipeline_setup["working_directory"]["path"],
-            )
-            gather_fmap.inputs.inputnode.scan = orig_key
-
-            key = orig_key
-            if "epi" in key and not second:
-                key = "epi-1"
-                second = True
-            elif "epi" in key and second:
-                key = "epi-2"
-
-            rpool.set_data(key, gather_fmap, "outputspec.rest", {}, "", "fmap_ingress")
-            rpool.set_data(
-                f"{key}-scan-params",
-                gather_fmap,
-                "outputspec.scan_params",
-                {},
-                "",
-                "fmap_params_ingress",
-            )
-
-            fmap_rp_list.append(key)
-
-            get_fmap_metadata_imports = ["import json"]
-            get_fmap_metadata = pe.Node(
-                Function(
-                    input_names=["data_config_scan_params"],
-                    output_names=[
-                        "dwell_time",
-                        "pe_direction",
-                        "total_readout",
-                        "echo_time",
-                        "echo_time_one",
-                        "echo_time_two",
-                    ],
-                    function=get_fmap_phasediff_metadata,
-                    imports=get_fmap_metadata_imports,
-                ),
-                name=f"{key}_get_metadata{name_suffix}",
-            )
-
-            wf.connect(
-                gather_fmap,
-                "outputspec.scan_params",
-                get_fmap_metadata,
-                "data_config_scan_params",
-            )
-
-            if "phase" in key:
-                # leave it open to all three options, in case there is a
-                # phasediff image with either a single EchoTime field (which
-                # usually matches one of the magnitude EchoTimes), OR
-                # a phasediff with an EchoTime1 and EchoTime2
-
-                # at least one of these rpool keys will have a None value,
-                # which will be sorted out in gather_echo_times below
-                rpool.set_data(
-                    f"{key}-TE",
-                    get_fmap_metadata,
-                    "echo_time",
-                    {},
-                    "",
-                    "fmap_TE_ingress",
-                )
-                fmap_TE_list.append(f"{key}-TE")
-
-                rpool.set_data(
-                    f"{key}-TE1",
-                    get_fmap_metadata,
-                    "echo_time_one",
-                    {},
-                    "",
-                    "fmap_TE1_ingress",
-                )
-                fmap_TE_list.append(f"{key}-TE1")
-
-                rpool.set_data(
-                    f"{key}-TE2",
-                    get_fmap_metadata,
-                    "echo_time_two",
-                    {},
-                    "",
-                    "fmap_TE2_ingress",
-                )
-                fmap_TE_list.append(f"{key}-TE2")
-
-            elif "magnitude" in key:
-                rpool.set_data(
-                    f"{key}-TE",
-                    get_fmap_metadata,
-                    "echo_time",
-                    {},
-                    "",
-                    "fmap_TE_ingress",
-                )
-                fmap_TE_list.append(f"{key}-TE")
-
-            rpool.set_data(
-                f"{key}-dwell",
-                get_fmap_metadata,
-                "dwell_time",
-                {},
-                "",
-                "fmap_dwell_ingress",
-            )
-            rpool.set_data(
-                f"{key}-pedir",
-                get_fmap_metadata,
-                "pe_direction",
-                {},
-                "",
-                "fmap_pedir_ingress",
-            )
-            rpool.set_data(
-                f"{key}-total-readout",
-                get_fmap_metadata,
-                "total_readout",
-                {},
-                "",
-                "fmap_readout_ingress",
-            )
-
-            if "phase" in key or "mag" in key:
-                diff = True
-
-            if re.match("epi_[AP]{2}", orig_key):
-                blip = True
-
-        if diff:
-            calc_delta_ratio = pe.Node(
-                Function(
-                    input_names=["effective_echo_spacing", "echo_times"],
-                    output_names=["deltaTE", "ees_asym_ratio"],
-                    function=calc_delta_te_and_asym_ratio,
-                    imports=["from typing import Optional"],
-                ),
-                name=f"diff_distcor_calc_delta{name_suffix}",
-            )
-
-            gather_echoes = pe.Node(
-                Function(
-                    input_names=[
-                        "echotime_1",
-                        "echotime_2",
-                        "echotime_3",
-                        "echotime_4",
-                    ],
-                    output_names=["echotime_list"],
-                    function=gather_echo_times,
-                ),
-                name="fugue_gather_echo_times",
-            )
-
-            for idx, fmap_file in enumerate(fmap_TE_list, start=1):
-                try:
-                    node, out_file = rpool.get(fmap_file)[
-                        f"['{fmap_file}:fmap_TE_ingress']"
-                    ]["data"]
-                    wf.connect(node, out_file, gather_echoes, f"echotime_{idx}")
-                except KeyError:
-                    pass
-
-            wf.connect(gather_echoes, "echotime_list", calc_delta_ratio, "echo_times")
-
-    # Add in nodes to get parameters from configuration file
-    # a node which checks if scan_parameters are present for each scan
-    scan_params = pe.Node(
-        Function(
-            input_names=[
-                "data_config_scan_params",
-                "subject_id",
-                "scan",
-                "pipeconfig_tr",
-                "pipeconfig_tpattern",
-                "pipeconfig_start_indx",
-                "pipeconfig_stop_indx",
-            ],
-            output_names=[
-                "tr",
-                "tpattern",
-                "template",
-                "ref_slice",
-                "start_indx",
-                "stop_indx",
-                "pe_direction",
-                "effective_echo_spacing",
-            ],
-            function=get_scan_params,
-            imports=["from CPAC.utils.utils import check, try_fetch_parameter"],
-        ),
-        name=f"bold_scan_params_{subject_id}{name_suffix}",
-    )
-    scan_params.inputs.subject_id = subject_id
-    scan_params.inputs.set(
-        pipeconfig_start_indx=cfg.functional_preproc["truncation"]["start_tr"],
-        pipeconfig_stop_indx=cfg.functional_preproc["truncation"]["stop_tr"],
-    )
-
-    node, out = rpool.get("scan")["['scan:func_ingress']"]["data"]
-    wf.connect(node, out, scan_params, "scan")
-
-    # Workaround for extracting metadata with ingress
-    if rpool.check_rpool("derivatives-dir"):
-        selectrest_json = pe.Node(
-            function.Function(
-                input_names=["scan", "rest_dict", "resource"],
-                output_names=["file_path"],
-                function=get_rest,
-                as_module=True,
-            ),
-            name="selectrest_json",
-        )
-        selectrest_json.inputs.rest_dict = sub_dict
-        selectrest_json.inputs.resource = "scan_parameters"
-        wf.connect(node, out, selectrest_json, "scan")
-        wf.connect(selectrest_json, "file_path", scan_params, "data_config_scan_params")
-
-    else:
-        # wire in the scan parameter workflow
-        node, out = rpool.get("scan-params")["['scan-params:scan_params_ingress']"][
-            "data"
-        ]
-        wf.connect(node, out, scan_params, "data_config_scan_params")
-
-    rpool.set_data("TR", scan_params, "tr", {}, "", "func_metadata_ingress")
-    rpool.set_data("tpattern", scan_params, "tpattern", {}, "", "func_metadata_ingress")
-    rpool.set_data("template", scan_params, "template", {}, "", "func_metadata_ingress")
-    rpool.set_data(
-        "start-tr", scan_params, "start_indx", {}, "", "func_metadata_ingress"
-    )
-    rpool.set_data("stop-tr", scan_params, "stop_indx", {}, "", "func_metadata_ingress")
-    rpool.set_data(
-        "pe-direction", scan_params, "pe_direction", {}, "", "func_metadata_ingress"
-    )
-
-    if diff:
-        # Connect EffectiveEchoSpacing from functional metadata
-        rpool.set_data(
-            "effectiveEchoSpacing",
-            scan_params,
-            "effective_echo_spacing",
-            {},
-            "",
-            "func_metadata_ingress",
-        )
-        node, out_file = rpool.get("effectiveEchoSpacing")[
-            "['effectiveEchoSpacing:func_metadata_ingress']"
-        ]["data"]
-        wf.connect(node, out_file, calc_delta_ratio, "effective_echo_spacing")
-        rpool.set_data(
-            "deltaTE", calc_delta_ratio, "deltaTE", {}, "", "deltaTE_ingress"
-        )
-        rpool.set_data(
-            "ees-asym-ratio",
-            calc_delta_ratio,
-            "ees_asym_ratio",
-            {},
-            "",
-            "ees_asym_ratio_ingress",
-        )
-
-    return wf, rpool, diff, blip, fmap_rp_list
-
-
 def create_general_datasource(wf_name):
     """Create a general-purpose datasource node."""
     import nipype.interfaces.utility as util
@@ -881,9 +474,16 @@ def create_check_for_s3_node(
     return check_s3_node
 
 
+@function.Function.sig_imports(
+    ["from pathlib import Path", "from typing import Optional"]
+)
 def check_for_s3(
-    file_path, creds_path=None, dl_dir=None, img_type="other", verbose=False
-):
+    file_path: Path | str,
+    creds_path: Optional[Path | str] = None,
+    dl_dir: Optional[Path | str] = None,
+    img_type: str = "other",
+    verbose: bool = False,
+) -> Path | str:
     """Check if passed-in file is on S3."""
     # Import packages
     import os

@@ -14,12 +14,22 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from CPAC.utils.datasource import create_func_datasource, ingress_func_metadata
+"""Ingress functional data for preprocessing."""
+
+from CPAC.utils.datasource import create_func_datasource
+from CPAC.utils.strategy import Strategy
 
 
 def connect_func_ingress(
-    workflow, strat_list, c, sub_dict, subject_id, input_creds_path, unique_id=None
+    workflow,
+    strat_list: list[Strategy],
+    c,
+    sub_dict,
+    subject_id,
+    input_creds_path,
+    unique_id=None,
 ):
+    """Connect functional ingress workflow."""
     for num_strat, strat in enumerate(strat_list):
         if "func" in sub_dict:
             func_paths_dict = sub_dict["func"]
@@ -47,8 +57,8 @@ def connect_func_ingress(
             }
         )
 
-        (workflow, strat.rpool, diff, blip, fmap_rp_list) = ingress_func_metadata(
-            workflow, c, strat.rpool, sub_dict, subject_id, input_creds_path, unique_id
+        (workflow, diff, blip, fmap_rp_list) = strat.rpool.ingress_func_metadata(
+            workflow, sub_dict
         )
 
     return (workflow, diff, blip, fmap_rp_list)
