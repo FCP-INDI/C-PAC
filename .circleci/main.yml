@@ -156,7 +156,7 @@ commands:
             then
               TAG=nightly
             else
-              TAG="${CIRCLE_BRANCH//\//_}"
+              TAG=`echo ${CIRCLE_BRANCH} | sed 's/[^a-zA-Z0-9._]/-/g'`
             fi
             DOCKER_TAG="ghcr.io/${CIRCLE_PROJECT_USERNAME,,}/${CIRCLE_PROJECT_REPONAME,,}:${TAG,,}"
             if [[ -n "<< parameters.variant >>" ]]
