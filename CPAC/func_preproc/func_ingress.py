@@ -16,7 +16,6 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Ingress functional data for preprocessing."""
 
-from CPAC.utils.datasource import create_func_datasource
 from CPAC.utils.strategy import Strategy
 
 
@@ -41,7 +40,9 @@ def connect_func_ingress(
         else:
             workflow_name = f"func_gather_{unique_id}_{num_strat}"
 
-        func_wf = create_func_datasource(func_paths_dict, workflow_name)
+        func_wf = strat._resource_pool.create_func_datasource(
+            func_paths_dict, workflow_name
+        )
 
         func_wf.inputs.inputnode.set(
             subject=subject_id,
