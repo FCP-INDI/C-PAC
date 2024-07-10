@@ -21,6 +21,7 @@ from nipype.interfaces import fsl
 import nipype.interfaces.io as nio
 from indi_aws import aws_utils
 
+from CPAC.func_preproc.func_ingress import connect_func_ingress
 from CPAC.longitudinal_pipeline.longitudinal_preproc import subject_specific_template
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.cpac_pipeline import (
@@ -30,7 +31,7 @@ from CPAC.pipeline.cpac_pipeline import (
     connect_pipeline,
     initialize_nipype_wf,
 )
-from CPAC.pipeline.engine import ingress_output_dir, initiate_rpool
+from CPAC.pipeline.engine import initiate_rpool
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.registration import (
     create_fsl_flirt_linear_reg,
@@ -430,12 +431,12 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 
         workflow = initialize_nipype_wf(
             config,
-            sub_list[0],
+            session,
             # just grab the first one for the name
             name="anat_longitudinal_pre-preproc",
         )
 
-        workflow, rpool = initiate_rpool(workflow, config, session)
+        rpool = initiate_rpool(workflow, config, session)
         pipeline_blocks = build_anat_preproc_stack(rpool, config)
         workflow = connect_pipeline(workflow, config, rpool, pipeline_blocks)
 
@@ -507,9 +508,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         template_node.inputs.input_skull_list = strats_head_dct[strat]
 
         long_id = f"longitudinal_{subject_id}_strat-{strat}"
-
-        wf, rpool = initiate_rpool(wf, config, part_id=long_id)
-
+        rpool = initiate_rpool(wf, config, part_id=long_id)
         rpool.set_data(
             "space-longitudinal_desc-brain_T1w",
             template_node,
@@ -574,7 +573,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                 creds_path = session["creds_path"]
                 if creds_path and "none" not in creds_path.lower():
                     if os.path.exists(creds_path):
-                        input_creds_path = os.path.abspath(creds_path)
+                        session["creds_path"] = os.path.abspath(creds_path)
                     else:
                         err_msg = (
                             'Credentials path: "%s" for subject "%s" '
@@ -583,18 +582,15 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                         )
                         raise Exception(err_msg)
                 else:
-                    input_creds_path = None
+                    session["creds_path"] = None
             except KeyError:
-                input_creds_path = None
+                session["creds_path"] = None
 
-            wf = initialize_nipype_wf(config, sub_list[0])
-
-            wf, rpool = initiate_rpool(wf, config, session)
+            wf = initialize_nipype_wf(config, session)
+            rpool = initiate_rpool(wf, config, session)
 
             config.pipeline_setup["pipeline_name"] = f"longitudinal_{orig_pipe_name}"
-            rpool = ingress_output_dir(
-                config, rpool, long_id, creds_path=input_creds_path
-            )
+            rpool.ingress_output_dir()
 
             select_node_name = f"select_{unique_id}"
             select_sess = pe.Node(
@@ -654,10 +650,9 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                 input_creds_path = None
         except KeyError:
             input_creds_path = None
-
-        wf = initialize_nipype_wf(config, sub_list[0])
-
-        wf, rpool = initiate_rpool(wf, config, session)
+        session["creds_path"] = input_creds_path
+        wf = initialize_nipype_wf(config, session)
+        rpool = initiate_rpool(wf, config, session)
 
         pipeline_blocks = [
             warp_longitudinal_T1w_to_template,

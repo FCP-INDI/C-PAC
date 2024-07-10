@@ -710,21 +710,24 @@ Please, make yourself aware of how it works and its assumptions:
                 ]
                 timeHeader = dict(zip(gpaTimeFields, gpaTimeFields))
 
-                with open(
-                    os.path.join(
-                        c.pipeline_setup["log_directory"]["path"],
-                        "cpac_individual_timing"
-                        f"_{c.pipeline_setup['pipeline_name']}.csv",
-                    ),
-                    "a",
-                ) as timeCSV, open(
-                    os.path.join(
-                        c.pipeline_setup["log_directory"]["path"],
-                        "cpac_individual_timing_%s.csv"
-                        % c.pipeline_setup["pipeline_name"],
-                    ),
-                    "r",
-                ) as readTimeCSV:
+                with (
+                    open(
+                        os.path.join(
+                            c.pipeline_setup["log_directory"]["path"],
+                            "cpac_individual_timing"
+                            f"_{c.pipeline_setup['pipeline_name']}.csv",
+                        ),
+                        "a",
+                    ) as timeCSV,
+                    open(
+                        os.path.join(
+                            c.pipeline_setup["log_directory"]["path"],
+                            "cpac_individual_timing_%s.csv"
+                            % c.pipeline_setup["pipeline_name"],
+                        ),
+                        "r",
+                    ) as readTimeCSV,
+                ):
                     timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
                     timeReader = csv.DictReader(readTimeCSV)
 
@@ -1244,7 +1247,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
     # PREPROCESSING
     # """""""""""""""""""""""""""""""""""""""""""""""""""
 
-    wf, rpool = initiate_rpool(wf, cfg, sub_dict)
+    rpool = initiate_rpool(wf, cfg, sub_dict)
 
     pipeline_blocks = build_anat_preproc_stack(rpool, cfg)
 
@@ -1437,7 +1440,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
         if rpool.check_rpool(func):
             apply_func_warp["T1"] = False
 
-    target_space_nuis = cfg.nuisance_corrections["2-nuisance_regression"]["space"]
+    # target_space_nuis = cfg.nuisance_corrections["2-nuisance_regression"]["space"]
     target_space_alff = cfg.amplitude_low_frequency_fluctuation["target_space"]
     target_space_reho = cfg.regional_homogeneity["target_space"]
 
