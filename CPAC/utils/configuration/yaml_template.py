@@ -22,7 +22,7 @@ from datetime import datetime
 from hashlib import sha1
 import os
 import re
-from typing import Optional, Union
+from typing import Optional
 
 from click import BadParameter
 import yaml
@@ -230,7 +230,7 @@ def _count_indent(line):
 
 
 def create_yaml_from_template(
-    d: Union[Configuration, dict],  # pylint: disable=invalid-name
+    d: Configuration | dict,  # pylint: disable=invalid-name
     template: str = "default",
     import_from: Optional[str] = None,
     skip_env_check: Optional[bool] = False,

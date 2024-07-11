@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2023  C-PAC Developers
+# Copyright (C) 2021-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -17,7 +17,6 @@
 """C-PAC pipeline engine utilities."""
 
 from itertools import chain
-from typing import Union
 
 from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
@@ -94,9 +93,9 @@ def name_fork(resource_idx, cfg, json_info, out_dct):
 
 def present_outputs(outputs: dict, keys: list) -> dict:
     """
-    Given an outputs dictionary and a list of output keys, returns
-    the subset of ``outputs`` that includes all keys in ``keys`` that are
-    present. I.e., :py:func:`~CPAC.func_preproc.func_motion.motion_correct_connections`
+    Return the subset of ``outputs`` including only that are present in ``keys``.
+
+    I.e., :py:func:`~CPAC.func_preproc.func_motion.motion_correct_connections`
     will have different items in its ``outputs`` dictionary at different
     times depending on the ``motion_correction`` configuration;
     :py:func:`~CPAC.func_preproc.func_motion.func_motion_estimates` can
@@ -129,7 +128,7 @@ def present_outputs(outputs: dict, keys: list) -> dict:
     return {key: outputs[key] for key in keys if key in outputs}
 
 
-def source_set(sources: Union[str, list, set]) -> set:
+def source_set(sources: str | list | set) -> set:
     """Given a CpacProvenance, return a set of {resource}:{source} strings.
 
     Parameters
@@ -203,8 +202,7 @@ def source_set(sources: Union[str, list, set]) -> set:
 
 def _update_resource_idx(resource_idx, out_dct, key, value):
     """
-    Given a resource_idx and an out_dct, insert fork-based keys as
-    appropriate.
+    Given a resource_idx and an out_dct, insert fork-based keys as appropriate.
 
     Parameters
     ----------

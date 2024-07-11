@@ -18,6 +18,7 @@
 
 from logging import basicConfig, INFO
 import os
+from subprocess import run
 
 import pytest
 import yaml
@@ -71,6 +72,11 @@ def create_sample_bids_structure(root_dir):
                 os.path.join(path, "_".join([_prefix_entities(paths, path), suffix])),
                 "w",
             )
+
+
+def test_bids_validator() -> None:
+    """Test subprocess call to `bids-validator`."""
+    run(["bids-validator", "--version"], check=True)
 
 
 @pytest.mark.parametrize("only_one_anat", [True, False])

@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
+from typing import Literal
 
 import numpy as np
 import nibabel as nib
@@ -49,7 +50,6 @@ from CPAC.utils.datasource import check_for_s3
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.pc import PC
 from CPAC.utils.monitoring import IFLOGGER
-from CPAC.utils.typing import Literal, TUPLE
 from CPAC.utils.utils import check_prov_for_regtool
 from .bandpass import afni_1dBandpass, bandpass_voxels
 
@@ -2417,7 +2417,7 @@ def nuisance_regressors_generation(
     pipe_num: int,
     opt: dict,
     space: Literal["T1w", "bold"],
-) -> TUPLE[Workflow, dict]:
+) -> tuple[Workflow, dict]:
     """
     Parameters
     ----------

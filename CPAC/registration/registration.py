@@ -40,7 +40,6 @@ from CPAC.registration.utils import (
     single_ants_xfm_to_list,
 )
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
-from CPAC.utils.typing import ListOrStr, TUPLE
 from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
 
 
@@ -5419,11 +5418,11 @@ def warp_resource_to_template(
     cfg,
     strat_pool,
     pipe_num: int,
-    input_resource: ListOrStr,
+    input_resource: list[str] | str,
     xfm: str,
     reference: Optional[str] = None,
     time_series: Optional[bool] = False,
-) -> TUPLE[pe.Workflow, pe.Workflow, str]:
+) -> tuple[pe.Workflow, pe.Workflow, str]:
     """Warp a resource into a template space.
 
     Parameters
@@ -5510,7 +5509,7 @@ def warp_resource_to_template(
 
 def _warp_return(
     wf: pe.Workflow, apply_xfm: Optional[pe.Workflow], outputs: dict
-) -> TUPLE[pe.Workflow, dict]:
+) -> tuple[pe.Workflow, dict]:
     """Check if we have a transform to apply; if not, don't add the outputs."""
     if apply_xfm is None:
         return wf, {}

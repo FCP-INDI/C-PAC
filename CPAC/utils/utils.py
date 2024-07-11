@@ -25,7 +25,7 @@ import json
 import numbers
 import os
 import pickle
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 from voluptuous.error import Invalid
@@ -34,7 +34,6 @@ import yaml
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.docs import deprecated
 from CPAC.utils.monitoring import FMLOGGER, WFLOGGER
-from CPAC.utils.typing import LIST, TUPLE
 
 CONFIGS_DIR = os.path.abspath(
     os.path.join(__file__, *repeat(os.path.pardir, 2), "resources/configs/")
@@ -473,7 +472,7 @@ def compute_fisher_z_score(correlation_file, timeseries_one_d, input_name):
 
 
 def fetch_and_convert(
-    scan_parameters: dict, scan: str, keys: LIST[str], convert_to: type, fallback: Any
+    scan_parameters: dict, scan: str, keys: list[str], convert_to: type, fallback: Any
 ) -> Any:
     """Fetch a parameter from a scan parameters dictionary and convert it to a given type.
 
@@ -1202,8 +1201,8 @@ def check_system_deps(
 
 
 def check_config_resources(
-    c: Union[Configuration, dict],
-) -> TUPLE[Union[float, int], int, int, int]:
+    c: Configuration | dict,
+) -> tuple[float | int, int, int, int]:
     """Check pipeline config againts computer resources."""
     # Import packages
     from multiprocessing import cpu_count
