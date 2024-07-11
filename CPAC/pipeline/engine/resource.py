@@ -41,7 +41,7 @@ from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
 from CPAC.registration.registration import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
 from CPAC.utils.bids_utils import res_in_filename
-from CPAC.utils.configuration.configuration import Configuration, EmptyConfiguration
+from CPAC.utils.configuration.configuration import Configuration, Preconfiguration
 from CPAC.utils.datasource import (
     calc_delta_te_and_asym_ratio,
     check_for_s3,
@@ -359,7 +359,7 @@ class ResourcePool:
         if cfg:
             self.cfg = cfg
         else:
-            self.cfg = EmptyConfiguration()
+            self.cfg = Preconfiguration("blank")
 
         self.logdir = self._config_lookup(["pipeline_setup", "log_directory", "path"])
         self.num_cpus = self._config_lookup(
