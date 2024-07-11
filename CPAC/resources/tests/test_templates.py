@@ -29,7 +29,7 @@ from CPAC.utils.datasource import get_highest_local_res
 @pytest.mark.parametrize("pipeline", ALL_PIPELINE_CONFIGS)
 def test_packaged_path_exists(pipeline):
     """Check that all local templates are included in at least one resolution."""
-    rpool = ResourcePool(cfg=Preconfiguration(pipeline), unique_id="pytest")
+    rpool = ResourcePool(cfg=Preconfiguration(pipeline), part_id="pytest")
     rpool.ingress_pipeconfig_paths()
     for resource in rpool.rpool.values():
         node = next(iter(resource.values())).get("data")[0]

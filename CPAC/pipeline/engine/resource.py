@@ -332,6 +332,7 @@ class ResourcePool:
         pipe_list: Optional[list] = None,
         *,
         data_paths: Optional[DataPaths | dict] = None,
+        part_id: Optional[str] = None,
         pipeline_name: str = "",
         wf: Optional[pe.Workflow] = None,
     ):
@@ -339,7 +340,7 @@ class ResourcePool:
         if isinstance(data_paths, dict):
             data_paths = DataPaths(data_paths=data_paths)
         elif not data_paths:
-            data_paths = DataPaths()
+            data_paths = DataPaths(part_id=part_id)
         self.data_paths = data_paths
         # pass-through for convenient access
         self.creds_path = self.data_paths.creds_path
