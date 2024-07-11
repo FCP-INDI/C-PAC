@@ -796,9 +796,9 @@ def set_subject(
     >>> log_dir.endswith(f'{p_name}/{subject_id}')
     True
     """
-    subject_id = sub_group[0][0]
-    if sub_group[0][1]:
-        subject_id += f"_{sub_group[0][1]}"
+    subject_id = sub_dict[0][0]
+    if sub_dict[0][1]:
+        subject_id += f"_{sub_dict[0][1]}"
     p_name = check_pname(p_name, pipe_config)
     log_dir = os.path.join(
         pipe_config.pipeline_setup["log_directory"]["path"], p_name, subject_id
