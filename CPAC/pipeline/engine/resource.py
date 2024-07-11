@@ -24,7 +24,7 @@ import os
 from pathlib import Path
 import re
 from types import NoneType
-from typing import Any, Optional
+from typing import Any, Literal, NamedTuple, Optional, overload
 import warnings
 
 from nipype.interfaces import utility as util
@@ -71,6 +71,7 @@ from CPAC.utils.utils import (
 )
 
 EXTS = [".nii", ".gz", ".mat", ".1D", ".txt", ".csv", ".rms", ".tsv"]
+STRAT_DICT = dict[str, dict[str | tuple, "Resource"]]
 
 
 class DataPaths:
@@ -145,7 +146,7 @@ class DataPaths:
         }
 
 
-def generate_prov_string(prov: list[str]) -> tuple[str, str]:
+def generate_prov_string(prov: list[str] | str | tuple) -> tuple[str, str]:
     """Generate a string from a SINGLE RESOURCE'S dictionary of MULTIPLE PRECEDING RESOURCES (or single, if just one).
 
     NOTE: this DOES NOT merge multiple resources!!! (i.e. for merging-strat pipe_idx generation).
@@ -275,54 +276,50 @@ def strip_template(data_label: str) -> tuple[str, dict[str, str]]:
     return data_label, json
 
 
-class NodeData:
-    r"""Attribute access for ResourcePool.get_data outputs.
+class ResourceData(NamedTuple):
+    """Attribute and tuple access for ResourceData."""
 
-    Class to hold outputs of CPAC.pipeline.engine.ResourcePool().get_data(), so one can
-    do ``node_data = strat_pool.node_data(resource)`` and have ``node_data.node`` and
-    ``node_data.out`` instead of doing ``node, out = strat_pool.get_data(resource)``
-    and needing two variables (``node`` and ``out``) to store that information.
-
-    Also includes ``variant`` attribute providing the resource's self-keyed value
-    within its ``CpacVariant`` dictionary.
-
-    Examples
-    --------
-    >>> rp = ResourcePool()
-    >>> rp.node_data(None)
-    NotImplemented (NotImplemented)
-
-    >>> rp.set_data('test',
-    ...             pe.Node(Function(input_names=[]), 'test'),
-    ...             'b', [], 0, 'test')
-    >>> rp.node_data('test')
-    test (b)
-    >>> rp.node_data('test').out
-    'b'
-
-    >>> try:
-    ...     rp.node_data('b')
-    ... except LookupError as lookup_error:
-    ...     print(str(lookup_error).strip().split('\n')[0].strip())
-    [!] C-PAC says: None of the listed resources are in the resource pool:
-    """
-
-    # pylint: disable=too-few-public-methods
-    def __init__(self, strat_pool=None, resource=None, **kwargs):
-        self.node = NotImplemented
-        self.out = NotImplemented
-        if strat_pool is not None and resource is not None:
-            self.node, self.out = strat_pool.get_data(resource, **kwargs)
-
-    def __repr__(self):  # noqa: D105
-        return f'{getattr(self.node, "name", str(self.node))} ({self.out})'
+    node: pe.Node
+    """Resource Node."""
+    out: str
+    """Output key."""
 
 
 class Resource:
     """A single Resource and its methods."""
 
+    def __init__(self, data: tuple[pe.Node, str], json: dict | list) -> None:
+        """Initialize a Resource."""
+        self.data = ResourceData(*data)
+        """Tuple of source Node and output key."""
+        self.json = json
+        """Metadata."""
+        self._keys = {"data", "json"}
+        """Dictionary-style subscriptable keys."""
 
-class ResourcePool:
+    def keys(self) -> list[str]:
+        """Return list of subscriptable keys."""
+        return list(self._keys)
+
+    def __getitem__(self, name: str | tuple[str]) -> tuple[pe.Node, str | tuple[str]]:
+        """Provide legacy dict-style get access."""
+        if name in self.keys():
+            return getattr(self, name)
+        msg = f"Key '{name}' not set in {self}."
+        raise KeyError(msg)
+
+    def __setitem__(self, name: str | tuple[str], value: Any) -> None:
+        """Provide legacy dict-style set access."""
+        setattr(self, name, value)
+        if name not in self.keys():
+            self._keys.add(name)
+
+    def __str__(self) -> str:
+        """Return string representation of Resource."""
+        return f"{self.data[0]}"
+
+
+class _Pool:
     """All Resources."""
 
     def __init__(
@@ -846,16 +843,30 @@ class ResourcePool:
         self.rpool[resource][new_pipe_idx]["data"] = (node, output)
         self.rpool[resource][new_pipe_idx]["json"] = json_info
 
-    def get(
+    @overload
+    def _pool_get(
+        self: "ResourcePool",
+        resource: list[str] | str,
+        pipe_idx: Optional[str],
+        report_fetched: bool,
+        optional: bool,
+    ) -> Optional[dict[dict]] | tuple[Optional[dict[dict]], Optional[str]]: ...
+    @overload
+    def _pool_get(
+        self: "StratPool",
+        resource: list[str] | str,
+        pipe_idx: Optional[str],
+        report_fetched: bool,
+        optional: bool,
+    ) -> Optional[Resource] | tuple[Optional[Resource], Optional[str]]: ...
+    def _pool_get(
         self,
         resource: list[str] | str,
-        pipe_idx: Optional[str] = None,
-        report_fetched: Optional[bool] = False,
-        optional: Optional[bool] = False,
-    ) -> tuple[Optional[dict], Optional[str]] | Optional[dict]:
-        # NOTE!!!
-        # if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
-        # BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
+        pipe_idx: Optional[str],
+        report_fetched: bool,
+        optional: bool,
+    ):
+        """Return a dictionary of strats or a single Resource."""
         if not isinstance(resource, list):
             resource = [resource]
         # if a list of potential inputs are given, pick the first one found
@@ -887,8 +898,36 @@ class ResourcePool:
         )
         raise LookupError(msg)
 
+    @overload
     def get_data(
-        self, resource, pipe_idx=None, report_fetched=False, quick_single=False
+        self,
+        resource: str,
+        pipe_idx: Optional[list | str | tuple] = None,
+        report_fetched: Literal[True] = True,
+        quick_single: bool = False,
+    ) -> tuple[dict, str]: ...
+    @overload
+    def get_data(
+        self,
+        resource: str,
+        pipe_idx: Optional[list | str | tuple] = None,
+        report_fetched: Literal[False] = False,
+        quick_single: bool = False,
+    ) -> dict: ...
+    @overload
+    def get_data(
+        self,
+        resource: str,
+        pipe_idx: Optional[list | str | tuple] = None,
+        report_fetched: bool = False,
+        quick_single: bool = False,
+    ) -> tuple[dict, str] | dict: ...
+    def get_data(
+        self,
+        resource: str,
+        pipe_idx: Optional[list | str | tuple] = None,
+        report_fetched: bool = False,
+        quick_single: bool = False,
     ):
         if report_fetched:
             if pipe_idx:
@@ -996,257 +1035,6 @@ class ResourcePool:
                     flat_prov.append(entry)
             return flat_prov
         return None
-
-    def get_strats(self, resources, debug=False) -> dict[str | tuple, "StratPool"]:
-        # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
-        # TODO: (and it doesn't have to be)
-        import itertools
-
-        linked_resources = []
-        resource_list = []
-        if debug:
-            verbose_logger = getLogger("CPAC.engine")
-            verbose_logger.debug("\nresources: %s", resources)
-        for resource in resources:
-            # grab the linked-input tuples
-            if isinstance(resource, tuple):
-                linked = []
-                for label in list(resource):
-                    rp_dct, fetched_resource = self.get(
-                        label, report_fetched=True, optional=True
-                    )
-                    if not rp_dct:
-                        continue
-                    linked.append(fetched_resource)
-                resource_list += linked
-                if len(linked) < 2:  # noqa: PLR2004
-                    continue
-                linked_resources.append(linked)
-            else:
-                resource_list.append(resource)
-
-        total_pool = []
-        variant_pool = {}
-        len_inputs = len(resource_list)
-        if debug:
-            verbose_logger = getLogger("CPAC.engine")
-            verbose_logger.debug("linked_resources: %s", linked_resources)
-            verbose_logger.debug("resource_list: %s", resource_list)
-        for resource in resource_list:
-            (
-                rp_dct,  # <---- rp_dct has the strats/pipe_idxs as the keys on first level, then 'data' and 'json' on each strat level underneath
-                fetched_resource,
-            ) = self.get(
-                resource,
-                report_fetched=True,
-                optional=True,  # oh, and we make the resource fetching in get_strats optional so we can have optional inputs, but they won't be optional in the node block unless we want them to be
-            )
-            if not rp_dct:
-                len_inputs -= 1
-                continue
-            sub_pool = []
-            if debug:
-                verbose_logger.debug("len(rp_dct): %s\n", len(rp_dct))
-            for strat in rp_dct.keys():
-                json_info = self.get_json(fetched_resource, strat)
-                cpac_prov = json_info["CpacProvenance"]
-                sub_pool.append(cpac_prov)
-                if fetched_resource not in variant_pool:
-                    variant_pool[fetched_resource] = []
-                if "CpacVariant" in json_info:
-                    for key, val in json_info["CpacVariant"].items():
-                        if val not in variant_pool[fetched_resource]:
-                            variant_pool[fetched_resource] += val
-                            variant_pool[fetched_resource].append(f"NO-{val[0]}")
-
-            if debug:
-                verbose_logger = getLogger("CPAC.engine")
-                verbose_logger.debug("%s sub_pool: %s\n", resource, sub_pool)
-            total_pool.append(sub_pool)
-
-        if not total_pool:
-            raise LookupError(
-                "\n\n[!] C-PAC says: None of the listed "
-                "resources in the node block being connected "
-                "exist in the resource pool.\n\nResources:\n"
-                "%s\n\n" % resource_list
-            )
-
-        # TODO: right now total_pool is:
-        # TODO:    [[[T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-preproc_T1w:acpc_alignment], [T1w:anat_ingress,desc-preproc_T1w:anatomical_init]],
-        # TODO:     [[T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-preproc_T1w:acpc_alignment, desc-brain_mask:brain_mask_afni], [T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-brain_mask:brain_mask_afni]]]
-
-        # TODO: and the code below thinks total_pool is a list of lists, like [[pipe_idx, pipe_idx], [pipe_idx, pipe_idx, pipe_idx], etc.]
-        # TODO: and the actual resource is encoded in the tag: of the last item, every time!
-        # keying the strategies to the resources, inverting it
-        if len_inputs > 1:
-            strats = itertools.product(*total_pool)
-
-            # we now currently have "strats", the combined permutations of all the strategies, as a list of tuples, each tuple combining one version of input each, being one of the permutations.
-            # OF ALL THE DIFFERENT INPUTS. and they are tagged by their fetched inputs with {name}:{strat}.
-            # so, each tuple has ONE STRAT FOR EACH INPUT, so if there are three inputs, each tuple will have 3 items.
-            new_strats: dict[str | tuple, StratPool] = {}
-
-            # get rid of duplicates - TODO: refactor .product
-            strat_str_list = []
-            strat_list_list = []
-            for strat_tuple in strats:
-                strat_list = list(copy.deepcopy(strat_tuple))
-                strat_str = str(strat_list)
-                if strat_str not in strat_str_list:
-                    strat_str_list.append(strat_str)
-                    strat_list_list.append(strat_list)
-
-            if debug:
-                verbose_logger = getLogger("CPAC.engine")
-                verbose_logger.debug("len(strat_list_list): %s\n", len(strat_list_list))
-            for strat_list in strat_list_list:
-                json_dct = {}
-                for strat in strat_list:
-                    # strat is a prov list for a single resource/input
-                    strat_resource, strat_idx = generate_prov_string(strat)
-                    strat_json = self.get_json(strat_resource, strat=strat_idx)
-                    json_dct[strat_resource] = strat_json
-
-                drop = False
-                if linked_resources:
-                    for linked in linked_resources:  # <--- 'linked' is each tuple
-                        if drop:
-                            break
-                        for xlabel in linked:
-                            if drop:
-                                break
-                            xjson = copy.deepcopy(json_dct[xlabel])
-                            for ylabel in linked:
-                                if xlabel == ylabel:
-                                    continue
-                                yjson = copy.deepcopy(json_dct[ylabel])
-
-                                if "CpacVariant" not in xjson:
-                                    xjson["CpacVariant"] = {}
-                                if "CpacVariant" not in yjson:
-                                    yjson["CpacVariant"] = {}
-
-                                current_strat = []
-                                for key, val in xjson["CpacVariant"].items():
-                                    if isinstance(val, list):
-                                        current_strat.append(val[0])
-                                    else:
-                                        current_strat.append(val)
-                                current_spread = list(set(variant_pool[xlabel]))
-                                for spread_label in current_spread:
-                                    if "NO-" in spread_label:
-                                        continue
-                                    if spread_label not in current_strat:
-                                        current_strat.append(f"NO-{spread_label}")
-
-                                other_strat = []
-                                for key, val in yjson["CpacVariant"].items():
-                                    if isinstance(val, list):
-                                        other_strat.append(val[0])
-                                    else:
-                                        other_strat.append(val)
-                                other_spread = list(set(variant_pool[ylabel]))
-                                for spread_label in other_spread:
-                                    if "NO-" in spread_label:
-                                        continue
-                                    if spread_label not in other_strat:
-                                        other_strat.append(f"NO-{spread_label}")
-
-                                for variant in current_spread:
-                                    in_current_strat = False
-                                    in_other_strat = False
-                                    in_other_spread = False
-
-                                    if variant is None:
-                                        in_current_strat = True
-                                        if None in other_spread:
-                                            in_other_strat = True
-                                    if variant in current_strat:
-                                        in_current_strat = True
-                                    if variant in other_strat:
-                                        in_other_strat = True
-                                    if variant in other_spread:
-                                        in_other_spread = True
-
-                                    if not in_other_strat:
-                                        if in_other_spread:
-                                            if in_current_strat:
-                                                drop = True
-                                                break
-
-                                    if in_other_strat:
-                                        if in_other_spread:
-                                            if not in_current_strat:
-                                                drop = True
-                                                break
-                                if drop:
-                                    break
-                if drop:
-                    continue
-
-                # make the merged strat label from the multiple inputs
-                # strat_list is actually the merged CpacProvenance lists
-                pipe_idx = str(strat_list)
-                new_strats[pipe_idx] = StratPool()
-                # new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
-                # placing JSON info at one level higher only for copy convenience
-                new_strats[pipe_idx].rpool["json"] = {}
-                new_strats[pipe_idx].rpool["json"]["subjson"] = {}
-                new_strats[pipe_idx].rpool["json"]["CpacProvenance"] = strat_list
-
-                # now just invert resource:strat to strat:resource for each resource:strat
-                for cpac_prov in strat_list:
-                    resource, strat = generate_prov_string(cpac_prov)
-                    resource_strat_dct = self.rpool[resource][strat]
-                    # remember, `resource_strat_dct` is the dct of 'data' and 'json'.
-                    new_strats[pipe_idx].rpool[resource] = resource_strat_dct
-                    # `new_strats` is A DICTIONARY OF RESOURCEPOOL OBJECTS! each one is a new slice of the resource pool combined together.
-                    self.pipe_list.append(pipe_idx)
-                    if "CpacVariant" in resource_strat_dct["json"]:
-                        if "CpacVariant" not in new_strats[pipe_idx].rpool["json"]:
-                            new_strats[pipe_idx].rpool["json"]["CpacVariant"] = {}
-                        for younger_resource, variant_list in resource_strat_dct[
-                            "json"
-                        ]["CpacVariant"].items():
-                            if (
-                                younger_resource
-                                not in new_strats[pipe_idx].rpool["json"]["CpacVariant"]
-                            ):
-                                new_strats[pipe_idx].rpool["json"]["CpacVariant"][
-                                    younger_resource
-                                ] = variant_list
-                    # preserve each input's JSON info also
-                    data_type = resource.split("_")[-1]
-                    if data_type not in new_strats[pipe_idx].rpool["json"]["subjson"]:
-                        new_strats[pipe_idx].rpool["json"]["subjson"][data_type] = {}
-                    new_strats[pipe_idx].rpool["json"]["subjson"][data_type].update(
-                        copy.deepcopy(resource_strat_dct["json"])
-                    )
-        else:
-            new_strats = {}
-            for resource_strat_list in total_pool:
-                # total_pool will have only one list of strats, for the one input
-                for cpac_prov in resource_strat_list:  # <------- cpac_prov here doesn't need to be modified, because it's not merging with other inputs
-                    resource, pipe_idx = generate_prov_string(cpac_prov)
-                    resource_strat_dct = self.rpool[resource][pipe_idx]
-                    # remember, `resource_strat_dct` is the dct of 'data' and 'json'.
-                    new_strats[pipe_idx] = StratPool(
-                        rpool={resource: resource_strat_dct}
-                    )  # <----- again, new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
-                    # placing JSON info at one level higher only for copy convenience
-                    new_strats[pipe_idx].rpool["json"] = resource_strat_dct["json"]
-                    # TODO: WARNING- THIS IS A LEVEL HIGHER THAN THE ORIGINAL 'JSON' FOR EASE OF ACCESS IN CONNECT_BLOCK WITH THE .GET(JSON)
-                    new_strats[pipe_idx].rpool["json"]["subjson"] = {}
-                    new_strats[pipe_idx].rpool["json"]["CpacProvenance"] = cpac_prov
-                    # preserve each input's JSON info also
-                    data_type = resource.split("_")[-1]
-                    if data_type not in new_strats[pipe_idx].rpool["json"]["subjson"]:
-                        new_strats[pipe_idx].rpool["json"]["subjson"][data_type] = {}
-                    new_strats[pipe_idx].rpool["json"]["subjson"][data_type].update(
-                        copy.deepcopy(resource_strat_dct["json"])
-                    )
-        return new_strats
 
     def derivative_xfm(self, wf, label, connection, json_info, pipe_idx, pipe_x):
         if label in self.xfm:
@@ -1838,18 +1626,310 @@ class ResourcePool:
                 wf.connect(write_json, "json_file", ds, f'{out_dct["subdir"]}.@json')
         outputs_logger.info(expected_outputs)
 
-    def node_data(self, resource, **kwargs):
-        """Create NodeData objects.
+    def node_data(self, resource: str | tuple[str], **kwargs) -> ResourceData:
+        """Create ResourceData objects."""
+        return ResourceData(self, resource, **kwargs)
 
-        Parameters
-        ----------
-        resource : str
 
-        Returns
-        -------
-        NodeData
+class ResourcePool(_Pool):
+    """A pool of Resources."""
+
+    @overload
+    def get(
+        self,
+        resource: list[str] | str,
+        pipe_idx: Optional[str] = None,
+        report_fetched: Literal[False] = False,
+        optional: bool = False,
+    ) -> Optional[STRAT_DICT]: ...
+    @overload
+    def get(
+        self,
+        resource: list[str] | str,
+        pipe_idx: Optional[str],
+        report_fetched: Literal[True],
+        optional: bool = False,
+    ) -> tuple[Optional[STRAT_DICT], Optional[str]]: ...
+    @overload
+    def get(
+        self,
+        resource: list[str] | str,
+        pipe_idx: Optional[str] = None,
+        *,
+        report_fetched: Literal[True],
+        optional: bool = False,
+    ) -> tuple[Optional[STRAT_DICT], Optional[str]]: ...
+    @overload
+    def get(
+        self,
+        resource: list[str] | str,
+        pipe_idx: Optional[str] = None,
+        report_fetched: bool = False,
+        optional: bool = False,
+    ) -> Optional[STRAT_DICT] | tuple[STRAT_DICT, Optional[str]]: ...
+    def get(
+        self,
+        resource: list[str] | str,
+        pipe_idx: Optional[str] = None,
+        report_fetched: bool = False,
+        optional: bool = False,
+    ):
+        """Return a dictionary of strats.
+
+        Inside those, are dictionaries like ``{'data': (node, out), 'json': info}``.
         """
-        return NodeData(self, resource, **kwargs)
+        self._pool_get(resource, pipe_idx, report_fetched, optional)
+
+    def get_strats(self, resources, debug=False) -> dict[str | tuple, "StratPool"]:
+        # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
+        # TODO: (and it doesn't have to be)
+        import itertools
+
+        linked_resources = []
+        resource_list = []
+        if debug:
+            verbose_logger = getLogger("CPAC.engine")
+            verbose_logger.debug("\nresources: %s", resources)
+        for resource in resources:
+            # grab the linked-input tuples
+            if isinstance(resource, tuple):
+                linked = []
+                for label in list(resource):
+                    rp_dct, fetched_resource = self.get(
+                        label, report_fetched=True, optional=True
+                    )
+                    if not rp_dct:
+                        continue
+                    linked.append(fetched_resource)
+                resource_list += linked
+                if len(linked) < 2:  # noqa: PLR2004
+                    continue
+                linked_resources.append(linked)
+            else:
+                resource_list.append(resource)
+
+        total_pool = []
+        variant_pool = {}
+        len_inputs = len(resource_list)
+        if debug:
+            verbose_logger = getLogger("CPAC.engine")
+            verbose_logger.debug("linked_resources: %s", linked_resources)
+            verbose_logger.debug("resource_list: %s", resource_list)
+        for resource in resource_list:
+            (
+                rp_dct,  # <---- rp_dct has the strats/pipe_idxs as the keys on first level, then 'data' and 'json' on each strat level underneath
+                fetched_resource,
+            ) = self.get(
+                resource,
+                report_fetched=True,
+                optional=True,  # oh, and we make the resource fetching in get_strats optional so we can have optional inputs, but they won't be optional in the node block unless we want them to be
+            )
+            if not rp_dct:
+                len_inputs -= 1
+                continue
+            sub_pool = []
+            if debug:
+                verbose_logger.debug("len(rp_dct): %s\n", len(rp_dct))
+            for strat in rp_dct.keys():
+                json_info = self.get_json(fetched_resource, strat)
+                cpac_prov = json_info["CpacProvenance"]
+                sub_pool.append(cpac_prov)
+                if fetched_resource not in variant_pool:
+                    variant_pool[fetched_resource] = []
+                if "CpacVariant" in json_info:
+                    for key, val in json_info["CpacVariant"].items():
+                        if val not in variant_pool[fetched_resource]:
+                            variant_pool[fetched_resource] += val
+                            variant_pool[fetched_resource].append(f"NO-{val[0]}")
+
+            if debug:
+                verbose_logger = getLogger("CPAC.engine")
+                verbose_logger.debug("%s sub_pool: %s\n", resource, sub_pool)
+            total_pool.append(sub_pool)
+
+        if not total_pool:
+            raise LookupError(
+                "\n\n[!] C-PAC says: None of the listed "
+                "resources in the node block being connected "
+                "exist in the resource pool.\n\nResources:\n"
+                "%s\n\n" % resource_list
+            )
+
+        # TODO: right now total_pool is:
+        # TODO:    [[[T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-preproc_T1w:acpc_alignment], [T1w:anat_ingress,desc-preproc_T1w:anatomical_init]],
+        # TODO:     [[T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-preproc_T1w:acpc_alignment, desc-brain_mask:brain_mask_afni], [T1w:anat_ingress, desc-preproc_T1w:anatomical_init, desc-brain_mask:brain_mask_afni]]]
+
+        # TODO: and the code below thinks total_pool is a list of lists, like [[pipe_idx, pipe_idx], [pipe_idx, pipe_idx, pipe_idx], etc.]
+        # TODO: and the actual resource is encoded in the tag: of the last item, every time!
+        # keying the strategies to the resources, inverting it
+        if len_inputs > 1:
+            strats = itertools.product(*total_pool)
+
+            # we now currently have "strats", the combined permutations of all the strategies, as a list of tuples, each tuple combining one version of input each, being one of the permutations.
+            # OF ALL THE DIFFERENT INPUTS. and they are tagged by their fetched inputs with {name}:{strat}.
+            # so, each tuple has ONE STRAT FOR EACH INPUT, so if there are three inputs, each tuple will have 3 items.
+            new_strats: dict[str | tuple, StratPool] = {}
+
+            # get rid of duplicates - TODO: refactor .product
+            strat_str_list = []
+            strat_list_list = []
+            for strat_tuple in strats:
+                strat_list = list(copy.deepcopy(strat_tuple))
+                strat_str = str(strat_list)
+                if strat_str not in strat_str_list:
+                    strat_str_list.append(strat_str)
+                    strat_list_list.append(strat_list)
+
+            if debug:
+                verbose_logger = getLogger("CPAC.engine")
+                verbose_logger.debug("len(strat_list_list): %s\n", len(strat_list_list))
+            for strat_list in strat_list_list:
+                json_dct = {}
+                for strat in strat_list:
+                    # strat is a prov list for a single resource/input
+                    strat_resource, strat_idx = generate_prov_string(strat)
+                    strat_json = self.get_json(strat_resource, strat=strat_idx)
+                    json_dct[strat_resource] = strat_json
+
+                drop = False
+                if linked_resources:
+                    for linked in linked_resources:  # <--- 'linked' is each tuple
+                        if drop:
+                            break
+                        for xlabel in linked:
+                            if drop:
+                                break
+                            xjson = copy.deepcopy(json_dct[xlabel])
+                            for ylabel in linked:
+                                if xlabel == ylabel:
+                                    continue
+                                yjson = copy.deepcopy(json_dct[ylabel])
+
+                                if "CpacVariant" not in xjson:
+                                    xjson["CpacVariant"] = {}
+                                if "CpacVariant" not in yjson:
+                                    yjson["CpacVariant"] = {}
+
+                                current_strat = []
+                                for key, val in xjson["CpacVariant"].items():
+                                    if isinstance(val, list):
+                                        current_strat.append(val[0])
+                                    else:
+                                        current_strat.append(val)
+                                current_spread = list(set(variant_pool[xlabel]))
+                                for spread_label in current_spread:
+                                    if "NO-" in spread_label:
+                                        continue
+                                    if spread_label not in current_strat:
+                                        current_strat.append(f"NO-{spread_label}")
+
+                                other_strat = []
+                                for key, val in yjson["CpacVariant"].items():
+                                    if isinstance(val, list):
+                                        other_strat.append(val[0])
+                                    else:
+                                        other_strat.append(val)
+                                other_spread = list(set(variant_pool[ylabel]))
+                                for spread_label in other_spread:
+                                    if "NO-" in spread_label:
+                                        continue
+                                    if spread_label not in other_strat:
+                                        other_strat.append(f"NO-{spread_label}")
+
+                                for variant in current_spread:
+                                    in_current_strat = False
+                                    in_other_strat = False
+                                    in_other_spread = False
+
+                                    if variant is None:
+                                        in_current_strat = True
+                                        if None in other_spread:
+                                            in_other_strat = True
+                                    if variant in current_strat:
+                                        in_current_strat = True
+                                    if variant in other_strat:
+                                        in_other_strat = True
+                                    if variant in other_spread:
+                                        in_other_spread = True
+
+                                    if not in_other_strat:
+                                        if in_other_spread:
+                                            if in_current_strat:
+                                                drop = True
+                                                break
+
+                                    if in_other_strat:
+                                        if in_other_spread:
+                                            if not in_current_strat:
+                                                drop = True
+                                                break
+                                if drop:
+                                    break
+                if drop:
+                    continue
+
+                # make the merged strat label from the multiple inputs
+                # strat_list is actually the merged CpacProvenance lists
+                pipe_idx = str(strat_list)
+                new_strats[pipe_idx] = StratPool()
+                # new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
+                # placing JSON info at one level higher only for copy convenience
+                new_strats[pipe_idx].rpool["json"] = {}
+                new_strats[pipe_idx].rpool["json"]["subjson"] = {}
+                new_strats[pipe_idx].rpool["json"]["CpacProvenance"] = strat_list
+
+                # now just invert resource:strat to strat:resource for each resource:strat
+                for cpac_prov in strat_list:
+                    resource, strat = generate_prov_string(cpac_prov)
+                    resource_strat_dct = self.rpool[resource][strat]
+                    # remember, `resource_strat_dct` is the dct of 'data' and 'json'.
+                    new_strats[pipe_idx].rpool[resource] = resource_strat_dct
+                    # `new_strats` is A DICTIONARY OF RESOURCEPOOL OBJECTS! each one is a new slice of the resource pool combined together.
+                    self.pipe_list.append(pipe_idx)
+                    if "CpacVariant" in resource_strat_dct["json"]:
+                        if "CpacVariant" not in new_strats[pipe_idx].rpool["json"]:
+                            new_strats[pipe_idx].rpool["json"]["CpacVariant"] = {}
+                        for younger_resource, variant_list in resource_strat_dct[
+                            "json"
+                        ]["CpacVariant"].items():
+                            if (
+                                younger_resource
+                                not in new_strats[pipe_idx].rpool["json"]["CpacVariant"]
+                            ):
+                                new_strats[pipe_idx].rpool["json"]["CpacVariant"][
+                                    younger_resource
+                                ] = variant_list
+                    # preserve each input's JSON info also
+                    data_type = resource.split("_")[-1]
+                    if data_type not in new_strats[pipe_idx].rpool["json"]["subjson"]:
+                        new_strats[pipe_idx].rpool["json"]["subjson"][data_type] = {}
+                    new_strats[pipe_idx].rpool["json"]["subjson"][data_type].update(
+                        copy.deepcopy(resource_strat_dct["json"])
+                    )
+        else:
+            new_strats = {}
+            for resource_strat_list in total_pool:
+                # total_pool will have only one list of strats, for the one input
+                for cpac_prov in resource_strat_list:  # <------- cpac_prov here doesn't need to be modified, because it's not merging with other inputs
+                    resource, pipe_idx = generate_prov_string(cpac_prov)
+                    resource_strat_dct = self.rpool[resource][pipe_idx]
+                    # remember, `resource_strat_dct` is the dct of 'data' and 'json'.
+                    new_strats[pipe_idx] = StratPool(
+                        rpool={resource: resource_strat_dct}
+                    )  # <----- again, new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
+                    # placing JSON info at one level higher only for copy convenience
+                    new_strats[pipe_idx].rpool["json"] = resource_strat_dct["json"]
+                    # TODO: WARNING- THIS IS A LEVEL HIGHER THAN THE ORIGINAL 'JSON' FOR EASE OF ACCESS IN CONNECT_BLOCK WITH THE .GET(JSON)
+                    new_strats[pipe_idx].rpool["json"]["subjson"] = {}
+                    new_strats[pipe_idx].rpool["json"]["CpacProvenance"] = cpac_prov
+                    # preserve each input's JSON info also
+                    data_type = resource.split("_")[-1]
+                    if data_type not in new_strats[pipe_idx].rpool["json"]["subjson"]:
+                        new_strats[pipe_idx].rpool["json"]["subjson"][data_type] = {}
+                    new_strats[pipe_idx].rpool["json"]["subjson"][data_type].update(
+                        copy.deepcopy(resource_strat_dct["json"])
+                    )
+        return new_strats
 
     def ingress_freesurfer(self) -> None:
         """Ingress FreeSurfer data."""
@@ -2670,10 +2750,12 @@ class ResourcePool:
             self.ingress_freesurfer()
 
 
-class StratPool(ResourcePool):
+class StratPool(_Pool):
     """A pool of ResourcePools keyed by strategy."""
 
-    def __init__(self, rpool: Optional[dict[ResourcePool]] = None) -> None:
+    def __init__(
+        self, rpool: Optional[dict[str | list | tuple, ResourcePool]] = None
+    ) -> None:
         """Initialize a StratPool."""
         if not rpool:
             self.rpool = {}
@@ -2683,6 +2765,45 @@ class StratPool(ResourcePool):
     def append_name(self, name):
         self.name.append(name)
 
-    def get_strats(self, resources, debug) -> None:
-        """ResourcePool method that is not valid for a StratPool."""
-        raise NotImplementedError
+    @overload
+    def get(
+        self,
+        resource: list[str] | str,
+        pipe_idx: Optional[str] = None,
+        report_fetched: Literal[False] = False,
+        optional: bool = False,
+    ) -> Optional[Resource]: ...
+    @overload
+    def get(
+        self,
+        resource: list[str] | str,
+        pipe_idx: Optional[str],
+        report_fetched: Literal[True],
+        optional: bool = False,
+    ) -> tuple[Optional[Resource], Optional[str]]: ...
+    @overload
+    def get(
+        self,
+        resource: list[str] | str,
+        pipe_idx: Optional[str],
+        *,
+        report_fetched: Literal[True],
+        optional: bool = False,
+    ) -> tuple[Optional[Resource], Optional[str]]: ...
+    @overload
+    def get(
+        self,
+        resource: list[str] | str,
+        pipe_idx: Optional[str] = None,
+        report_fetched: bool = False,
+        optional: bool = False,
+    ) -> Optional[Resource] | tuple[Optional[Resource], Optional[str]]: ...
+    def get(
+        self,
+        resource: list[str] | str,
+        pipe_idx: Optional[str] = None,
+        report_fetched: bool = False,
+        optional: bool = False,
+    ):
+        """Return a Resource."""
+        self._pool_get(resource, pipe_idx, report_fetched, optional)
