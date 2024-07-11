@@ -29,6 +29,7 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.resources.templates.lookup_table import format_identifier, lookup_identifier
 from CPAC.utils import function
 from CPAC.utils.bids_utils import bids_remove_entity
+from CPAC.utils.interfaces.function import Function
 from CPAC.utils.monitoring import FMLOGGER
 
 
@@ -63,6 +64,7 @@ def bidsier_prefix(unique_id):
     return "_".join(components)
 
 
+@Function.sig_imports(["from pathlib import Path"])
 def get_rest(scan: str, rest_dict: dict, resource: str = "scan") -> Path | str:
     """Return the path of the chosen resource in the functional file dictionary.
 
