@@ -322,131 +322,10 @@ class Resource:
 class _Pool:
     """All Resources."""
 
-    def __init__(
-        self,
-        name: str = "",
-        cfg: Optional[Configuration] = None,
-        pipe_list: Optional[list] = None,
-        *,
-        data_paths: Optional[DataPaths | dict] = None,
-        part_id: Optional[str] = None,
-        pipeline_name: str = "",
-        wf: Optional[pe.Workflow] = None,
-    ):
-        """Initialize a ResourcePool."""
-        if isinstance(data_paths, dict):
-            data_paths = DataPaths(data_paths=data_paths)
-        elif not data_paths:
-            data_paths = DataPaths(part_id=part_id)
-        self.data_paths = data_paths
-        # pass-through for convenient access
-        self.creds_path = self.data_paths.creds_path
-        self.part_id = self.data_paths.part_id
-        self.ses_id = self.data_paths.ses_id
-        self.unique_id = self.data_paths.unique_id
-        self.rpool = {}
-
-        if not pipe_list:
-            self.pipe_list = []
-        else:
-            self.pipe_list = pipe_list
-
+    def __init__(self, name: str = "") -> None:
+        """Initialize a ResourcePool or StratPool."""
         self.name = name
         self.info = {}
-
-        if cfg:
-            self.cfg = cfg
-        else:
-            self.cfg = Preconfiguration("blank")
-
-        self.logdir = self._config_lookup(["pipeline_setup", "log_directory", "path"])
-        self.num_cpus = self._config_lookup(
-            ["pipeline_setup", "system_config", "max_cores_per_participant"]
-        )
-        self.num_ants_cores = self._config_lookup(
-            ["pipeline_setup", "system_config", "num_ants_threads"]
-        )
-
-        self.ants_interp = self._config_lookup(
-            [
-                "registration_workflows",
-                "functional_registration",
-                "func_registration_to_template",
-                "ANTs_pipelines",
-                "interpolation",
-            ]
-        )
-        self.fsl_interp = self._config_lookup(
-            [
-                "registration_workflows",
-                "functional_registration",
-                "func_registration_to_template",
-                "FNIRT_pipelines",
-                "interpolation",
-            ]
-        )
-        self.func_reg = self._config_lookup(
-            [
-                "registration_workflows",
-                "functional_registration",
-                "func_registration_to_template",
-                "run",
-            ]
-        )
-
-        self.run_smoothing = "smoothed" in self._config_lookup(
-            ["post_processing", "spatial_smoothing", "output"], list
-        )
-        self.smoothing_bool = self._config_lookup(
-            ["post_processing", "spatial_smoothing", "run"]
-        )
-        self.run_zscoring = "z-scored" in self._config_lookup(
-            ["post_processing", "z-scoring", "output"], list
-        )
-        self.zscoring_bool = self._config_lookup(
-            ["post_processing", "z-scoring", "run"]
-        )
-        self.fwhm = self._config_lookup(
-            ["post_processing", "spatial_smoothing", "fwhm"]
-        )
-        self.smooth_opts = self._config_lookup(
-            ["post_processing", "spatial_smoothing", "smoothing_method"]
-        )
-
-        if wf:
-            self.wf = wf
-        else:
-            self.initialize_nipype_wf(pipeline_name)
-
-        self.xfm = [
-            "alff",
-            "desc-sm_alff",
-            "desc-zstd_alff",
-            "desc-sm-zstd_alff",
-            "falff",
-            "desc-sm_falff",
-            "desc-zstd_falff",
-            "desc-sm-zstd_falff",
-            "reho",
-            "desc-sm_reho",
-            "desc-zstd_reho",
-            "desc-sm-zstd_reho",
-        ]
-        ingress_derivatives = False
-        try:
-            if self.data_paths.derivatives_dir and self._config_lookup(
-                ["pipeline_setup", "outdir_ingress", "run"], bool
-            ):
-                ingress_derivatives = True
-        except (AttributeError, KeyError, TypeError):
-            pass
-        if ingress_derivatives:
-            self.ingress_output_dir()
-        else:
-            self.ingress_raw_anat_data()
-            if data_paths.func:
-                self.ingress_raw_func_data()
-        self.ingress_pipeconfig_paths()
 
     def __repr__(self) -> str:
         """Return reproducible ResourcePool string."""
@@ -455,7 +334,7 @@ class _Pool:
             for param in ["rpool", "name", "cfg", "pipe_list"]
             if getattr(self, param, None)
         ]
-        return f'ResourcePool({", ".join(params)})'
+        return f'{self.__class__.__name__}({", ".join(params)})'
 
     def __str__(self) -> str:
         """Return string representation of ResourcePool."""
@@ -675,9 +554,6 @@ class _Pool:
         """Return rpool's keys."""
         return self.rpool.keys()
 
-    def get_resources(self):
-        return self.rpool.keys()
-
     @staticmethod
     def get_raw_label(resource: str) -> str:
         """Remove ``desc-*`` label."""
@@ -811,7 +687,7 @@ class _Pool:
             }
         json_info["CpacProvenance"] = new_prov_list
 
-        if resource not in self.rpool.keys():
+        if resource not in self.keys():
             self.rpool[resource] = {}
         elif not fork:  # <--- in the event of multiple strategies/options, this will run for every option; just keep in mind
             search = False
@@ -871,7 +747,7 @@ class _Pool:
             resource = [resource]
         # if a list of potential inputs are given, pick the first one found
         for label in resource:
-            if label in self.rpool.keys():
+            if label in self.keys():
                 _found = self.rpool[label]
                 if pipe_idx:
                     _found = _found[pipe_idx]
@@ -1162,7 +1038,7 @@ class _Pool:
             # or lfcd [binarized or weighted]
             mask = "template-specification-file"
         elif "space-template" in label:
-            if "space-template_res-derivative_desc-bold_mask" in self.rpool.keys():
+            if "space-template_res-derivative_desc-bold_mask" in self.keys():
                 mask = "space-template_res-derivative_desc-bold_mask"
             else:
                 mask = "space-template_desc-bold_mask"
@@ -1316,7 +1192,7 @@ class _Pool:
             # substring_excl.append(['bold'])
             excl += Outputs.debugging
 
-        for resource in self.rpool.keys():
+        for resource in self.keys():
             if resource not in Outputs.any:
                 continue
 
@@ -1377,7 +1253,7 @@ class _Pool:
                 # TODO: have to link the pipe_idx's here. and call up 'desc-preproc_T1w' from a Sources in a json and replace. here.
                 # TODO: can do the pipeline_description.json variants here too!
 
-        for resource in self.rpool.keys():
+        for resource in self.keys():
             if resource not in Outputs.any:
                 continue
 
@@ -1628,11 +1504,135 @@ class _Pool:
 
     def node_data(self, resource: str | tuple[str], **kwargs) -> ResourceData:
         """Create ResourceData objects."""
-        return ResourceData(self, resource, **kwargs)
+        return ResourceData(*self.get_data(resource, **kwargs))
 
 
 class ResourcePool(_Pool):
     """A pool of Resources."""
+
+    def __init__(
+        self,
+        name: str = "",
+        cfg: Optional[Configuration] = None,
+        pipe_list: Optional[list] = None,
+        *,
+        data_paths: Optional[DataPaths | dict] = None,
+        part_id: Optional[str] = None,
+        pipeline_name: str = "",
+        wf: Optional[pe.Workflow] = None,
+    ) -> None:
+        """Initialize a ResourcePool."""
+        super().__init__(name=name)
+        if isinstance(data_paths, dict):
+            data_paths = DataPaths(data_paths=data_paths)
+        elif not data_paths:
+            data_paths = DataPaths(part_id=part_id)
+        self.data_paths = data_paths
+        # pass-through for convenient access
+        self.creds_path = self.data_paths.creds_path
+        self.part_id = self.data_paths.part_id
+        self.ses_id = self.data_paths.ses_id
+        self.unique_id = self.data_paths.unique_id
+        self.rpool = {}
+
+        if not pipe_list:
+            self.pipe_list = []
+        else:
+            self.pipe_list = pipe_list
+
+        if cfg:
+            self.cfg = cfg
+        else:
+            self.cfg = Preconfiguration("blank")
+
+        self.logdir = self._config_lookup(["pipeline_setup", "log_directory", "path"])
+        self.num_cpus = self._config_lookup(
+            ["pipeline_setup", "system_config", "max_cores_per_participant"]
+        )
+        self.num_ants_cores = self._config_lookup(
+            ["pipeline_setup", "system_config", "num_ants_threads"]
+        )
+
+        self.ants_interp = self._config_lookup(
+            [
+                "registration_workflows",
+                "functional_registration",
+                "func_registration_to_template",
+                "ANTs_pipelines",
+                "interpolation",
+            ]
+        )
+        self.fsl_interp = self._config_lookup(
+            [
+                "registration_workflows",
+                "functional_registration",
+                "func_registration_to_template",
+                "FNIRT_pipelines",
+                "interpolation",
+            ]
+        )
+        self.func_reg = self._config_lookup(
+            [
+                "registration_workflows",
+                "functional_registration",
+                "func_registration_to_template",
+                "run",
+            ]
+        )
+
+        self.run_smoothing = "smoothed" in self._config_lookup(
+            ["post_processing", "spatial_smoothing", "output"], list
+        )
+        self.smoothing_bool = self._config_lookup(
+            ["post_processing", "spatial_smoothing", "run"]
+        )
+        self.run_zscoring = "z-scored" in self._config_lookup(
+            ["post_processing", "z-scoring", "output"], list
+        )
+        self.zscoring_bool = self._config_lookup(
+            ["post_processing", "z-scoring", "run"]
+        )
+        self.fwhm = self._config_lookup(
+            ["post_processing", "spatial_smoothing", "fwhm"]
+        )
+        self.smooth_opts = self._config_lookup(
+            ["post_processing", "spatial_smoothing", "smoothing_method"]
+        )
+
+        if wf:
+            self.wf = wf
+        else:
+            self.initialize_nipype_wf(pipeline_name)
+
+        self.xfm = [
+            "alff",
+            "desc-sm_alff",
+            "desc-zstd_alff",
+            "desc-sm-zstd_alff",
+            "falff",
+            "desc-sm_falff",
+            "desc-zstd_falff",
+            "desc-sm-zstd_falff",
+            "reho",
+            "desc-sm_reho",
+            "desc-zstd_reho",
+            "desc-sm-zstd_reho",
+        ]
+        ingress_derivatives = False
+        try:
+            if self.data_paths.derivatives_dir and self._config_lookup(
+                ["pipeline_setup", "outdir_ingress", "run"], bool
+            ):
+                ingress_derivatives = True
+        except (AttributeError, KeyError, TypeError):
+            pass
+        if ingress_derivatives:
+            self.ingress_output_dir()
+        else:
+            self.ingress_raw_anat_data()
+            if data_paths.func:
+                self.ingress_raw_func_data()
+        self.ingress_pipeconfig_paths()
 
     @overload
     def get(
@@ -1678,7 +1678,7 @@ class ResourcePool(_Pool):
 
         Inside those, are dictionaries like ``{'data': (node, out), 'json': info}``.
         """
-        self._pool_get(resource, pipe_idx, report_fetched, optional)
+        return self._pool_get(resource, pipe_idx, report_fetched, optional)
 
     def get_strats(self, resources, debug=False) -> dict[str | tuple, "StratPool"]:
         # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
@@ -1871,7 +1871,7 @@ class ResourcePool(_Pool):
                 # make the merged strat label from the multiple inputs
                 # strat_list is actually the merged CpacProvenance lists
                 pipe_idx = str(strat_list)
-                new_strats[pipe_idx] = StratPool()
+                new_strats[pipe_idx] = StratPool(name=pipe_idx)
                 # new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
                 # placing JSON info at one level higher only for copy convenience
                 new_strats[pipe_idx].rpool["json"] = {}
@@ -1915,7 +1915,7 @@ class ResourcePool(_Pool):
                     resource_strat_dct = self.rpool[resource][pipe_idx]
                     # remember, `resource_strat_dct` is the dct of 'data' and 'json'.
                     new_strats[pipe_idx] = StratPool(
-                        rpool={resource: resource_strat_dct}
+                        rpool={resource: resource_strat_dct}, name=pipe_idx
                     )  # <----- again, new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
                     # placing JSON info at one level higher only for copy convenience
                     new_strats[pipe_idx].rpool["json"] = resource_strat_dct["json"]
@@ -2754,9 +2754,13 @@ class StratPool(_Pool):
     """A pool of ResourcePools keyed by strategy."""
 
     def __init__(
-        self, rpool: Optional[dict[str | list | tuple, ResourcePool]] = None
+        self,
+        rpool: Optional[dict[str | list | tuple, ResourcePool]] = None,
+        *,
+        name: str = "",
     ) -> None:
         """Initialize a StratPool."""
+        super().__init__(name=name)
         if not rpool:
             self.rpool = {}
         else:
@@ -2806,4 +2810,4 @@ class StratPool(_Pool):
         optional: bool = False,
     ):
         """Return a Resource."""
-        self._pool_get(resource, pipe_idx, report_fetched, optional)
+        return self._pool_get(resource, pipe_idx, report_fetched, optional)
