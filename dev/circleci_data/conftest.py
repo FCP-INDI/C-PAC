@@ -15,3 +15,5 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Pytest configuration for CircleCI-specific tests."""
+
+from CPAC.conftest import bids_examples
