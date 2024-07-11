@@ -58,8 +58,6 @@ def connect_func_ingress(
             }
         )
 
-        (workflow, diff, blip, fmap_rp_list) = strat.rpool.ingress_func_metadata(
-            workflow, sub_dict
-        )
+        diff, blip, fmap_rp_list = strat.rpool.ingress_func_metadata()
 
-    return (workflow, diff, blip, fmap_rp_list)
+    return strat.rpool.wf, diff, blip, fmap_rp_list

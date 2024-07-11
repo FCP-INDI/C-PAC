@@ -21,12 +21,12 @@ from .engine import (
     run_node_blocks,
     wrap_block,
 )
-from .resource import NodeData, ResourcePool
+from .resource import ResourcePool, StratPool
 
 __all__ = [
     "NodeBlock",
-    "NodeData",
     "ResourcePool",
+    "StratPool",
     "run_node_blocks",
     "wrap_block",
 ]
