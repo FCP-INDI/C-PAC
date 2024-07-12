@@ -22,10 +22,9 @@ import pytest
 
 
 @pytest.fixture
-def bids_examples(cache) -> Path:
+def bids_examples(cache: pytest.Cache) -> Path:
     """Get cached example BIDS directories."""
-    example_dir = cache.makedir("bids-examples")
-    bids_dir = Path(example_dir / "bids-examples").absolute()
+    bids_dir = cache.mkdir("bids-examples").absolute()
     if not bids_dir.exists():
         from git import Repo
 
