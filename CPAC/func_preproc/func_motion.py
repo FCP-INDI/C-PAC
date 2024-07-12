@@ -423,7 +423,7 @@ def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
 
     elif opt == "fmriprep_reference":
         func_get_RPI = pe.Node(
-            util.Function(
+            Function(
                 input_names=["in_file"],
                 output_names=["out_file"],
                 function=estimate_reference_image,

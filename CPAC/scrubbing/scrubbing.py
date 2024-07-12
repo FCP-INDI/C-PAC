@@ -1,13 +1,29 @@
+# Copyright (C) 2012-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.interfaces import Function
 
 
 def create_scrubbing_preproc(wf_name="scrubbing"):
-    """
-    This workflow essentially takes the list of offending timepoints that are to be removed
-    and removes it from the motion corrected input image. Also, it removes the information
-    of discarded time points from the movement parameters file obtained during motion correction.
+    """Take the list of offending timepoints that are to be removed and remove it from the motion corrected input image.
+
+    Also remove the information of discarded time points from the movement parameters file obtained during motion correction.
 
     Parameters
     ----------
@@ -94,7 +110,7 @@ def create_scrubbing_preproc(wf_name="scrubbing"):
     )
 
     craft_scrub_input = pe.Node(
-        util.Function(
+        Function(
             input_names=["scrub_input", "frames_in_1D_file"],
             output_names=["scrub_input_string"],
             function=get_indx,
@@ -103,7 +119,7 @@ def create_scrubbing_preproc(wf_name="scrubbing"):
     )
 
     scrubbed_movement_parameters = pe.Node(
-        util.Function(
+        Function(
             input_names=["infile_a", "infile_b"],
             output_names=["out_file"],
             function=get_mov_parameters,
@@ -120,7 +136,7 @@ def create_scrubbing_preproc(wf_name="scrubbing"):
     # scrubbed_preprocessed.inputs.outputtype = 'NIFTI_GZ'
 
     scrubbed_preprocessed = pe.Node(
-        util.Function(
+        Function(
             input_names=["scrub_input"],
             output_names=["scrubbed_image"],
             function=scrub_image,
@@ -152,9 +168,8 @@ def create_scrubbing_preproc(wf_name="scrubbing"):
 
 
 def get_mov_parameters(infile_a, infile_b):
-    """
-    Method to get the new movement parameters
-    file after removing the offending time frames
+    """Get the new movement parameters file after removing the offending time frames.
+
     (i.e., those exceeding FD 0.5mm/0.2mm threshold).
 
     Parameters
@@ -192,7 +207,7 @@ def get_mov_parameters(infile_a, infile_b):
         raise Exception(msg)
 
     f = open(out_file, "a")
-    for l in l1:
+    for l in l1:  # noqa: E741
         data = l2[int(l.strip())]
         f.write(data)
     f.close()
@@ -200,9 +215,7 @@ def get_mov_parameters(infile_a, infile_b):
 
 
 def get_indx(scrub_input, frames_in_1D_file):
-    """
-    Method to get the list of time
-    frames that are to be included.
+    """Get the list of time frames that are to be included.
 
     Parameters
     ----------
@@ -230,10 +243,10 @@ def get_indx(scrub_input, frames_in_1D_file):
 
 
 def scrub_image(scrub_input):
-    """
-    Method to run 3dcalc in order to scrub the image. This is used instead of
-    the Nipype interface for 3dcalc because functionality is needed for
-    specifying an input file with specifically-selected volumes. For example:
+    """Run 3dcalc in order to scrub the image.
+
+    This is used instead of the Nipype interface for 3dcalc because functionality is
+    needed for specifying an input file with specifically-selected volumes. For example:
         input.nii.gz[2,3,4,..98], etc.
 
     Parameters

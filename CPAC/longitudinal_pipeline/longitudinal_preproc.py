@@ -24,9 +24,9 @@ import os
 import numpy as np
 import nibabel as nib
 from nipype.interfaces import fsl
-import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.interfaces import Function
 from CPAC.utils.monitoring import IFLOGGER
 from CPAC.utils.nifti_utils import nifti_image_input
 
@@ -617,7 +617,7 @@ def subject_specific_template(
     ]
     if method == "flirt":
         template_gen_node = pe.Node(
-            util.Function(
+            Function(
                 input_names=[
                     "input_brain_list",
                     "input_skull_list",

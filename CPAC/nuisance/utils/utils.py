@@ -499,7 +499,7 @@ def generate_summarize_tissue_mask_ventricles_masking(
 
                     # generate inverse transform flags, which depends on the number of transforms
                     inverse_transform_flags = pe.Node(
-                        util.Function(
+                        Function(
                             input_names=["transform_list"],
                             output_names=["inverse_transform_flags"],
                             function=generate_inverse_transform_flags,
