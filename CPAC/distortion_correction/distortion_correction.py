@@ -32,7 +32,7 @@ from CPAC.distortion_correction.utils import (
     run_fsl_topup,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.utils import function
 from CPAC.utils.datasource import match_epi_fmaps
 from CPAC.utils.interfaces.function import Function

@@ -6,7 +6,7 @@ from unittest import mock
 import pytest
 
 from CPAC.func_preproc import get_motion_ref
-from CPAC.pipeline.nodeblock import NodeBlockFunction
+from CPAC.pipeline.engine.nodeblock import NodeBlockFunction
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring.custom_logging import log_subprocess
 from CPAC.utils.utils import (
@@ -56,9 +56,10 @@ def _installation_check(command: str, flag: str) -> None:
 
 def test_check_config_resources():
     """Test check_config_resources function."""
-    with mock.patch.object(multiprocessing, "cpu_count", return_value=2), pytest.raises(
-        SystemError
-    ) as system_error:
+    with (
+        mock.patch.object(multiprocessing, "cpu_count", return_value=2),
+        pytest.raises(SystemError) as system_error,
+    ):
         check_config_resources(
             Configuration(
                 {"pipeline_setup": {"system_config": {"max_cores_per_participant": 10}}}
