@@ -221,6 +221,16 @@ class Resource:
         msg = f"Key '{name}' not set in {self}."
         raise KeyError(msg)
 
+    def __repr__(self) -> str:
+        """Return reproducible string for Resource."""
+        positional = f"Resource(data={self.data}, json={self.json}"
+        kw = ", ".join(
+            f"{key}={getattr(self, key)}"
+            for key in self.keys()
+            if key not in ["data", "json"]
+        )
+        return f"{positional}{kw})"
+
     def __setitem__(self, name: str, value: Any) -> None:
         """Provide legacy dict-style set access."""
         setattr(self, name, value)
