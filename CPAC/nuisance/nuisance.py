@@ -38,7 +38,7 @@ from CPAC.nuisance.utils.compcor import (
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.engine import ResourcePool
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.registration.registration import (
     apply_transform,
     warp_timeseries_to_EPItemplate,

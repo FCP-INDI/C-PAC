@@ -18,6 +18,8 @@
 
 from typing import Any, Callable, Optional
 
+NODEBLOCK_INPUTS = list[str | list | tuple]
+
 
 class NodeBlockFunction:
     """Store a reference to the nodeblock function and all of its meta-data."""
@@ -30,7 +32,7 @@ class NodeBlockFunction:
         switch: Optional[list[str] | list[list[str]]] = None,
         option_key: Optional[str | list[str]] = None,
         option_val: Optional[str | list[str]] = None,
-        inputs: Optional[list[str | list | tuple]] = None,
+        inputs: Optional[NODEBLOCK_INPUTS] = None,
         outputs: Optional[list[str] | dict[str, Any]] = None,
     ) -> None:
         self.func = func
@@ -55,7 +57,9 @@ class NodeBlockFunction:
         """
         self.option_val: Optional[str | list[str]] = option_val
         """Indicates values for which this NodeBlock should be active."""
-        self.inputs: Optional[list[str | list | tuple]] = inputs
+        if inputs is None:
+            inputs = []
+        self.inputs: list[str | list | tuple] = inputs
         """ResourcePool keys indicating resources needed for the NodeBlock's functionality."""
         self.outputs: Optional[list[str] | dict[str, Any]] = outputs
         """
@@ -138,7 +142,7 @@ def nodeblock(
     switch: Optional[list[str] | list[list[str]]] = None,
     option_key: Optional[str | list[str]] = None,
     option_val: Optional[str | list[str]] = None,
-    inputs: Optional[list[str | list | tuple]] = None,
+    inputs: Optional[NODEBLOCK_INPUTS] = None,
     outputs: Optional[list[str] | dict[str, Any]] = None,
 ):
     """

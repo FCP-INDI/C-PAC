@@ -16,5 +16,9 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Type aliases for C-PAC."""
 
-LIST_OF_LIST_OF_STR = str | list["LIST_OF_LIST_OF_STR"]
-PIPE_IDX = list["PIPE_IDX"] | str | tuple["PIPE_IDX", ...]
+from typing import ForwardRef
+
+LIST_OF_LIST_OF_STR = str | list[ForwardRef("LIST_OF_LIST_OF_STR")]
+# _PIPE_IDX = list[ForwardRef("PIPE_IDX")] | str | tuple[ForwardRef("PIPE_IDX"), ...]
+# PIPE_IDX = TypeVar("PIPE_IDX", bound=_PIPE_IDX)
+PIPE_IDX = list[str | tuple] | str | tuple

@@ -23,10 +23,12 @@ import json
 import logging
 import os
 
-from nipype import config
+from nipype import config  # type: ignore [import-untyped]
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import NodeBlockFunction
+from CPAC.pipeline.engine.nodeblock import NODEBLOCK_INPUTS, NodeBlockFunction
+from CPAC.pipeline.engine.resource import ResourcePool
+from CPAC.utils.configuration.configuration import Configuration
 from CPAC.utils.monitoring import (
     getLogger,
     LOGTAIL,
@@ -134,8 +136,8 @@ class NodeBlock:
                 raise KeyError(msg) from ke
         return cfg_dct
 
-    def connect_block(self, wf, cfg, rpool):
-        debug = cfg.pipeline_setup["Debugging"]["verbose"]
+    def connect_block(self, wf: pe.Workflow, cfg: Configuration, rpool: ResourcePool):
+        debug = bool(cfg.pipeline_setup["Debugging"]["verbose"])  # type: ignore [attr-defined]
         all_opts = []
         for name, block_dct in self.node_blocks.items():
             opts = []
@@ -210,7 +212,7 @@ class NodeBlock:
             config = self.check_null(block_dct["config"])
             option_key = self.check_null(block_dct["option_key"])
             option_val = self.check_null(block_dct["option_val"])
-            inputs = self.check_null(block_dct["inputs"])
+            inputs: NODEBLOCK_INPUTS = self.check_null(block_dct["inputs"])
             outputs = self.check_null(block_dct["outputs"])
 
             block_function = block_dct["block_function"]
@@ -329,7 +331,7 @@ class NodeBlock:
                             verbose_logger.debug("\n=======================")
                             verbose_logger.debug("Node name: %s", node_name)
                             prov_dct = rpool.get_resource_strats_from_prov(
-                                ast.literal_eval(pipe_idx)
+                                ast.literal_eval(str(pipe_idx))
                             )
                             for key, val in prov_dct.items():
                                 verbose_logger.debug("-------------------")

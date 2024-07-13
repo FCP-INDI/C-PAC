@@ -18,7 +18,7 @@ from nipype.interfaces import fsl, utility as util
 from nipype.interfaces.afni import preprocess
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.sca.utils import *
 from CPAC.timeseries.timeseries_analysis import (
     get_roi_timeseries,

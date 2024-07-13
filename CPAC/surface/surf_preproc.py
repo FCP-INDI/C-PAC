@@ -17,7 +17,7 @@
 import os
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.surface.PostFreeSurfer.surf_reho import run_surf_reho
 from CPAC.utils.interfaces import Function
 

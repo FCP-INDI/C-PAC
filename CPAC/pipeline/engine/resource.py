@@ -37,6 +37,7 @@ from CPAC.image_utils.statistical_transforms import (
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
+from CPAC.pipeline.engine.nodeblock import NODEBLOCK_INPUTS
 from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
 from CPAC.registration.registration import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
@@ -708,30 +709,14 @@ class _Pool:
         if new_pipe_idx not in self.pipe_list:
             self.pipe_list.append(new_pipe_idx)
 
-    # @overload
-    # def get(
-    #     self: "ResourcePool",
-    #     resource: list[str] | str,
-    #     pipe_idx: Optional[PIPE_IDX],
-    #     report_fetched: bool,
-    #     optional: bool,
-    # ) -> Optional[dict[dict]] | tuple[Optional[dict[dict]], Optional[str]]: ...
-    # @overload
-    # def get(
-    #     self: "StratPool",
-    #     resource: list[str] | str,
-    #     pipe_idx: Optional[PIPE_IDX],
-    #     report_fetched: bool,
-    #     optional: bool,
-    # ) -> Optional[Resource] | tuple[Optional[Resource], Optional[str]]: ...
     def get(
         self,
-        resource: list[str] | str,
+        resource: LIST_OF_LIST_OF_STR | str | list[str],
         pipe_idx: Optional[PIPE_IDX],
         report_fetched: bool,
         optional: bool,
     ) -> (
-        Optional[Resource | STRAT_DICT]
+        Optional[Resource | STRAT_DICT | dict]
         | tuple[Optional[Resource | STRAT_DICT], Optional[str]]
     ):
         """Return a dictionary of strats or a single Resource."""
@@ -1271,8 +1256,10 @@ class ResourcePool(_Pool):
                     try:
                         ancestors = self.rpool.get(source)
                         assert ancestors is not None
-                        ancestor: dict = next(iter(ancestors.items()))[1]
-                        anscestor_json: dict = ancestor.get("json", {})
+                        ancestor = next(iter(ancestors.items()))[1]
+                        assert not isinstance(ancestor, dict)
+                        anscestor_json = ancestor.json
+                        assert isinstance(anscestor_json, dict)
                         if "Description" in anscestor_json:
                             id_string.inputs.template_desc = anscestor_json[
                                 "Description"
@@ -1616,7 +1603,7 @@ class ResourcePool(_Pool):
     @overload
     def get(
         self,
-        resource: list[str] | str,
+        resource: LIST_OF_LIST_OF_STR,
         pipe_idx: None = None,
         report_fetched: Literal[False] = False,
         optional: bool = False,
@@ -1624,7 +1611,7 @@ class ResourcePool(_Pool):
     @overload
     def get(
         self,
-        resource: list[str] | str,
+        resource: LIST_OF_LIST_OF_STR,
         pipe_idx: PIPE_IDX,
         report_fetched: Literal[False] = False,
         optional: bool = False,
@@ -1632,7 +1619,7 @@ class ResourcePool(_Pool):
     @overload
     def get(
         self,
-        resource: list[str] | str,
+        resource: LIST_OF_LIST_OF_STR,
         pipe_idx: None = None,
         *,
         report_fetched: Literal[True],
@@ -1641,7 +1628,7 @@ class ResourcePool(_Pool):
     @overload
     def get(
         self,
-        resource: list[str] | str,
+        resource: LIST_OF_LIST_OF_STR,
         pipe_idx: PIPE_IDX,
         report_fetched: Literal[True],
         optional: Literal[False],
@@ -1649,7 +1636,7 @@ class ResourcePool(_Pool):
     @overload
     def get(
         self,
-        resource: list[str] | str,
+        resource: LIST_OF_LIST_OF_STR,
         pipe_idx: Optional[PIPE_IDX] = None,
         report_fetched: bool = False,
         optional: bool = False,
@@ -1659,7 +1646,7 @@ class ResourcePool(_Pool):
     ): ...
     def get(
         self,
-        resource: list[str] | str,
+        resource: LIST_OF_LIST_OF_STR,
         pipe_idx: Optional[PIPE_IDX] = None,
         report_fetched: bool = False,
         optional: bool = False,
@@ -1723,26 +1710,30 @@ class ResourcePool(_Pool):
         assert isinstance(_resource, Resource)
         return _resource.data
 
-    def get_strats(self, resources, debug=False) -> dict[str | tuple, "StratPool"]:
+    def get_strats(
+        self, resources: NODEBLOCK_INPUTS, debug: bool = False
+    ) -> dict[str | tuple, "StratPool"]:
+        """Get a dictionary of StratPools."""
         # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
         # TODO: (and it doesn't have to be)
         import itertools
 
         linked_resources = []
-        resource_list = []
+        resource_list: list[str | list[str]] = []
         if debug:
             verbose_logger = getLogger("CPAC.engine")
             verbose_logger.debug("\nresources: %s", resources)
         for resource in resources:
             # grab the linked-input tuples
             if isinstance(resource, tuple):
-                linked = []
+                linked: list[str] = []
                 for label in list(resource):
                     rp_dct, fetched_resource = self.get(
                         label, report_fetched=True, optional=True
                     )
                     if not rp_dct:
                         continue
+                    assert fetched_resource is not None
                     linked.append(fetched_resource)
                 resource_list += linked
                 if len(linked) < 2:  # noqa: PLR2004
@@ -2819,11 +2810,19 @@ class StratPool(_Pool):
     @overload
     def get(
         self,
+        resource: Literal["json"],
+        pipe_idx: None = None,
+        report_fetched: Literal[False] = False,
+        optional: Literal[False] = False,
+    ) -> dict: ...
+    @overload
+    def get(
+        self,
         resource: list[str] | str,
         pipe_idx: Optional[PIPE_IDX] = None,
         report_fetched: Literal[False] = False,
         optional: bool = False,
-    ) -> Optional[Resource]: ...
+    ) -> Optional[Resource] | dict: ...
     @overload
     def get(
         self,
@@ -2848,7 +2847,7 @@ class StratPool(_Pool):
         pipe_idx: Optional[PIPE_IDX] = None,
         report_fetched: bool = False,
         optional: bool = False,
-    ) -> Optional[Resource] | tuple[Optional[Resource], Optional[str]]: ...
+    ) -> Optional[Resource] | tuple[Optional[Resource], Optional[str]] | dict: ...
     def get(
         self,
         resource: list[str] | str,

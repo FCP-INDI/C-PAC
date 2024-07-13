@@ -31,7 +31,7 @@ from CPAC.pipeline.cpac_pipeline import (
     connect_pipeline,
 )
 from CPAC.pipeline.engine import ResourcePool
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.registration import (
     create_fsl_flirt_linear_reg,
     create_fsl_fnirt_nonlinear_reg,
