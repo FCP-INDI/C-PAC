@@ -30,8 +30,7 @@ scan_params_cpac = {
 
 
 def _installation_check(command: str, flag: str) -> None:
-    """Test that command is installed by running specified version or
-    help flag.
+    """Test that command is installed by running specified version or help flag.
 
     Parameters
     ----------
@@ -97,6 +96,7 @@ def test_NodeBlock_option_SSOT():  # pylint: disable=invalid-name
 
 def test_system_deps():
     """Test system dependencies.
+
     Raises an exception if dependencies are not met.
     """
     check_system_deps(*([True] * 4))

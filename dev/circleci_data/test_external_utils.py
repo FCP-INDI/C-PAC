@@ -19,6 +19,7 @@
 from logging import INFO
 import os
 from pathlib import Path
+from shutil import rmtree
 import sys
 
 import click
@@ -110,7 +111,7 @@ def test_new_settings_template(bids_examples, caplog, cli_runner):
     participant_yaml = DATA_DIR / "data_config_ds051.yml"
     group_yaml = DATA_DIR / "group_analysis_participants_ds051.txt"
 
-    os.remove(str(example_dir))
+    rmtree(str(example_dir))
     assert result.exit_code == 0
     assert "\n".join(caplog.messages).startswith(
         "\nGenerating data configuration file.."
