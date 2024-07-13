@@ -73,7 +73,7 @@ from CPAC.utils.utils import (
 
 EXTS = [".nii", ".gz", ".mat", ".1D", ".txt", ".csv", ".rms", ".tsv"]
 POOL_DICT = dict[str | tuple, "STRAT_DICT"]
-STRAT_DICT = dict[str | tuple, dict | "Resource"]
+STRAT_DICT = dict[str | tuple, "dict | Resource"]
 
 
 class DataPaths:
