@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from nipype.interfaces import afni, fsl, utility as util
-from nipype.interfaces.utility import Function
 
 from CPAC.connectome.connectivity_matrix import (
     create_connectome_afni,
@@ -29,6 +28,7 @@ from CPAC.utils.datasource import (
     create_spatial_map_dataflow,
     resample_func_roi,
 )
+from CPAC.utils.interfaces import Function
 from CPAC.utils.monitoring import FMLOGGER
 
 
@@ -86,7 +86,7 @@ def get_voxel_timeseries(wf_name: str = "voxel_timeseries") -> pe.Workflow:
     )
 
     timeseries_voxel = pe.Node(
-        util.Function(
+        Function(
             input_names=["data_file", "template"],
             output_names=["oneD_file"],
             function=gen_voxel_timeseries,
@@ -241,7 +241,7 @@ def get_roi_timeseries(wf_name: str = "roi_timeseries") -> pe.Workflow:
 
     clean_csv_imports = ["import os"]
     clean_csv = pe.Node(
-        util.Function(
+        Function(
             input_names=["roi_csv"],
             output_names=["roi_array", "edited_roi_csv"],
             function=clean_roi_csv,
@@ -382,7 +382,7 @@ def get_vertices_timeseries(wf_name="vertices_timeseries"):
     )
 
     timeseries_surface = pe.Node(
-        util.Function(
+        Function(
             input_names=["rh_surface_file", "lh_surface_file"],
             output_names=["out_file"],
             function=gen_vertices_timeseries,

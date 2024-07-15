@@ -20,10 +20,9 @@ import ast
 import copy
 import hashlib
 import json
-import logging
 import os
 
-from nipype import config  # type: ignore [import-untyped]
+from nipype import config, logging  # type: ignore [import-untyped]
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.engine.nodeblock import NODEBLOCK_INPUTS, NodeBlockFunction

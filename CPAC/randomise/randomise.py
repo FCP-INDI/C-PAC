@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.interfaces import Function
 from CPAC.utils.monitoring import IFLOGGER
 
 
@@ -53,7 +54,6 @@ def prep_randomise_workflow(
 ):
     from nipype.interfaces import fsl
     import nipype.interfaces.io as nio
-    import nipype.interfaces.utility as util
 
     wf = pe.Workflow(name="randomise_workflow")
     wf.base_dir = c.work_dir
@@ -74,7 +74,7 @@ def prep_randomise_workflow(
         randomise.inputs.fcon = fts_file
 
     select_tcorrp_files = pe.Node(
-        util.Function(
+        Function(
             input_names=["input_list"], output_names=["out_file"], function=select
         ),
         name="select_t_corrp",
@@ -83,7 +83,7 @@ def prep_randomise_workflow(
     wf.connect(randomise, "t_corrected_p_files", select_tcorrp_files, "input_list")
 
     select_tstat_files = pe.Node(
-        util.Function(
+        Function(
             input_names=["input_list"], output_names=["out_file"], function=select
         ),
         name="select_t_stat",
@@ -147,6 +147,10 @@ def run(group_config_path):
     import os
 
     from CPAC.pipeline.cpac_group_runner import load_config_yml
+    from CPAC.pipeline.cpac_randomise_pipeline import (
+        randomise_merged_file,
+        randomise_merged_mask,
+    )
 
     group_config_obj = load_config_yml(group_config_path)
     pipeline_output_folder = group_config_obj.pipeline_dir
