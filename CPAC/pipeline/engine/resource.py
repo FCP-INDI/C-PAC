@@ -38,7 +38,7 @@ from CPAC.image_utils.statistical_transforms import (
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.pipeline.engine.nodeblock import NODEBLOCK_INPUTS
-from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
+from CPAC.pipeline.utils import name_fork, source_set
 from CPAC.registration.registration import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
 from CPAC.utils.bids_utils import res_in_filename
@@ -1280,6 +1280,8 @@ class ResourcePool(_Pool):
         return
 
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
+        from CPAC.func_preproc.func_motion import motion_estimate_filter
+
         excl = []
         substring_excl = []
         outputs_logger = getLogger(f"{self.part_id}_expectedOutputs")
@@ -1397,7 +1399,7 @@ class ResourcePool(_Pool):
                 key
                 for json_info in all_jsons
                 for key in json_info.get("CpacVariant", {}).keys()
-                if key not in (*MOVEMENT_FILTER_KEYS, "regressors")
+                if key not in (*motion_estimate_filter.outputs, "regressors")
             }
             if "bold" in unlabelled:
                 all_bolds = list(
