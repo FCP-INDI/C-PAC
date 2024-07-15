@@ -214,6 +214,10 @@ class Resource:
         """Return list of subscriptable keys."""
         return list(self._keys)
 
+    def __contains__(self, item: Any) -> bool:
+        """Return True if item in self.keys(), False otherwise."""
+        return item in self.keys()
+
     def __getitem__(self, name: str) -> tuple[pe.Node, str | tuple[str]]:
         """Provide legacy dict-style get access."""
         if name in self.keys():
@@ -548,6 +552,10 @@ class _Pool:
     def keys(self) -> KeysView:
         """Return rpool's keys."""
         return self.rpool.keys()
+
+    def __contains__(self, key) -> bool:
+        """Return True if key in Pool, False otherwise."""
+        return key in self.keys()
 
     @staticmethod
     def get_raw_label(resource: str) -> str:
@@ -1704,9 +1712,9 @@ class ResourcePool(_Pool):
     def get_data(
         self,
         resource,
-        pipe_idx,
-        report_fetched,
-        quick_single,
+        pipe_idx=None,
+        report_fetched=False,
+        quick_single=False,
     ):
         """Get ResourceData from ResourcePool."""
         _resource = self.get(resource, pipe_idx=pipe_idx, report_fetched=report_fetched)
@@ -2878,7 +2886,7 @@ class StratPool(_Pool):
     def get_data(
         self, resource: list[str] | str, report_fetched: Literal[False] = False
     ) -> ResourceData: ...
-    def get_data(self, resource, report_fetched):
+    def get_data(self, resource, report_fetched=False):
         """Get ResourceData from a StratPool."""
         _resource = self.get(resource, report_fetched=report_fetched)
         if report_fetched:
