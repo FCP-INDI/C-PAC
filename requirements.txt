@@ -27,7 +27,7 @@ prov==2.0.0
 psutil==5.9.5
 PyBASC==0.6.1
 pybids==0.15.6
-PyPEER @ https://github.com/shnizzedy/PyPEER/archive/6965d2b2bea0fef824e885fec33a8e0e6bd50a97.zip
+PyPEER @ git+https://git@github.com/ChildMindInstitute/PyPEER.git@6965d2b2bea0fef824e885fec33a8e0e6bd50a97
 python-dateutil==2.8.2
 PyYAML==6.0
 requests==2.32.0
@@ -45,7 +45,7 @@ h5py==3.8.0
 importlib-metadata==6.8.0
 lxml==4.9.2
 pip==23.3
-setuptools<60.0
-urllib3==1.26.19
+setuptools==70.0.0
+urllib3==1.26.18
 wheel==0.40.0
 zipp==3.19.1
