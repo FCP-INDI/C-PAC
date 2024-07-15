@@ -46,7 +46,7 @@ def test_packaged_path_exists(pipeline):
     rpool = ResourcePool(cfg=Preconfiguration(pipeline), part_id="pytest")
     rpool.ingress_pipeconfig_paths()
     for resource in rpool.rpool.values():
-        node = next(iter(resource.values())).get("data")[0]
+        node = next(iter(resource.values())).data[0]
         if hasattr(node.inputs, "template") and not node.inputs.template.startswith(
             "s3:"
         ):
