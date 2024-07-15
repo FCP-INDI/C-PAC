@@ -138,12 +138,32 @@ class NodeBlock:
 
     def connect_block(self, wf: pe.Workflow, cfg: Configuration, rpool: ResourcePool):
         debug = bool(cfg.pipeline_setup["Debugging"]["verbose"])  # type: ignore [attr-defined]
-        all_opts = []
+        all_opts: list[str] = []
+
+        sidecar_additions = {
+            "CpacConfigHash": hashlib.sha1(
+                json.dumps(cfg.dict(), sort_keys=True).encode("utf-8")
+            ).hexdigest(),
+            "CpacConfig": cfg.dict(),
+        }
+
+        if cfg["pipeline_setup"]["output_directory"].get("user_defined"):
+            sidecar_additions["UserDefined"] = cfg["pipeline_setup"][
+                "output_directory"
+            ]["user_defined"]
+
         for name, block_dct in self.node_blocks.items():
-            opts = []
+            # iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
+            switch = self.check_null(block_dct["switch"])
             config = self.check_null(block_dct["config"])
             option_key = self.check_null(block_dct["option_key"])
             option_val = self.check_null(block_dct["option_val"])
+            inputs: NODEBLOCK_INPUTS = self.check_null(block_dct["inputs"])
+            outputs = self.check_null(block_dct["outputs"])
+
+            block_function = block_dct["block_function"]
+
+            opts = []
             if option_key and option_val:
                 if not isinstance(option_key, list):
                     option_key = [option_key]
@@ -192,57 +212,13 @@ class NodeBlock:
                         opts.append(option_val)
             else:  # AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
                 opts = [None]
-            all_opts += opts
-
-        sidecar_additions = {
-            "CpacConfigHash": hashlib.sha1(
-                json.dumps(cfg.dict(), sort_keys=True).encode("utf-8")
-            ).hexdigest(),
-            "CpacConfig": cfg.dict(),
-        }
-
-        if cfg["pipeline_setup"]["output_directory"].get("user_defined"):
-            sidecar_additions["UserDefined"] = cfg["pipeline_setup"][
-                "output_directory"
-            ]["user_defined"]
-
-        for name, block_dct in self.node_blocks.items():
-            # iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
-            switch = self.check_null(block_dct["switch"])
-            config = self.check_null(block_dct["config"])
-            option_key = self.check_null(block_dct["option_key"])
-            option_val = self.check_null(block_dct["option_val"])
-            inputs: NODEBLOCK_INPUTS = self.check_null(block_dct["inputs"])
-            outputs = self.check_null(block_dct["outputs"])
-
-            block_function = block_dct["block_function"]
-
-            opts = []
-            if option_key and option_val:
-                if not isinstance(option_key, list):
-                    option_key = [option_key]
-                if not isinstance(option_val, list):
-                    option_val = [option_val]
-                if config:
-                    key_list = config + option_key
-                else:
-                    key_list = option_key
-                if "USER-DEFINED" in option_val:
-                    # load custom config data into each 'opt'
-                    opts = self.grab_tiered_dct(cfg, key_list)
-                else:
-                    for option in option_val:
-                        if option in self.grab_tiered_dct(cfg, key_list):
-                            # goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
-                            opts.append(option)
-            else:  # AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
-                opts = [None]
                 # THIS ALSO MEANS the multiple option-val's in docstring node blocks can be entered once in the entire node-block sequence, not in a list of multiples
             if not opts:
                 # for node blocks where the options are split into different
                 # block functions - opts will be empty for non-selected
                 # options, and would waste the get_strats effort below
                 continue
+            all_opts += opts
 
             if not switch:
                 switch = [True]
