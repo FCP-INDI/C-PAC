@@ -349,7 +349,7 @@ class NodeBlock:
 
                         for label, connection in outs.items():
                             self.check_output(outputs, label, name)
-                            new_json_info = copy.deepcopy(strat_pool.get("json"))
+                            new_json_info = copy.deepcopy(strat_pool.json)
 
                             # transfer over data-specific json info
                             # for example, if the input data json is _bold and the output is also _bold
