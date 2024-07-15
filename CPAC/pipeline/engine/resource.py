@@ -1755,7 +1755,7 @@ class ResourcePool(_Pool):
                 connect, fetched = _resource
                 assert isinstance(connect, Resource) and isinstance(fetched, str)
                 return connect.data, fetched
-        if quick_single or len(_resource) == 1:
+        if quick_single or len(resource) == 1:
             assert isinstance(_resource, dict)
             for value in _resource.values():
                 return value.data
