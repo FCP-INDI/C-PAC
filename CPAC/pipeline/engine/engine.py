@@ -21,6 +21,7 @@ import copy
 import hashlib
 import json
 import os
+from typing import Any, Optional
 
 from nipype import config, logging  # type: ignore [import-untyped]
 
@@ -35,13 +36,20 @@ from CPAC.utils.monitoring import (
     WFLOGGER,
 )
 
+PIPELINE_BLOCKS = list[NodeBlockFunction | "PIPELINE_BLOCKS"]
+
 
 class NodeBlock:
-    def __init__(self, node_block_functions, debug=False):
+    def __init__(
+        self,
+        node_block_functions: NodeBlockFunction | PIPELINE_BLOCKS,
+        debug: bool = False,
+    ) -> None:
+        """Create a ``NodeBlock`` from a list of py:class:`~CPAC.pipeline.engine.nodeblock.NodeBlockFunction`s."""
         if not isinstance(node_block_functions, list):
             node_block_functions = [node_block_functions]
 
-        self.node_blocks = {}
+        self.node_blocks: dict[str, Any] = {}
 
         for node_block_function in node_block_functions:  # <---- sets up the NodeBlock object in case you gave it a list of node blocks instead of a single one - for option forking.
             self.input_interface = []
@@ -54,7 +62,7 @@ class NodeBlock:
             if not isinstance(node_block_function, NodeBlockFunction):
                 # If the object is a plain function `__name__` will be more useful than `str()`
                 obj_str = (
-                    node_block_function.__name__
+                    node_block_function.__name__  # type: ignore [attr-defined]
                     if hasattr(node_block_function, "__name__")
                     else str(node_block_function)
                 )
@@ -85,11 +93,11 @@ class NodeBlock:
             self.node_blocks[name]["block_function"] = node_block_function
 
             # TODO: fix/replace below
-            self.outputs = {}
+            self.outputs: dict[str, Optional[str]] = {}
             for out in node_block_function.outputs:
                 self.outputs[out] = None
 
-            self.options = ["base"]
+            self.options: list[str] | dict[str, Any] = ["base"]
             if node_block_function.outputs is not None:
                 self.options = node_block_function.outputs
 

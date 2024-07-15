@@ -27,7 +27,7 @@ class NodeBlockFunction:
     def __init__(
         self,
         func: Callable,
-        name: Optional[str] = None,
+        name: str,
         config: Optional[list[str]] = None,
         switch: Optional[list[str] | list[list[str]]] = None,
         option_key: Optional[str | list[str]] = None,
@@ -37,7 +37,7 @@ class NodeBlockFunction:
     ) -> None:
         self.func = func
         """Nodeblock function reference."""
-        self.name: Optional[str] = name
+        self.name: str = name
         """Used in the graph and logging to identify the NodeBlock and its component nodes."""
         self.config: Optional[list[str]] = config
         """
@@ -61,7 +61,7 @@ class NodeBlockFunction:
             inputs = []
         self.inputs: list[str | list | tuple] = inputs
         """ResourcePool keys indicating resources needed for the NodeBlock's functionality."""
-        self.outputs: Optional[list[str] | dict[str, Any]] = outputs
+        self.outputs: list[str] | dict[str, Any] = outputs if outputs else []
         """
         ResourcePool keys indicating resources generated or updated by the NodeBlock, optionally including metadata
         for the outputs' respective sidecars.
@@ -153,7 +153,7 @@ def nodeblock(
     Parameters
     ----------
     name
-        Used in the graph and logging to identify the NodeBlock and its component nodes.
+        Used in the graph and logging to identify the NodeBlock and its component nodes. Function's ``.__name__`` is used if ``name`` is not provided.
     config
         Indicates the nested keys in a C-PAC pipeline configuration should configure a NodeBlock built from this
         function. If config is set to ``None``, then all other configuration-related entities must be specified from the
