@@ -25,12 +25,16 @@ import shutil
 import sys
 import time
 from time import strftime
+from typing import Any, Optional
 
 import yaml
-import nipype
+import nipype  # type: ignore [import-untyped]
 from nipype import config, logging
-from flowdump import save_workflow_json, WorkflowJSONMeta
-from indi_aws import aws_utils, fetch_creds
+from flowdump import (  # type: ignore [import-untyped]
+    save_workflow_json,
+    WorkflowJSONMeta,
+)
+from indi_aws import aws_utils, fetch_creds  # type: ignore [import-untyped]
 
 import CPAC
 from CPAC.alff.alff import alff_falff, alff_falff_space_template
@@ -126,10 +130,11 @@ from CPAC.nuisance.nuisance import (
     ingress_regressors,
     nuisance_regression_template,
 )
+from CPAC.pipeline import nipype_pipeline_engine as pe
 
 # pylint: disable=wrong-import-order
 from CPAC.pipeline.check_outputs import check_outputs
-from CPAC.pipeline.engine import NodeBlock, ResourcePool
+from CPAC.pipeline.engine import NodeBlock, PIPELINE_BLOCKS, ResourcePool
 from CPAC.pipeline.nipype_pipeline_engine.plugins import (
     LegacyMultiProcPlugin,
     MultiProcPlugin,
@@ -421,7 +426,7 @@ def run_workflow(
             license_notice=CPAC.license_notice.replace("\n", "\n    "),
         ),
     )
-    subject_info = {}
+    subject_info: dict[str, Any] = {}
     subject_info["subject_id"] = subject_id
     subject_info["start_time"] = pipeline_start_time
 
@@ -1151,12 +1156,17 @@ def list_blocks(pipeline_blocks, indent=None):
     return blockstring
 
 
-def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
+def connect_pipeline(
+    wf: pe.Workflow,
+    cfg: Configuration,
+    rpool: ResourcePool,
+    pipeline_blocks: PIPELINE_BLOCKS,
+) -> pe.Workflow:
     """Connect the pipeline blocks to the workflow."""
     WFLOGGER.info(
         "Connecting pipeline blocks:\n%s", list_blocks(pipeline_blocks, indent=1)
     )
-    previous_nb = None
+    previous_nb: Optional[NodeBlock] = None
     for block in pipeline_blocks:
         try:
             nb = NodeBlock(block, debug=cfg["pipeline_setup", "Debugging", "verbose"])
@@ -1186,7 +1196,7 @@ def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
                     f"'{node_block_names}' "
                     f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
                 )
-            if cfg.pipeline_setup["Debugging"]["verbose"]:
+            if cfg.pipeline_setup["Debugging"]["verbose"]:  # type: ignore [attr-defined]
                 verbose_logger = getLogger("CPAC.engine")
                 verbose_logger.debug(e.args[0])
                 verbose_logger.debug(rpool)

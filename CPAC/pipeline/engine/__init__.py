@@ -18,6 +18,7 @@
 
 from .engine import (
     NodeBlock,
+    PIPELINE_BLOCKS,
     run_node_blocks,
     wrap_block,
 )
@@ -25,6 +26,7 @@ from .resource import ResourcePool, StratPool
 
 __all__ = [
     "NodeBlock",
+    "PIPELINE_BLOCKS",
     "ResourcePool",
     "StratPool",
     "run_node_blocks",
