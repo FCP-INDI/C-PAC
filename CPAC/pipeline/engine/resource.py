@@ -18,8 +18,9 @@
 
 import ast
 from collections.abc import KeysView
-import copy
+from copy import deepcopy
 from itertools import chain
+import json
 import os
 from pathlib import Path
 import re
@@ -59,6 +60,7 @@ from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.monitoring import (
     getLogger,
+    UTLOGGER,
     WFLOGGER,
 )
 from CPAC.utils.outputs import Outputs
@@ -205,7 +207,7 @@ class Resource:
         """Initialize a Resource."""
         self.data = ResourceData(*data)
         """Tuple of source Node and output key."""
-        self.json = json
+        self._json = json
         """Metadata."""
         self._keys = {"data", "json"}
         """Dictionary-style subscriptable keys."""
@@ -244,6 +246,20 @@ class Resource:
     def __str__(self) -> str:
         """Return string representation of Resource."""
         return f"{self.data[0]}"
+
+    def get_json(self) -> dict[str | tuple, Any]:
+        """Return a deep copy of Resource JSON."""
+        UTLOGGER.debug(
+            "%s is a deep copy of the attached JSON. Assign it to a variable before modifying or the changes will be ephemeral.",
+            self.__class__.__name__,
+        )
+        return json.loads(json.dumps(self._json))
+
+    def set_json(self, value=dict) -> None:
+        """Update Resource JSON."""
+        self._json.update(value)
+
+    json = property(get_json, set_json, doc=get_json.__doc__)
 
 
 class _Pool:
@@ -664,7 +680,7 @@ class _Pool:
         resource: str,
         node: pe.Node | pe.Workflow,
         output: str,
-        json_info: dict,
+        json_info: dict[str | tuple, Any],
         pipe_idx: PIPE_IDX,
         node_name: str,
         fork: bool = False,
@@ -1861,7 +1877,7 @@ class ResourcePool(_Pool):
             strat_str_list = []
             strat_list_list = []
             for strat_tuple in strats:
-                strat_list = list(copy.deepcopy(strat_tuple))
+                strat_list = list(deepcopy(strat_tuple))
                 strat_str = str(strat_list)
                 if strat_str not in strat_str_list:
                     strat_str_list.append(strat_str)
@@ -1886,11 +1902,11 @@ class ResourcePool(_Pool):
                         for xlabel in linked:
                             if drop or xlabel is None:
                                 break
-                            xjson = copy.deepcopy(json_dct[xlabel])
+                            xjson = deepcopy(json_dct[xlabel])
                             for ylabel in linked:
                                 if xlabel == ylabel or ylabel is None:
                                     continue
-                                yjson = copy.deepcopy(json_dct[ylabel])
+                                yjson = deepcopy(json_dct[ylabel])
 
                                 if "CpacVariant" not in xjson:
                                     xjson["CpacVariant"] = {}
@@ -1971,25 +1987,20 @@ class ResourcePool(_Pool):
                     # `new_strats` is A DICTIONARY OF RESOURCEPOOL OBJECTS! each one is a new slice of the resource pool combined together.
                     self.pipe_list.append(pipe_idx)
                     if "CpacVariant" in strat_resource["json"]:
-                        if "CpacVariant" not in new_strats[pipe_idx].json:
-                            new_strats[pipe_idx].json["CpacVariant"] = {}
-                        _variant = new_strats[pipe_idx].json["CpacVariant"]
-                        assert isinstance(_variant, dict)
-                        for younger_resource, variant_list in _variant.items():
+                        if "CpacVariant" not in new_strats[pipe_idx]._json:
+                            new_strats[pipe_idx]._json["CpacVariant"] = {}
+                        for younger_resource, variant_list in (
+                            new_strats[pipe_idx]._json["CpacVariant"].items()
+                        ):
                             if (
                                 younger_resource
-                                not in new_strats[pipe_idx].json["CpacVariant"]
+                                not in new_strats[pipe_idx]._json["CpacVariant"]
                             ):
-                                new_strats[pipe_idx].json["CpacVariant"][
+                                new_strats[pipe_idx]._json["CpacVariant"][
                                     younger_resource
                                 ] = variant_list
                     # preserve each input's JSON info also
-                    data_type = resource.split("_")[-1]
-                    if data_type not in new_strats[pipe_idx].json["subjson"]:
-                        new_strats[pipe_idx].json["subjson"][data_type] = {}
-                    new_strats[pipe_idx].json["subjson"][data_type].update(
-                        copy.deepcopy(strat_resource["json"])
-                    )
+                    new_strats[pipe_idx].preserve_json_info(resource, strat_resource)
         else:
             new_strats = {}
             for resource_strat_list in total_pool:
@@ -2005,12 +2016,7 @@ class ResourcePool(_Pool):
                     new_strats[pipe_idx].json["subjson"] = {}
                     new_strats[pipe_idx].json["CpacProvenance"] = cpac_prov
                     # preserve each input's JSON info also
-                    data_type = resource.split("_")[-1]
-                    if data_type not in new_strats[pipe_idx].json["subjson"]:
-                        new_strats[pipe_idx].json["subjson"][data_type] = {}
-                    new_strats[pipe_idx].json["subjson"][data_type].update(
-                        copy.deepcopy(strat_resource["json"])
-                    )
+                    new_strats[pipe_idx].preserve_json_info(resource, strat_resource)
         return new_strats
 
     def ingress_freesurfer(self) -> None:
@@ -2943,12 +2949,15 @@ class StratPool(_Pool):
         assert isinstance(_resource, Resource)
         return _resource.data
 
-    @property
-    def json(self) -> dict:
-        """Return strategy-specific JSON."""
-        return self._json
+    json = property(
+        fget=Resource.get_json,
+        fset=Resource.set_json,
+        doc="""Return a deep copy of strategy-specific JSON.""",
+    )
 
-    @json.setter
-    def json(self, strategy_json=dict) -> None:
-        """Update strategy-specific JSON."""
-        self._json.update(strategy_json)
+    def preserve_json_info(self, resource: str, strat_resource: Resource) -> None:
+        """Preserve JSON info when updating a StratPool."""
+        data_type = resource.split("_")[-1]
+        if data_type not in self._json["subjson"]:
+            self._json["subjson"][data_type] = {}
+        self._json["subjson"][data_type].update(strat_resource.json)

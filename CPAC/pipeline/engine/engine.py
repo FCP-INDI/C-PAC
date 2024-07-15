@@ -17,7 +17,6 @@
 """C-PAC pipeline engine."""
 
 import ast
-import copy
 import hashlib
 import json
 import os
@@ -36,7 +35,7 @@ from CPAC.utils.monitoring import (
     WFLOGGER,
 )
 
-PIPELINE_BLOCKS = list[NodeBlockFunction | "PIPELINE_BLOCKS"]
+PIPELINE_BLOCKS = list["NodeBlockFunction | PIPELINE_BLOCKS"]
 
 
 class NodeBlock:
@@ -55,7 +54,7 @@ class NodeBlock:
             self.input_interface = []
             if isinstance(node_block_function, tuple):
                 self.input_interface = node_block_function[1]
-                node_block_function = node_block_function[0]
+                node_block_function = node_block_function[0]  # noqa: PLW2901
                 if not isinstance(self.input_interface, list):
                     self.input_interface = [self.input_interface]
 
@@ -332,7 +331,7 @@ class NodeBlock:
 
                         for label, connection in outs.items():
                             self.check_output(outputs, label, name)
-                            new_json_info = copy.deepcopy(strat_pool.json)
+                            new_json_info = strat_pool.json
 
                             # transfer over data-specific json info
                             # for example, if the input data json is _bold and the output is also _bold
@@ -486,7 +485,6 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
     """
     for block in node_blocks:
-        # new_pool = copy.deepcopy(strat_pool)
         for in_resource, val in interface.items():
             if isinstance(val, tuple):
                 strat_pool.set_data(
