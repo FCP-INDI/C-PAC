@@ -25,7 +25,7 @@ import pytest
 def bids_examples(cache: pytest.Cache) -> Path:
     """Get cached example BIDS directories."""
     bids_dir = cache.mkdir("bids-examples").absolute()
-    if not bids_dir.exists():
+    if not (bids_dir.exists() and list(bids_dir.iterdir())):
         from git import Repo
 
         Repo.clone_from("https://github.com/bids-standard/bids-examples.git", bids_dir)
