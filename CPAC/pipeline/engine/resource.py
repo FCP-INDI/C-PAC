@@ -1960,7 +1960,7 @@ class ResourcePool(_Pool):
                 pipe_idx = str(strat_list)
                 new_strats[pipe_idx] = StratPool(name=pipe_idx)
                 # new_strats is A DICTIONARY OF StratPool OBJECTS!
-                new_strats[pipe_idx].json = {"CpacProvenance": {strat_list}}
+                new_strats[pipe_idx].json = {"CpacProvenance": strat_list}
 
                 # now just invert resource:strat to strat:resource for each resource:strat
                 for cpac_prov in strat_list:
