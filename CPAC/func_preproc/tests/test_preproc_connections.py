@@ -81,7 +81,7 @@ _PRE_RESOURCES = [
     "from-template_to-T1w_mode-image_desc-linear_xfm",
 ]
 
-NUM_TESTS = 12  # number of parameterizations to run for many-parameter tests
+NUM_TESTS = 48  # number of parameterizations to run for many-parameter tests
 
 
 def _filter_assertion_message(
