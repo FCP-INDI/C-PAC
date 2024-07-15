@@ -18,10 +18,7 @@
 
 from itertools import chain
 
-from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
-
-MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
 
 def name_fork(resource_idx, cfg, json_info, out_dct):
@@ -43,6 +40,8 @@ def name_fork(resource_idx, cfg, json_info, out_dct):
 
     out_dct : dict
     """
+    from CPAC.func_preproc.func_motion import motion_estimate_filter
+
     if cfg.switch_is_on(
         [
             "functional_preproc",
@@ -54,7 +53,7 @@ def name_fork(resource_idx, cfg, json_info, out_dct):
         filt_value = None
         _motion_variant = {
             _key: json_info["CpacVariant"][_key]
-            for _key in MOVEMENT_FILTER_KEYS
+            for _key in motion_estimate_filter.outputs
             if _key in json_info.get("CpacVariant", {})
         }
         if "unfiltered-" in resource_idx:
