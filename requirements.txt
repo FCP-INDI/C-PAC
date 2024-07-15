@@ -48,4 +48,4 @@ pip==23.3
 setuptools<60.0
 urllib3==1.26.19
 wheel==0.40.0
-zipp==3.16.0
+zipp==3.19.1
