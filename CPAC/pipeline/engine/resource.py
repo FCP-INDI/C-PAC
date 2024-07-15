@@ -74,7 +74,7 @@ from CPAC.utils.utils import (
 
 EXTS = [".nii", ".gz", ".mat", ".1D", ".txt", ".csv", ".rms", ".tsv"]
 POOL_DICT = dict[str | tuple, "STRAT_DICT"]
-STRAT_DICT = dict[str | tuple, "dict | Resource"]
+STRAT_DICT = dict[str | tuple, "Resource"]
 
 
 class DataPaths:
@@ -201,7 +201,7 @@ class ResourceData(NamedTuple):
 class Resource:
     """A single Resource and its methods."""
 
-    def __init__(self, data: tuple[pe.Node, str], json: dict | list) -> None:
+    def __init__(self, data: tuple[pe.Node, str], json: dict) -> None:
         """Initialize a Resource."""
         self.data = ResourceData(*data)
         """Tuple of source Node and output key."""
@@ -218,7 +218,7 @@ class Resource:
         """Return True if item in self.keys(), False otherwise."""
         return item in self.keys()
 
-    def __getitem__(self, name: str) -> tuple[pe.Node, str | tuple[str]]:
+    def __getitem__(self, name: str) -> Any:
         """Provide legacy dict-style get access."""
         if name in self.keys():
             return getattr(self, name)
@@ -784,18 +784,18 @@ class _Pool:
         return self.rpool[resource].keys()
 
     def get_json(self, resource, strat=None):
-        # NOTE: resource_strat_dct has to be entered properly by the developer
+        # NOTE: strat_resource has to be entered properly by the developer
         # it has to either be rpool[resource][strat] or strat_pool[resource]
         if strat:
-            resource_strat_dct = self.rpool[resource][strat]
+            strat_resource = self.rpool[resource][strat]
         else:
             # for strat_pools mainly, where there is no 'strat' key level
-            resource_strat_dct = self.rpool[resource]
+            strat_resource = self.rpool[resource]
 
         # TODO: the below hits the exception if you use get_cpac_provenance on
         # TODO: the main rpool (i.e. if strat=None)
-        if "json" in resource_strat_dct:
-            strat_json = resource_strat_dct["json"]
+        if "json" in strat_resource:
+            strat_json = strat_resource["json"]
         else:
             msg = (
                 "\n[!] Developer info: the JSON "
@@ -806,7 +806,7 @@ class _Pool:
         return strat_json
 
     def get_cpac_provenance(self, resource, strat=None):
-        # NOTE: resource_strat_dct has to be entered properly by the developer
+        # NOTE: strat_resource has to be entered properly by the developer
         # it has to either be rpool[resource][strat] or strat_pool[resource]
         if isinstance(resource, list):
             for _resource in resource:
@@ -834,19 +834,19 @@ class _Pool:
         # led to that one specific output:
         #   {rpool entry}: {that entry's provenance}
         #   {rpool entry}: {that entry's provenance}
-        resource_strat_dct = {}
+        strat_resource = {}
         if isinstance(prov, str):
             resource = prov.split(":")[0]
-            resource_strat_dct[resource] = prov
+            strat_resource[resource] = prov
         else:
             for spot, entry in enumerate(prov):
                 if isinstance(entry, list):
                     resource = entry[-1].split(":")[0]
-                    resource_strat_dct[resource] = entry
+                    strat_resource[resource] = entry
                 elif isinstance(entry, str):
                     resource = entry.split(":")[0]
-                    resource_strat_dct[resource] = entry
-        return resource_strat_dct
+                    strat_resource[resource] = entry
+        return strat_resource
 
     def flatten_prov(self, prov):
         if isinstance(prov, str):
@@ -1274,10 +1274,7 @@ class ResourcePool(_Pool):
                     try:
                         ancestors = self.rpool.get(source)
                         assert ancestors is not None
-                        ancestor = next(iter(ancestors.items()))[1]
-                        assert not isinstance(ancestor, dict)
-                        anscestor_json = ancestor.json
-                        assert isinstance(anscestor_json, dict)
+                        anscestor_json = next(iter(ancestors.items()))[1].json
                         if "Description" in anscestor_json:
                             id_string.inputs.template_desc = anscestor_json[
                                 "Description"
@@ -1626,7 +1623,8 @@ class ResourcePool(_Pool):
         resource: LIST_OF_LIST_OF_STR,
         pipe_idx: None = None,
         report_fetched: Literal[False] = False,
-        optional: bool = False,
+        *,
+        optional: Literal[True],
     ) -> Optional[STRAT_DICT]: ...
     @overload
     def get(
@@ -1634,8 +1632,42 @@ class ResourcePool(_Pool):
         resource: LIST_OF_LIST_OF_STR,
         pipe_idx: PIPE_IDX,
         report_fetched: Literal[False] = False,
-        optional: bool = False,
+        *,
+        optional: Literal[True],
     ) -> Optional[Resource]: ...
+    @overload
+    def get(
+        self,
+        resource: LIST_OF_LIST_OF_STR,
+        pipe_idx: None = None,
+        *,
+        report_fetched: Literal[True],
+        optional: Literal[True],
+    ) -> tuple[Optional[STRAT_DICT], Optional[str]]: ...
+    @overload
+    def get(
+        self,
+        resource: LIST_OF_LIST_OF_STR,
+        pipe_idx: PIPE_IDX,
+        report_fetched: Literal[True],
+        optional: Literal[True],
+    ) -> tuple[Optional[Resource], Optional[str]]: ...
+    @overload
+    def get(
+        self,
+        resource: LIST_OF_LIST_OF_STR,
+        pipe_idx: None = None,
+        report_fetched: Literal[False] = False,
+        optional: Literal[False] = False,
+    ) -> STRAT_DICT: ...
+    @overload
+    def get(
+        self,
+        resource: LIST_OF_LIST_OF_STR,
+        pipe_idx: PIPE_IDX,
+        report_fetched: Literal[False] = False,
+        optional: Literal[False] = False,
+    ) -> Resource: ...
     @overload
     def get(
         self,
@@ -1651,8 +1683,8 @@ class ResourcePool(_Pool):
         resource: LIST_OF_LIST_OF_STR,
         pipe_idx: PIPE_IDX,
         report_fetched: Literal[True],
-        optional: Literal[False],
-    ) -> tuple[Optional[Resource], Optional[str]]: ...
+        optional: Literal[False] = False,
+    ) -> tuple[Resource, str]: ...
     @overload
     def get(
         self,
@@ -1842,9 +1874,9 @@ class ResourcePool(_Pool):
                 json_dct = {}
                 for strat in strat_list:
                     # strat is a prov list for a single resource/input
-                    strat_resource, strat_idx = self.generate_prov_string(strat)
-                    strat_json = self.get_json(strat_resource, strat=strat_idx)
-                    json_dct[strat_resource] = strat_json
+                    prov_resource, strat_idx = self.generate_prov_string(strat)
+                    strat_json = self.get_json(prov_resource, strat=strat_idx)
+                    json_dct[prov_resource] = strat_json
 
                 drop = False
                 if linked_resources:
@@ -1927,39 +1959,36 @@ class ResourcePool(_Pool):
                 # strat_list is actually the merged CpacProvenance lists
                 pipe_idx = str(strat_list)
                 new_strats[pipe_idx] = StratPool(name=pipe_idx)
-                # new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
-                # placing JSON info at one level higher only for copy convenience
-                new_strats[pipe_idx].rpool["json"] = {}
-                new_strats[pipe_idx].rpool["json"]["subjson"] = {}
-                new_strats[pipe_idx].rpool["json"]["CpacProvenance"] = strat_list
+                # new_strats is A DICTIONARY OF StratPool OBJECTS!
+                new_strats[pipe_idx].json = {"CpacProvenance": {strat_list}}
 
                 # now just invert resource:strat to strat:resource for each resource:strat
                 for cpac_prov in strat_list:
                     resource, strat = self.generate_prov_string(cpac_prov)
-                    resource_strat_dct = self.rpool[resource][strat]
-                    # remember, `resource_strat_dct` is a Resource.
-                    new_strats[pipe_idx].rpool[resource] = resource_strat_dct
+                    strat_resource = self.rpool[resource][strat]
+                    # remember, `strat_resource` is a Resource.
+                    new_strats[pipe_idx].rpool[resource] = strat_resource
                     # `new_strats` is A DICTIONARY OF RESOURCEPOOL OBJECTS! each one is a new slice of the resource pool combined together.
                     self.pipe_list.append(pipe_idx)
-                    if "CpacVariant" in resource_strat_dct["json"]:
-                        if "CpacVariant" not in new_strats[pipe_idx].rpool["json"]:
-                            new_strats[pipe_idx].rpool["json"]["CpacVariant"] = {}
-                        _variant = new_strats[pipe_idx].rpool["json"]["CpacVariant"]
+                    if "CpacVariant" in strat_resource["json"]:
+                        if "CpacVariant" not in new_strats[pipe_idx].json:
+                            new_strats[pipe_idx].json["CpacVariant"] = {}
+                        _variant = new_strats[pipe_idx].json["CpacVariant"]
                         assert isinstance(_variant, dict)
                         for younger_resource, variant_list in _variant.items():
                             if (
                                 younger_resource
-                                not in new_strats[pipe_idx].rpool["json"]["CpacVariant"]
+                                not in new_strats[pipe_idx].json["CpacVariant"]
                             ):
-                                new_strats[pipe_idx].rpool["json"]["CpacVariant"][
+                                new_strats[pipe_idx].json["CpacVariant"][
                                     younger_resource
                                 ] = variant_list
                     # preserve each input's JSON info also
                     data_type = resource.split("_")[-1]
-                    if data_type not in new_strats[pipe_idx].rpool["json"]["subjson"]:
-                        new_strats[pipe_idx].rpool["json"]["subjson"][data_type] = {}
-                    new_strats[pipe_idx].rpool["json"]["subjson"][data_type].update(
-                        copy.deepcopy(resource_strat_dct["json"])
+                    if data_type not in new_strats[pipe_idx].json["subjson"]:
+                        new_strats[pipe_idx].json["subjson"][data_type] = {}
+                    new_strats[pipe_idx].json["subjson"][data_type].update(
+                        copy.deepcopy(strat_resource["json"])
                     )
         else:
             new_strats = {}
@@ -1967,23 +1996,20 @@ class ResourcePool(_Pool):
                 # total_pool will have only one list of strats, for the one input
                 for cpac_prov in resource_strat_list:  # <------- cpac_prov here doesn't need to be modified, because it's not merging with other inputs
                     resource, pipe_idx = self.generate_prov_string(cpac_prov)
-                    resource_strat_dct = self.rpool[resource][pipe_idx]
-                    # remember, `resource_strat_dct` is a Resource.
+                    strat_resource = self.rpool[resource][pipe_idx]
+                    # remember, `strat_resource` is a Resource.
                     new_strats[pipe_idx] = StratPool(
-                        rpool={resource: resource_strat_dct}, name=pipe_idx
-                    )  # <----- again, new_strats is A DICTIONARY OF RESOURCEPOOL OBJECTS!
-                    # placing JSON info at one level higher only for copy convenience
-                    new_strats[pipe_idx].rpool["json"] = resource_strat_dct["json"]
-                    # TODO: WARNING- THIS IS A LEVEL HIGHER THAN THE ORIGINAL 'JSON' FOR EASE OF ACCESS IN CONNECT_BLOCK WITH THE .GET(JSON)
-                    new_strats[pipe_idx].rpool["json"]["subjson"] = {}
-                    new_strats[pipe_idx].rpool["json"]["CpacProvenance"] = cpac_prov
+                        rpool={resource: strat_resource}, name=pipe_idx
+                    )  # <----- again, new_strats is A DICTIONARY OF StratPool OBJECTS!
+                    new_strats[pipe_idx].json = strat_resource.json
+                    new_strats[pipe_idx].json["subjson"] = {}
+                    new_strats[pipe_idx].json["CpacProvenance"] = cpac_prov
                     # preserve each input's JSON info also
                     data_type = resource.split("_")[-1]
-                    if data_type not in new_strats[pipe_idx].rpool["json"]["subjson"]:
-                        new_strats[pipe_idx].rpool["json"]["subjson"][data_type] = {}
-                    _json = new_strats[pipe_idx].rpool["json"]
-                    new_strats[pipe_idx].rpool["json"]["subjson"][data_type].update(
-                        copy.deepcopy(resource_strat_dct["json"])
+                    if data_type not in new_strats[pipe_idx].json["subjson"]:
+                        new_strats[pipe_idx].json["subjson"][data_type] = {}
+                    new_strats[pipe_idx].json["subjson"][data_type].update(
+                        copy.deepcopy(strat_resource["json"])
                     )
         return new_strats
 
@@ -2823,6 +2849,7 @@ class StratPool(_Pool):
             self.rpool = STRAT_DICT({})
         else:
             self.rpool = STRAT_DICT(rpool)
+        self._json: dict[str, dict] = {"subjson": {}}
 
     def append_name(self, name):
         self.name.append(name)
@@ -2830,26 +2857,19 @@ class StratPool(_Pool):
     @overload
     def get(
         self,
-        resource: Literal["json"],
-        pipe_idx: None = None,
-        report_fetched: Literal[False] = False,
-        optional: Literal[False] = False,
-    ) -> dict: ...
-    @overload
-    def get(
-        self,
         resource: list[str] | str,
         pipe_idx: Optional[PIPE_IDX] = None,
         report_fetched: Literal[False] = False,
-        optional: bool = False,
-    ) -> Optional[Resource] | dict: ...
+        *,
+        optional: Literal[True],
+    ) -> Optional[Resource]: ...
     @overload
     def get(
         self,
         resource: list[str] | str,
         pipe_idx: Optional[PIPE_IDX],
         report_fetched: Literal[True],
-        optional: bool = False,
+        optional: Literal[True],
     ) -> tuple[Optional[Resource], Optional[str]]: ...
     @overload
     def get(
@@ -2858,8 +2878,34 @@ class StratPool(_Pool):
         pipe_idx: Optional[PIPE_IDX] = None,
         *,
         report_fetched: Literal[True],
-        optional: bool = False,
-    ) -> tuple[Optional[Resource], Optional[str]]: ...
+        optional: Literal[False],
+    ) -> tuple[Resource, str]: ...
+    @overload
+    def get(
+        self,
+        resource: list[str] | str,
+        pipe_idx: Optional[PIPE_IDX] = None,
+        report_fetched: bool = False,
+        *,
+        optional: Literal[True],
+    ) -> Optional[Resource] | tuple[Optional[Resource], Optional[str]]: ...
+    @overload
+    def get(
+        self,
+        resource: list[str] | str,
+        pipe_idx: Optional[PIPE_IDX] = None,
+        report_fetched: Literal[False] = False,
+        optional: Literal[False] = False,
+    ) -> Resource: ...
+    @overload
+    def get(
+        self,
+        resource: list[str] | str,
+        pipe_idx: Optional[PIPE_IDX] = None,
+        *,
+        report_fetched: Literal[True],
+        optional: Literal[False] = False,
+    ) -> tuple[Resource, str]: ...
     @overload
     def get(
         self,
@@ -2867,7 +2913,7 @@ class StratPool(_Pool):
         pipe_idx: Optional[PIPE_IDX] = None,
         report_fetched: bool = False,
         optional: bool = False,
-    ) -> Optional[Resource] | tuple[Optional[Resource], Optional[str]] | dict: ...
+    ) -> Optional[Resource] | tuple[Optional[Resource], Optional[str]]: ...
     def get(
         self,
         resource: list[str] | str,
@@ -2896,3 +2942,13 @@ class StratPool(_Pool):
             return connect.data, fetched
         assert isinstance(_resource, Resource)
         return _resource.data
+
+    @property
+    def json(self) -> dict:
+        """Return strategy-specific JSON."""
+        return self._json
+
+    @json.setter
+    def json(self, strategy_json=dict) -> None:
+        """Update strategy-specific JSON."""
+        self._json.update(strategy_json)
