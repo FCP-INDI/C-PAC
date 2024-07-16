@@ -30,7 +30,7 @@ from CPAC.pipeline.cpac_pipeline import (
     connect_pipeline,
     initialize_nipype_wf,
 )
-from CPAC.pipeline.engine import ingress_output_dir, initiate_rpool
+from CPAC.pipeline.engine.engine import ingress_output_dir, initiate_rpool
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.registration import (
     create_fsl_flirt_linear_reg,

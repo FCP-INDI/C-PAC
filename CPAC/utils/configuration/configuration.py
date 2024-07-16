@@ -756,7 +756,7 @@ class Preconfiguration(Configuration):
 
 
 def set_subject(
-    sub_dict: dict, pipe_config: "Configuration", p_name: Optional[str] = None
+    sub_group, pipe_config: "Configuration", p_name: Optional[str] = None
 ) -> tuple[str, str, str]:
     """Set pipeline name and log directory path for a given sub_dict.
 

@@ -37,7 +37,7 @@ from CPAC.nuisance.utils.compcor import (
     TR_string_to_float,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.engine import ResourcePool
+from CPAC.pipeline.engine.resource_pool import ResourcePool
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.registration.registration import (
     apply_transform,
