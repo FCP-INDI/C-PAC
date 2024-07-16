@@ -26,7 +26,6 @@ from pathlib import Path
 import re
 from types import NoneType
 from typing import Any, Literal, NamedTuple, Optional, overload
-import warnings
 
 from nipype.interfaces import utility as util  # type: ignore [import-untyped]
 from nipype.interfaces.utility import Rename  # type: ignore [import-untyped]
@@ -1302,53 +1301,55 @@ class ResourcePool(_Pool):
                         pass
         return
 
-    def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
-        from CPAC.func_preproc.func_motion import motion_estimate_filter
-
-        excl = []
-        substring_excl = []
+    def gather_pipes(  # noqa: PLR0915
+        self,
+        wf: pe.Workflow,
+        cfg: Configuration,
+        all_types: bool = False,
+        add_excl: Optional[list[str]] = None,
+    ) -> None:
+        """Gather pipes including naming, postproc, and expected outputs."""
+        excl: list[str] = []
+        # substring_excl: list[str] = []
         outputs_logger = getLogger(f"{self.part_id}_expectedOutputs")
         expected_outputs = ExpectedOutputs()
 
         if add_excl:
             excl += add_excl
 
-        if "nonsmoothed" not in cfg.post_processing["spatial_smoothing"]["output"]:
+        if "nonsmoothed" not in cfg.post_processing["spatial_smoothing"]["output"]:  # type: ignore [attr-defined]
             excl += Outputs.native_nonsmooth
             excl += Outputs.template_nonsmooth
 
-        if "raw" not in cfg.post_processing["z-scoring"]["output"]:
+        if "raw" not in cfg.post_processing["z-scoring"]["output"]:  # type: ignore [attr-defined]
             excl += Outputs.native_raw
             excl += Outputs.template_raw
 
-        if not cfg.pipeline_setup["output_directory"]["write_debugging_outputs"]:
+        if not cfg.pipeline_setup["output_directory"]["write_debugging_outputs"]:  # type: ignore [attr-defined]
             # substring_excl.append(['bold'])
             excl += Outputs.debugging
 
         for resource in self.keys():
-            if resource not in Outputs.any:
+            if resource in excl or resource not in Outputs.any:
                 continue
 
-            if resource in excl:
-                continue
-
-            drop = False
-            for substring_list in substring_excl:
-                bool_list = []
-                for substring in substring_list:
-                    if substring in resource:
-                        bool_list.append(True)
-                    else:
-                        bool_list.append(False)
-                for item in bool_list:
-                    if not item:
-                        break
-                else:
-                    drop = True
-                if drop:
-                    break
-            if drop:
-                continue
+            # drop = False
+            # for substring_list in substring_excl:
+            #     bool_list = []
+            #     for substring in substring_list:
+            #         if substring in resource:
+            #             bool_list.append(True)
+            #         else:
+            #             bool_list.append(False)
+            #     for item in bool_list:
+            #         if not item:
+            #             break
+            #     else:
+            #         drop = True
+            #     if drop:
+            #         break
+            # if drop:
+            #     continue
 
             subdir = "other"
             if resource in Outputs.anat:
@@ -1366,8 +1367,8 @@ class ResourcePool(_Pool):
                 if "ses-" not in ses_id:
                     ses_id = f"ses-{ses_id}"
 
-                out_dir = cfg.pipeline_setup["output_directory"]["path"]
-                pipe_name = cfg.pipeline_setup["pipeline_name"]
+                out_dir = cfg.pipeline_setup["output_directory"]["path"]  # type: ignore [attr-defined]
+                pipe_name = cfg.pipeline_setup["pipeline_name"]  # type: ignore [attr-defined]
                 container = os.path.join(f"pipeline_{pipe_name}", part_id, ses_id)
                 filename = f"{unique_id}_{res_in_filename(self.cfg, resource)}"
 
@@ -1386,80 +1387,10 @@ class ResourcePool(_Pool):
                 # TODO: have to link the pipe_idx's here. and call up 'desc-preproc_T1w' from a Sources in a json and replace. here.
                 # TODO: can do the pipeline_description.json variants here too!
 
-        for resource in self.keys():
-            if resource not in Outputs.any:
-                continue
-
-            if resource in excl:
-                continue
-
-            drop = False
-            for substring_list in substring_excl:
-                bool_list = []
-                for substring in substring_list:
-                    if substring in resource:
-                        bool_list.append(True)
-                    else:
-                        bool_list.append(False)
-                for item in bool_list:
-                    if not item:
-                        break
-                else:
-                    drop = True
-                if drop:
-                    break
-            if drop:
-                continue
-
-            num_variant = 0
+            num_variant: Optional[int | str] = 0
             if len(self.rpool[resource]) == 1:
                 num_variant = ""
-            all_jsons = [
-                self.rpool[resource][pipe_idx]["json"]
-                for pipe_idx in self.rpool[resource]
-            ]
-            unlabelled = {
-                key
-                for json_info in all_jsons
-                for key in json_info.get("CpacVariant", {}).keys()
-                if key not in (*motion_estimate_filter.outputs, "regressors")
-            }
-            if "bold" in unlabelled:
-                all_bolds = list(
-                    chain.from_iterable(
-                        json_info["CpacVariant"]["bold"]
-                        for json_info in all_jsons
-                        if "CpacVariant" in json_info
-                        and "bold" in json_info["CpacVariant"]
-                    )
-                )
-                # not any(not) because all is overloaded as a parameter here
-                if not any(
-                    not re.match(
-                        r"apply_(phasediff|blip)_to_timeseries_separately_.*", _bold
-                    )
-                    for _bold in all_bolds
-                ):
-                    # this fork point should only result in 0 or 1 forks
-                    unlabelled.remove("bold")
-                del all_bolds
-            all_forks = {
-                key: set(
-                    chain.from_iterable(
-                        json_info["CpacVariant"][key]
-                        for json_info in all_jsons
-                        if "CpacVariant" in json_info
-                        and key in json_info["CpacVariant"]
-                    )
-                )
-                for key in unlabelled
-            }
-            # del all_jsons
-            for key, forks in all_forks.items():
-                if len(forks) < 2:  # noqa: PLR2004
-                    # no int suffix needed if only one fork
-                    unlabelled.remove(key)
-            # del all_forks
+            unlabelled = self._get_unlabelled(resource)
             for pipe_idx in self.rpool[resource]:
                 pipe_x = self.get_pipe_number(pipe_idx)
                 json_info = self.rpool[resource][pipe_idx]["json"]
@@ -1467,6 +1398,7 @@ class ResourcePool(_Pool):
 
                 try:
                     if unlabelled:
+                        assert isinstance(num_variant, int)
                         num_variant += 1
                 except TypeError:
                     pass
@@ -1476,7 +1408,7 @@ class ResourcePool(_Pool):
                 except KeyError:
                     pass
 
-                if out_dct["subdir"] == "other" and not all:
+                if out_dct["subdir"] == "other" and not all_types:
                     continue
 
                 unique_id = out_dct["unique_id"]
@@ -1534,7 +1466,7 @@ class ResourcePool(_Pool):
                 # grab the FWHM if smoothed
                 for tag in resource.split("_"):
                     if "desc-" in tag and "-sm" in tag:
-                        fwhm_idx = pipe_idx.replace(f"{resource}:", "fwhm:")
+                        fwhm_idx = str(pipe_idx).replace(f"{resource}:", "fwhm:")
                         try:
                             node, out = self.rpool["fwhm"][fwhm_idx]["data"]
                             wf.connect(node, out, id_string, "fwhm")
@@ -1548,7 +1480,7 @@ class ResourcePool(_Pool):
                 atlas_id = None
                 if not resource.endswith("desc-confounds_timeseries"):
                     if resource.split("_")[-1] in atlas_suffixes:
-                        atlas_idx = pipe_idx.replace(resource, "atlas_name")
+                        atlas_idx = str(pipe_idx).replace(resource, "atlas_name")
                         # need the single quote and the colon inside the double
                         # quotes - it's the encoded pipe_idx
                         # atlas_idx = new_idx.replace(f"'{temp_rsc}:",
@@ -1562,13 +1494,8 @@ class ResourcePool(_Pool):
                                     atlas_id = tag.replace("atlas-", "")
                             id_string.inputs.atlas_id = atlas_id
                         else:
-                            warnings.warn(
-                                str(
-                                    LookupError(
-                                        "\n[!] No atlas ID found for "
-                                        f"{out_dct['filename']}.\n"
-                                    )
-                                )
+                            WFLOGGER.warning(
+                                "\n[!] No atlas ID found for %s.\n", out_dct["filename"]
                             )
                 nii_name = pe.Node(Rename(), name=f"nii_{resource_idx}_{pipe_x}")
                 nii_name.inputs.keep_ext = True
@@ -1595,13 +1522,11 @@ class ResourcePool(_Pool):
                     WFLOGGER.warning(os_error)
                     continue
 
-                write_json_imports = ["import os", "import json"]
                 write_json = pe.Node(
                     Function(
                         input_names=["json_data", "filename"],
                         output_names=["json_file"],
                         function=write_output_json,
-                        imports=write_json_imports,
                     ),
                     name=f"json_{resource_idx}_{pipe_x}",
                 )
@@ -1611,13 +1536,13 @@ class ResourcePool(_Pool):
                 ds = pe.Node(DataSink(), name=f"sinker_{resource_idx}_{pipe_x}")
                 ds.inputs.parameterization = False
                 ds.inputs.base_directory = out_dct["out_dir"]
-                ds.inputs.encrypt_bucket_keys = cfg.pipeline_setup["Amazon-AWS"][
+                ds.inputs.encrypt_bucket_keys = cfg.pipeline_setup["Amazon-AWS"][  # type: ignore[attr-defined]
                     "s3_encryption"
                 ]
                 ds.inputs.container = out_dct["container"]
 
-                if cfg.pipeline_setup["Amazon-AWS"]["aws_output_bucket_credentials"]:
-                    ds.inputs.creds_path = cfg.pipeline_setup["Amazon-AWS"][
+                if cfg.pipeline_setup["Amazon-AWS"]["aws_output_bucket_credentials"]:  # type: ignore[attr-defined]
+                    ds.inputs.creds_path = cfg.pipeline_setup["Amazon-AWS"][  # type: ignore[attr-defined]
                         "aws_output_bucket_credentials"
                     ]
                 expected_outputs += (
@@ -2117,9 +2042,7 @@ class ResourcePool(_Pool):
                     key, fs_ingress, "outputspec.data", {}, "", f"fs_{key}_ingress"
                 )
             else:
-                warnings.warn(
-                    str(LookupError(f"\n[!] Path does not exist for {fullpath}.\n"))
-                )
+                WFLOGGER.warning("\n[!] Path does not exist for %s.\n", fullpath)
 
         return
 
@@ -2840,6 +2763,52 @@ class ResourcePool(_Pool):
 
         if self.cfg.surface_analysis["freesurfer"]["ingress_reconall"]:  # type: ignore[attr-defined]
             self.ingress_freesurfer()
+
+    def _get_unlabelled(self, resource: str) -> set[str]:
+        """Get unlabelled resources (that need integer suffixes to differentiate)."""
+        from CPAC.func_preproc.func_motion import motion_estimate_filter
+
+        all_jsons = [
+            self.rpool[resource][pipe_idx]._json for pipe_idx in self.rpool[resource]
+        ]
+        unlabelled = {
+            key
+            for json_info in all_jsons
+            for key in json_info.get("CpacVariant", {}).keys()
+            if key not in (*motion_estimate_filter.outputs, "regressors")
+        }
+        if "bold" in unlabelled:
+            all_bolds = list(
+                chain.from_iterable(
+                    json_info["CpacVariant"]["bold"]
+                    for json_info in all_jsons
+                    if "CpacVariant" in json_info and "bold" in json_info["CpacVariant"]
+                )
+            )
+            if all(
+                re.match(r"apply_(phasediff|blip)_to_timeseries_separately_.*", _bold)
+                for _bold in all_bolds
+            ):
+                # this fork point should only result in 0 or 1 forks
+                unlabelled.remove("bold")
+            del all_bolds
+        all_forks = {
+            key: set(
+                chain.from_iterable(
+                    json_info["CpacVariant"][key]
+                    for json_info in all_jsons
+                    if "CpacVariant" in json_info and key in json_info["CpacVariant"]
+                )
+            )
+            for key in unlabelled
+        }
+        del all_jsons
+        for key, forks in all_forks.items():
+            if len(forks) < 2:  # noqa: PLR2004
+                # no int suffix needed if only one fork
+                unlabelled.remove(key)
+        del all_forks
+        return unlabelled
 
 
 class StratPool(_Pool):

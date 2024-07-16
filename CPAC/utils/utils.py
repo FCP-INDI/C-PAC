@@ -224,6 +224,7 @@ def create_id_string(
     return combine_multiple_entity_instances(res_in_filename(cfg, out_filename))
 
 
+@Function.sig_imports(["import os", "import json"])
 def write_output_json(json_data, filename, indent=3, basedir=None):
     """Write a dictionary to a JSON file."""
     if not basedir:
