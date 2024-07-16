@@ -265,7 +265,7 @@ class Resource:
 class _Pool:
     """All Resources."""
 
-    def __init__(self, name: str = "") -> None:
+    def __init__(self) -> None:
         """Initialize a ResourcePool or StratPool."""
         self.ants_interp: str
         self.cfg: Configuration
@@ -276,7 +276,7 @@ class _Pool:
         self.fwhm: list[int]
         self.info: dict = {}
         self.logdir: Optional[str]
-        self.name = name
+        self.name: list[str] | str
         self.num_ants_cores: int
         self.num_cpus = int
         self.part_id: str
@@ -423,8 +423,9 @@ class _Pool:
         resource = last_entry.split(":")[0]
         return (resource, str(prov))
 
-    def get_name(self):
-        return self.name
+    def get_name(self) -> str:
+        """Return stringified name."""
+        return str(self.name)
 
     def check_rpool(self, resource):
         if not isinstance(resource, list):
@@ -1156,7 +1157,8 @@ class ResourcePool(_Pool):
         wf: Optional[pe.Workflow] = None,
     ) -> None:
         """Initialize a ResourcePool."""
-        super().__init__(name=name)
+        self.name = name
+        super().__init__()
         if isinstance(data_paths, dict):
             data_paths = DataPaths(data_paths=data_paths)
         elif not data_paths:
@@ -1914,7 +1916,7 @@ class ResourcePool(_Pool):
                                     yjson["CpacVariant"] = {}
 
                                 current_strat = []
-                                for key, val in xjson["CpacVariant"].items():
+                                for val in xjson["CpacVariant"].values():
                                     if isinstance(val, list):
                                         current_strat.append(val[0])
                                     else:
@@ -1927,7 +1929,7 @@ class ResourcePool(_Pool):
                                         current_strat.append(f"NO-{spread_label}")
 
                                 other_strat = []
-                                for key, val in yjson["CpacVariant"].items():
+                                for val in yjson["CpacVariant"].values():
                                     if isinstance(val, list):
                                         other_strat.append(val[0])
                                     else:
@@ -2847,17 +2849,21 @@ class StratPool(_Pool):
         self,
         rpool: Optional[dict] = None,
         *,
-        name: str = "",
+        name: str | list[str] = "",
     ) -> None:
         """Initialize a StratPool."""
-        super().__init__(name=name)
+        super().__init__()
         if not rpool:
             self.rpool = STRAT_DICT({})
         else:
             self.rpool = STRAT_DICT(rpool)
         self._json: dict[str, dict] = {"subjson": {}}
+        if not isinstance(name, list):
+            name = [name]
+        self.name: list[str] = name
 
-    def append_name(self, name):
+    def append_name(self, name: str) -> None:
+        """Append a name to the StratPool."""
         self.name.append(name)
 
     @overload
