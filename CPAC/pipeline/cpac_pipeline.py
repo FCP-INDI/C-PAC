@@ -130,7 +130,7 @@ from CPAC.nuisance.nuisance import (
 # pylint: disable=wrong-import-order
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import check_outputs
-from CPAC.pipeline.engine import initiate_rpool, NodeBlock
+from CPAC.pipeline.engine.engine import initiate_rpool, NodeBlock
 from CPAC.pipeline.nipype_pipeline_engine.plugins import (
     LegacyMultiProcPlugin,
     MultiProcPlugin,

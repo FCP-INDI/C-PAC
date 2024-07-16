@@ -1,0 +1,3 @@
+
+class StratPool(ResourcePool):
+    pass
