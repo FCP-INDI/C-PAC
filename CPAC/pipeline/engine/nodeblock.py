@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from CPAC.pipeline.engine.resource import ResourceData, StratPool
 
 NODEBLOCK_INPUTS = list[str | list | tuple]
+NODEBLOCK_OUTPUTS = list[str] | dict[str, Any]
 PIPELINE_BLOCKS = list["NodeBlockFunction | PIPELINE_BLOCKS"]
 
 
@@ -46,7 +47,7 @@ class NodeBlockFunction:
         option_key: Optional[str | list[str]] = None,
         option_val: Optional[str | list[str]] = None,
         inputs: Optional[NODEBLOCK_INPUTS] = None,
-        outputs: Optional[list[str] | dict[str, Any]] = None,
+        outputs: Optional[NODEBLOCK_OUTPUTS] = None,
     ) -> None:
         self.func = func
         """Nodeblock function reference."""
@@ -70,9 +71,7 @@ class NodeBlockFunction:
         """
         self.option_val: Optional[str | list[str]] = option_val
         """Indicates values for which this NodeBlock should be active."""
-        if inputs is None:
-            inputs = []
-        self.inputs: list[str | list | tuple] = inputs
+        self.inputs: list[str | list | tuple] = inputs if inputs else []
         """ResourcePool keys indicating resources needed for the NodeBlock's functionality."""
         self.outputs: list[str] | dict[str, Any] = outputs if outputs else []
         """
@@ -218,12 +217,11 @@ class NodeBlock:
                 config.update_config({"logging": {"workflow_level": "INFO"}})
                 logging.update_logging(config)
 
-    def check_null(self, val):
-        if isinstance(val, str):
-            val = None if val.lower() == "none" else val
-        return val
+    def check_output(self, outputs: NODEBLOCK_OUTPUTS, label: str, name: str) -> None:
+        """Check if a label is listed in a NodeBlock's ``outputs``.
 
-    def check_output(self, outputs, label, name):
+        Raises ``NameError`` if a mismatch is found.
+        """
         if label not in outputs:
             msg = (
                 f'\n[!] Output name "{label}" in the block '
