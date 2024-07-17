@@ -218,9 +218,6 @@ class NodeBlock:
                 config.update_config({"logging": {"workflow_level": "INFO"}})
                 logging.update_logging(config)
 
-    def get_name(self):
-        return self.name
-
     def check_null(self, val):
         if isinstance(val, str):
             val = None if val.lower() == "none" else val

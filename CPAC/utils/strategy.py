@@ -29,9 +29,6 @@ class Strategy:
     def append_name(self, name):
         self.name.append(name)
 
-    def get_name(self):
-        return self.name
-
     def set_leaf_properties(self, node, out_file):
         self.leaf_node = node
         self.leaf_out_file = out_file

@@ -429,10 +429,6 @@ class _Pool:
         resource = last_entry.split(":")[0]
         return (resource, str(prov))
 
-    def get_name(self) -> str:
-        """Return stringified name."""
-        return str(self.name)
-
     def check_rpool(self, resource: list[str] | str) -> bool:
         """Check if a resource is present in the _Pool."""
         if not isinstance(resource, list):
@@ -2690,14 +2686,14 @@ class ResourcePool(_Pool):
                 )
                 # Alert user to block that raises error
                 if isinstance(block, list):
-                    node_block_names = str([NodeBlock(b).get_name() for b in block])
+                    node_block_names = str([NodeBlock(b).name for b in block])
                     e.args = (
                         f"When trying to connect one of the node blocks "
                         f"{node_block_names} "
                         f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
                     )
                 else:
-                    node_block_names = NodeBlock(block).get_name()
+                    node_block_names = NodeBlock(block).name
                     e.args = (
                         f"When trying to connect node block "
                         f"'{node_block_names}' "
