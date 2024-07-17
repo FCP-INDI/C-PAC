@@ -854,27 +854,6 @@ class _Pool:
             raise TypeError(msg)
         return ast.literal_eval(prov_str)
 
-    @staticmethod
-    def get_resource_strats_from_prov(prov):
-        # if you provide the provenance of a resource pool output, this will
-        # return a dictionary of all the preceding resource pool entries that
-        # led to that one specific output:
-        #   {rpool entry}: {that entry's provenance}
-        #   {rpool entry}: {that entry's provenance}
-        strat_resource = {}
-        if isinstance(prov, str):
-            resource = prov.split(":")[0]
-            strat_resource[resource] = prov
-        else:
-            for spot, entry in enumerate(prov):
-                if isinstance(entry, list):
-                    resource = entry[-1].split(":")[0]
-                    strat_resource[resource] = entry
-                elif isinstance(entry, str):
-                    resource = entry.split(":")[0]
-                    strat_resource[resource] = entry
-        return strat_resource
-
 
 class ResourcePool(_Pool):
     """A pool of Resources."""
@@ -3096,6 +3075,30 @@ class ResourcePool(_Pool):
                     )
 
         return wf, post_labels
+
+    @staticmethod
+    def get_resource_strats_from_prov(prov: list | str) -> dict[str, list | str]:
+        """Return all entries that led to this provenance.
+
+        If you provide the provenance of a resource pool output, this will
+        return a dictionary of all the preceding resource pool entries that
+        led to that one specific output:
+          {rpool entry}: {that entry's provenance}
+          {rpool entry}: {that entry's provenance}
+        """
+        strat_resource: dict[str, list | str] = {}
+        if isinstance(prov, str):
+            resource = prov.split(":")[0]
+            strat_resource[resource] = prov
+        else:
+            for entry in prov:
+                if isinstance(entry, list):
+                    resource = entry[-1].split(":")[0]
+                    strat_resource[resource] = entry
+                elif isinstance(entry, str):
+                    resource = entry.split(":")[0]
+                    strat_resource[resource] = entry
+        return strat_resource
 
     def _get_unlabelled(self, resource: str) -> set[str]:
         """Get unlabelled resources (that need integer suffixes to differentiate)."""
