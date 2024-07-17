@@ -2681,7 +2681,7 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
 
     outputs : dict
     """
-    opt = strat_pool.regressor_dct(cfg)
+    opt = strat_pool.regressor_dct
     bandpass = "Bandpass" in opt
     bandpass_before = (
         bandpass
