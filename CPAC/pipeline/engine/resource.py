@@ -756,13 +756,6 @@ class _Pool:
         )
         raise LookupError(msg)
 
-    def copy_resource(self, resource, new_name):
-        try:
-            self.rpool[new_name] = self.rpool[resource]
-        except KeyError:
-            msg = f"[!] {resource} not in the resource pool."
-            raise Exception(msg)
-
 
 class ResourcePool(_Pool):
     """A pool of Resources."""
@@ -3197,6 +3190,14 @@ class StratPool(_Pool):
                 except KeyError:
                     continue
         return self.get(resource).cpac_provenance
+
+    def copy_resource(self, resource: str, new_name: str):
+        """Copy a resource within a StratPool."""
+        try:
+            self.rpool[new_name] = self.rpool[resource]
+        except KeyError:
+            msg = f"[!] {resource} not in the resource pool."
+            raise Exception(msg)
 
     def filter_name(self, cfg: Configuration) -> str:
         """
