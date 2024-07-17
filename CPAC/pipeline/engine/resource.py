@@ -561,9 +561,6 @@ class _Pool:
 
         return wf
 
-    def get_pipe_number(self, pipe_idx):
-        return self.pipe_list.index(pipe_idx)
-
     def keys(self) -> KeysView:
         """Return rpool's keys."""
         return self.rpool.keys()
@@ -959,7 +956,7 @@ class ResourcePool(_Pool):
                 num_variant = ""
             unlabelled = self._get_unlabelled(resource)
             for pipe_idx in self.rpool[resource]:
-                pipe_x = self.get_pipe_number(pipe_idx)
+                pipe_x = self._get_pipe_number(pipe_idx)
                 json_info = self.rpool[resource][pipe_idx]["json"]
                 out_dct = self.rpool[resource][pipe_idx]["out"]
 
@@ -1727,7 +1724,7 @@ class ResourcePool(_Pool):
                     data_label = data_label.replace("brain_mask", "bold_mask")
 
                 try:
-                    pipe_x = self.get_pipe_number(pipe_idx)
+                    pipe_x = self._get_pipe_number(pipe_idx)
                 except ValueError:
                     pipe_x = len(self.pipe_list)
                 if filepath in outdir_anat:
@@ -2491,7 +2488,7 @@ class ResourcePool(_Pool):
                         # so when we set_data below for the TOP-LEVEL MAIN RPOOL (not the strat_pool), we can generate new merged JSON information for each output.
                         # particularly, our custom 'CpacProvenance' field.
                         node_name = name
-                        pipe_x = self.get_pipe_number(pipe_idx)
+                        pipe_x = self._get_pipe_number(pipe_idx)
 
                         replaced_inputs = []
                         for interface in block.input_interface:
@@ -2968,6 +2965,10 @@ class ResourcePool(_Pool):
                     resource = entry.split(":")[0]
                     strat_resource[resource] = entry
         return strat_resource
+
+    def _get_pipe_number(self, pipe_idx: str | tuple) -> int:
+        """Return the index of a strategy in ``self.pipe_list``."""
+        return self.pipe_list.index(pipe_idx)
 
     def _get_unlabelled(self, resource: str) -> set[str]:
         """Get unlabelled resources (that need integer suffixes to differentiate)."""
