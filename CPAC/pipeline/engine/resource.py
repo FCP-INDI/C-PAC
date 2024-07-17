@@ -875,19 +875,6 @@ class _Pool:
                     strat_resource[resource] = entry
         return strat_resource
 
-    def flatten_prov(self, prov):
-        if isinstance(prov, str):
-            return [prov]
-        if isinstance(prov, list):
-            flat_prov = []
-            for entry in prov:
-                if isinstance(entry, list):
-                    flat_prov += self.flatten_prov(entry)
-                else:
-                    flat_prov.append(entry)
-            return flat_prov
-        return None
-
 
 class ResourcePool(_Pool):
     """A pool of Resources."""
