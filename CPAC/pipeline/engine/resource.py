@@ -950,23 +950,6 @@ class _Pool:
 
         return wf
 
-    @property
-    def filtered_movement(self) -> bool:
-        """
-        Check if the movement parameters have been filtered in this strat_pool.
-
-        Returns
-        -------
-        bool
-        """
-        try:
-            return "motion_estimate_filter" in str(
-                self.get_cpac_provenance("desc-movementParameters_motion")
-            )
-        except KeyError:
-            # not a strat_pool or no movement parameters in strat_pool
-            return False
-
 
 class ResourcePool(_Pool):
     """A pool of Resources."""
@@ -3316,3 +3299,14 @@ class StratPool(_Pool):
         if data_type not in self._json["subjson"]:
             self._json["subjson"][data_type] = {}
         self._json["subjson"][data_type].update(strat_resource.json)
+
+    @property
+    def filtered_movement(self) -> bool:
+        """Check if the movement parameters have been filtered in this StratPool."""
+        try:
+            return "motion_estimate_filter" in str(
+                self.get_cpac_provenance("desc-movementParameters_motion")
+            )
+        except KeyError:
+            # not a strat_pool or no movement parameters in strat_pool
+            return False
