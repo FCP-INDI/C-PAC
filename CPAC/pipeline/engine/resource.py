@@ -38,7 +38,12 @@ from CPAC.image_utils.statistical_transforms import (
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
-from CPAC.pipeline.engine.nodeblock import NodeBlock, NodeBlockFunction
+from CPAC.pipeline.engine.nodeblock import (
+    NodeBlock,
+    NODEBLOCK_INPUTS,
+    NODEBLOCK_OUTPUTS,
+    NodeBlockFunction,
+)
 from CPAC.pipeline.utils import name_fork, source_set
 from CPAC.registration.registration import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
@@ -2341,8 +2346,6 @@ class ResourcePool(_Pool):
 
     def connect_block(self, wf: pe.Workflow, block: NodeBlock) -> pe.Workflow:  # noqa: PLR0912,PLR0915
         """Connect a NodeBlock via the ResourcePool."""
-        from CPAC.pipeline.engine.nodeblock import NODEBLOCK_INPUTS
-
         debug = bool(self.cfg.pipeline_setup["Debugging"]["verbose"])  # type: ignore [attr-defined]
         all_opts: list[str] = []
 
@@ -2360,12 +2363,12 @@ class ResourcePool(_Pool):
 
         for name, block_dct in block.node_blocks.items():
             # iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
-            switch = block.check_null(block_dct["switch"])
-            config = block.check_null(block_dct["config"])
-            option_key = block.check_null(block_dct["option_key"])
-            option_val = block.check_null(block_dct["option_val"])
-            inputs: NODEBLOCK_INPUTS = block.check_null(block_dct["inputs"])
-            outputs = block.check_null(block_dct["outputs"])
+            switch = _check_null(block_dct["switch"])
+            config = _check_null(block_dct["config"])
+            option_key = _check_null(block_dct["option_key"])
+            option_val = _check_null(block_dct["option_val"])
+            inputs: NODEBLOCK_INPUTS = _check_null(block_dct["inputs"])
+            outputs: NODEBLOCK_OUTPUTS = _check_null(block_dct["outputs"])
 
             block_function: NodeBlockFunction = block_dct["block_function"]
 
@@ -3248,3 +3251,10 @@ class StratPool(_Pool):
         except KeyError:
             # not a strat_pool or no movement parameters in strat_pool
             return False
+
+
+def _check_null(val: Any) -> Any:
+    """Return ``None`` if ``val`` == "none" (case-insensitive)."""
+    if isinstance(val, str):
+        val = None if val.lower() == "none" else val
+    return val
