@@ -28,7 +28,7 @@ from CPAC.utils.monitoring import (
 )
 
 if TYPE_CHECKING:
-    from CPAC.pipeline.engine.resource import Resource, StratPool
+    from CPAC.pipeline.engine.resource import ResourceData, StratPool
 
 NODEBLOCK_INPUTS = list[str | list | tuple]
 PIPELINE_BLOCKS = list["NodeBlockFunction | PIPELINE_BLOCKS"]
@@ -101,7 +101,7 @@ class NodeBlockFunction:
         strat_pool: "StratPool",
         pipe_num: Optional[int | str],
         opt: Optional[str] = None,
-    ) -> tuple[Workflow, dict[str, "Resource"]]:
+    ) -> tuple[Workflow, dict[str, "ResourceData"]]:
         """Call a NodeBlockFunction.
 
         All node block functions have the same signature.
