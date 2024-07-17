@@ -314,20 +314,6 @@ class _Pool:
             return f"{self.__class__.__name__}({self.name}): {list(self.rpool)}"
         return f"{self.__class__.__name__}: {list(self.rpool)}"
 
-    def initialize_nipype_wf(self, name: str = "") -> None:
-        """Initialize a new nipype workflow."""
-        if name:
-            name = f"_{name}"
-        workflow_name = f"cpac{name}_{self.unique_id}"
-        self.wf = pe.Workflow(name=workflow_name)
-        self.wf.base_dir = self.cfg.pipeline_setup["working_directory"]["path"]  # type: ignore[attr-defined]
-        self.wf.config["execution"] = {
-            "hash_method": "timestamp",
-            "crashdump_dir": os.path.abspath(
-                self.cfg.pipeline_setup["log_directory"]["path"]  # type: ignore[attr-defined]
-            ),
-        }
-
     @staticmethod
     def generate_prov_string(prov: LIST_OF_LIST_OF_STR | tuple) -> tuple[str, str]:
         """Generate a string from a SINGLE RESOURCE'S dictionary of MULTIPLE PRECEDING RESOURCES (or single, if just one).
@@ -1323,6 +1309,20 @@ class ResourcePool(_Pool):
                     # preserve each input's JSON info also
                     new_strats[pipe_idx].preserve_json_info(resource, strat_resource)
         return new_strats
+
+    def initialize_nipype_wf(self, name: str = "") -> None:
+        """Initialize a new nipype workflow."""
+        if name:
+            name = f"_{name}"
+        workflow_name = f"cpac{name}_{self.unique_id}"
+        self.wf = pe.Workflow(name=workflow_name)
+        self.wf.base_dir = self.cfg.pipeline_setup["working_directory"]["path"]  # type: ignore[attr-defined]
+        self.wf.config["execution"] = {
+            "hash_method": "timestamp",
+            "crashdump_dir": os.path.abspath(
+                self.cfg.pipeline_setup["log_directory"]["path"]  # type: ignore[attr-defined]
+            ),
+        }
 
     def ingress_freesurfer(self) -> None:
         """Ingress FreeSurfer data."""
