@@ -830,7 +830,7 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
     notch.inputs.lowpass_cutoff = opt.get("lowpass_cutoff")
     notch.inputs.filter_order = opt.get("filter_order")
 
-    movement_parameters = strat_pool.node_data("desc-movementParameters_motion")
+    movement_parameters = strat_pool.get_data("desc-movementParameters_motion")
     wf.connect(
         movement_parameters.node, movement_parameters.out, notch, "motion_params"
     )

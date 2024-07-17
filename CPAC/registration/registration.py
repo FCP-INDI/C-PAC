@@ -2616,7 +2616,7 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = connect
     wf.connect(node, out, ants_rc, "inputspec.input_brain")
 
-    t1w_brain_template = strat_pool.node_data("T1w-brain-template")
+    t1w_brain_template = strat_pool.get_data("T1w-brain-template")
     wf.connect(
         t1w_brain_template.node,
         t1w_brain_template.out,
@@ -2635,10 +2635,10 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     )
     wf.connect(node, out, ants_rc, "inputspec.input_head")
 
-    t1w_template = strat_pool.node_data("T1w-template")
+    t1w_template = strat_pool.get_data("T1w-template")
     wf.connect(t1w_template.node, t1w_template.out, ants_rc, "inputspec.reference_head")
 
-    brain_mask = strat_pool.node_data(
+    brain_mask = strat_pool.get_data(
         [
             "space-T1w_desc-brain_mask",
             "space-longitudinal_desc-brain_mask",

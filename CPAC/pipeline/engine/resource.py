@@ -1140,11 +1140,7 @@ class _Pool:
                         fork=True,
                     )
 
-        return (wf, post_labels)
-
-    def node_data(self, resource: str | tuple[str], **kwargs) -> ResourceData:
-        """Create ResourceData objects."""
-        return ResourceData(*self.get_data(resource, **kwargs))  # type: ignore[attr-defined]
+        return wf, post_labels
 
 
 class ResourcePool(_Pool):
