@@ -16,9 +16,6 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """C-PAC engine."""
 
-from .engine import (
-    run_node_blocks,
-)
 from .nodeblock import NodeBlock
 from .resource import ResourcePool, StratPool
 
@@ -26,5 +23,4 @@ __all__ = [
     "NodeBlock",
     "ResourcePool",
     "StratPool",
-    "run_node_blocks",
 ]
