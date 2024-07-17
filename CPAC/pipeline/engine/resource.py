@@ -844,16 +844,6 @@ class _Pool:
         json_data = self.get_json(resource, strat)
         return json_data["CpacProvenance"]
 
-    @staticmethod
-    def generate_prov_list(prov_str):
-        if not isinstance(prov_str, str):
-            msg = (
-                "\n[!] Developer info: the CpacProvenance "
-                f"entry for {prov_str!s} has to be a string.\n"
-            )
-            raise TypeError(msg)
-        return ast.literal_eval(prov_str)
-
 
 class ResourcePool(_Pool):
     """A pool of Resources."""
