@@ -582,15 +582,6 @@ class _Pool:
         return key in self.keys()
 
     @staticmethod
-    def get_raw_label(resource: str) -> str:
-        """Remove ``desc-*`` label."""
-        for tag in resource.split("_"):
-            if "desc-" in tag:
-                resource = resource.replace(f"{tag}_", "")
-                break
-        return resource
-
-    @staticmethod
     def get_resource_from_prov(prov: LIST_OF_LIST_OF_STR) -> Optional[str]:
         """Return the last item in the provenance list.
 
@@ -1302,6 +1293,15 @@ class ResourcePool(_Pool):
                 return val.json[key]
         msg = f"{key} not found in any strategy for {resource} in {self}."
         raise KeyError(msg)
+
+    @staticmethod
+    def get_raw_label(resource: str) -> str:
+        """Remove ``desc-*`` label."""
+        for tag in resource.split("_"):
+            if "desc-" in tag:
+                resource = resource.replace(f"{tag}_", "")
+                break
+        return resource
 
     def get_strats(  # noqa: PLR0912,PLR0915
         self, resources: NODEBLOCK_INPUTS, debug: bool = False
