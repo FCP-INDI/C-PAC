@@ -28,7 +28,6 @@ from CPAC.pipeline.cpac_pipeline import (
     build_anat_preproc_stack,
     build_segmentation_stack,
     build_T1w_registration_stack,
-    connect_pipeline,
 )
 from CPAC.pipeline.engine import ResourcePool
 from CPAC.pipeline.engine.nodeblock import nodeblock
@@ -434,7 +433,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             pipeline_name="anat_longitudinal_pre-preproc",
         )
         pipeline_blocks = build_anat_preproc_stack(rpool, config)
-        workflow = connect_pipeline(rpool.wf, config, rpool, pipeline_blocks)
+        workflow = rpool.connect_pipeline(rpool.wf, config, pipeline_blocks)
 
         session_wfs[unique_id] = rpool
 
@@ -542,7 +541,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 
         pipeline_blocks = build_segmentation_stack(rpool, config, pipeline_blocks)
 
-        wf = connect_pipeline(rpool.wf, config, rpool, pipeline_blocks)
+        wf = rpool.connect_pipeline(rpool.wf, config, pipeline_blocks)
 
         excl = [
             "space-longitudinal_desc-brain_T1w",
@@ -647,7 +646,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             warp_longitudinal_seg_to_T1w,
         ]
 
-        wf = connect_pipeline(rpool.wf, config, rpool, pipeline_blocks)
+        wf = rpool.connect_pipeline(rpool.wf, config, pipeline_blocks)
 
         rpool.gather_pipes(wf, config)
 

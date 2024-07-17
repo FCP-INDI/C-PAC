@@ -23,7 +23,6 @@ import pytest
 from CPAC.pipeline.cpac_pipeline import (
     build_anat_preproc_stack,
     build_workflow,
-    connect_pipeline,
 )
 from CPAC.pipeline.engine import ResourcePool
 from CPAC.utils.bids_utils import create_cpac_data_config
@@ -89,7 +88,7 @@ def test_build_anat_preproc_stack(
 
     rpool = ResourcePool(cfg=cfg, data_paths=sub_data_dct)
     pipeline_blocks = build_anat_preproc_stack(rpool, cfg)
-    wf = connect_pipeline(rpool.wf, cfg, rpool, pipeline_blocks)
+    wf = rpool.connect_pipeline(rpool.wf, cfg, pipeline_blocks)
     rpool.gather_pipes(wf, cfg)
 
 

@@ -25,7 +25,7 @@ import shutil
 import sys
 import time
 from time import strftime
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 import nipype  # type: ignore [import-untyped]
@@ -130,11 +130,10 @@ from CPAC.nuisance.nuisance import (
     ingress_regressors,
     nuisance_regression_template,
 )
-from CPAC.pipeline import nipype_pipeline_engine as pe
 
 # pylint: disable=wrong-import-order
 from CPAC.pipeline.check_outputs import check_outputs
-from CPAC.pipeline.engine import NodeBlock, PIPELINE_BLOCKS, ResourcePool
+from CPAC.pipeline.engine import ResourcePool
 from CPAC.pipeline.nipype_pipeline_engine.plugins import (
     LegacyMultiProcPlugin,
     MultiProcPlugin,
@@ -201,12 +200,9 @@ from CPAC.utils import Configuration, set_subject
 from CPAC.utils.docs import version_report
 from CPAC.utils.monitoring import (
     FMLOGGER,
-    getLogger,
     log_nodes_cb,
     log_nodes_initial,
-    LOGTAIL,
     set_up_logger,
-    WARNING_FREESURFER_OFF_WITH_DATA,
     WFLOGGER,
 )
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
@@ -1116,96 +1112,6 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
     return pipeline_blocks
 
 
-def list_blocks(pipeline_blocks, indent=None):
-    """List node blocks line by line.
-
-    Parameters
-    ----------
-    pipeline_blocks : list or tuple
-
-    indent : int or None
-       number of spaces after a tab indent
-
-    Returns
-    -------
-    str
-    """
-    blockstring = yaml.dump(
-        [
-            getattr(
-                block,
-                "__name__",
-                getattr(
-                    block,
-                    "name",
-                    yaml.safe_load(list_blocks(list(block)))
-                    if isinstance(block, (tuple, list, set))
-                    else str(block),
-                ),
-            )
-            for block in pipeline_blocks
-        ]
-    )
-    if isinstance(indent, int):
-        blockstring = "\n".join(
-            [
-                "\t" + " " * indent + line.replace("- - ", "- ")
-                for line in blockstring.split("\n")
-            ]
-        )
-    return blockstring
-
-
-def connect_pipeline(
-    wf: pe.Workflow,
-    cfg: Configuration,
-    rpool: ResourcePool,
-    pipeline_blocks: PIPELINE_BLOCKS,
-) -> pe.Workflow:
-    """Connect the pipeline blocks to the workflow."""
-    WFLOGGER.info(
-        "Connecting pipeline blocks:\n%s", list_blocks(pipeline_blocks, indent=1)
-    )
-    previous_nb: Optional[NodeBlock] = None
-    for block in pipeline_blocks:
-        try:
-            nb = NodeBlock(block, debug=cfg["pipeline_setup", "Debugging", "verbose"])
-            wf = nb.connect_block(wf, cfg, rpool)
-        except LookupError as e:
-            if nb.name == "freesurfer_postproc":
-                WFLOGGER.warning(WARNING_FREESURFER_OFF_WITH_DATA)
-                LOGTAIL["warnings"].append(WARNING_FREESURFER_OFF_WITH_DATA)
-                continue
-            previous_nb_str = (
-                (f"after node block '{previous_nb.get_name()}':")
-                if previous_nb
-                else "at beginning:"
-            )
-            # Alert user to block that raises error
-            if isinstance(block, list):
-                node_block_names = str([NodeBlock(b).get_name() for b in block])
-                e.args = (
-                    f"When trying to connect one of the node blocks "
-                    f"{node_block_names} "
-                    f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
-                )
-            else:
-                node_block_names = NodeBlock(block).get_name()
-                e.args = (
-                    f"When trying to connect node block "
-                    f"'{node_block_names}' "
-                    f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
-                )
-            if cfg.pipeline_setup["Debugging"]["verbose"]:  # type: ignore [attr-defined]
-                verbose_logger = getLogger("CPAC.engine")
-                verbose_logger.debug(e.args[0])
-                verbose_logger.debug(rpool)
-            raise
-        previous_nb = nb
-
-    return wf
-
-
 def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
     """Build a C-PAC workflow for a single subject."""
     from CPAC.utils.datasource import gather_extraction_maps
@@ -1600,7 +1506,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
 
     # Connect the entire pipeline!
     try:
-        wf = connect_pipeline(rpool.wf, cfg, rpool, pipeline_blocks)
+        wf = rpool.connect_pipeline(rpool.wf, cfg, pipeline_blocks)
     except LookupError as lookup_error:
         missing_key = None
         errorstrings = [arg for arg in lookup_error.args[0].split("\n") if arg.strip()]

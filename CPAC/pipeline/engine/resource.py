@@ -19,6 +19,7 @@
 import ast
 from collections.abc import KeysView
 from copy import deepcopy
+import hashlib
 from itertools import chain
 import json
 import os
@@ -37,7 +38,7 @@ from CPAC.image_utils.statistical_transforms import (
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
-from CPAC.pipeline.engine.nodeblock import NODEBLOCK_INPUTS
+from CPAC.pipeline.engine.nodeblock import NodeBlock
 from CPAC.pipeline.utils import name_fork, source_set
 from CPAC.registration.registration import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
@@ -59,7 +60,9 @@ from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.monitoring import (
     getLogger,
+    LOGTAIL,
     UTLOGGER,
+    WARNING_FREESURFER_OFF_WITH_DATA,
     WFLOGGER,
 )
 from CPAC.utils.outputs import Outputs
@@ -426,7 +429,8 @@ class _Pool:
         """Return stringified name."""
         return str(self.name)
 
-    def check_rpool(self, resource):
+    def check_rpool(self, resource: list[str] | str) -> bool:
+        """Check if a resource is present in the _Pool."""
         if not isinstance(resource, list):
             resource = [resource]
         for name in resource:
@@ -821,7 +825,9 @@ class _Pool:
             raise Exception(msg)
         return strat_json
 
-    def get_cpac_provenance(self, resource, strat=None):
+    def get_cpac_provenance(
+        self, resource: list[str] | str, strat: Optional[str | list | tuple] = None
+    ) -> list:
         # NOTE: strat_resource has to be entered properly by the developer
         # it has to either be rpool[resource][strat] or strat_pool[resource]
         if isinstance(resource, list):
@@ -1143,6 +1149,12 @@ class _Pool:
 
 class ResourcePool(_Pool):
     """A pool of Resources."""
+
+    from CPAC.pipeline.engine.nodeblock import (
+        NODEBLOCK_INPUTS,
+        NodeBlockFunction,
+        PIPELINE_BLOCKS,
+    )
 
     def __init__(
         self,
@@ -1705,7 +1717,7 @@ class ResourcePool(_Pool):
         assert isinstance(_resource, Resource)
         return _resource.data
 
-    def get_strats(
+    def get_strats(  # noqa: PLR0912,PLR0915
         self, resources: NODEBLOCK_INPUTS, debug: bool = False
     ) -> dict[str | tuple, "StratPool"]:
         """Get a dictionary of StratPools."""
@@ -1829,11 +1841,11 @@ class ResourcePool(_Pool):
                         for xlabel in linked:
                             if drop or xlabel is None:
                                 break
-                            xjson = deepcopy(json_dct[xlabel])
+                            xjson = json.loads(json.dumps(json_dct[xlabel]))
                             for ylabel in linked:
                                 if xlabel == ylabel or ylabel is None:
                                     continue
-                                yjson = deepcopy(json_dct[ylabel])
+                                yjson = json.loads(json.dumps(json_dct[ylabel]))
 
                                 if "CpacVariant" not in xjson:
                                     xjson["CpacVariant"] = {}
@@ -2763,6 +2775,366 @@ class ResourcePool(_Pool):
 
         if self.cfg.surface_analysis["freesurfer"]["ingress_reconall"]:  # type: ignore[attr-defined]
             self.ingress_freesurfer()
+
+    def connect_block(self, wf: pe.Workflow, block: NodeBlock) -> pe.Workflow:  # noqa: PLR0912,PLR0915
+        """Connect a NodeBlock via the ResourcePool."""
+        from CPAC.pipeline.engine.nodeblock import NODEBLOCK_INPUTS
+
+        debug = bool(self.cfg.pipeline_setup["Debugging"]["verbose"])  # type: ignore [attr-defined]
+        all_opts: list[str] = []
+
+        sidecar_additions = {
+            "CpacConfigHash": hashlib.sha1(
+                json.dumps(self.cfg.dict(), sort_keys=True).encode("utf-8")
+            ).hexdigest(),
+            "CpacConfig": self.cfg.dict(),
+        }
+
+        if self.cfg["pipeline_setup"]["output_directory"].get("user_defined"):
+            sidecar_additions["UserDefined"] = self.cfg["pipeline_setup"][
+                "output_directory"
+            ]["user_defined"]
+
+        for name, block_dct in block.node_blocks.items():
+            # iterates over either the single node block in the sequence, or a list of node blocks within the list of node blocks, i.e. for option forking.
+            switch = block.check_null(block_dct["switch"])
+            config = block.check_null(block_dct["config"])
+            option_key = block.check_null(block_dct["option_key"])
+            option_val = block.check_null(block_dct["option_val"])
+            inputs: NODEBLOCK_INPUTS = block.check_null(block_dct["inputs"])
+            outputs = block.check_null(block_dct["outputs"])
+
+            block_function = block_dct["block_function"]
+
+            opts = []
+            if option_key and option_val:
+                if not isinstance(option_key, list):
+                    option_key = [option_key]
+                if not isinstance(option_val, list):
+                    option_val = [option_val]
+                if config:
+                    key_list = config + option_key
+                else:
+                    key_list = option_key
+                if "USER-DEFINED" in option_val:
+                    # load custom config data into each 'opt'
+                    opts = block.grab_tiered_dct(self.cfg, key_list)
+                else:
+                    for option in option_val:
+                        try:
+                            if option in block.grab_tiered_dct(self.cfg, key_list):
+                                # goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
+                                opts.append(option)
+                        except AttributeError as err:
+                            msg = f"{err}\nNode Block: {name}"
+                            raise Exception(msg)
+
+                if opts is None:
+                    opts = [opts]
+
+            elif option_key and not option_val:
+                # enables multiple config forking entries
+                if not isinstance(option_key[0], list):
+                    msg = (
+                        f"[!] The option_key field ({option_key}) "
+                        f"for {name} exists but there is no "
+                        "option_val.\n\nIf you are trying to "
+                        "populate multiple option keys, the "
+                        "option_val field must contain a list of "
+                        "a list.\n"
+                    )
+                    raise ValueError(msg)
+                for option_config in option_key:
+                    # option_config is a list of pipe config levels down to the option
+                    if config:
+                        key_list = config + option_config
+                    else:
+                        key_list = option_config
+                    option_val = option_config[-1]
+                    if option_val in block.grab_tiered_dct(self.cfg, key_list[:-1]):
+                        opts.append(option_val)
+            else:  # AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
+                opts = [None]
+                # THIS ALSO MEANS the multiple option-val's in docstring node blocks can be entered once in the entire node-block sequence, not in a list of multiples
+            if not opts:
+                # for node blocks where the options are split into different
+                # block functions - opts will be empty for non-selected
+                # options, and would waste the get_strats effort below
+                continue
+            all_opts += opts
+
+            if not switch:
+                switch = [True]
+            else:
+                if config:
+                    try:
+                        key_list = config + switch
+                    except TypeError as te:
+                        msg = (
+                            "\n\n[!] Developer info: Docstring error "
+                            f"for {name}, make sure the 'config' or "
+                            "'switch' fields are lists.\n\n"
+                        )
+                        raise TypeError(msg) from te
+                    switch = block.grab_tiered_dct(self.cfg, key_list)
+                elif isinstance(switch[0], list):
+                    # we have multiple switches, which is designed to only work if
+                    # config is set to "None"
+                    switch_list = []
+                    for key_list in switch:
+                        val = block.grab_tiered_dct(self.cfg, key_list)
+                        if isinstance(val, list):
+                            # fork switches
+                            if True in val:
+                                switch_list.append(True)
+                            if False in val:
+                                switch_list.append(False)
+                        else:
+                            switch_list.append(val)
+                    if False in switch_list:
+                        switch = [False]
+                    else:
+                        switch = [True]
+                else:
+                    # if config is set to "None"
+                    key_list = switch
+                    switch = block.grab_tiered_dct(self.cfg, key_list)
+                if not isinstance(switch, list):
+                    switch = [switch]
+            if True in switch:
+                for (
+                    pipe_idx,
+                    strat_pool,  # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
+                ) in self.get_strats(inputs, debug).items():
+                    # keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
+                    fork = False in switch
+                    for opt in opts:  # it's a dictionary of ResourcePools called strat_pools, except those sub-ResourcePools only have one level! no pipe_idx strat keys.
+                        # remember, you can get 'data' or 'json' from strat_pool with member functions
+                        # strat_pool has all of the JSON information of all the inputs!
+                        # so when we set_data below for the TOP-LEVEL MAIN RPOOL (not the strat_pool), we can generate new merged JSON information for each output.
+                        # particularly, our custom 'CpacProvenance' field.
+                        node_name = name
+                        pipe_x = self.get_pipe_number(pipe_idx)
+
+                        replaced_inputs = []
+                        for interface in block.input_interface:
+                            if isinstance(interface[1], list):
+                                for input_name in interface[1]:
+                                    if strat_pool.check_rpool(input_name):
+                                        break
+                            else:
+                                input_name = interface[1]
+                            strat_pool.copy_resource(input_name, interface[0])
+                            replaced_inputs.append(interface[0])
+                        try:
+                            wf, outs = block_function(
+                                wf, self.cfg, strat_pool, pipe_x, opt
+                            )
+                        except IOError as e:  # duplicate node
+                            WFLOGGER.warning(e)
+                            continue
+
+                        if not outs:
+                            if block_function.__name__ == "freesurfer_postproc":
+                                WFLOGGER.warning(WARNING_FREESURFER_OFF_WITH_DATA)
+                                LOGTAIL["warnings"].append(
+                                    WARNING_FREESURFER_OFF_WITH_DATA
+                                )
+                            continue
+
+                        if opt and len(option_val) > 1:
+                            node_name = f"{node_name}_{opt}"
+                        elif opt and "USER-DEFINED" in option_val:
+                            node_name = f'{node_name}_{opt["Name"]}'
+
+                        if debug:
+                            verbose_logger = getLogger("CPAC.engine")
+                            verbose_logger.debug("\n=======================")
+                            verbose_logger.debug("Node name: %s", node_name)
+                            prov_dct = self.get_resource_strats_from_prov(
+                                ast.literal_eval(str(pipe_idx))
+                            )
+                            for key, val in prov_dct.items():
+                                verbose_logger.debug("-------------------")
+                                verbose_logger.debug("Input - %s:", key)
+                                sub_prov_dct = self.get_resource_strats_from_prov(val)
+                                for sub_key, sub_val in sub_prov_dct.items():
+                                    sub_sub_dct = self.get_resource_strats_from_prov(
+                                        sub_val
+                                    )
+                                    verbose_logger.debug("  sub-input - %s:", sub_key)
+                                    verbose_logger.debug("    prov = %s", sub_val)
+                                    verbose_logger.debug(
+                                        "    sub_sub_inputs = %s", sub_sub_dct.keys()
+                                    )
+
+                        for label, connection in outs.items():
+                            block.check_output(outputs, label, name)
+                            new_json_info = strat_pool.json
+
+                            # transfer over data-specific json info
+                            # for example, if the input data json is _bold and the output is also _bold
+                            data_type = label.split("_")[-1]
+                            if data_type in new_json_info["subjson"]:
+                                if (
+                                    "SkullStripped"
+                                    in new_json_info["subjson"][data_type]
+                                ):
+                                    new_json_info["SkullStripped"] = new_json_info[
+                                        "subjson"
+                                    ][data_type]["SkullStripped"]
+
+                            # determine sources for the outputs, i.e. all input data into the node block
+                            new_json_info["Sources"] = [
+                                x
+                                for x in strat_pool.get_entire_rpool()
+                                if x != "json" and x not in replaced_inputs
+                            ]
+
+                            if isinstance(outputs, dict):
+                                new_json_info.update(outputs[label])
+                                if "Description" not in outputs[label]:
+                                    # don't propagate old Description
+                                    try:
+                                        del new_json_info["Description"]
+                                    except KeyError:
+                                        pass
+                                if "Template" in outputs[label]:
+                                    template_key = outputs[label]["Template"]
+                                    if template_key in new_json_info["Sources"]:
+                                        # only if the pipeline config template key is entered as the 'Template' field
+                                        # otherwise, skip this and take in the literal 'Template' string
+                                        try:
+                                            new_json_info["Template"] = new_json_info[
+                                                "subjson"
+                                            ][template_key]["Description"]
+                                        except KeyError:
+                                            pass
+                                    try:
+                                        new_json_info["Resolution"] = new_json_info[
+                                            "subjson"
+                                        ][template_key]["Resolution"]
+                                    except KeyError:
+                                        pass
+                            else:
+                                # don't propagate old Description
+                                try:
+                                    del new_json_info["Description"]
+                                except KeyError:
+                                    pass
+
+                            if "Description" in new_json_info:
+                                new_json_info["Description"] = " ".join(
+                                    new_json_info["Description"].split()
+                                )
+
+                            for sidecar_key, sidecar_value in sidecar_additions.items():
+                                if sidecar_key not in new_json_info:
+                                    new_json_info[sidecar_key] = sidecar_value
+
+                            try:
+                                del new_json_info["subjson"]
+                            except KeyError:
+                                pass
+
+                            if fork or len(opts) > 1 or len(all_opts) > 1:
+                                if "CpacVariant" not in new_json_info:
+                                    new_json_info["CpacVariant"] = {}
+                                raw_label = self.get_raw_label(label)
+                                if raw_label not in new_json_info["CpacVariant"]:
+                                    new_json_info["CpacVariant"][raw_label] = []
+                                new_json_info["CpacVariant"][raw_label].append(
+                                    node_name
+                                )
+
+                            self.set_data(
+                                label,
+                                connection[0],
+                                connection[1],
+                                new_json_info,
+                                pipe_idx,
+                                node_name,
+                                fork,
+                            )
+
+                            wf, post_labels = self.post_process(
+                                wf,
+                                label,
+                                connection,
+                                new_json_info,
+                                pipe_idx,
+                                pipe_x,
+                                outs,
+                            )
+
+                            if self.func_reg:
+                                for postlabel in post_labels:
+                                    connection = (postlabel[1], postlabel[2])  # noqa: PLW2901
+                                    wf = self.derivative_xfm(
+                                        wf,
+                                        postlabel[0],
+                                        connection,
+                                        new_json_info,
+                                        pipe_idx,
+                                        pipe_x,
+                                    )
+        return wf
+
+    def connect_pipeline(
+        self,
+        wf: pe.Workflow,
+        cfg: Configuration,
+        pipeline_blocks: PIPELINE_BLOCKS,
+    ) -> pe.Workflow:
+        """Connect the pipeline blocks to the workflow."""
+        from CPAC.pipeline.engine.nodeblock import NodeBlockFunction, PIPELINE_BLOCKS
+
+        WFLOGGER.info(
+            "Connecting pipeline blocks:\n%s",
+            NodeBlock.list_blocks(pipeline_blocks, indent=1),
+        )
+        previous_nb: Optional[NodeBlockFunction | PIPELINE_BLOCKS] = None
+        for block in pipeline_blocks:
+            try:
+                wf = self.connect_block(
+                    wf,
+                    NodeBlock(
+                        block, debug=cfg["pipeline_setup", "Debugging", "verbose"]
+                    ),
+                )
+            except LookupError as e:
+                if getattr(block, "name", "") == "freesurfer_postproc":
+                    WFLOGGER.warning(WARNING_FREESURFER_OFF_WITH_DATA)
+                    LOGTAIL["warnings"].append(WARNING_FREESURFER_OFF_WITH_DATA)
+                    continue
+                previous_nb_str = (
+                    (f"after node block '{previous_nb.name}':")
+                    if isinstance(previous_nb, NodeBlockFunction)
+                    else "at beginning:"
+                )
+                # Alert user to block that raises error
+                if isinstance(block, list):
+                    node_block_names = str([NodeBlock(b).get_name() for b in block])
+                    e.args = (
+                        f"When trying to connect one of the node blocks "
+                        f"{node_block_names} "
+                        f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
+                    )
+                else:
+                    node_block_names = NodeBlock(block).get_name()
+                    e.args = (
+                        f"When trying to connect node block "
+                        f"'{node_block_names}' "
+                        f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
+                    )
+                if cfg.pipeline_setup["Debugging"]["verbose"]:  # type: ignore [attr-defined]
+                    verbose_logger = getLogger("CPAC.engine")
+                    verbose_logger.debug(e.args[0])
+                    verbose_logger.debug(self)
+                raise
+            previous_nb = block
+
+        return wf
 
     def _get_unlabelled(self, resource: str) -> set[str]:
         """Get unlabelled resources (that need integer suffixes to differentiate)."""
