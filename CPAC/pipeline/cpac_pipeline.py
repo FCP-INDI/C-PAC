@@ -560,7 +560,7 @@ Please, make yourself aware of how it works and its assumptions:
 
         # for strat_no, strat in enumerate(strat_list):
         #    strat_label = 'strat_%d' % strat_no
-        #    subject_info[strat_label] = strat.get_name()
+        #    subject_info[strat_label] = strat.name
         #    subject_info['resource_pool'].append(strat.get_resource_pool())
 
         subject_info["status"] = "Running"
