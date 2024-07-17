@@ -607,19 +607,6 @@ class _Pool:
                 strat_info, f"{label}_strat_info", indent=4, basedir=logdir
             )
 
-    def set_json_info(self, resource, pipe_idx, key, val):
-        # TODO: actually should probably be able to inititialize resource/pipe_idx
-        if pipe_idx not in self.rpool[resource]:
-            msg = (
-                "\n[!] DEV: The pipeline/strat ID does not exist "
-                f"in the resource pool.\nResource: {resource}"
-                f"Pipe idx: {pipe_idx}\nKey: {key}\nVal: {val}\n"
-            )
-            raise Exception(msg)
-        if "json" not in self.rpool[resource][pipe_idx]:
-            self.rpool[resource][pipe_idx]["json"] = {}
-        self.rpool[resource][pipe_idx]["json"][key] = val
-
     @staticmethod
     def get_resource_from_prov(prov: LIST_OF_LIST_OF_STR) -> Optional[str]:
         """Return the last item in the provenance list.
