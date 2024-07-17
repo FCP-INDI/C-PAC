@@ -68,7 +68,9 @@ commands:
     steps:
       - run:
           name: Getting Sample BIDS Data
-          command: git clone https://github.com/bids-standard/bids-examples.git
+          command: |
+            mkdir -p /home/circleci/project/dev/circleci_data/.pytest_cache/d/bids-examples
+            git clone https://github.com/bids-standard/bids-examples.git /home/circleci/project/dev/circleci_data/.pytest_cache/d/bids-examples
   get-singularity:
     parameters:
       version:
