@@ -770,28 +770,6 @@ class _Pool:
     def get_pipe_idxs(self, resource):
         return self.rpool[resource].keys()
 
-    def get_json(self, resource, strat=None):
-        # NOTE: strat_resource has to be entered properly by the developer
-        # it has to either be rpool[resource][strat] or strat_pool[resource]
-        if strat:
-            strat_resource = self.rpool[resource][strat]
-        else:
-            # for strat_pools mainly, where there is no 'strat' key level
-            strat_resource = self.rpool[resource]
-
-        # TODO: the below hits the exception if you use get_cpac_provenance on
-        # TODO: the main rpool (i.e. if strat=None)
-        if "json" in strat_resource:
-            strat_json = strat_resource["json"]
-        else:
-            msg = (
-                "\n[!] Developer info: the JSON "
-                f"information for {resource} and {strat} "
-                f"is incomplete.\n"
-            )
-            raise Exception(msg)
-        return strat_json
-
 
 class ResourcePool(_Pool):
     """A pool of Resources."""
@@ -1363,6 +1341,10 @@ class ResourcePool(_Pool):
         assert isinstance(_resource, Resource)
         return _resource.data
 
+    def get_json(self, resource: str, strat: str | tuple) -> dict:
+        """Get JSON metadata from a Resource in a strategy."""
+        return self.get(resource, pipe_idx=strat).json
+
     def get_strats(  # noqa: PLR0912,PLR0915
         self, resources: NODEBLOCK_INPUTS, debug: bool = False
     ) -> dict[str | tuple, "StratPool"]:
@@ -1414,7 +1396,7 @@ class ResourcePool(_Pool):
             if not rp_dct:
                 len_inputs -= 1
                 continue
-            assert isinstance(rp_dct, dict)
+            assert isinstance(rp_dct, dict) and fetched_resource is not None
             sub_pool = []
             if debug:
                 verbose_logger.debug("len(rp_dct): %s\n", len(rp_dct))
@@ -3201,10 +3183,14 @@ class StratPool(_Pool):
         assert isinstance(_resource, Resource)
         return _resource.data
 
+    def get_json(self, resource: str) -> dict:
+        """Get JSON metadata from a Resource in a StratPool."""
+        return self.get(resource).json
+
     json = property(
         fget=Resource.get_json,
         fset=Resource.set_json,
-        doc="""Return a deep copy of strategy-specific JSON.""",
+        doc="""Return a deep copy of full-StratPool-strategy-specific JSON.""",
     )
 
     def get_cpac_provenance(self, resource: list[str] | str) -> list:
