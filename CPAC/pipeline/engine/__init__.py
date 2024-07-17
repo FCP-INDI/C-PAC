@@ -18,7 +18,6 @@
 
 from .engine import (
     run_node_blocks,
-    wrap_block,
 )
 from .nodeblock import NodeBlock
 from .resource import ResourcePool, StratPool
@@ -28,5 +27,4 @@ __all__ = [
     "ResourcePool",
     "StratPool",
     "run_node_blocks",
-    "wrap_block",
 ]

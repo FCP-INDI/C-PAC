@@ -564,12 +564,6 @@ class _Pool:
     def get_pipe_number(self, pipe_idx):
         return self.pipe_list.index(pipe_idx)
 
-    def get_pool_info(self):
-        return self.info
-
-    def set_pool_info(self, info_dct):
-        self.info.update(info_dct)
-
     def keys(self) -> KeysView:
         """Return rpool's keys."""
         return self.rpool.keys()
