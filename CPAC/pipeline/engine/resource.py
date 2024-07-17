@@ -767,9 +767,6 @@ class _Pool:
         # move over any new pipe_idx's
         self.rpool[new_name].update(self.rpool[resource])
 
-    def get_pipe_idxs(self, resource):
-        return self.rpool[resource].keys()
-
 
 class ResourcePool(_Pool):
     """A pool of Resources."""
