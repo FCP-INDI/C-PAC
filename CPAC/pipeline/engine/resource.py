@@ -300,7 +300,7 @@ class _Pool:
         self.wf: pe.Workflow
 
     def __repr__(self) -> str:
-        """Return reproducible ResourcePool string."""
+        """Return reproducible _Pool string."""
         params = [
             f"{param}={getattr(self, param)}"
             for param in ["rpool", "name", "cfg", "pipe_list"]
@@ -309,10 +309,10 @@ class _Pool:
         return f'{self.__class__.__name__}({", ".join(params)})'
 
     def __str__(self) -> str:
-        """Return string representation of ResourcePool."""
+        """Return string representation of a _Pool."""
         if self.name:
-            return f"ResourcePool({self.name}): {list(self.rpool)}"
-        return f"ResourcePool: {list(self.rpool)}"
+            return f"{self.__class__.__name__}({self.name}): {list(self.rpool)}"
+        return f"{self.__class__.__name__}: {list(self.rpool)}"
 
     def initialize_nipype_wf(self, name: str = "") -> None:
         """Initialize a new nipype workflow."""
@@ -619,13 +619,6 @@ class _Pool:
         if "json" not in self.rpool[resource][pipe_idx]:
             self.rpool[resource][pipe_idx]["json"] = {}
         self.rpool[resource][pipe_idx]["json"][key] = val
-
-    def get_json_info(self, resource, pipe_idx, key):
-        # TODO: key checks
-        if not pipe_idx:
-            for pipe_idx, val in self.rpool[resource].items():
-                return val["json"][key]
-        return self.rpool[resource][pipe_idx][key]
 
     @staticmethod
     def get_resource_from_prov(prov: LIST_OF_LIST_OF_STR) -> Optional[str]:
@@ -1330,6 +1323,15 @@ class ResourcePool(_Pool):
     def get_json(self, resource: str, strat: str | tuple) -> dict:
         """Get JSON metadata from a Resource in a strategy."""
         return self.get(resource, pipe_idx=strat).json
+
+    def get_json_info(self, resource: str, key: str) -> Any:
+        """Get a metadata value from a matching from any strategy."""
+        # TODO: key checks
+        for val in self.rpool[resource].values():
+            if key in val.json:
+                return val.json[key]
+        msg = f"{key} not found in any strategy for {resource} in {self}."
+        raise KeyError(msg)
 
     def get_strats(  # noqa: PLR0912,PLR0915
         self, resources: NODEBLOCK_INPUTS, debug: bool = False
@@ -2812,7 +2814,7 @@ class ResourcePool(_Pool):
 
                 label = f"space-template_{label}"
                 json_info["Template"] = self.get_json_info(
-                    "T1w-brain-template-deriv", None, "Description"
+                    "T1w-brain-template-deriv", "Description"
                 )
                 new_prov = json_info["CpacProvenance"] + xfm_prov
                 json_info["CpacProvenance"] = new_prov
