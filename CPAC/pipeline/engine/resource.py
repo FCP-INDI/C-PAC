@@ -442,125 +442,6 @@ class _Pool:
                 return True
         return False
 
-    def create_func_datasource(
-        self, rest_dict: dict, wf_name="func_datasource"
-    ) -> pe.Workflow:
-        """Create a workflow to gather timeseries data.
-
-        Return the functional timeseries-related file paths for each series/scan from the
-        dictionary of functional files described in the data configuration (sublist) YAML
-        file.
-
-        Scan input (from inputnode) is an iterable.
-        """
-        wf = pe.Workflow(name=wf_name)
-
-        inputnode = pe.Node(
-            util.IdentityInterface(
-                fields=["subject", "scan", "creds_path", "dl_dir"],
-                mandatory_inputs=True,
-            ),
-            name="inputnode",
-        )
-
-        outputnode = pe.Node(
-            util.IdentityInterface(
-                fields=[
-                    "subject",
-                    "rest",
-                    "scan",
-                    "scan_params",
-                    "phase_diff",
-                    "magnitude",
-                ]
-            ),
-            name="outputspec",
-        )
-
-        # have this here for now because of the big change in the data
-        # configuration format
-        # (Not necessary with ingress - format does not comply)
-        if not self.check_rpool("derivatives-dir"):
-            check_scan = pe.Node(
-                Function(
-                    input_names=["func_scan_dct", "scan"],
-                    output_names=[],
-                    function=check_func_scan,
-                    as_module=True,
-                ),
-                name="check_func_scan",
-            )
-
-            check_scan.inputs.func_scan_dct = rest_dict
-            wf.connect(inputnode, "scan", check_scan, "scan")
-
-        # get the functional scan itself
-        selectrest = pe.Node(
-            Function(
-                input_names=["scan", "rest_dict", "resource"],
-                output_names=["file_path"],
-                function=get_rest,
-                as_module=True,
-            ),
-            name="selectrest",
-        )
-        selectrest.inputs.rest_dict = rest_dict
-        selectrest.inputs.resource = "scan"
-        wf.connect(inputnode, "scan", selectrest, "scan")
-
-        # check to see if it's on an Amazon AWS S3 bucket, and download it, if it
-        # is - otherwise, just return the local file path
-        check_s3_node = pe.Node(
-            Function(
-                input_names=["file_path", "creds_path", "dl_dir", "img_type"],
-                output_names=["local_path"],
-                function=check_for_s3,
-                as_module=True,
-            ),
-            name="check_for_s3",
-        )
-
-        wf.connect(selectrest, "file_path", check_s3_node, "file_path")
-        wf.connect(inputnode, "creds_path", check_s3_node, "creds_path")
-        wf.connect(inputnode, "dl_dir", check_s3_node, "dl_dir")
-        check_s3_node.inputs.img_type = "func"
-
-        wf.connect(inputnode, "subject", outputnode, "subject")
-        wf.connect(check_s3_node, "local_path", outputnode, "rest")
-        wf.connect(inputnode, "scan", outputnode, "scan")
-
-        # scan parameters CSV
-        select_scan_params = pe.Node(
-            Function(
-                input_names=["scan", "rest_dict", "resource"],
-                output_names=["file_path"],
-                function=get_rest,
-                as_module=True,
-            ),
-            name="select_scan_params",
-        )
-        select_scan_params.inputs.rest_dict = rest_dict
-        select_scan_params.inputs.resource = "scan_parameters"
-        wf.connect(inputnode, "scan", select_scan_params, "scan")
-
-        # if the scan parameters file is on AWS S3, download it
-        s3_scan_params = pe.Node(
-            Function(
-                input_names=["file_path", "creds_path", "dl_dir", "img_type"],
-                output_names=["local_path"],
-                function=check_for_s3,
-                as_module=True,
-            ),
-            name="s3_scan_params",
-        )
-
-        wf.connect(select_scan_params, "file_path", s3_scan_params, "file_path")
-        wf.connect(inputnode, "creds_path", s3_scan_params, "creds_path")
-        wf.connect(inputnode, "dl_dir", s3_scan_params, "dl_dir")
-        wf.connect(s3_scan_params, "local_path", outputnode, "scan_params")
-
-        return wf
-
     def keys(self) -> KeysView:
         """Return rpool's keys."""
         return self.rpool.keys()
@@ -2181,6 +2062,125 @@ class ResourcePool(_Pool):
                     "",
                     f"{key}_config_ingress",
                 )
+
+    def create_func_datasource(
+        self, rest_dict: dict, wf_name="func_datasource"
+    ) -> pe.Workflow:
+        """Create a workflow to gather timeseries data.
+
+        Return the functional timeseries-related file paths for each series/scan from the
+        dictionary of functional files described in the data configuration (sublist) YAML
+        file.
+
+        Scan input (from inputnode) is an iterable.
+        """
+        wf = pe.Workflow(name=wf_name)
+
+        inputnode = pe.Node(
+            util.IdentityInterface(
+                fields=["subject", "scan", "creds_path", "dl_dir"],
+                mandatory_inputs=True,
+            ),
+            name="inputnode",
+        )
+
+        outputnode = pe.Node(
+            util.IdentityInterface(
+                fields=[
+                    "subject",
+                    "rest",
+                    "scan",
+                    "scan_params",
+                    "phase_diff",
+                    "magnitude",
+                ]
+            ),
+            name="outputspec",
+        )
+
+        # have this here for now because of the big change in the data
+        # configuration format
+        # (Not necessary with ingress - format does not comply)
+        if not self.check_rpool("derivatives-dir"):
+            check_scan = pe.Node(
+                Function(
+                    input_names=["func_scan_dct", "scan"],
+                    output_names=[],
+                    function=check_func_scan,
+                    as_module=True,
+                ),
+                name="check_func_scan",
+            )
+
+            check_scan.inputs.func_scan_dct = rest_dict
+            wf.connect(inputnode, "scan", check_scan, "scan")
+
+        # get the functional scan itself
+        selectrest = pe.Node(
+            Function(
+                input_names=["scan", "rest_dict", "resource"],
+                output_names=["file_path"],
+                function=get_rest,
+                as_module=True,
+            ),
+            name="selectrest",
+        )
+        selectrest.inputs.rest_dict = rest_dict
+        selectrest.inputs.resource = "scan"
+        wf.connect(inputnode, "scan", selectrest, "scan")
+
+        # check to see if it's on an Amazon AWS S3 bucket, and download it, if it
+        # is - otherwise, just return the local file path
+        check_s3_node = pe.Node(
+            Function(
+                input_names=["file_path", "creds_path", "dl_dir", "img_type"],
+                output_names=["local_path"],
+                function=check_for_s3,
+                as_module=True,
+            ),
+            name="check_for_s3",
+        )
+
+        wf.connect(selectrest, "file_path", check_s3_node, "file_path")
+        wf.connect(inputnode, "creds_path", check_s3_node, "creds_path")
+        wf.connect(inputnode, "dl_dir", check_s3_node, "dl_dir")
+        check_s3_node.inputs.img_type = "func"
+
+        wf.connect(inputnode, "subject", outputnode, "subject")
+        wf.connect(check_s3_node, "local_path", outputnode, "rest")
+        wf.connect(inputnode, "scan", outputnode, "scan")
+
+        # scan parameters CSV
+        select_scan_params = pe.Node(
+            Function(
+                input_names=["scan", "rest_dict", "resource"],
+                output_names=["file_path"],
+                function=get_rest,
+                as_module=True,
+            ),
+            name="select_scan_params",
+        )
+        select_scan_params.inputs.rest_dict = rest_dict
+        select_scan_params.inputs.resource = "scan_parameters"
+        wf.connect(inputnode, "scan", select_scan_params, "scan")
+
+        # if the scan parameters file is on AWS S3, download it
+        s3_scan_params = pe.Node(
+            Function(
+                input_names=["file_path", "creds_path", "dl_dir", "img_type"],
+                output_names=["local_path"],
+                function=check_for_s3,
+                as_module=True,
+            ),
+            name="s3_scan_params",
+        )
+
+        wf.connect(select_scan_params, "file_path", s3_scan_params, "file_path")
+        wf.connect(inputnode, "creds_path", s3_scan_params, "creds_path")
+        wf.connect(inputnode, "dl_dir", s3_scan_params, "dl_dir")
+        wf.connect(s3_scan_params, "local_path", outputnode, "scan_params")
+
+        return wf
 
     def ingress_raw_func_data(self):
         """Ingress raw functional data."""
