@@ -967,38 +967,6 @@ class _Pool:
             # not a strat_pool or no movement parameters in strat_pool
             return False
 
-    def filter_name(self, cfg: Configuration) -> str:
-        """
-        Return the name of the filter for this strategy.
-
-        In a strat_pool with filtered movement parameters.
-        """
-        motion_filters = cfg[
-            "functional_preproc",
-            "motion_estimates_and_correction",
-            "motion_estimate_filter",
-            "filters",
-        ]
-        if len(motion_filters) == 1 and cfg.switch_is_on(
-            [
-                "functional_preproc",
-                "motion_estimates_and_correction",
-                "motion_estimate_filter",
-                "run",
-            ],
-            exclusive=True,
-        ):
-            return motion_filters[0]["Name"]
-        try:
-            key = "motion"
-            sidecar = self.get_json("desc-movementParameters_motion")
-        except KeyError:
-            sidecar = None
-        if sidecar is not None and "CpacVariant" in sidecar:
-            if sidecar["CpacVariant"][key]:
-                return sidecar["CpacVariant"][key][0][::-1].split("_", 1)[0][::-1]
-        return "none"
-
 
 class ResourcePool(_Pool):
     """A pool of Resources."""
@@ -3309,6 +3277,38 @@ class StratPool(_Pool):
         fset=Resource.set_json,
         doc="""Return a deep copy of strategy-specific JSON.""",
     )
+
+    def filter_name(self, cfg: Configuration) -> str:
+        """
+        Return the name of the filter for this strategy.
+
+        In a strat_pool with filtered movement parameters.
+        """
+        motion_filters = cfg[
+            "functional_preproc",
+            "motion_estimates_and_correction",
+            "motion_estimate_filter",
+            "filters",
+        ]
+        if len(motion_filters) == 1 and cfg.switch_is_on(
+            [
+                "functional_preproc",
+                "motion_estimates_and_correction",
+                "motion_estimate_filter",
+                "run",
+            ],
+            exclusive=True,
+        ):
+            return motion_filters[0]["Name"]
+        try:
+            key = "motion"
+            sidecar = self.get_json("desc-movementParameters_motion")
+        except KeyError:
+            sidecar = None
+        if sidecar is not None and "CpacVariant" in sidecar:
+            if sidecar["CpacVariant"][key]:
+                return sidecar["CpacVariant"][key][0][::-1].split("_", 1)[0][::-1]
+        return "none"
 
     def preserve_json_info(self, resource: str, strat_resource: Resource) -> None:
         """Preserve JSON info when updating a StratPool."""
