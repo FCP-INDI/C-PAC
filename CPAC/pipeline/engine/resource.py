@@ -2381,11 +2381,11 @@ class ResourcePool(_Pool):
                     key_list = option_key
                 if "USER-DEFINED" in option_val:
                     # load custom config data into each 'opt'
-                    opts = block.grab_tiered_dct(self.cfg, key_list)
+                    opts = self.cfg[key_list]
                 else:
                     for option in option_val:
                         try:
-                            if option in block.grab_tiered_dct(self.cfg, key_list):
+                            if option in self.cfg[key_list]:
                                 # goes over the option_vals in the node block docstring, and checks if the user's pipeline config included it in the forking list
                                 opts.append(option)
                         except AttributeError as err:
@@ -2414,7 +2414,7 @@ class ResourcePool(_Pool):
                     else:
                         key_list = option_config
                     option_val = option_config[-1]
-                    if option_val in block.grab_tiered_dct(self.cfg, key_list[:-1]):
+                    if option_val in self.cfg[key_list[:-1]]:
                         opts.append(option_val)
             else:  # AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
                 opts = [None]
@@ -2439,13 +2439,13 @@ class ResourcePool(_Pool):
                             "'switch' fields are lists.\n\n"
                         )
                         raise TypeError(msg) from te
-                    switch = block.grab_tiered_dct(self.cfg, key_list)
+                    switch = self.cfg[key_list]
                 elif isinstance(switch[0], list):
                     # we have multiple switches, which is designed to only work if
                     # config is set to "None"
                     switch_list = []
                     for key_list in switch:
-                        val = block.grab_tiered_dct(self.cfg, key_list)
+                        val = self.cfg[key_list]
                         if isinstance(val, list):
                             # fork switches
                             if True in val:
@@ -2461,7 +2461,7 @@ class ResourcePool(_Pool):
                 else:
                     # if config is set to "None"
                     key_list = switch
-                    switch = block.grab_tiered_dct(self.cfg, key_list)
+                    switch = self.cfg[key_list]
                 if not isinstance(switch, list):
                     switch = [switch]
             if True in switch:
