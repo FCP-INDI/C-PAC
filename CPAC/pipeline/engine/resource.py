@@ -406,13 +406,6 @@ class _Pool:
 
         return json_info, pipe_idx, node_name, data_label
 
-    def _config_lookup(self, keylist, fallback_type: type = NoneType) -> Any:
-        """Lookup a config key, return None if not found."""
-        try:
-            return self.cfg[keylist]
-        except (AttributeError, KeyError):
-            return fallback_type()
-
     @staticmethod
     def generate_prov_string(prov: LIST_OF_LIST_OF_STR | tuple) -> tuple[str, str]:
         """Generate a string from a SINGLE RESOURCE'S dictionary of MULTIPLE PRECEDING RESOURCES (or single, if just one).
@@ -2961,6 +2954,15 @@ class ResourcePool(_Pool):
                     resource = entry.split(":")[0]
                     strat_resource[resource] = entry
         return strat_resource
+
+    def _config_lookup(
+        self, keylist: str | list[str], fallback_type: type = NoneType
+    ) -> Any:
+        """Lookup a config key, return None if not found."""
+        try:
+            return self.cfg[keylist]
+        except (AttributeError, KeyError):
+            return fallback_type()
 
     def _get_pipe_number(self, pipe_idx: str | tuple) -> int:
         """Return the index of a strategy in ``self.pipe_list``."""
