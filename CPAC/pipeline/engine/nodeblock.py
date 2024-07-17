@@ -232,16 +232,6 @@ class NodeBlock:
             )
             raise NameError(msg)
 
-    def grab_tiered_dct(self, cfg, key_list):
-        cfg_dct = cfg.dict()
-        for key in key_list:
-            try:
-                cfg_dct = cfg_dct.get(key, {})
-            except KeyError as ke:
-                msg = "[!] The config provided to the node block is not valid"
-                raise KeyError(msg) from ke
-        return cfg_dct
-
     @staticmethod
     def list_blocks(
         pipeline_blocks: PIPELINE_BLOCKS, indent: Optional[int] = None
@@ -250,7 +240,7 @@ class NodeBlock:
 
         Parameters
         ----------
-        pipeline_blocks: list of
+        pipeline_blocks: list of :py:class:`NodeBlockFunction`s
 
         indent: number of spaces after a tab indent
         """
@@ -296,25 +286,19 @@ def nodeblock(
 
     Parameters
     ----------
-    name
-        Used in the graph and logging to identify the NodeBlock and its component nodes. Function's ``.__name__`` is used if ``name`` is not provided.
-    config
-        Indicates the nested keys in a C-PAC pipeline configuration should configure a NodeBlock built from this
-        function. If config is set to ``None``, then all other configuration-related entities must be specified from the
-        root of the configuration.
-    switch
-        Indicates any keys that should evaluate to True for this NodeBlock to be active. A list of lists of strings
-        indicates multiple switches that must all be True to run, and is currently only an option if config is set to
-        ``None``.
-    option_key
-        Indicates the nested keys (starting at the nested key indicated by config) that should configure this NodeBlock.
-    option_val
-        Indicates values for which this NodeBlock should be active.
-    inputs
-        ResourcePool keys indicating files needed for the NodeBlock's functionality.
-    outputs
-        ResourcePool keys indicating files generated or updated by the NodeBlock, optionally including metadata
-        for the outputs' respective sidecars.
+    name: Used in the graph and logging to identify the NodeBlock and its component nodes. Function's ``.__name__`` is used if ``name`` is not provided.
+
+    config: Indicates the nested keys in a C-PAC pipeline configuration should configure a NodeBlock built from this function. If config is set to ``None``, then all other configuration-related entities must be specified from the root of the configuration.
+
+    switch: Indicates any keys that should evaluate to True for this NodeBlock to be active. A list of lists of strings indicates multiple switches that must all be True to run, and is currently only an option if config is set to ``None``.
+
+    option_key: Indicates the nested keys (starting at the nested key indicated by config) that should configure this NodeBlock.
+
+    option_val: Indicates values for which this NodeBlock should be active.
+
+    inputs: ResourcePool keys indicating files needed for the NodeBlock's functionality.
+
+    outputs: ResourcePool keys indicating files generated or updated by the NodeBlock, optionally including metadata for the outputs' respective sidecars.
     """
     return lambda func: NodeBlockFunction(
         func,
