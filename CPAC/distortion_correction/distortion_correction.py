@@ -764,7 +764,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(run_topup, "out_jacs", vnum_base, "jac_matrix_list")
     wf.connect(run_topup, "out_warps", vnum_base, "warp_field_list")
 
-    mean_bold = strat_pool.node_data("sbref")
+    mean_bold = strat_pool.get_data("sbref")
 
     flirt = pe.Node(interface=fsl.FLIRT(), name="flirt")
     flirt.inputs.dof = 6

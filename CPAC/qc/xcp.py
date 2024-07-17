@@ -111,7 +111,7 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
     """
     # pylint: disable=invalid-name, too-many-arguments
     try:
-        nodes = {**nodes, "censor-indices": strat_pool.node_data("censor-indices")}
+        nodes = {**nodes, "censor-indices": strat_pool.get_data("censor-indices")}
         wf.connect(
             nodes["censor-indices"].node,
             nodes["censor-indices"].out,
@@ -501,7 +501,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     )
     qc_file.inputs.desc = "preproc"
     qc_file.inputs.regressors = (
-        strat_pool.node_data("regressors")
+        strat_pool.get_data("regressors")
         .node.name.split("regressors_")[-1][::-1]
         .split("_", 1)[-1][::-1]
     )
@@ -511,7 +511,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         op_string="-bin ",
     )
     nodes = {
-        key: strat_pool.node_data(key)
+        key: strat_pool.get_data(key)
         for key in [
             "bold",
             "desc-preproc_bold",
@@ -526,13 +526,13 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         ]
         if strat_pool.check_rpool(key)
     }
-    nodes["bold2template_mask"] = strat_pool.node_data(
+    nodes["bold2template_mask"] = strat_pool.get_data(
         ["space-template_desc-bold_mask", "space-EPItemplate_desc-bold_mask"]
     )
-    nodes["template_mask"] = strat_pool.node_data(
+    nodes["template_mask"] = strat_pool.get_data(
         ["T1w-brain-template-mask", "EPI-template-mask"]
     )
-    nodes["template"] = strat_pool.node_data(
+    nodes["template"] = strat_pool.get_data(
         ["T1w-brain-template-funcreg", "EPI-brain-template-funcreg"]
     )
     resample_bold_mask_to_template = pe.Node(
