@@ -57,7 +57,7 @@ class Strategy:
     @property
     def resource_pool(self):
         """Strategy's ResourcePool dict."""
-        return self._resource_pool.get_entire_rpool()
+        return self._resource_pool.rpool
 
     @property
     def rpool(self):

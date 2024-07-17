@@ -570,9 +570,6 @@ class _Pool:
     def set_pool_info(self, info_dct):
         self.info.update(info_dct)
 
-    def get_entire_rpool(self):
-        return self.rpool
-
     def keys(self) -> KeysView:
         """Return rpool's keys."""
         return self.rpool.keys()
@@ -2573,7 +2570,7 @@ class ResourcePool(_Pool):
                             # determine sources for the outputs, i.e. all input data into the node block
                             new_json_info["Sources"] = [
                                 x
-                                for x in strat_pool.get_entire_rpool()
+                                for x in strat_pool.rpool
                                 if x != "json" and x not in replaced_inputs
                             ]
 
