@@ -263,6 +263,11 @@ class Resource:
 
     json = property(get_json, set_json, doc=get_json.__doc__)
 
+    @property
+    def cpac_provenance(self) -> list:
+        """Get CpacProvenance of a Resource."""
+        return self.json["CpacProvenance"]
+
 
 class _Pool:
     """All Resources."""
@@ -882,73 +887,6 @@ class _Pool:
                     flat_prov.append(entry)
             return flat_prov
         return None
-
-    def derivative_xfm(self, wf, label, connection, json_info, pipe_idx, pipe_x):
-        if label in self.xfm:
-            json_info = dict(json_info)
-
-            # get the bold-to-template transform from the current strat_pool info
-            xfm_idx = None
-            xfm_label = "from-bold_to-template_mode-image_xfm"
-            for entry in json_info["CpacProvenance"]:
-                if isinstance(entry, list):
-                    if entry[-1].split(":")[0] == xfm_label:
-                        xfm_prov = entry
-                        xfm_idx = self.generate_prov_string(xfm_prov)[1]
-                        break
-
-            # but if the resource doesn't have the bold-to-template transform
-            # in its provenance/strategy, find the appropriate one for this
-            # current pipe_idx/strat
-            if not xfm_idx:
-                xfm_info = []
-                for pipe_idx, entry in self.get(xfm_label).items():
-                    xfm_info.append((pipe_idx, entry["json"]["CpacProvenance"]))
-            else:
-                xfm_info = [(xfm_idx, xfm_prov)]
-
-            for num, xfm_entry in enumerate(xfm_info):
-                xfm_idx, xfm_prov = xfm_entry
-                reg_tool = check_prov_for_regtool(xfm_prov)
-
-                xfm = transform_derivative(
-                    f"{label}_xfm_{pipe_x}_{num}",
-                    label,
-                    reg_tool,
-                    self.num_cpus,
-                    self.num_ants_cores,
-                    ants_interp=self.ants_interp,
-                    fsl_interp=self.fsl_interp,
-                    opt=None,
-                )
-                wf.connect(connection[0], connection[1], xfm, "inputspec.in_file")
-
-                node, out = self.get_data("T1w-brain-template-deriv", quick_single=True)
-                wf.connect(node, out, xfm, "inputspec.reference")
-
-                node, out = self.get_data(
-                    "from-bold_to-template_mode-image_xfm", pipe_idx=xfm_idx
-                )
-                wf.connect(node, out, xfm, "inputspec.transform")
-
-                label = f"space-template_{label}"
-                json_info["Template"] = self.get_json_info(
-                    "T1w-brain-template-deriv", None, "Description"
-                )
-                new_prov = json_info["CpacProvenance"] + xfm_prov
-                json_info["CpacProvenance"] = new_prov
-                new_pipe_idx = self.generate_prov_string(new_prov)
-                self.set_data(
-                    label,
-                    xfm,
-                    "outputspec.out_file",
-                    json_info,
-                    new_pipe_idx,
-                    f"{label}_xfm_{num}",
-                    fork=True,
-                )
-
-        return wf
 
 
 class ResourcePool(_Pool):
@@ -2942,11 +2880,88 @@ class ResourcePool(_Pool):
 
         return wf
 
+    def derivative_xfm(
+        self,
+        wf: pe.Workflow,
+        label: str,
+        connection: ResourceData | tuple[pe.Node | pe.Workflow, str],
+        json_info: dict,
+        pipe_idx: str | tuple,
+        pipe_x: int,
+    ) -> pe.Workflow:
+        """Find the appropriate bold-to-template transform for given ``pipe_idx``."""
+        if label in self.xfm:
+            json_info = dict(json_info)
+
+            # get the bold-to-template transform from the current strat_pool info
+            xfm_idx: Optional[str | tuple] = None
+            xfm_label = "from-bold_to-template_mode-image_xfm"
+            for entry in json_info["CpacProvenance"]:
+                if isinstance(entry, list):
+                    if entry[-1].split(":")[0] == xfm_label:
+                        xfm_prov = entry
+                        xfm_idx = self.generate_prov_string(xfm_prov)[1]
+                        break
+
+            # but if the resource doesn't have the bold-to-template transform
+            # in its provenance/strategy, find the appropriate one for this
+            # current pipe_idx/strat
+            xfm_info: list[tuple[str | tuple, list]]
+            if not xfm_idx:
+                xfm_info = []
+                for pipe_idx, entry in self.get(xfm_label).items():
+                    xfm_info.append((pipe_idx, entry.cpac_provenance))
+            else:
+                xfm_info = [(xfm_idx, xfm_prov)]
+
+            for num, xfm_entry in enumerate(xfm_info):
+                xfm_idx, xfm_prov = xfm_entry
+                reg_tool = check_prov_for_regtool(xfm_prov)
+
+                xfm = transform_derivative(
+                    f"{label}_xfm_{pipe_x}_{num}",
+                    label,
+                    reg_tool,
+                    self.num_cpus,
+                    self.num_ants_cores,
+                    ants_interp=self.ants_interp,
+                    fsl_interp=self.fsl_interp,
+                    opt=None,
+                )
+                wf.connect(connection[0], connection[1], xfm, "inputspec.in_file")
+
+                node, out = self.get_data("T1w-brain-template-deriv", quick_single=True)
+                wf.connect(node, out, xfm, "inputspec.reference")
+
+                node, out = self.get_data(
+                    "from-bold_to-template_mode-image_xfm", pipe_idx=xfm_idx
+                )
+                wf.connect(node, out, xfm, "inputspec.transform")
+
+                label = f"space-template_{label}"
+                json_info["Template"] = self.get_json_info(
+                    "T1w-brain-template-deriv", None, "Description"
+                )
+                new_prov = json_info["CpacProvenance"] + xfm_prov
+                json_info["CpacProvenance"] = new_prov
+                new_pipe_idx = self.generate_prov_string(new_prov)
+                self.set_data(
+                    label,
+                    xfm,
+                    "outputspec.out_file",
+                    json_info,
+                    new_pipe_idx,
+                    f"{label}_xfm_{num}",
+                    fork=True,
+                )
+
+        return wf
+
     def post_process(
         self,
         wf: pe.Workflow,
         label: str,
-        connection: ResourceData | tuple[pe.Node, str],
+        connection: ResourceData | tuple[pe.Node | pe.Workflow, str],
         json_info: dict,
         pipe_idx: str | tuple,
         pipe_x: int,
