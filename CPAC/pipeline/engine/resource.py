@@ -763,10 +763,6 @@ class _Pool:
             msg = f"[!] {resource} not in the resource pool."
             raise Exception(msg)
 
-    def update_resource(self, resource, new_name):
-        # move over any new pipe_idx's
-        self.rpool[new_name].update(self.rpool[resource])
-
 
 class ResourcePool(_Pool):
     """A pool of Resources."""
