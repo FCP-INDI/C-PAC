@@ -590,23 +590,6 @@ class _Pool:
                 break
         return resource
 
-    def get_strat_info(self, prov, label=None, logdir=None):
-        strat_info = {}
-        for entry in prov:
-            if isinstance(entry, list):
-                strat_info[entry[-1].split(":")[0]] = entry
-            elif isinstance(entry, str):
-                strat_info[entry.split(":")[0]] = entry.split(":")[1]
-        if label:
-            if not logdir:
-                logdir = self.logdir
-            WFLOGGER.info(
-                "\n\nPrinting out strategy info for %s in %s\n", label, logdir
-            )
-            write_output_json(
-                strat_info, f"{label}_strat_info", indent=4, basedir=logdir
-            )
-
     @staticmethod
     def get_resource_from_prov(prov: LIST_OF_LIST_OF_STR) -> Optional[str]:
         """Return the last item in the provenance list.
