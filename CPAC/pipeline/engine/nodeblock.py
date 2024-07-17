@@ -16,9 +16,22 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Class and decorator for NodeBlock functions."""
 
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TYPE_CHECKING
+
+import yaml
+from nipype import config, logging  # type: ignore [import-untyped]
+from nipype.pipeline.engine import Workflow  # type: ignore[import-untyped]
+
+from CPAC.utils.configuration.configuration import Configuration
+from CPAC.utils.monitoring import (
+    WFLOGGER,
+)
+
+if TYPE_CHECKING:
+    from CPAC.pipeline.engine.resource import Resource, StratPool
 
 NODEBLOCK_INPUTS = list[str | list | tuple]
+PIPELINE_BLOCKS = list["NodeBlockFunction | PIPELINE_BLOCKS"]
 
 
 class NodeBlockFunction:
@@ -81,27 +94,17 @@ class NodeBlockFunction:
             ]
         ).rstrip()
 
-    # all node block functions have this signature
-    def __call__(self, wf, cfg, strat_pool, pipe_num, opt=None):
-        """
+    def __call__(
+        self,
+        wf: Workflow,
+        cfg: Configuration,
+        strat_pool: "StratPool",
+        pipe_num: Optional[int | str],
+        opt: Optional[str] = None,
+    ) -> tuple[Workflow, dict[str, "Resource"]]:
+        """Call a NodeBlockFunction.
 
-        Parameters
-        ----------
-        wf : ~nipype.pipeline.engine.workflows.Workflow
-
-        cfg : ~CPAC.utils.configuration.Configuration
-
-        strat_pool
-
-        pipe_num : int
-
-        opt : str, optional
-
-        Returns
-        -------
-        wf : ~nipype.pipeline.engine.workflows.Workflow
-
-        out : dict
+        All node block functions have the same signature.
         """
         return self.func(wf, cfg, strat_pool, pipe_num, opt)
 
@@ -134,6 +137,150 @@ class NodeBlockFunction:
     def __str__(self) -> str:
         """Return string representation of a NodeBlockFunction."""
         return f"NodeBlockFunction({self.name})"
+
+
+class NodeBlock:
+    """A worflow subgraph composed of :py:class:`NodeBlockFunction`s."""
+
+    def __init__(
+        self,
+        node_block_functions: NodeBlockFunction | PIPELINE_BLOCKS,
+        debug: bool = False,
+    ) -> None:
+        """Create a ``NodeBlock`` from a list of py:class:`~CPAC.pipeline.engine.nodeblock.NodeBlockFunction`s."""
+        if not isinstance(node_block_functions, list):
+            node_block_functions = [node_block_functions]
+
+        self.node_blocks: dict[str, Any] = {}
+
+        for node_block_function in node_block_functions:  # <---- sets up the NodeBlock object in case you gave it a list of node blocks instead of a single one - for option forking.
+            self.input_interface = []
+            if isinstance(node_block_function, tuple):
+                self.input_interface = node_block_function[1]
+                node_block_function = node_block_function[0]  # noqa: PLW2901
+                if not isinstance(self.input_interface, list):
+                    self.input_interface = [self.input_interface]
+
+            if not isinstance(node_block_function, NodeBlockFunction):
+                # If the object is a plain function `__name__` will be more useful than `str()`
+                obj_str = (
+                    node_block_function.__name__  # type: ignore [attr-defined]
+                    if hasattr(node_block_function, "__name__")
+                    else str(node_block_function)
+                )
+                msg = f'Object is not a nodeblock: "{obj_str}"'
+                raise TypeError(msg)
+
+            name = node_block_function.name
+            self.name = name
+            self.node_blocks[name] = {}
+
+            if self.input_interface:
+                for interface in self.input_interface:
+                    for orig_input in node_block_function.inputs:
+                        if isinstance(orig_input, tuple):
+                            list_tup = list(orig_input)
+                            if interface[0] in list_tup:
+                                list_tup.remove(interface[0])
+                                list_tup.append(interface[1])
+                                node_block_function.inputs.remove(orig_input)
+                                node_block_function.inputs.append(tuple(list_tup))
+                        elif orig_input == interface[0]:
+                            node_block_function.inputs.remove(interface[0])
+                            node_block_function.inputs.append(interface[1])
+
+            for key, val in node_block_function.legacy_nodeblock_dict().items():
+                self.node_blocks[name][key] = val
+
+            self.node_blocks[name]["block_function"] = node_block_function
+
+            # TODO: fix/replace below
+            self.outputs: dict[str, Optional[str]] = {}
+            for out in node_block_function.outputs:
+                self.outputs[out] = None
+
+            self.options: list[str] | dict[str, Any] = ["base"]
+            if node_block_function.outputs is not None:
+                self.options = node_block_function.outputs
+
+            WFLOGGER.info("Connecting %s...", name)
+            if debug:
+                config.update_config({"logging": {"workflow_level": "DEBUG"}})
+                logging.update_logging(config)
+                WFLOGGER.debug(
+                    '"inputs": %s\n\t "outputs": %s%s',
+                    node_block_function.inputs,
+                    list(self.outputs.keys()),
+                    f'\n\t"options": {self.options}'
+                    if self.options != ["base"]
+                    else "",
+                )
+                config.update_config({"logging": {"workflow_level": "INFO"}})
+                logging.update_logging(config)
+
+    def get_name(self):
+        return self.name
+
+    def check_null(self, val):
+        if isinstance(val, str):
+            val = None if val.lower() == "none" else val
+        return val
+
+    def check_output(self, outputs, label, name):
+        if label not in outputs:
+            msg = (
+                f'\n[!] Output name "{label}" in the block '
+                "function does not match the outputs list "
+                f'{outputs} in Node Block "{name}"\n'
+            )
+            raise NameError(msg)
+
+    def grab_tiered_dct(self, cfg, key_list):
+        cfg_dct = cfg.dict()
+        for key in key_list:
+            try:
+                cfg_dct = cfg_dct.get(key, {})
+            except KeyError as ke:
+                msg = "[!] The config provided to the node block is not valid"
+                raise KeyError(msg) from ke
+        return cfg_dct
+
+    @staticmethod
+    def list_blocks(
+        pipeline_blocks: PIPELINE_BLOCKS, indent: Optional[int] = None
+    ) -> str:
+        """List node blocks line by line.
+
+        Parameters
+        ----------
+        pipeline_blocks: list of
+
+        indent: number of spaces after a tab indent
+        """
+        blockstring = yaml.dump(
+            [
+                getattr(
+                    block,
+                    "__name__",
+                    getattr(
+                        block,
+                        "name",
+                        yaml.safe_load(NodeBlock.list_blocks(list(block)))
+                        if isinstance(block, (tuple, list, set))
+                        else str(block),
+                    ),
+                )
+                for block in pipeline_blocks
+            ]
+        )
+        if isinstance(indent, int):
+            blockstring = "\n".join(
+                [
+                    "\t" + " " * indent + line.replace("- - ", "- ")
+                    for line in blockstring.split("\n")
+                ]
+            )
+        return blockstring
 
 
 def nodeblock(
