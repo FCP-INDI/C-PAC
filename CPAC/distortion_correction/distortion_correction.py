@@ -438,11 +438,6 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("pe-direction")
     wf.connect(node, out, match_epi_fmaps_node, "bold_pedir")
 
-    # interface = {'bold': (match_epi_fmaps_node, 'opposite_pe_epi'),
-    #             'desc-brain_bold': 'opposite_pe_epi_brain'}
-    # wf, strat_pool = wrap_block([bold_mask_afni, bold_masking],
-    #                            interface, wf, cfg, strat_pool, pipe_num, opt)
-
     func_get_brain_mask = pe.Node(
         interface=preprocess.Automask(), name=f"afni_mask_opposite_pe_{pipe_num}"
     )
@@ -529,10 +524,6 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, undistort_func_mean, "input_image")
     wf.connect(node, out, undistort_func_mean, "reference_image")
     wf.connect(convert_afni_warp, "ants_warp", undistort_func_mean, "transforms")
-
-    # interface = {'desc-preproc_bold': (undistort_func_mean, 'output_image')}
-    # wf, strat_pool = wrap_block([bold_mask_afni],
-    #                            interface, wf, cfg, strat_pool, pipe_num, opt)
 
     remask = pe.Node(
         interface=preprocess.Automask(), name=f"afni_remask_boldmask_{pipe_num}"
