@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-""":py:class:`Resource`\u200bs and :py:class:`ResourcePool`\u200bs for C-PAC."""
+""":py:class:`Resource` s and :py:class:`ResourcePool` s for C-PAC."""
 
 import ast
 from collections.abc import KeysView
@@ -202,7 +202,7 @@ class ResourceData(NamedTuple):
     """Attribute and tuple access for `ResourceData`."""
 
     node: pe.Node
-    """Resource :py:class:`~pe.Node`."""
+    """Resource :py:class:`~nipype.pipeline.engine.Node`."""
     out: str
     """Output key."""
 
@@ -213,8 +213,8 @@ class Resource:
     def __init__(self, data: tuple[pe.Node, str], json: dict) -> None:
         """Initialize a `Resource`."""
         self.data = ResourceData(*data)
-        """Tuple of source :py:class:`~pe.Node` and output key."""
-        self._json = json
+        """Tuple of source :py:class:`~nipype.pipeline.engine.Node` and output key."""
+        self._json: dict = json
         """Metadata."""
         self._keys = {"data", "json"}
         """Dictionary-style subscriptable keys."""
@@ -224,7 +224,7 @@ class Resource:
         return list(self._keys)
 
     def __contains__(self, item: Any) -> bool:
-        """Return `True` if `item` in `self.keys()`, `False` otherwise."""
+        """Return ``True`` if `item` in :py:method:`~Resource.keys()`, ``False`` otherwise."""
         return item in self.keys()
 
     def __getitem__(self, name: str) -> Any:
@@ -278,7 +278,7 @@ class _Pool:
     """All Resources."""
 
     def __init__(self) -> None:
-        """Initialize a :py:class:`ResourcePool` or :py:class:`StratPool`\u200b."""
+        """Initialize a :py:class:`ResourcePool` or :py:class:`StratPool` ."""
         self.ants_interp: str
         self.cfg: Configuration
         self.creds_paths: Optional[str]
@@ -349,7 +349,7 @@ class _Pool:
         return self.rpool.keys()
 
     def __contains__(self, key) -> bool:
-        """Return `True` if key in `_Pool`, `False` otherwise."""
+        """Return ``True`` if key in `_Pool`, ``False`` otherwise."""
         return key in self.keys()
 
     @staticmethod
@@ -449,7 +449,7 @@ class _Pool:
         Optional[Resource | STRAT_DICT | dict]
         | tuple[Optional[Resource | STRAT_DICT], Optional[str]]
     ):
-        """Return a dictionary of strats or a single :py:class:`Resource`\u200b."""
+        """Return a dictionary of strats or a single :py:class:`Resource` ."""
         if not isinstance(resource, list):
             resource = [resource]
         # if a list of potential inputs are given, pick the first one found
@@ -483,7 +483,7 @@ class _Pool:
 
 
 class ResourcePool(_Pool):
-    """A pool of :py:class:`Resource`\u200bs."""
+    """A pool of :py:class:`Resource` s."""
 
     from CPAC.pipeline.engine.nodeblock import (
         NODEBLOCK_INPUTS,
@@ -619,7 +619,7 @@ class ResourcePool(_Pool):
     def back_propogate_template_name(
         self, resource_idx: str, json_info: dict, id_string: pe.Node
     ) -> None:
-        """Find and apply the template name from a :py:class:`Resource`\u200b's provenance."""
+        """Find and apply the template name from a :py:class:`Resource` 's provenance."""
         if "template" in resource_idx and self.check_rpool("derivatives-dir"):
             if self.check_rpool("template"):
                 node, out = self.get_data("template")
@@ -995,7 +995,7 @@ class ResourcePool(_Pool):
     ):
         """Return a dictionary of strats.
 
-        Inside those, are dictionaries like ``{'data': (node, out), 'json': info}``.
+        Inside those are dictionaries like ``{'data': (node, out), 'json': info}``.
         """
         return super().get(resource, pipe_idx, report_fetched, optional)
 
@@ -1077,7 +1077,7 @@ class ResourcePool(_Pool):
     def get_strats(  # noqa: PLR0912,PLR0915
         self, resources: NODEBLOCK_INPUTS, debug: bool = False
     ) -> dict[str | tuple, "StratPool"]:
-        """Get a dictionary of :py:class:`StratPool`\u200bs."""
+        """Get a dictionary of :py:class:`StratPool` s."""
         # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
         # TODO: (and it doesn't have to be)
         import itertools
@@ -1316,7 +1316,7 @@ class ResourcePool(_Pool):
         return new_strats
 
     def initialize_nipype_wf(self, name: str = "") -> None:
-        """Initialize a new nipype :py:class:`~pe.Workflow`\u200b."""
+        """Initialize a new nipype :py:class:`~nipype.pipeline.engine.Workflow` ."""
         if name:
             name = f"_{name}"
         workflow_name = f"cpac{name}_{self.unique_id}"
@@ -1982,7 +1982,7 @@ class ResourcePool(_Pool):
     def create_func_datasource(
         self, rest_dict: dict, wf_name="func_datasource"
     ) -> pe.Workflow:
-        """Create a :py:class:`~pe.Workflow` to gather timeseries data.
+        """Create a :py:class:`~nipype.pipeline.engine.Workflow` to gather timeseries data.
 
         Return the functional timeseries-related file paths for each series/scan from the
         dictionary of functional files described in the data configuration (sublist) YAML
@@ -2345,7 +2345,7 @@ class ResourcePool(_Pool):
             self.ingress_freesurfer()
 
     def connect_block(self, wf: pe.Workflow, block: NodeBlock) -> pe.Workflow:  # noqa: PLR0912,PLR0915
-        """Connect a :py:class:`NodeBlock` via the `ResourcePool`."""
+        """Connect a :py:class:`~CPAC.pipeline.engine.nodeblock.NodeBlock` via the `ResourcePool`."""
         debug = bool(self.cfg.pipeline_setup["Debugging"]["verbose"])  # type: ignore [attr-defined]
         all_opts: list[str] = []
 
@@ -2713,7 +2713,7 @@ class ResourcePool(_Pool):
         pipe_idx: str | tuple,
         pipe_x: int,
     ) -> pe.Workflow:
-        """Find the appropriate bold-to-template transform for given ``pipe_idx``."""
+        """Find the appropriate bold-to-template transform for given `pipe_idx`."""
         if label in self.xfm:
             json_info = dict(json_info)
 
@@ -2961,7 +2961,7 @@ class ResourcePool(_Pool):
     def _config_lookup(
         self, keylist: str | list[str], fallback_type: type = NoneType
     ) -> Any:
-        """Lookup a :py:class:`Configuration` key, return `None` if not found."""
+        """Lookup a :py:class:`~CPAC.utils.configuration.Configuration` key, return ``None`` if not found."""
         try:
             return self.cfg[keylist]
         except (AttributeError, KeyError):
@@ -2972,9 +2972,9 @@ class ResourcePool(_Pool):
         return self.pipe_list.index(pipe_idx)
 
     def _get_unlabelled(self, resource: str) -> set[str]:
-        """Get unlabelled :py:class:`Resource`\u200bs.
+        """Get unlabelled :py:class:`Resource` s.
 
-        These :py:class:`Resource`\u200bs need integer suffixes to differentiate.
+        These :py:class:`Resource` s need integer suffixes to differentiate.
         """
         from CPAC.func_preproc.func_motion import motion_estimate_filter
 
@@ -3022,7 +3022,7 @@ class ResourcePool(_Pool):
 
 
 class StratPool(_Pool):
-    """A pool of :py:class:`ResourcePool`s keyed by strategy."""
+    """A pool of :py:class:`ResourcePool` s keyed by strategy."""
 
     def __init__(
         self,
@@ -3042,7 +3042,7 @@ class StratPool(_Pool):
         if not isinstance(name, list):
             name = [name]
         self.name: list[str] = name
-        self._regressor_dct: dict
+        self._regressor_dct: dict = {}
 
     def append_name(self, name: str) -> None:
         """Append a name to the `StratPool`."""
@@ -3115,7 +3115,7 @@ class StratPool(_Pool):
         report_fetched: bool = False,
         optional: bool = False,
     ):
-        """Return a :py:class:`Resource`\u200b."""
+        """Return a :py:class:`Resource` ."""
         return super().get(resource, pipe_idx, report_fetched, optional)
 
     @overload
@@ -3148,7 +3148,7 @@ class StratPool(_Pool):
     )
 
     def get_cpac_provenance(self, resource: list[str] | str) -> list:
-        """Get "CpacProvenance" for a given :py:class:`Resource`\u200b."""
+        """Get "CpacProvenance" for a given :py:class:`Resource` ."""
         # NOTE: strat_resource has to be entered properly by the developer
         # it has to either be rpool[resource][strat] or strat_pool[resource]
         if isinstance(resource, list):
@@ -3260,7 +3260,7 @@ class StratPool(_Pool):
 
 
 def _check_null(val: Any) -> Any:
-    """Return `None` if `val` == "none" (case-insensitive)."""
+    """Return ``None`` if `val` == "none" (case-insensitive)."""
     if isinstance(val, str):
         val = None if val.lower() == "none" else val
     return val

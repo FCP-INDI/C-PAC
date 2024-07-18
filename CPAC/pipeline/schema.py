@@ -21,7 +21,7 @@
 from itertools import chain, permutations
 import re
 from subprocess import CalledProcessError
-from typing import Optional as TypeOptional
+from typing import Any as TypeAny, Optional as TypeOptional
 
 import numpy as np
 from pathvalidate import sanitize_filename
@@ -64,8 +64,8 @@ RESOLUTION_REGEX = r"^[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*
 Number = Any(float, int, All(str, Match(SCIENTIFIC_NOTATION_STR_REGEX)))
 
 
-def str_to_bool1_1(x: Any) -> bool:  # pylint: disable=invalid-name
-    """Convert strings to Booleans for YAML1.1 syntax[1]_.
+def str_to_bool1_1(x: TypeAny) -> bool:  # pylint: disable=invalid-name
+    """Convert strings to Booleans for YAML1.1 syntax [1]_.
 
     References
     ----------
@@ -1232,7 +1232,7 @@ def schema(config_dict: dict) -> dict:
 
     Validate against the latest validation schema by first applying backwards-
     compatibility patches, then applying Voluptuous validation, then handling complex
-    configuration interaction checks before returning validated config_dict.
+    configuration interaction checks before returning validated `config_dict`.
     """
     from CPAC.utils.utils import _changes_1_8_0_to_1_8_1
 

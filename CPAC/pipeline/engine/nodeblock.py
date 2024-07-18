@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Classes and decorator for :py:class:`NodeBlock`\u200bs and :py:class:`NodeBlockFunction`\u200bs."""
+"""Classes and decorator for :`NodeBlock`s and :`NodeBlockFunction`s."""
 
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
@@ -36,7 +36,7 @@ PIPELINE_BLOCKS = list["NodeBlockFunction | PIPELINE_BLOCKS"]
 
 
 class NodeBlockFunction:
-    """Store a reference to the nodeblock function and all of its meta-data."""
+    """Store a reference to the nodeblock function and all of its metadata."""
 
     def __init__(
         self,
@@ -50,22 +50,24 @@ class NodeBlockFunction:
         outputs: Optional[NODEBLOCK_OUTPUTS] = None,
     ) -> None:
         self.func = func
-        """`Nodeblock` function reference."""
+        """:py:class:`Nodeblock` function reference."""
         self.name: str = name
-        """Used in the graph and logging to identify the :py:class:`NodeBlock` and its component :py:class:`~nipype.pipeline.engine.Node`\u200bs."""
+        """Used in the graph and logging to identify the :py:class:`NodeBlock` and its
+        component :py:class:`~nipype.pipeline.engine.Node` s."""
         self.config: Optional[list[str]] = config
         """
-        Indicates the nested keys in a C-PAC pipeline :py:class:`Configuration`
-        should configure a `NodeBlock` built from this function. If `config` is set to
-        `None`, then all other configuration-related entities must be specified from the
-        root of the configuration.
+        Indicates the nested keys in a C-PAC pipeline
+        :py:class:`~CPAC.utils.configuration.Configuration` should configure a
+        :py:class:`NodeBlock` built from this function. If `config` is set to ``None``,
+        then all other :py:class:`~CPAC.utils.configuration.Configuration` -related
+        entities must be specified from the root of the :py:class:`~CPAC.utils.configuration.Configuration` .
         """
         self.switch: Optional[list[str] | list[list[str]]] = switch
         """
-        Indicates any keys that should evaluate to `True` for this :py:class:`NodeBlock`
-        to be active. A list of lists of strings indicates multiple `switch`\u200bes
-        that must all be `True` to run, and is currently only an option if `config` is
-        set to `None`.
+        Indicates any keys that should evaluate to ``True`` for this :py:class:`NodeBlock`
+        to be active. A list of lists of strings indicates multiple `switch` es
+        that must all be ``True`` to run, and is currently only an option if `config` is
+        set to ``None``.
         """
         self.option_key: Optional[str | list[str]] = option_key
         """
@@ -76,12 +78,12 @@ class NodeBlockFunction:
         """Indicates values for which this :py:class:`NodeBlock` should be active."""
         self.inputs: list[str | list | tuple] = inputs if inputs else []
         """:py:class:`~CPAC.pipeline.engine.resource.ResourcePool` keys indicating
-        resources needed for the :py:class:`NodeBlock`\u200b's functionality."""
+        resources needed for the :py:class:`NodeBlock`'s functionality."""
         self.outputs: list[str] | dict[str, Any] = outputs if outputs else []
         """
         :py:class:`~CPAC.pipeline.engine.resource.ResourcePool` keys indicating
-        resources generated or updated by the `NodeBlock`, optionally including metadata
-        for the outputs' respective sidecars.
+        resources generated or updated by the :py:class:`NodeBlock`, optionally
+        including metadata for the outputs' respective sidecars.
         """
 
         # Forward function attributes similar to functools.update_wrapper:
@@ -106,9 +108,9 @@ class NodeBlockFunction:
         pipe_num: Optional[int | str],
         opt: Optional[str] = None,
     ) -> tuple[Workflow, dict[str, "ResourceData"]]:
-        """Call a `NodeBlockFunction`.
+        """Call a :py:class:`NodeBlockFunction`.
 
-        All `NodeBlockFunction`\u200bs have the same signature.
+        All :py:class:`NodeBlockFunction` s have the same signature.
         """
         return self.func(wf, cfg, strat_pool, pipe_num, opt)
 
@@ -128,7 +130,7 @@ class NodeBlockFunction:
         }
 
     def __repr__(self) -> str:
-        """Return reproducible string representation of a `NodeBlockFunction`."""
+        """Return reproducible string representation of a :py:class:`NodeBlockFunction`."""
         return (
             f"NodeBlockFunction({self.func.__module__}."
             f'{self.func.__name__}, "{self.name}", '
@@ -139,19 +141,19 @@ class NodeBlockFunction:
         )
 
     def __str__(self) -> str:
-        """Return string representation of a `NodeBlockFunction`."""
+        """Return string representation of a :py:class:`NodeBlockFunction`."""
         return f"NodeBlockFunction({self.name})"
 
 
 class NodeBlock:
-    """A :py:class:`Workflow` subgraph composed of :py:class:`NodeBlockFunction`\u200bs."""
+    """A :py:class:`~nipype.pipeline.engine.Workflow` subgraph composed of :py:class:`NodeBlockFunction`s."""
 
     def __init__(
         self,
         node_block_functions: NodeBlockFunction | PIPELINE_BLOCKS,
         debug: bool = False,
     ) -> None:
-        """Create a `NodeBlock` from a list of py:class:`NodeBlockFunction`\u200bs."""
+        """Create a :py:class:`NodeBlock` from a list of :py:class:`NodeBlockFunction` s."""
         if not isinstance(node_block_functions, list):
             node_block_functions = [node_block_functions]
 
@@ -223,7 +225,7 @@ class NodeBlock:
                 logging.update_logging(config)
 
     def check_output(self, outputs: NODEBLOCK_OUTPUTS, label: str, name: str) -> None:
-        """Check if a label is listed in a `NodeBlock`\u200b's `outputs`.
+        """Check if a label is listed in a :py:class:`NodeBlock` 's `outputs`.
 
         Raises
         ------
@@ -242,12 +244,12 @@ class NodeBlock:
     def list_blocks(
         pipeline_blocks: PIPELINE_BLOCKS, indent: Optional[int] = None
     ) -> str:
-        """List :py:class:`NodeBlockFunction`\u200bs line by line.
+        """List :py:class:`NodeBlockFunction` s line by line.
 
         Parameters
         ----------
         pipeline_blocks
-            list of :py:class:`NodeBlockFunction`\u200bs
+            list of :py:class:`NodeBlockFunction` s
 
         indent
             number of spaces after a tab indent
@@ -255,7 +257,7 @@ class NodeBlock:
         Returns
         -------
         str
-            formatted list of :py:class:`NodeBlockFunction`\u200bs
+            formatted list of :py:class:`NodeBlockFunction` s
         """
         blockstring = yaml.dump(
             [
@@ -292,46 +294,48 @@ def nodeblock(
     inputs: Optional[NODEBLOCK_INPUTS] = None,
     outputs: Optional[list[str] | dict[str, Any]] = None,
 ):
-    """Define a :py:class:`NodeBlockFunction`\u200b.
+    """Define a :py:class:`NodeBlockFunction` .
 
-    Connections to the pipeline :py:class:`Configuration` and to other :py:class:`NodeBlockFunction`\u200bs.
+    Connections to the pipeline :py:class:`~CPAC.utils.configuration.Configuration` and to other :py:class:`NodeBlockFunction` s.
 
     Parameters
     ----------
     name
         Used in the graph and logging to identify the :py:class:`NodeBlock` and its
-        component :py:class:`~nipype.pipeline.engine.Node`\u200bs.
-        The :py:class:`NodeBlockFunction`\u200b's `.__name__` is used if `name` is not
+        component :py:class:`~nipype.pipeline.engine.Node` s.
+        The :py:class:`NodeBlockFunction`'s `.__name__` is used if `name` is not
         provided.
 
     config
-        Indicates the nested keys in a C-PAC pipeline :py:class:`Configuration` should
-        configure a :py:class:`NodeBlock` built from this
-        :py:class:`NodeBlockFunction`\u200b. If `config` is set to `None`, then all other
-        :py:class:`Configuration`\u200b-related entities must be specified from the root
-        of the :py:class:`Configuration`\u200b.
+        Indicates the nested keys in a C-PAC pipeline
+        :py:class:`~CPAC.pipeline.configuration.Configuration` should configure a
+        :py:class:`NodeBlock` built from this :py:class:`NodeBlockFunction`. If `config`
+        is set to ``None``, then all other
+        :py:class:`~CPAC.pipeline.configuration.Configuration` -related entities
+        must be specified from the root of the
+        :py:class:`~CPAC.pipeline.configuration.Configuration` .
 
     switch
-        Indicates any keys that should evaluate to `True` for this :py:class:`NodeBlock`
-        to be active. A list of lists of strings indicates multiple switches that must
-        all be `True` to run, and is currently only an option if config is set to
-        `None`.
+        Indicates any keys that should evaluate to ``True`` for this
+        :py:class:`NodeBlock` to be active. A list of lists of strings indicates
+        multiple switches that must all be ``True`` to run, and is currently only an
+        option if config is set to ``None``.
 
     option_key
         Indicates the nested keys (starting at the nested key indicated by `config`)
-        that should configure this :py:class:`NodeBlock`\u200b.
+        that should configure this :py:class:`NodeBlock`.
 
     option_val
         Indicates values for which this :py:class:`NodeBlock` should be active.
 
     inputs
-        ResourcePool keys indicating files needed for the :py:class:`NodeBlock`\u200b's
+        :py:class:`~CPAC.pipeline.engine.resource.ResourcePool` keys indicating files needed for the :py:class:`NodeBlock` 's
         functionality.
 
     outputs
         :py:class:`~CPAC.pipeline.engine.resource.ResourcePool` keys indicating files
         generated or updated by the :py:class:`NodeBlock`, optionally including metadata
-        for the outputs' respective sidecars.
+        for the `outputs` ' respective sidecars.
     """
     return lambda func: NodeBlockFunction(
         func,
