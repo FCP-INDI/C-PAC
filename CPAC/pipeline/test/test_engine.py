@@ -49,7 +49,7 @@ def test_ingress_func_raw_data(
     """Test :py:method:~`CPAC.pipeline.engine.resource.ResourcePool.ingress_raw_func_data`."""
     cfg, sub_data_dct = _set_up_test(bids_examples, preconfig, tmp_path)
     rpool = ResourcePool(cfg=cfg, data_paths=sub_data_dct)
-    rpool.gather_pipes(rpool.wf, cfg, all_tpyes=True)
+    rpool.gather_pipes(rpool.wf, cfg, all_types=True)
 
 
 @pytest.mark.parametrize("preconfig", ["default"])
