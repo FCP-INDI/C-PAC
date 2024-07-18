@@ -21,6 +21,7 @@
 from itertools import chain, permutations
 import re
 from subprocess import CalledProcessError
+from typing import Optional as TypeOptional
 
 import numpy as np
 from pathvalidate import sanitize_filename
@@ -310,7 +311,7 @@ target_space = All(
 )
 
 
-def name_motion_filter(mfilter: dict, mfilters: Optional[list] = None) -> str:
+def name_motion_filter(mfilter: dict, mfilters: TypeOptional[list] = None) -> str:
     """Given a motion filter, create a short string for the filename.
 
     Examples
