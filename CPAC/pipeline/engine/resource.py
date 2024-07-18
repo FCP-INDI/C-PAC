@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Resources and ResourcePools for C-PAC."""
+""":py:class:`Resource`\u200bs and :py:class:`ResourcePool`\u200bs for C-PAC."""
 
 import ast
 from collections.abc import KeysView
@@ -30,13 +30,13 @@ from typing import Any, Literal, NamedTuple, Optional, overload
 
 from nipype.interfaces import utility as util  # type: ignore [import-untyped]
 from nipype.interfaces.utility import Rename  # type: ignore [import-untyped]
+from nipype.pipeline import engine as pe
 
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import (
     fisher_z_score_standardize,
     z_score_standardize,
 )
-from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.pipeline.engine.nodeblock import (
     NodeBlock,
@@ -92,7 +92,7 @@ class DataPaths:
     def __init__(
         self, *, data_paths: Optional[dict] = None, part_id: Optional[str] = ""
     ) -> None:
-        """Initialize a ``DataPaths`` instance."""
+        """Initialize a `DataPaths` instance."""
         if not data_paths:
             data_paths = {}
         if part_id and "part_id" in data_paths and part_id != data_paths["part_id"]:
@@ -117,17 +117,17 @@ class DataPaths:
         self.derivatives_dir: Optional[str] = data_paths.get("derivatives_dir")
 
     def __repr__(self) -> str:
-        """Return reproducible string representation of ``DataPaths`` instance."""
+        """Return reproducible string representation of `DataPaths` instance."""
         return f"DataPaths(data_paths={self.as_dict()})"
 
     def __str__(self) -> str:
-        """Return string representation of a ``DataPaths`` instance."""
+        """Return string representation of a `DataPaths` instance."""
         return f"<DataPaths({self.unique_id})>"
 
     def as_dict(self) -> dict:
-        """Return ``data_paths`` dictionary.
+        """Return a `data_paths` dictionary.
 
-        data_paths format::
+        `data_paths` format::
 
            {"anat": {"T1w": "{T1w path}", "T2w": "{T2w path}"},
             "creds_path": {None OR path to credentials CSV},
@@ -178,7 +178,7 @@ def set_iterables(
 
 
 def strip_template(data_label: str) -> tuple[str, dict[str, str]]:
-    """Strip a template name from a data label to use as a Resource key."""
+    """Strip a template name from a data label to use as a :py:class:`Resource` key."""
     json = {}
     # rename to template
     for prefix in ["space-", "from-", "to-"]:
@@ -199,21 +199,21 @@ def strip_template(data_label: str) -> tuple[str, dict[str, str]]:
 
 
 class ResourceData(NamedTuple):
-    """Attribute and tuple access for ResourceData."""
+    """Attribute and tuple access for `ResourceData`."""
 
     node: pe.Node
-    """Resource Node."""
+    """Resource :py:class:`~pe.Node`."""
     out: str
     """Output key."""
 
 
 class Resource:
-    """A single Resource and its methods."""
+    """A single `Resource` and its methods."""
 
     def __init__(self, data: tuple[pe.Node, str], json: dict) -> None:
-        """Initialize a Resource."""
+        """Initialize a `Resource`."""
         self.data = ResourceData(*data)
-        """Tuple of source Node and output key."""
+        """Tuple of source :py:class:`~pe.Node` and output key."""
         self._json = json
         """Metadata."""
         self._keys = {"data", "json"}
@@ -224,7 +224,7 @@ class Resource:
         return list(self._keys)
 
     def __contains__(self, item: Any) -> bool:
-        """Return True if item in self.keys(), False otherwise."""
+        """Return `True` if `item` in `self.keys()`, `False` otherwise."""
         return item in self.keys()
 
     def __getitem__(self, name: str) -> Any:
@@ -235,7 +235,7 @@ class Resource:
         raise KeyError(msg)
 
     def __repr__(self) -> str:
-        """Return reproducible string for Resource."""
+        """Return reproducible string for `Resource`."""
         positional = f"Resource(data={self.data}, json={self.json}"
         kw = ", ".join(
             f"{key}={getattr(self, key)}"
@@ -245,17 +245,17 @@ class Resource:
         return f"{positional}{kw})"
 
     def __setitem__(self, name: str, value: Any) -> None:
-        """Provide legacy dict-style set access."""
+        """Provide legacy dict-style set access for `Resource`."""
         setattr(self, name, value)
         if name not in self.keys():
             self._keys.add(name)
 
     def __str__(self) -> str:
-        """Return string representation of Resource."""
+        """Return string representation of `Resource`."""
         return f"{self.data[0]}"
 
     def get_json(self) -> dict[str | tuple, Any]:
-        """Return a deep copy of Resource JSON."""
+        """Return a deep copy of `Resource` JSON."""
         UTLOGGER.debug(
             "%s is a deep copy of the attached JSON. Assign it to a variable before modifying or the changes will be ephemeral.",
             self.__class__.__name__,
@@ -263,14 +263,14 @@ class Resource:
         return json.loads(json.dumps(self._json))
 
     def set_json(self, value=dict) -> None:
-        """Update Resource JSON."""
+        """Update `Resource` JSON."""
         self._json.update(value)
 
     json = property(get_json, set_json, doc=get_json.__doc__)
 
     @property
     def cpac_provenance(self) -> list:
-        """Get CpacProvenance of a Resource."""
+        """Get "CpacProvenance" of a `Resource`."""
         return self.json["CpacProvenance"]
 
 
@@ -278,7 +278,7 @@ class _Pool:
     """All Resources."""
 
     def __init__(self) -> None:
-        """Initialize a ResourcePool or StratPool."""
+        """Initialize a :py:class:`ResourcePool` or :py:class:`StratPool`\u200b."""
         self.ants_interp: str
         self.cfg: Configuration
         self.creds_paths: Optional[str]
@@ -305,7 +305,7 @@ class _Pool:
         self.wf: pe.Workflow
 
     def __repr__(self) -> str:
-        """Return reproducible _Pool string."""
+        """Return reproducible `_Pool` string."""
         params = [
             f"{param}={getattr(self, param)}"
             for param in ["rpool", "name", "cfg", "pipe_list"]
@@ -314,7 +314,7 @@ class _Pool:
         return f'{self.__class__.__name__}({", ".join(params)})'
 
     def __str__(self) -> str:
-        """Return string representation of a _Pool."""
+        """Return string representation of a `_Pool`."""
         if self.name:
             return f"{self.__class__.__name__}({self.name}): {list(self.rpool)}"
         return f"{self.__class__.__name__}: {list(self.rpool)}"
@@ -336,7 +336,7 @@ class _Pool:
         return (resource, str(prov))
 
     def check_rpool(self, resource: list[str] | str) -> bool:
-        """Check if a resource is present in the _Pool."""
+        """Check if a `resource` is present in the `_Pool`."""
         if not isinstance(resource, list):
             resource = [resource]
         for name in resource:
@@ -345,11 +345,11 @@ class _Pool:
         return False
 
     def keys(self) -> KeysView:
-        """Return rpool's keys."""
+        """Return `rpool`'s keys."""
         return self.rpool.keys()
 
     def __contains__(self, key) -> bool:
-        """Return True if key in Pool, False otherwise."""
+        """Return `True` if key in `_Pool`, `False` otherwise."""
         return key in self.keys()
 
     @staticmethod
@@ -359,7 +359,7 @@ class _Pool:
         Each resource (i.e. "desc-cleaned_bold" AKA nuisance-regressed BOLD
         data) has its own provenance list. the name of the resource, and
         the node that produced it, is always the last item in the provenance
-        list, with the two separated by a colon :
+        list, with the two separated by a colon (`:`)
         """
         if not len(prov):
             return None
@@ -382,7 +382,7 @@ class _Pool:
         fork: bool = False,
         inject: bool = False,
     ) -> None:
-        """Plug a Resource into a _Pool."""
+        """Plug a :py:class:`Resource` into a `_Pool`."""
         json_info = json_info.copy()
         cpac_prov: LIST_OF_LIST_OF_STR = []
         if "CpacProvenance" in json_info:
@@ -449,7 +449,7 @@ class _Pool:
         Optional[Resource | STRAT_DICT | dict]
         | tuple[Optional[Resource | STRAT_DICT], Optional[str]]
     ):
-        """Return a dictionary of strats or a single Resource."""
+        """Return a dictionary of strats or a single :py:class:`Resource`\u200b."""
         if not isinstance(resource, list):
             resource = [resource]
         # if a list of potential inputs are given, pick the first one found
@@ -483,7 +483,7 @@ class _Pool:
 
 
 class ResourcePool(_Pool):
-    """A pool of Resources."""
+    """A pool of :py:class:`Resource`\u200bs."""
 
     from CPAC.pipeline.engine.nodeblock import (
         NODEBLOCK_INPUTS,
@@ -502,7 +502,7 @@ class ResourcePool(_Pool):
         pipeline_name: str = "",
         wf: Optional[pe.Workflow] = None,
     ) -> None:
-        """Initialize a ResourcePool."""
+        """Initialize a `ResourcePool`."""
         self.name = name
         super().__init__()
         if isinstance(data_paths, dict):
@@ -617,9 +617,9 @@ class ResourcePool(_Pool):
         self.ingress_pipeconfig_paths()
 
     def back_propogate_template_name(
-        self, resource_idx: str, json_info: dict, id_string: "pe.Node"
+        self, resource_idx: str, json_info: dict, id_string: pe.Node
     ) -> None:
-        """Find and apply the template name from a resource's provenance."""
+        """Find and apply the template name from a :py:class:`Resource`\u200b's provenance."""
         if "template" in resource_idx and self.check_rpool("derivatives-dir"):
             if self.check_rpool("template"):
                 node, out = self.get_data("template")
@@ -1038,7 +1038,7 @@ class ResourcePool(_Pool):
         report_fetched=False,
         quick_single=False,
     ):
-        """Get ResourceData from ResourcePool."""
+        """Get :py:class:`ResourceData` from `ResourcePool`."""
         _resource = self.get(resource, pipe_idx=pipe_idx, report_fetched=report_fetched)
         if report_fetched:
             if pipe_idx:
@@ -1053,7 +1053,7 @@ class ResourcePool(_Pool):
         return _resource.data
 
     def get_json(self, resource: str, strat: str | tuple) -> dict:
-        """Get JSON metadata from a Resource in a strategy."""
+        """Get JSON metadata from a :py:class:`Resource` in a strategy."""
         return self.get(resource, pipe_idx=strat).json
 
     def get_json_info(self, resource: str, key: str) -> Any:
@@ -1077,7 +1077,7 @@ class ResourcePool(_Pool):
     def get_strats(  # noqa: PLR0912,PLR0915
         self, resources: NODEBLOCK_INPUTS, debug: bool = False
     ) -> dict[str | tuple, "StratPool"]:
-        """Get a dictionary of StratPools."""
+        """Get a dictionary of :py:class:`StratPool`\u200bs."""
         # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
         # TODO: (and it doesn't have to be)
         import itertools
@@ -1316,7 +1316,7 @@ class ResourcePool(_Pool):
         return new_strats
 
     def initialize_nipype_wf(self, name: str = "") -> None:
-        """Initialize a new nipype workflow."""
+        """Initialize a new nipype :py:class:`~pe.Workflow`\u200b."""
         if name:
             name = f"_{name}"
         workflow_name = f"cpac{name}_{self.unique_id}"
@@ -1430,7 +1430,7 @@ class ResourcePool(_Pool):
         return
 
     def ingress_output_dir(self) -> None:
-        """Ingress an output directory into a ResourcePool."""
+        """Ingress an output directory into a `ResourcePool`."""
         dir_path = self.data_paths.derivatives_dir
         assert dir_path is not None
         WFLOGGER.info("\nPulling outputs from %s.\n", dir_path)
@@ -1982,7 +1982,7 @@ class ResourcePool(_Pool):
     def create_func_datasource(
         self, rest_dict: dict, wf_name="func_datasource"
     ) -> pe.Workflow:
-        """Create a workflow to gather timeseries data.
+        """Create a :py:class:`~pe.Workflow` to gather timeseries data.
 
         Return the functional timeseries-related file paths for each series/scan from the
         dictionary of functional files described in the data configuration (sublist) YAML
@@ -2345,7 +2345,7 @@ class ResourcePool(_Pool):
             self.ingress_freesurfer()
 
     def connect_block(self, wf: pe.Workflow, block: NodeBlock) -> pe.Workflow:  # noqa: PLR0912,PLR0915
-        """Connect a NodeBlock via the ResourcePool."""
+        """Connect a :py:class:`NodeBlock` via the `ResourcePool`."""
         debug = bool(self.cfg.pipeline_setup["Debugging"]["verbose"])  # type: ignore [attr-defined]
         all_opts: list[str] = []
 
@@ -2938,9 +2938,9 @@ class ResourcePool(_Pool):
     def get_resource_strats_from_prov(prov: list | str) -> dict[str, list | str]:
         """Return all entries that led to this provenance.
 
-        If you provide the provenance of a resource pool output, this will
-        return a dictionary of all the preceding resource pool entries that
-        led to that one specific output:
+        If you provide the provenance of a `ResourcePool` output, this will
+        return a dictionary of all the preceding `ResourcePool` entries that
+        led to that one specific output::
           {rpool entry}: {that entry's provenance}
           {rpool entry}: {that entry's provenance}
         """
@@ -2961,18 +2961,21 @@ class ResourcePool(_Pool):
     def _config_lookup(
         self, keylist: str | list[str], fallback_type: type = NoneType
     ) -> Any:
-        """Lookup a config key, return None if not found."""
+        """Lookup a :py:class:`Configuration` key, return `None` if not found."""
         try:
             return self.cfg[keylist]
         except (AttributeError, KeyError):
             return fallback_type()
 
     def _get_pipe_number(self, pipe_idx: str | tuple) -> int:
-        """Return the index of a strategy in ``self.pipe_list``."""
+        """Return the index of a strategy in `self.pipe_list`."""
         return self.pipe_list.index(pipe_idx)
 
     def _get_unlabelled(self, resource: str) -> set[str]:
-        """Get unlabelled resources (that need integer suffixes to differentiate)."""
+        """Get unlabelled :py:class:`Resource`\u200bs.
+
+        These :py:class:`Resource`\u200bs need integer suffixes to differentiate.
+        """
         from CPAC.func_preproc.func_motion import motion_estimate_filter
 
         all_jsons = [
@@ -3019,7 +3022,7 @@ class ResourcePool(_Pool):
 
 
 class StratPool(_Pool):
-    """A pool of ResourcePools keyed by strategy."""
+    """A pool of :py:class:`ResourcePool`s keyed by strategy."""
 
     def __init__(
         self,
@@ -3028,7 +3031,7 @@ class StratPool(_Pool):
         rpool: Optional[dict] = None,
         name: str | list[str] = "",
     ) -> None:
-        """Initialize a StratPool."""
+        """Initialize a `StratPool`."""
         super().__init__()
         if not rpool:
             self.rpool = STRAT_DICT({})
@@ -3042,7 +3045,7 @@ class StratPool(_Pool):
         self._regressor_dct: dict
 
     def append_name(self, name: str) -> None:
-        """Append a name to the StratPool."""
+        """Append a name to the `StratPool`."""
         self.name.append(name)
 
     @overload
@@ -3112,7 +3115,7 @@ class StratPool(_Pool):
         report_fetched: bool = False,
         optional: bool = False,
     ):
-        """Return a Resource."""
+        """Return a :py:class:`Resource`\u200b."""
         return super().get(resource, pipe_idx, report_fetched, optional)
 
     @overload
@@ -3124,7 +3127,7 @@ class StratPool(_Pool):
         self, resource: list[str] | str, report_fetched: Literal[False] = False
     ) -> ResourceData: ...
     def get_data(self, resource, report_fetched=False):
-        """Get ResourceData from a StratPool."""
+        """Get :py:class:`ResourceData` from a `StratPool`."""
         _resource = self.get(resource, report_fetched=report_fetched)
         if report_fetched:
             assert isinstance(_resource, tuple)
@@ -3135,17 +3138,17 @@ class StratPool(_Pool):
         return _resource.data
 
     def get_json(self, resource: str) -> dict:
-        """Get JSON metadata from a Resource in a StratPool."""
+        """Get JSON metadata from a :py:class:`Resource` in a `StratPool`."""
         return self.get(resource).json
 
     json = property(
         fget=Resource.get_json,
         fset=Resource.set_json,
-        doc="""Return a deep copy of full-StratPool-strategy-specific JSON.""",
+        doc="""Return a deep copy of full-`StratPool`-strategy-specific JSON.""",
     )
 
     def get_cpac_provenance(self, resource: list[str] | str) -> list:
-        """Get CpacProvenance for a given Resource."""
+        """Get "CpacProvenance" for a given :py:class:`Resource`\u200b."""
         # NOTE: strat_resource has to be entered properly by the developer
         # it has to either be rpool[resource][strat] or strat_pool[resource]
         if isinstance(resource, list):
@@ -3157,7 +3160,7 @@ class StratPool(_Pool):
         return self.get(resource).cpac_provenance
 
     def copy_resource(self, resource: str, new_name: str):
-        """Copy a resource within a StratPool."""
+        """Copy a :py:class:`Resource` within a `StratPool`."""
         try:
             self.rpool[new_name] = self.rpool[resource]
         except KeyError:
@@ -3168,7 +3171,7 @@ class StratPool(_Pool):
         """
         Return the name of the filter for this strategy.
 
-        In a strat_pool with filtered movement parameters.
+        In a `StratPool` with filtered movement parameters.
         """
         motion_filters = cfg[
             "functional_preproc",
@@ -3197,7 +3200,7 @@ class StratPool(_Pool):
         return "none"
 
     def preserve_json_info(self, resource: str, strat_resource: Resource) -> None:
-        """Preserve JSON info when updating a StratPool."""
+        """Preserve JSON info when updating a `StratPool`."""
         data_type = resource.split("_")[-1]
         if data_type not in self._json["subjson"]:
             self._json["subjson"][data_type] = {}
@@ -3207,7 +3210,10 @@ class StratPool(_Pool):
     def regressor_dct(self) -> dict:
         """Return the regressor dictionary for the current strategy if one exists.
 
-        Raises KeyError otherwise.
+        Raises
+        ------
+        KeyError
+            If regressor dictionary does not exist in current strategy.
         """
         # pylint: disable=attribute-defined-outside-init
         if hasattr(self, "_regressor_dct"):  # memoized
@@ -3243,7 +3249,7 @@ class StratPool(_Pool):
 
     @property
     def filtered_movement(self) -> bool:
-        """Check if the movement parameters have been filtered in this StratPool."""
+        """Check if the movement parameters have been filtered in this `StratPool`."""
         try:
             return "motion_estimate_filter" in str(
                 self.get_cpac_provenance("desc-movementParameters_motion")
@@ -3254,7 +3260,7 @@ class StratPool(_Pool):
 
 
 def _check_null(val: Any) -> Any:
-    """Return ``None`` if ``val`` == "none" (case-insensitive)."""
+    """Return `None` if `val` == "none" (case-insensitive)."""
     if isinstance(val, str):
         val = None if val.lower() == "none" else val
     return val
