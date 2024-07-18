@@ -32,21 +32,21 @@ from CPAC.utils.configuration import Configuration, Preconfiguration
 def _set_up_test(
     bids_examples: Path, preconfig: str, tmp_path: Path
 ) -> tuple[Configuration, dict]:
-    """Set up ``cfg`` and ``sub_data`` for engine tests."""
+    """Set up `cfg` and `sub_data` for engine tests."""
     bids_dir = str(bids_examples / "ds051")
     sub_data = create_cpac_data_config(bids_dir, skip_bids_validator=True)[0]
     cfg = Preconfiguration(preconfig)
     cfg.pipeline_setup["output_directory"]["path"] = str(tmp_path / "out")
     cfg.pipeline_setup["working_directory"]["path"] = str(tmp_path / "work")
     cfg.pipeline_setup["log_directory"]["path"] = str(tmp_path / "logs")
-    return (cfg, sub_data)
+    return cfg, sub_data
 
 
 @pytest.mark.parametrize("preconfig", ["default"])
 def test_ingress_func_raw_data(
     bids_examples: Path, preconfig: str, tmp_path: Path
 ) -> None:
-    """Test :py:method:~`CPAC.pipeline.engine.resource.ResourcePool.ingress_raw_func_data`."""
+    """Test :py:method:`ResourcePool.ingress_raw_func_data`\u200b."""
     cfg, sub_data_dct = _set_up_test(bids_examples, preconfig, tmp_path)
     rpool = ResourcePool(cfg=cfg, data_paths=sub_data_dct)
     rpool.gather_pipes(rpool.wf, cfg, all_types=True)
@@ -56,7 +56,7 @@ def test_ingress_func_raw_data(
 def test_ingress_anat_raw_data(
     bids_examples: Path, preconfig: str, tmp_path: Path
 ) -> None:
-    """Test :py:method:~`CPAC.pipeline.engine.resource.ResourcePool.ingress_raw_anat_data`."""
+    """Test :py:method:`ResourcePool.ingress_raw_anat_data`\u200b."""
     cfg, sub_data_dct = _set_up_test(bids_examples, preconfig, tmp_path)
     rpool = ResourcePool(
         cfg=cfg,
@@ -70,7 +70,7 @@ def test_ingress_anat_raw_data(
 def test_ingress_pipeconfig_data(
     bids_examples: Path, preconfig: str, tmp_path: Path
 ) -> None:
-    """Test :py:method:~`CPAC.pipeline.engine.resource.ResourcePool.ingress_pipeconfig_paths`."""
+    """Test :py:method:`ResourcePool.ingress_pipeconfig_paths`\u200b."""
     cfg, sub_data_dct = _set_up_test(bids_examples, preconfig, tmp_path)
     rpool = ResourcePool(
         cfg=cfg,
@@ -83,7 +83,7 @@ def test_ingress_pipeconfig_data(
 def test_build_anat_preproc_stack(
     bids_examples: Path, preconfig: str, tmp_path: Path
 ) -> None:
-    """Test :py:func:~`CPAC.pipeline.cpac_pipeline.build_anat_preproc_stack`."""
+    """Test :py:func:`~build_anat_preproc_stack`\u200b."""
     cfg, sub_data_dct = _set_up_test(bids_examples, preconfig, tmp_path)
 
     rpool = ResourcePool(cfg=cfg, data_paths=sub_data_dct)
@@ -94,7 +94,7 @@ def test_build_anat_preproc_stack(
 
 @pytest.mark.parametrize("preconfig", ["default"])
 def test_build_workflow(bids_examples: Path, preconfig: str, tmp_path: Path) -> None:
-    """Test :py:func:~`CPAC.pipeline.cpac_pipeline.build_workflow`."""
+    """Test :py:func:`~build_workflow`\u200b."""
     cfg, sub_data_dct = _set_up_test(bids_examples, preconfig, tmp_path)
     rpool = ResourcePool(cfg=cfg, data_paths=sub_data_dct)
     wf = build_workflow(sub_data_dct["subject_id"], sub_data_dct, cfg)
