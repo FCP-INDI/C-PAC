@@ -91,20 +91,10 @@ def cosine_filter(
     failure_mode="error",
 ):
     """
-<<<<<<< HEAD
     `cosine_filter` adapted from Nipype.
 
     https://github.com/nipy/nipype/blob/d353f0d/nipype/algorithms/confounds.py#L1086-L1107
-
-    Parameters
-    ----------
-    input_image_path : string
-            Bold image to be filtered.
-    timestep : float
-            'Repetition time (TR) of series (in sec) - derived from image header if unspecified'
-    period_cut : float
-            Minimum period (in sec) for DCT high-pass filter, nipype default value: 128.
-=======
+    
     Apply cosine filter to a BOLD image.
 
     Parameters:
@@ -136,7 +126,7 @@ def cosine_filter(
     Adapted from nipype implementation.
 
     The function uses a generator to iterate over voxel time series to optimize memory usage.
->>>>>>> 57d70a9d9 (Optimized cosine filter and added Doc strings)
+
     """
     # STATEMENT OF CHANGES:
     #     This function is derived from sources licensed under the Apache-2.0 terms,
@@ -148,7 +138,7 @@ def cosine_filter(
     #     * Modified docstring to reflect local changes
     #     * Updated style to match C-PAC codebase
 
-<<<<<<< HEAD
+
     # ORIGINAL WORK'S ATTRIBUTION NOTICE:
     #    Copyright (c) 2009-2016, Nipype developers
 
@@ -167,10 +157,7 @@ def cosine_filter(
     #    Prior to release 0.12, Nipype was licensed under a BSD license.
 
     # Modifications copyright (C) 2019 - 2024  C-PAC Developers
-    from nipype.algorithms.confounds import _cosine_drift, _full_rank
 
-    input_img = nib.load(input_image_path)
-=======
     def voxel_generator():
         for i in range(datashape[0]):
             for j in range(datashape[1]):
@@ -178,7 +165,7 @@ def cosine_filter(
                     yield input_data[i, j, k, :]
 
     input_img = nb.load(input_image_path)
->>>>>>> 57d70a9d9 (Optimized cosine filter and added Doc strings)
+
     input_data = input_img.get_fdata()
 
     datashape = input_data.shape
