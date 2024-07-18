@@ -21,7 +21,7 @@ from CPAC.utils.monitoring import WFLOGGER
 
 class Strategy:
     def __init__(self):
-        self._resource_pool = ResourcePool({})
+        self._resource_pool = ResourcePool()
         self.leaf_node = None
         self.leaf_out_file = None
         self.name = []

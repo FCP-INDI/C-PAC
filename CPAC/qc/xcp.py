@@ -67,6 +67,7 @@ import numpy as np
 import pandas as pd
 import nibabel as nib
 from nipype.interfaces import afni, fsl
+from nipype.pipeline.engine import Node, Workflow
 
 from CPAC.generate_motion_statistics.generate_motion_statistics import (
     DVARS_strip_t0,
@@ -74,6 +75,7 @@ from CPAC.generate_motion_statistics.generate_motion_statistics import (
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.engine.nodeblock import nodeblock
+from CPAC.pipeline.engine.resource import StratPool
 from CPAC.qc.qcmetrics import regisQ
 from CPAC.utils.interfaces.function import Function
 
@@ -85,29 +87,25 @@ motion_params = [
 ]
 
 
-def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
+def _connect_motion(
+    wf: Workflow, nodes: dict, strat_pool: StratPool, qc_file: Node, pipe_num: int
+) -> Workflow:
     """
     Connect the motion metrics to the workflow.
 
     Parameters
     ----------
-    wf : nipype.pipeline.engine.Workflow
+    wf
         The workflow to connect the motion metrics to.
 
-    nodes : dict
+    nodes
         Dictionary of nodes already collected from the strategy pool.
 
-    strat_pool : CPAC.pipeline.engine.ResourcePool
+    strat_pool
         The current strategy pool.
 
-    qc_file : nipype.pipeline.engine.Node
-        A function node with the function ``generate_xcp_qc``.
-
-    pipe_num : int
-
-    Returns
-    -------
-    wf : nipype.pipeline.engine.Workflow
+    qc_file
+        A function node with the function :py:func:`generate_xcp_qc` .
     """
     # pylint: disable=invalid-name, too-many-arguments
     try:

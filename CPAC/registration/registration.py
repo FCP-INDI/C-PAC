@@ -17,7 +17,7 @@
 # pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
 """Workflows for registration."""
 
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from voluptuous import RequiredFieldInvalid
 from nipype.interfaces import afni, ants, c3, fsl, utility as util
@@ -39,9 +39,13 @@ from CPAC.registration.utils import (
     seperate_warps_list,
     single_ants_xfm_to_list,
 )
+from CPAC.utils.configuration.configuration import Configuration
 from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
+
+if TYPE_CHECKING:
+    from CPAC.pipeline.engine.resource import StratPool
 
 
 def apply_transform(
@@ -5416,8 +5420,8 @@ def warp_tissuemask_to_template(wf, cfg, strat_pool, pipe_num, xfm, template_spa
 
 def warp_resource_to_template(
     wf: pe.Workflow,
-    cfg,
-    strat_pool,
+    cfg: Configuration,
+    strat_pool: "StratPool",
     pipe_num: int,
     input_resource: list[str] | str,
     xfm: str,
@@ -5428,24 +5432,24 @@ def warp_resource_to_template(
 
     Parameters
     ----------
-    wf : pe.Workflow
+    wf
 
-    cfg : CPAC.utils.configuration.Configuration
+    cfg
 
-    strat_pool : CPAC.pipeline.engine.ResourcePool
+    strat_pool
 
-    pipe_num : int
+    pipe_num
 
-    input_resource : str or list
+    input_resource
         key for the resource to warp to template
 
-    xfm : str
+    xfm
         key for the transform to apply
 
-    reference : str, optional
+    reference
         key for reference if not using f'{template_space}-template'
 
-    time_series : boolean, optional
+    time_series
         resource to transform is 4D?
 
     Returns
