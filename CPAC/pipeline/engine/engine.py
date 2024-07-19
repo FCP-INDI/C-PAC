@@ -1349,8 +1349,8 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     # output files with 4 different scans
     resource_description = {
         "suffix": "T1w",
-        "desc": "preproc",
-        "space": "MNI152NLin6ASym"
+        #"desc": "preproc",
+        #"space": "MNI152NLin6ASym" 
     }
     resource_content = rpool.get_resource(resource_description)
     #print(dir(rpool.get_resource("T1w")[0]))

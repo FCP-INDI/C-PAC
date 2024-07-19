@@ -17,7 +17,7 @@ class Resource():
     def __init__(self, row, CpacProvenance):
 
         self.cpac_provenance = CpacProvenance
-        self.metadata = {}#row['json'] if isinstance(row['json'], dict) else {}
+        self.metadata = {} # replace with >> row['json'] if isinstance(row['json'], dict) else {}
         self.row = row
         for key, value in self.row.items():
             setattr(self, key, value)

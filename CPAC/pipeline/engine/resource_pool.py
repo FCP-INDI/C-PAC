@@ -1453,7 +1453,7 @@ class ResourcePool:
                 # Check if the resource matches the description criteria
                 # Use getattr for object attributes or resources.get for dictionary keys
                 resource_val = getattr(resources, key, None)
-                if resource_val != val:
+                if resource_val.lower() != val.lower():
                     is_match = False
                     break  # Break out of the inner loop if any criteria does not match
             if is_match:
