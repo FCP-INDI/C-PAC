@@ -30,7 +30,7 @@ from typing import Any, Literal, NamedTuple, Optional, overload
 
 from nipype.interfaces import utility as util  # type: ignore [import-untyped]
 from nipype.interfaces.utility import Rename  # type: ignore [import-untyped]
-from nipype.pipeline import engine as pe
+from nipype.pipeline import engine as pe  # type: ignore [import-untyped]
 
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import (
@@ -43,6 +43,7 @@ from CPAC.pipeline.engine.nodeblock import (
     NODEBLOCK_INPUTS,
     NODEBLOCK_OUTPUTS,
     NodeBlockFunction,
+    PIPELINE_BLOCKS,
 )
 from CPAC.pipeline.utils import name_fork, source_set
 from CPAC.registration.registration import transform_derivative
@@ -484,12 +485,6 @@ class _Pool:
 
 class ResourcePool(_Pool):
     """A pool of :py:class:`Resource` s."""
-
-    from CPAC.pipeline.engine.nodeblock import (
-        NODEBLOCK_INPUTS,
-        NodeBlockFunction,
-        PIPELINE_BLOCKS,
-    )
 
     def __init__(
         self,
