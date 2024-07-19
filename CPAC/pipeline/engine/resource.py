@@ -3216,7 +3216,7 @@ class StratPool(_Pool):
             If regressor dictionary does not exist in current strategy.
         """
         # pylint: disable=attribute-defined-outside-init
-        if hasattr(self, "_regressor_dct"):  # memoized
+        if hasattr(self, "_regressor_dct") and self._regressor_dct:  # memoized
             # pylint: disable=access-member-before-definition
             return self._regressor_dct
         key_error = KeyError(
