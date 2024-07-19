@@ -16,7 +16,6 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Test the CWAS pipeline."""
 
-from logging import basicConfig, INFO
 import os
 from urllib.error import URLError
 
@@ -30,7 +29,6 @@ from CPAC.cwas.pipeline import create_cwas
 from CPAC.utils.monitoring.custom_logging import getLogger
 
 logger = getLogger("CPAC.cwas.tests")
-basicConfig(format="%(message)s", level=INFO)
 
 
 @pytest.mark.parametrize("z_score", [[0], [1], [0, 1], []])

@@ -16,7 +16,6 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Tests for bids_utils."""
 
-from logging import basicConfig, INFO
 import os
 from subprocess import run
 
@@ -34,7 +33,6 @@ from CPAC.utils.bids_utils import (
 from CPAC.utils.monitoring.custom_logging import getLogger
 
 logger = getLogger("CPAC.utils.tests")
-basicConfig(format="%(message)s", level=INFO)
 
 
 def create_sample_bids_structure(root_dir):

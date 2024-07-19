@@ -14,7 +14,6 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from logging import basicConfig, INFO
 import os
 
 import pytest
@@ -25,7 +24,6 @@ from CPAC.utils.test_mocks import configuration_strategy_mock
 from CPAC.vmhc.vmhc import vmhc as create_vmhc
 
 logger = getLogger("CPAC.utils.tests")
-basicConfig(format="%(message)s", level=INFO)
 
 
 @pytest.mark.skip(reason="test needs refactoring")

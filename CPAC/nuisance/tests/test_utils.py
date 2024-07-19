@@ -1,4 +1,3 @@
-from logging import basicConfig, INFO
 import os
 import tempfile
 
@@ -10,7 +9,6 @@ from CPAC.nuisance.utils import calc_compcor_components, find_offending_time_poi
 from CPAC.utils.monitoring.custom_logging import getLogger
 
 logger = getLogger("CPAC.nuisance.tests")
-basicConfig(format="%(message)s", level=INFO)
 
 mocked_outputs = p.resource_filename(
     "CPAC", os.path.join("nuisance", "tests", "motion_statistics")

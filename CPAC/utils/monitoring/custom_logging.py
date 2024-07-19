@@ -59,7 +59,14 @@ def getLogger(name):  # pylint: disable=invalid-name
     if name in MOCK_LOGGERS:
         return MOCK_LOGGERS[name]
     logger = nipype_logging.getLogger(name)
-    return logging.getLogger(name) if logger is None else logger
+    if logger is None:
+        logger = logging.getLogger(name)
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter("%(message)s"))
+            logger.setLevel(logging.INFO)
+            logger.addHandler(handler)
+    return logger
 
 
 # Nipype built-in loggers
