@@ -782,12 +782,12 @@ def run_main():
                 only_one_anat=False,
             )
             # Initializing the bidstable on the bids_directory
-            bids_table = bids2table(bids_dir, workers=10)
+            bids_table = bids2table(bids_dir, workers=10).flat
 
             try:
                 # fillna
-                bids_table['ent__ses'] = bids_table['ent__ses'].fillna('None')
-                grouped_tab = bids_table.groupby(["ent__sub", "ent__ses"])
+                bids_table['ses'] = bids_table['ses'].fillna('None')
+                grouped_tab = bids_table.groupby(["sub", "ses"])
             except Exception as e:
                 WFLOGGER.warning("Could not create bids table: %s", e)
                 print("Could not create bids table: %s", e)

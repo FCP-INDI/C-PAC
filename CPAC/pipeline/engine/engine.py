@@ -1347,10 +1347,24 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     # rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
 
     # output files with 4 different scans
-    print(rpool.get_resource("T1w"))
+    resource_description = {
+        "suffix": "T1w",
+        "desc": "preproc",
+        "space": "MNI152NLin6ASym"
+    }
+    resource_content = rpool.get_resource(resource_description)
     #print(dir(rpool.get_resource("T1w")[0]))
     #rpool.write_to_disk(cfg.pipeline_setup["working_directory"]["path"])
     #print(rpool.get_resource("T1w"))
+
+    # Ensure the directory exists
+    os.makedirs('/code/output', exist_ok=True)
+
+    # Now, safely open the file. It will be created if it does not exist.
+    with open('/code/output/output.txt', 'w') as file:
+      
+        # Write the content to the file
+        file.write(str(resource_content))
     import sys
     sys.exit()
 

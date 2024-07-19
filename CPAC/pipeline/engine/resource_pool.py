@@ -1429,8 +1429,8 @@ class ResourcePool:
                 CpacProvenance = default_CpacProvenance
             resource = Resource(row, CpacProvenance)
             # making the rpool a list so that the duplicates are appended rather than overwritten
-            self.rpool.setdefault(resource.category, [])
-            self.rpool[resource.category].append(resource)
+            self.rpool.setdefault(resource.suffix, [])
+            self.rpool[resource.suffix].append(resource)
             # count += 1
             # if count >10:
             #     break
@@ -1441,8 +1441,28 @@ class ResourcePool:
             for item in resources:
                 print(item['resource'].write_to_disk(path))
 
-    def get_resource(self, name):
-        return self.rpool.get(name, None)
+    def get_resource(self, description):
+        matching_resources = []
+        for resources in self.rpool.get(description['suffix'], []):
+            # Initialize a flag to True, assuming the resource matches until proven otherwise
+            is_match = True
+            for key, val in description.items():
+                # Skip the 'suffix' key as it's used to select the pool, not to match resources
+                if key == 'suffix':
+                    continue
+                # Check if the resource matches the description criteria
+                # Use getattr for object attributes or resources.get for dictionary keys
+                resource_val = getattr(resources, key, None)
+                if resource_val != val:
+                    is_match = False
+                    break  # Break out of the inner loop if any criteria does not match
+            if is_match:
+                # If the resource matches all criteria, append its name to the matching_resources list
+                matching_resources.append(resources.name)
+        for items in matching_resources: 
+            print(items)
+        return matching_resources
+            
 
     def set_resource(self, name, value):
         self.rpool[name] = value
