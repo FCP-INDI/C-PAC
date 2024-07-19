@@ -224,7 +224,7 @@ class Resource:
         return list(self._keys)
 
     def __contains__(self, item: Any) -> bool:
-        """Return ``True`` if `item` in :py:method:`~Resource.keys()`, ``False`` otherwise."""
+        """Return ``True`` if `item` in :py:meth:`Resource.keys()`, ``False`` otherwise."""
         return item in self.keys()
 
     def __getitem__(self, name: str) -> Any:
