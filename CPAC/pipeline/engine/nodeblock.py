@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Classes and decorator for :`NodeBlock`s and :`NodeBlockFunction`s."""
+"""Classes and decorator for :py:class:`NodeBlock` s and :py:class:`NodeBlockFunction` s."""
 
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
@@ -146,7 +146,7 @@ class NodeBlockFunction:
 
 
 class NodeBlock:
-    """A :py:class:`~nipype.pipeline.engine.Workflow` subgraph composed of :py:class:`NodeBlockFunction`s."""
+    """A :py:class:`~nipype.pipeline.engine.Workflow` subgraph composed of :py:class:`NodeBlockFunction` s."""
 
     def __init__(
         self,
