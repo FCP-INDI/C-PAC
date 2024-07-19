@@ -2363,7 +2363,7 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-confounds_timeseries", "censor-indices"],
 )
 def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
-    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, "bold")
+    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, "bold")
 
 
 @nodeblock(
@@ -2407,7 +2407,7 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
     outputs=["desc-confounds_timeseries", "censor-indices"],
 )
 def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
-    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, "T1w")
+    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, "T1w")
 
 
 def nuisance_regressors_generation(
@@ -2415,10 +2415,14 @@ def nuisance_regressors_generation(
     cfg: Configuration,
     strat_pool: StratPool,
     pipe_num: int,
-    opt: dict,
     space: Literal["T1w", "bold"],
 ) -> tuple[Workflow, dict]:
     """Generate nuisance regressors."""
+    try:
+        opt = strat_pool.regressor_dct
+    except LookupError:
+        # no regressors to generate
+        return wf, {}
     prefixes = [f"space-{space}_"] * 2
     reg_tool = None
     if space == "T1w":
@@ -2659,7 +2663,11 @@ def nuisance_regression(wf, cfg, strat_pool: StratPool, pipe_num, opt, space, re
 
     outputs : dict
     """
-    opt = strat_pool.regressor_dct
+    try:
+        opt = strat_pool.regressor_dct
+    except LookupError:
+        # no regressors
+        return wf, {}
     bandpass = "Bandpass" in opt
     bandpass_before = (
         bandpass
