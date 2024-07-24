@@ -1071,9 +1071,16 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
             overwrite_transform_anat_to_template,
-            warp_wholeheadT1_to_template,
-            warp_T1mask_to_template,
+            
+            
         ]
+    if not cfg.longitudinal_template_generation["run"]:
+        reg_blocks.append(
+            [
+                warp_wholeheadT1_to_template, 
+                warp_T1mask_to_template,
+            ]
+        )
 
     if not rpool.check_rpool("desc-restore-brain_T1w"):
         reg_blocks.append(correct_restore_brain_intensity_abcd)
@@ -1125,6 +1132,7 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
         in cfg.segmentation["tissue_segmentation"]["Template_Based"][
             "template_for_segmentation"
         ]
+        and not cfg.longitudinal_template_generation["run"]
     ):
         pipeline_blocks.append(warp_tissuemask_to_T1template)
 
