@@ -495,7 +495,7 @@ def create_seg_preproc_antsJointLabel_method(wf_name="seg_preproc_templated_base
     option_val="FSL-FAST",
     inputs=[
         (
-            ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
+            ["desc-brain_T1w", "space-longitudinal_desc-preproc_T1w"],
             ["space-T1w_desc-brain_mask", "space-longitudinal_desc-brain_mask"],
             [
                 "from-template_to-T1w_mode-image_desc-linear_xfm",
@@ -528,6 +528,10 @@ def create_seg_preproc_antsJointLabel_method(wf_name="seg_preproc_templated_base
         "space-longitudinal_label-CSF_probseg",
         "space-longitudinal_label-GM_probseg",
         "space-longitudinal_label-WM_probseg",
+        "space-longitudinal_label-WM_probseg",
+        "space-longitudinal_label-CSF_pveseg",
+        "space-longitudinal_label-GM_pveseg",
+        "space-longitudinal_label-WM_pveseg"
     ],
 )
 def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -574,7 +578,7 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     )
 
     connect, resource = strat_pool.get_data(
-        ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"], report_fetched=True
+        ["desc-brain_T1w", "space-longitudinal_desc-preproc_T1w"], report_fetched=True
     )
     node, out = connect
     wf.connect(node, out, segment, "in_files")
@@ -655,7 +659,7 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(node, out, process_wm, "inputspec.tissue_prior")
 
     node, out = strat_pool.get_data(
-        ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"]
+        ["desc-brain_T1w", "space-longitudinal_desc-preproc_T1w"]
     )
     wf.connect(node, out, process_csf, "inputspec.brain")
     wf.connect(node, out, process_gm, "inputspec.brain")

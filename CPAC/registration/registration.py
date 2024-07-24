@@ -2260,7 +2260,7 @@ def bold_to_T1template_xfm_connector(
     inputs=[
         (
             ["desc-preproc_T1w", "space-longitudinal_desc-reorient_T1w"],
-            ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
+            ["desc-brain_T1w", "space-longitudinal_desc-preproc_T1w"],
         ),
         "T1w-template",
         "T1w-brain-template",
@@ -2301,7 +2301,7 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     ]["registration"]["FSL-FNIRT"]["fnirt_config"]
 
     connect, brain = strat_pool.get_data(
-        ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"], report_fetched=True
+        ["desc-brain_T1w", "space-longitudinal_desc-preproc_T1w"], report_fetched=True
     )
     node, out = connect
     wf.connect(node, out, fsl, "inputspec.input_brain")
@@ -2333,16 +2333,19 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, fsl, "inputspec.reference_mask")
 
     if "space-longitudinal" in brain:
+        replace_outputs = {}
         for key in outputs.keys():
             if "from-T1w" in key:
                 new_key = key.replace("from-T1w", "from-longitudinal")
-                outputs[new_key] = outputs[key]
-                del outputs[key]
+                replace_outputs[key] = new_key
             if "to-T1w" in key:
                 new_key = key.replace("to-T1w", "to-longitudinal")
-                outputs[new_key] = outputs[key]
-                del outputs[key]
-
+                replace_outputs[key] = new_key
+        for key in replace_outputs: 
+            tmp = outputs[key]
+            outputs[replace_outputs[key]] = tmp
+            del outputs[key]
+            
     return (wf, outputs)
 
 
@@ -2355,7 +2358,7 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     inputs=[
         (
             ["desc-preproc_T1w", "space-longitudinal_desc-reorient_T1w"],
-            ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
+            ["desc-brain_T1w", "space-longitudinal_desc-preproc_T1w"],
         ),
         "T1w-template-symmetric",
         "T1w-brain-template-symmetric",
@@ -2404,7 +2407,7 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=N
     ]["registration"]["FSL-FNIRT"]["fnirt_config"]
 
     connect, brain = strat_pool.get_data(
-        ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"], report_fetched=True
+        ["desc-brain_T1w", "space-longitudinal_desc-preproc_T1w"], report_fetched=True
     )
     node, out = connect
     wf.connect(node, out, fsl, "inputspec.input_brain")
@@ -2424,15 +2427,18 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=N
     wf.connect(node, out, fsl, "inputspec.reference_mask")
 
     if "space-longitudinal" in brain:
+        replace_outputs = {}
         for key in outputs.keys():
             if "from-T1w" in key:
                 new_key = key.replace("from-T1w", "from-longitudinal")
-                outputs[new_key] = outputs[key]
-                del outputs[key]
+                replace_outputs[key] = new_key
             if "to-T1w" in key:
                 new_key = key.replace("to-T1w", "to-longitudinal")
-                outputs[new_key] = outputs[key]
-                del outputs[key]
+                replace_outputs[key] = new_key
+        for key in replace_outputs: 
+            tmp = outputs[key]
+            outputs[replace_outputs[key]] = tmp
+            del outputs[key]
 
     return (wf, outputs)
 
@@ -2503,7 +2509,7 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     option_val="ANTS",
     inputs=[
         (
-            ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"],
+            ["desc-preproc_T1w", "space-longitudinal_desc-preproc_T1w"],
             [
                 "space-T1w_desc-brain_mask",
                 "space-longitudinal_desc-brain_mask",
@@ -2611,7 +2617,7 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     ]["registration"]["ANTs"]["interpolation"]
 
     connect, brain = strat_pool.get_data(
-        ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"], report_fetched=True
+        ["desc-preproc_T1w", "space-longitudinal_desc-preproc_T1w"], report_fetched=True
     )
     node, out = connect
     wf.connect(node, out, ants_rc, "inputspec.input_brain")
@@ -2654,17 +2660,21 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     if strat_pool.check_rpool("label-lesion_mask"):
         node, out = strat_pool.get_data("label-lesion_mask")
         wf.connect(node, out, ants_rc, "inputspec.lesion_mask")
-
+    
     if "space-longitudinal" in brain:
+        replace_outputs = {}
         for key in outputs:
             for direction in ["from", "to"]:
                 if f"{direction}-T1w" in key:
                     new_key = key.replace(
                         f"{direction}-T1w", f"{direction}-longitudinal"
                     )
-                    outputs[new_key] = outputs[key]
-                    del outputs[key]
-
+                    replace_outputs[key] = new_key
+        for key in replace_outputs: 
+            tmp = outputs[key]
+            outputs[replace_outputs[key]] = tmp
+            del outputs[key]
+        
     return (wf, outputs)
 
 
@@ -2676,7 +2686,7 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     option_val="ANTS",
     inputs=[
         (
-            ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"],
+            ["desc-preproc_T1w", "space-longitudinal_desc-preproc_T1w"],
             ["space-T1w_desc-brain_mask", "space-longitudinal_desc-brain_mask"],
             [
                 "desc-head_T1w",
@@ -2750,7 +2760,7 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=
     ]["registration"]["ANTs"]["interpolation"]
 
     connect, brain = strat_pool.get_data(
-        ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"], report_fetched=True
+        ["desc-preproc_T1w", "space-longitudinal_desc-preproc_T1w"], report_fetched=True
     )
     node, out = connect
     wf.connect(node, out, ants, "inputspec.input_brain")
@@ -2779,15 +2789,18 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=
         wf.connect(node, out, ants, "inputspec.lesion_mask")
 
     if "space-longitudinal" in brain:
+        replace_outputs = {}
         for key in outputs.keys():
             if "from-T1w" in key:
                 new_key = key.replace("from-T1w", "from-longitudinal")
-                outputs[new_key] = outputs[key]
-                del outputs[key]
+                replace_outputs[key] = new_key
             if "to-T1w" in key:
                 new_key = key.replace("to-T1w", "to-longitudinal")
-                outputs[new_key] = outputs[key]
-                del outputs[key]
+                replace_outputs[key] = new_key
+        for key in replace_outputs: 
+            tmp = outputs[key]
+            outputs[replace_outputs[key]] = tmp
+            del outputs[key]
 
     return (wf, outputs)
 
@@ -2882,7 +2895,7 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     inputs=[
         (
             "desc-restore-brain_T1w",
-            ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"],
+            ["desc-preproc_T1w", "space-longitudinal_desc-preproc_T1w"],
             ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
             ["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
             "space-T1w_desc-brain_mask",
@@ -3865,7 +3878,7 @@ def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, opt=None)
 )
 def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Warp T1 head to template."""
-    xfm_prov = strat_pool.get_cpac_provenance("from-T1w_to-template_mode-image_xfm")
+    xfm_prov = strat_pool.get_cpac_provenance(["from-T1w_to-template_mode-image_xfm", "from-longitudinal_to-template_mode-image_xfm"])
     reg_tool = check_prov_for_regtool(xfm_prov)
 
     num_cpus = cfg.pipeline_setup["system_config"]["max_cores_per_participant"]
@@ -3896,7 +3909,7 @@ def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("T1w-template")
     wf.connect(node, out, apply_xfm, "inputspec.reference")
 
-    node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
+    node, out = strat_pool.get_data(["from-T1w_to-template_mode-image_xfm", "from-longitudinal_to-template_mode-image_xfm"])
     wf.connect(node, out, apply_xfm, "inputspec.transform")
 
     outputs = {"space-template_desc-head_T1w": (apply_xfm, "outputspec.output_image")}
