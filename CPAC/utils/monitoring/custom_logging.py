@@ -203,10 +203,10 @@ class MockLogger:
     @staticmethod
     def _get_first_file_handler(
         handlers: Sequence[logging.Handler | MockHandler],
-    ) -> Optional[logging.FileHandler]:
+    ) -> Optional[logging.FileHandler | MockHandler]:
         """Given a list of Handlers, return the first FileHandler found or return None."""
         for handler in handlers:
-            if isinstance(handler, logging.FileHandler):
+            if isinstance(handler, (logging.FileHandler, MockHandler)):
                 return handler
         return None
 
