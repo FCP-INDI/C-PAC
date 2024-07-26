@@ -21,6 +21,7 @@ import os
 import subprocess
 from sys import exc_info as sys_exc_info
 from traceback import print_exception
+from typing import Optional, Sequence
 
 from nipype import logging as nipype_logging
 
@@ -178,7 +179,9 @@ class MockLogger:
                 logging, level.upper(), logging.NOTSET
             ):
                 with open(
-                    self.handlers[0].baseFilename, "a", encoding="utf-8"
+                    MockLogger._get_first_file_handler(self.handlers).baseFilename,
+                    "a",
+                    encoding="utf-8",
                 ) as log_file:
                     if exc_info and isinstance(message, Exception):
                         value, traceback = sys_exc_info()[1:]
@@ -196,6 +199,16 @@ class MockLogger:
     def delete(self):
         """Delete the mock logger from memory."""
         del MOCK_LOGGERS[self.name]
+
+    @staticmethod
+    def _get_first_file_handler(
+        handlers: Sequence[logging.Handler | MockHandler],
+    ) -> Optional[logging.FileHandler]:
+        """Given a list of Handlers, return the first FileHandler found or return None."""
+        for handler in handlers:
+            if isinstance(handler, logging.FileHandler):
+                return handler
+        return None
 
 
 def _lazy_sub(message, *items):
@@ -259,12 +272,12 @@ def set_up_logger(
     Examples
     --------
     >>> lg = set_up_logger('test')
-    >>> lg.handlers[0].baseFilename.split('/')[-1]
+    >>> MockLogger._get_first_file_handler(lg.handlers).baseFilename.split('/')[-1]
     'test.log'
     >>> lg.level
     0
     >>> lg = set_up_logger('second_test', 'specific_filename.custom', 'debug')
-    >>> lg.handlers[0].baseFilename.split('/')[-1]
+    >>> MockLogger._get_first_file_handler(lg.handlers).baseFilename.split('/')[-1]
     'specific_filename.custom'
     >>> lg.level
     10
