@@ -1623,7 +1623,7 @@ def create_nuisance_regression_workflow(nuisance_selectors,
     if nuisance_selectors.get('Censor'):
         if nuisance_selectors['Censor']['method'] == 'SpikeRegression':
             nuisance_wf.connect(find_censors, 'out_file',
-                                nuisance_regression, 'censor')
+                                nuisance_regression, 'ort')
         else:
             if nuisance_selectors['Censor']['method'] == 'Interpolate':
                 nuisance_regression.inputs.cenmode = 'NTRP'
