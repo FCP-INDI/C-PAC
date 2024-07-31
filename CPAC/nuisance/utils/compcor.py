@@ -164,7 +164,7 @@ def cosine_filter(
                 for k in range(datashape[2]):
                     yield input_data[i, j, k, :]
 
-    input_img = nb.load(input_image_path)
+    input_img = nib.load(input_image_path)
 
     input_data = input_img.get_fdata()
 
