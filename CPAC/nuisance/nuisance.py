@@ -37,8 +37,8 @@ from CPAC.nuisance.utils.compcor import (
     TR_string_to_float,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.engine import ResourcePool
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
+from CPAC.pipeline.engine.resource import StratPool
 from CPAC.registration.registration import (
     apply_transform,
     warp_timeseries_to_EPItemplate,
@@ -2363,7 +2363,7 @@ def erode_mask_WM(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-confounds_timeseries", "censor-indices"],
 )
 def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, opt=None):
-    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, "bold")
+    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, "bold")
 
 
 @nodeblock(
@@ -2407,40 +2407,22 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
     outputs=["desc-confounds_timeseries", "censor-indices"],
 )
 def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
-    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, "T1w")
+    return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, "T1w")
 
 
 def nuisance_regressors_generation(
     wf: Workflow,
     cfg: Configuration,
-    strat_pool: ResourcePool,
+    strat_pool: StratPool,
     pipe_num: int,
-    opt: dict,
     space: Literal["T1w", "bold"],
 ) -> tuple[Workflow, dict]:
-    """Generate nuisance regressors.
-
-    Parameters
-    ----------
-    wf : ~nipype.pipeline.engine.workflows.Workflow
-
-    cfg : ~CPAC.utils.configuration.Configuration
-
-    strat_pool : ~CPAC.pipeline.engine.ResourcePool
-
-    pipe_num : int
-
-    opt : dict
-
-    space : str
-        T1w or bold
-
-    Returns
-    -------
-    wf : nipype.pipeline.engine.workflows.Workflow
-
-    outputs : dict
-    """
+    """Generate nuisance regressors."""
+    try:
+        opt = strat_pool.regressor_dct
+    except LookupError:
+        # no regressors to generate
+        return wf, {}
     prefixes = [f"space-{space}_"] * 2
     reg_tool = None
     if space == "T1w":
@@ -2664,7 +2646,7 @@ def nuisance_regressors_generation(
     return (wf, outputs)
 
 
-def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
+def nuisance_regression(wf, cfg, strat_pool: StratPool, pipe_num, opt, space, res=None):
     """Nuisance regression in native (BOLD) or template space.
 
     Parameters
@@ -2681,7 +2663,11 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
 
     outputs : dict
     """
-    opt = strat_pool.regressor_dct(cfg)
+    try:
+        opt = strat_pool.regressor_dct
+    except LookupError:
+        # no regressors
+        return wf, {}
     bandpass = "Bandpass" in opt
     bandpass_before = (
         bandpass

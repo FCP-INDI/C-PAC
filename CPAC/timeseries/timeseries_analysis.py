@@ -22,7 +22,7 @@ from CPAC.connectome.connectivity_matrix import (
     get_connectome_method,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.utils.datasource import (
     create_roi_mask_dataflow,
     create_spatial_map_dataflow,

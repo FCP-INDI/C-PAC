@@ -31,7 +31,7 @@ from CPAC.generate_motion_statistics import (
     motion_power_statistics,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
@@ -830,7 +830,7 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
     notch.inputs.lowpass_cutoff = opt.get("lowpass_cutoff")
     notch.inputs.filter_order = opt.get("filter_order")
 
-    movement_parameters = strat_pool.node_data("desc-movementParameters_motion")
+    movement_parameters = strat_pool.get_data("desc-movementParameters_motion")
     wf.connect(
         movement_parameters.node, movement_parameters.out, notch, "motion_params"
     )

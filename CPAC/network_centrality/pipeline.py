@@ -19,7 +19,7 @@ from nipype.interfaces import fsl
 from CPAC.network_centrality.network_centrality import create_centrality_wf
 from CPAC.network_centrality.utils import check_centrality_params, create_merge_node
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.pipeline.schema import valid_options
 
 

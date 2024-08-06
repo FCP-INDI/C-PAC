@@ -14,12 +14,21 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from CPAC.utils.datasource import create_func_datasource, ingress_func_metadata
+"""Ingress functional data for preprocessing."""
+
+from CPAC.utils.strategy import Strategy
 
 
 def connect_func_ingress(
-    workflow, strat_list, c, sub_dict, subject_id, input_creds_path, unique_id=None
+    workflow,
+    strat_list: list[Strategy],
+    c,
+    sub_dict,
+    subject_id,
+    input_creds_path,
+    unique_id=None,
 ):
+    """Connect functional ingress workflow."""
     for num_strat, strat in enumerate(strat_list):
         if "func" in sub_dict:
             func_paths_dict = sub_dict["func"]
@@ -31,7 +40,9 @@ def connect_func_ingress(
         else:
             workflow_name = f"func_gather_{unique_id}_{num_strat}"
 
-        func_wf = create_func_datasource(func_paths_dict, workflow_name)
+        func_wf = strat._resource_pool.create_func_datasource(
+            func_paths_dict, workflow_name
+        )
 
         func_wf.inputs.inputnode.set(
             subject=subject_id,
@@ -47,8 +58,6 @@ def connect_func_ingress(
             }
         )
 
-        (workflow, strat.rpool, diff, blip, fmap_rp_list) = ingress_func_metadata(
-            workflow, c, strat.rpool, sub_dict, subject_id, input_creds_path, unique_id
-        )
+        diff, blip, fmap_rp_list = strat.rpool.ingress_func_metadata()
 
-    return (workflow, diff, blip, fmap_rp_list)
+    return strat.rpool.wf, diff, blip, fmap_rp_list

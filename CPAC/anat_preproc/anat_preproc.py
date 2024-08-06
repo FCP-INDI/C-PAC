@@ -34,7 +34,7 @@ from CPAC.anat_preproc.utils import (
     wb_command,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 

@@ -21,6 +21,7 @@
 from itertools import chain, permutations
 import re
 from subprocess import CalledProcessError
+from typing import Any as TypeAny, Optional as TypeOptional
 
 import numpy as np
 from pathvalidate import sanitize_filename
@@ -63,18 +64,12 @@ RESOLUTION_REGEX = r"^[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*
 Number = Any(float, int, All(str, Match(SCIENTIFIC_NOTATION_STR_REGEX)))
 
 
-def str_to_bool1_1(x):  # pylint: disable=invalid-name
-    """Convert strings to Booleans for YAML1.1 syntax.
+def str_to_bool1_1(x: TypeAny) -> bool:  # pylint: disable=invalid-name
+    """Convert strings to Booleans for YAML1.1 syntax [1]_.
 
-    Ref https://yaml.org/type/bool.html
-
-    Parameters
+    References
     ----------
-    x : any
-
-    Returns
-    -------
-    bool
+    .. [1] 2005-01-18. Oren Ben-Kiki, Clark Evans & Brian Ingerson. `"Boolean Language-Independent Type for YAML™ Version 1.1" [Working Draft] <https://yaml.org/type/bool.html>`_. Copyright © 2001-2005 Oren Ben-Kiki, Clark Evans, Brian Ingerson.
     """
     if isinstance(x, str):
         try:
@@ -316,18 +311,8 @@ target_space = All(
 )
 
 
-def name_motion_filter(mfilter, mfilters=None):
+def name_motion_filter(mfilter: dict, mfilters: TypeOptional[list] = None) -> str:
     """Given a motion filter, create a short string for the filename.
-
-    Parameters
-    ----------
-    mfilter : dict
-
-    mfliters : list or None
-
-    Returns
-    -------
-    str
 
     Examples
     --------
@@ -385,19 +370,8 @@ def name_motion_filter(mfilter, mfilters=None):
     return name
 
 
-def permutation_message(key, options):
-    """Give a human-readable error message for keys that accept permutation values.
-
-    Parameters
-    ----------
-    key: str
-
-    options: list or set
-
-    Returns
-    -------
-    msg: str
-    """
+def permutation_message(key: str, options: list | set) -> str:
+    """Give a human-readable error message for keys that accept permutation values."""
     return f"""
 
 \'{key}\' takes a dictionary with paths to region-of-interest (ROI)
@@ -412,7 +386,7 @@ Available analyses for \'{key}\' are {options}
 """
 
 
-def sanitize(filename):
+def sanitize(filename: str) -> str:
     """Sanitize a filename and replace whitespaces with underscores."""
     return re.sub(r"\s+", "_", sanitize_filename(filename))
 
@@ -1253,20 +1227,12 @@ latest_schema = Schema(
 )
 
 
-def schema(config_dict):
+def schema(config_dict: dict) -> dict:
     """Validate a participant-analysis pipeline configuration.
 
     Validate against the latest validation schema by first applying backwards-
     compatibility patches, then applying Voluptuous validation, then handling complex
-    configuration interaction checks before returning validated config_dict.
-
-    Parameters
-    ----------
-    config_dict : dict
-
-    Returns
-    -------
-    dict
+    configuration interaction checks before returning validated `config_dict`.
     """
     from CPAC.utils.utils import _changes_1_8_0_to_1_8_1
 

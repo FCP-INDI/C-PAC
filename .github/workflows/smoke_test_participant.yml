@@ -68,7 +68,7 @@ jobs:
           GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
           if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
           then
-            TAG=${GITHUB_BRANCH//\//_}
+            TAG=`echo ${GITHUB_BRANCH} | sed 's/[^a-zA-Z0-9._]/-/g'`
           elif [[ $GITHUB_BRANCH == 'develop' ]]
           then
             TAG=nightly
@@ -133,7 +133,7 @@ jobs:
           GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
           if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
           then
-            TAG=${GITHUB_BRANCH//\//_}
+            TAG=`echo ${GITHUB_BRANCH} | sed 's/[^a-zA-Z0-9._]/-/g'`
           elif [[ $GITHUB_BRANCH == 'develop' ]]
           then
             TAG=nightly
@@ -192,7 +192,7 @@ jobs:
           GITHUB_BRANCH=$(echo ${GITHUB_REF} | cut -d '/' -f 3-)
           if [[ ! $GITHUB_BRANCH == 'main' ]] && [[ ! $GITHUB_BRANCH == 'develop' ]]
           then
-            TAG=${GITHUB_BRANCH//\//_}
+            TAG=`echo ${GITHUB_BRANCH} | sed 's/[^a-zA-Z0-9._]/-/g'`
           elif [[ $GITHUB_BRANCH == 'develop' ]]
           then
             TAG=nightly
