@@ -1,7 +1,7 @@
 import pkg_resources as p
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.qc.qc import (
     afni_Edge3,
     create_montage,

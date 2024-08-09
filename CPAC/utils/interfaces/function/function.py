@@ -156,28 +156,28 @@ class Function(NipypeFunction):
 
     def __init__(
         self,
-        input_names=None,
-        output_names="out",
-        function=None,
-        imports=None,
-        as_module=False,
+        input_names: Optional[str | list[str]] = None,
+        output_names: Optional[str | list[str]] = "out",
+        function: Optional[Callable] = None,
+        imports: Optional[list[str]] = None,
+        as_module: bool = False,
         **inputs,
     ):
-        """Initialize a :py:func`~CPAC.utils.interfaces.function.Function` interface.
+        """Initialize a :py:func:`~CPAC.utils.interfaces.function.Function` interface.
 
         Parameters
         ----------
-        input_names : single str or list or None
+        input_names
             names corresponding to function inputs
             if ``None``, derive input names from function argument names
-        output_names : single str or list
+        output_names
             names corresponding to function outputs (default: 'out').
             if list of length > 1, has to match the number of outputs
-        function : callable
+        function
             callable python object. must be able to execute in an
-            isolated namespace (possibly in concert with the ``imports``
+            isolated namespace (possibly in concert with the `imports`
             parameter)
-        imports : list of strings
+        imports
             list of import statements that allow the function to execute
             in an otherwise empty namespace. If these collide with
             imports defined via the :py:meth:`Function.sig_imports`
@@ -244,12 +244,11 @@ class Function(NipypeFunction):
 
         Parameters
         ----------
-        imports : list of str
+        imports
             import statements to import the function in an otherwise empty
             namespace. If these collide with imports defined via the
-            :py:meth:`Function.__init__` initialization method, the
-            imports given as a parameter here will be overridden by
-            those from the initializer.
+            :py:meth:`Function.__init__` method, the imports given as a parameter here
+            will be overridden by those from the initializer.
 
         Returns
         -------

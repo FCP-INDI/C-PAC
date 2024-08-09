@@ -18,31 +18,16 @@
 
 from itertools import chain
 
-from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
+from CPAC.utils.configuration.configuration import Configuration
 
-MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
+def name_fork(
+    resource_idx: str, cfg: Configuration, json_info: dict, out_dct: dict
+) -> tuple[str, dict]:
+    """Create and insert entities for forkpoints."""
+    from CPAC.func_preproc.func_motion import motion_estimate_filter
 
-def name_fork(resource_idx, cfg, json_info, out_dct):
-    """Create and insert entities for forkpoints.
-
-    Parameters
-    ----------
-    resource_idx : str
-
-    cfg : CPAC.utils.configuration.Configuration
-
-    json_info : dict
-
-    out_dct : dict
-
-    Returns
-    -------
-    resource_idx : str
-
-    out_dct : dict
-    """
     if cfg.switch_is_on(
         [
             "functional_preproc",
@@ -54,7 +39,7 @@ def name_fork(resource_idx, cfg, json_info, out_dct):
         filt_value = None
         _motion_variant = {
             _key: json_info["CpacVariant"][_key]
-            for _key in MOVEMENT_FILTER_KEYS
+            for _key in motion_estimate_filter.outputs
             if _key in json_info.get("CpacVariant", {})
         }
         if "unfiltered-" in resource_idx:
@@ -104,12 +89,6 @@ def present_outputs(outputs: dict, keys: list) -> dict:
     provided ``outputs`` dictionary, eliminating the need for multiple
     NodeBlocks that differ only by configuration options and relevant
     output keys.
-
-    Parameters
-    ----------
-    outputs : dict
-
-    keys : list of str
 
     Returns
     -------

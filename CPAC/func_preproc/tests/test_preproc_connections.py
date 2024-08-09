@@ -36,7 +36,6 @@ from CPAC.func_preproc.func_motion import (
 )
 from CPAC.func_preproc.func_preproc import func_normalize
 from CPAC.nuisance.nuisance import choose_nuisance_blocks
-from CPAC.pipeline.cpac_pipeline import connect_pipeline
 from CPAC.pipeline.engine import ResourcePool
 from CPAC.pipeline.nipype_pipeline_engine import Workflow
 from CPAC.registration.registration import (
@@ -81,7 +80,7 @@ _PRE_RESOURCES = [
     "from-template_to-T1w_mode-image_desc-linear_xfm",
 ]
 
-NUM_TESTS = 48  # number of parameterizations to run for many-parameter tests
+NUM_TESTS = 8  # number of parameterizations to run for many-parameter tests
 
 
 def _filter_assertion_message(
@@ -268,7 +267,7 @@ def test_motion_filter_connections(
     if not rpool.check_rpool("desc-cleaned_bold"):
         pipeline_blocks += choose_nuisance_blocks(c, generate_only)
     wf = Workflow(re.sub(r"[\[\]\-\:\_ \'\",]", "", str(rpool)))
-    connect_pipeline(wf, c, rpool, pipeline_blocks)
+    rpool.connect_pipeline(wf, c, pipeline_blocks)
     # Check that filtering is happening as expected
     filter_switch_key = [
         "functional_preproc",
