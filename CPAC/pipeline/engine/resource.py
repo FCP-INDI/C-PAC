@@ -716,7 +716,6 @@ class ResourcePool(_Pool):
             self.ingress_output_dir()
         else:
             self.ingress_raw_anat_data()
-            # if getattr(data_paths, 'func', False) or : # TODO: include conditional in ingress_raw_func_data
             self.ingress_raw_func_data()
         self.ingress_pipeconfig_paths()
 
