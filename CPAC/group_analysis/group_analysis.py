@@ -1,14 +1,29 @@
+# Copyright (C) 2012-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from nipype.interfaces import fsl
 import nipype.interfaces.utility as util
 
 from CPAC.easy_thresh import easy_thresh
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.interfaces import Function
 
 
 def get_operation(in_file):
-    """
-    Method to create operation string
-    for fslmaths.
+    """Create operation string for fslmaths.
 
     Parameters
     ----------
@@ -39,7 +54,9 @@ def get_operation(in_file):
 
 
 def label_zstat_files(zstat_list, con_file):
-    """Take in the z-stat file outputs of FSL FLAME and rename them after the
+    """Rename z-stat file outputs from FSL FLAME using contrast labels.
+
+    Take in the z-stat file outputs of FSL FLAME and rename them after the
     contrast labels of the contrasts provided.
     """
     cons = []
@@ -64,9 +81,7 @@ def label_zstat_files(zstat_list, con_file):
 
 
 def create_fsl_flame_wf(ftest=False, wf_name="groupAnalysis"):
-    """
-    FSL `FEAT <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FEAT>`_
-    BASED Group Analysis.
+    """Run FSL `FEAT <http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FEAT>`_ BASED Group Analysis.
 
     Parameters
     ----------
@@ -313,7 +328,7 @@ def create_fsl_flame_wf(ftest=False, wf_name="groupAnalysis"):
     # easier interpretation
     label_zstat_imports = ["import os"]
     label_zstat = pe.Node(
-        util.Function(
+        Function(
             input_names=["zstat_list", "con_file"],
             output_names=["new_zstat_list"],
             function=label_zstat_files,
@@ -341,7 +356,7 @@ def create_fsl_flame_wf(ftest=False, wf_name="groupAnalysis"):
 
     # function node to get the operation string for fslmaths command
     get_opstring = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file"], output_names=["out_file"], function=get_operation
         ),
         name="get_opstring",

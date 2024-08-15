@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2024  C-PAC Developers
+# Copyright (C) 2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,13 +14,6 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""C-PAC engine."""
+"""Pytest configuration for CircleCI-specific tests."""
 
-from .nodeblock import NodeBlock
-from .resource import ResourcePool, StratPool
-
-__all__ = [
-    "NodeBlock",
-    "ResourcePool",
-    "StratPool",
-]
+from CPAC.conftest import bids_examples

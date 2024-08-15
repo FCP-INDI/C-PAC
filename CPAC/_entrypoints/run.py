@@ -29,6 +29,7 @@ from typing import Optional
 from warnings import simplefilter
 
 import yaml
+from bids2table import bids2table
 
 from CPAC import __version__, license_notice
 from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
@@ -37,7 +38,6 @@ from CPAC.pipeline.schema import str_to_bool1_1
 from CPAC.utils.bids_utils import (
     cl_strip_brackets,
     create_cpac_data_config,
-    load_cpac_data_config,
     load_yaml_config,
     sub_list_filter_by_labels,
 )
@@ -50,8 +50,6 @@ from CPAC.utils.configuration.yaml_template import (
 from CPAC.utils.docs import DOCS_URL_PREFIX
 from CPAC.utils.monitoring import failed_to_start, FMLOGGER, log_nodes_cb, WFLOGGER
 from CPAC.utils.utils import update_nested_dict
-
-from bids2table import bids2table
 
 simplefilter(action="ignore", category=FutureWarning)
 DEFAULT_TMP_DIR = "/tmp"
@@ -786,9 +784,9 @@ def run_main():
 
             try:
                 # fillna
-                bids_table['ses'] = bids_table['ses'].fillna('None')
+                bids_table["ses"] = bids_table["ses"].fillna("None")
                 grouped_tab = bids_table.groupby(["sub", "ses"])
-            except Exception as e:
+            except Exception as e:  # TODO: raise exception
                 WFLOGGER.warning("Could not create bids table: %s", e)
                 print("Could not create bids table: %s", e)
                 sys.exit(1)

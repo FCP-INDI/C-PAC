@@ -1,9 +1,25 @@
+# Copyright (C) 2012-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from nipype.interfaces import ants, freesurfer, fsl, utility as util
 from nipype.interfaces.utility import Function
 
 from CPAC.anat_preproc.utils import mri_convert
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.registration.registration import apply_transform
 from CPAC.registration.utils import check_transforms, generate_inverse_transform_flags
 from CPAC.seg_preproc.utils import (
@@ -23,10 +39,10 @@ from CPAC.utils.utils import check_prov_for_regtool
 
 
 def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
-    """This is a sub workflow used inside segmentation workflow to process
-    probability maps obtained in segmentation. Steps include overlapping
-    of the prior tissue with probability maps, thresholding and binarizing
-    it and creating a mask that is used in further analysis.
+    """Create a sub workflow used inside segmentation workflow to process probability maps obtained in segmentation.
+
+    Steps include overlapping of the prior tissue with probability maps, thresholding
+    and binarizing it and creating a mask that is used in further analysis.
 
     Parameters
     ----------
@@ -274,7 +290,7 @@ def tissue_mask_template_to_t1(wf_name, use_ants):
 
         # check transform list to exclude Nonetype (missing) init/rig/affine
         check_transform = pe.Node(
-            util.Function(
+            Function(
                 input_names=["transform_list"],
                 output_names=["checked_transform_list", "list_length"],
                 function=check_transforms,
@@ -289,7 +305,7 @@ def tissue_mask_template_to_t1(wf_name, use_ants):
         # generate inverse transform flags, which depends on the
         # number of transforms
         inverse_transform_flags = pe.Node(
-            util.Function(
+            Function(
                 input_names=["transform_list"],
                 output_names=["inverse_transform_flags"],
                 function=generate_inverse_transform_flags,
@@ -356,9 +372,7 @@ def tissue_mask_template_to_t1(wf_name, use_ants):
 
 
 def create_seg_preproc_antsJointLabel_method(wf_name="seg_preproc_templated_based"):
-    """
-    Generate the subject's cerebral spinal fluids,
-    white matter and gray matter mask based on provided template, if selected to do so.
+    """Generate the subject's cerebral spinal fluids, white matter and gray matter mask based on provided template, if selected to do so.
 
     Parameters
     ----------
@@ -417,7 +431,7 @@ def create_seg_preproc_antsJointLabel_method(wf_name="seg_preproc_templated_base
     )
 
     seg_preproc_antsJointLabel = pe.Node(
-        util.Function(
+        Function(
             input_names=[
                 "anatomical_brain",
                 "anatomical_brain_mask",
@@ -700,7 +714,7 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     )
 
     get_csf = pe.Node(
-        util.Function(
+        Function(
             input_names=["probability_maps"],
             output_names=["filename"],
             function=pick_wm_prob_0,
@@ -945,7 +959,7 @@ def tissue_seg_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, fs_aseg_to_native, "target_file")
 
     fs_aseg_to_nifti = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file"], output_names=["out_file"], function=mri_convert
         ),
         name=f"fs_aseg_to_nifti_{pipe_num}",

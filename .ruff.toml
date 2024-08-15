@@ -11,7 +11,9 @@ external = ["T20"]  # Don't autoremove 'noqa` comments for these rules
 [lint.per-file-ignores]
 "CPAC/func_preproc/func_preproc.py" = ["E402"]
 "CPAC/utils/sklearn.py" = ["RUF003"]
+"CPAC/utils/tests/old_functions.py" = ["C", "D", "E", "EM", "PLW", "RET"]
 "CPAC/utils/utils.py" = ["T201"]  # until `repickle` is removed
+"dev/circleci_data/conftest.py" = ["F401"]
 "setup.py" = ["D1"]
 
 [lint.flake8-import-conventions.extend-aliases]
@@ -32,7 +34,7 @@ section-order = ["future", "standard-library", "third-party", "collab", "other-f
 
 [lint.isort.sections]
 "collab" = ["nibabel", "nilearn", "nipype", "PyBASC", "pybids", "scipy", "spython"]
-"other-first-party" = ["flowdump", "indi_aws", "indi_schedulers", "PyPEER"]
+"other-first-party" = ["bids2table", "flowdump", "indi_aws", "indi_schedulers", "PyPEER"]
 
 [lint.pydocstyle]
 convention = "numpy"

@@ -1,9 +1,26 @@
 # coding: utf-8
+# Copyright (C) 2012-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.reho.utils import *
+from CPAC.utils.interfaces import Function
 
 
 def create_reho(wf_name):
@@ -99,7 +116,7 @@ def create_reho(wf_name):
         "from CPAC.reho.utils import f_kendall",
     ]
     raw_reho_map = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file", "mask_file", "cluster_size"],
             output_names=["out_file"],
             function=compute_reho,

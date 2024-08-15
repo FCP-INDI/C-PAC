@@ -15,7 +15,6 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-# from copy import deepcopy
 import os
 
 from nipype.interfaces import afni, ants, freesurfer, fsl
@@ -35,7 +34,8 @@ from CPAC.anat_preproc.utils import (
     wb_command,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
+from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 
 
@@ -138,7 +138,7 @@ def acpc_alignment(
 
     aff_to_rig_imports = ["import os", "from numpy import *"]
     aff_to_rig = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_xfm", "out_name"],
             output_names=["out_mat"],
             function=fsl_aff_to_rigid,
@@ -319,7 +319,7 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name="biasfield_correction_t
         return "-s %f -div %s" % (sigma, in_file)
 
     T1wmulT2w_brain_norm_s_string = pe.Node(
-        util.Function(
+        Function(
             input_names=["sigma", "in_file"],
             output_names=["out_str"],
             function=T1wmulT2w_brain_norm_s_string,
@@ -378,7 +378,7 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name="biasfield_correction_t
         return "-thr %s -bin -ero -mul 255" % (lower)
 
     form_lower_string = pe.Node(
-        util.Function(
+        Function(
             input_names=["mean", "std"],
             output_names=["out_str"],
             function=form_lower_string,
@@ -444,7 +444,7 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name="biasfield_correction_t
         return [infile_1, infile_2]
 
     file_to_a_list = pe.Node(
-        util.Function(
+        Function(
             input_names=["infile_1", "infile_2"],
             output_names=["out_list"],
             function=file_to_a_list,
@@ -544,7 +544,7 @@ def afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     )
 
     skullstrip_args = pe.Node(
-        util.Function(
+        Function(
             input_names=[
                 "spat_norm",
                 "spat_norm_dxyz",
@@ -762,7 +762,7 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     anat_robustfov.inputs.output_type = "NIFTI_GZ"
 
     anat_pad_RobustFOV_cropped = pe.Node(
-        util.Function(
+        Function(
             input_names=["cropped_image_path", "target_image_path"],
             output_names=["padded_image_path"],
             function=pad,
@@ -902,7 +902,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     from CPAC.unet.function import predict_volumes
 
     unet_mask = pe.Node(
-        util.Function(
+        Function(
             input_names=["model_path", "cimg_in"],
             output_names=["out_path"],
             function=predict_volumes,
@@ -1083,7 +1083,7 @@ def freesurfer_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # convert brain mask file from .mgz to .nii.gz
     fs_brain_mask_to_nifti = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file"], output_names=["out_file"], function=mri_convert
         ),
         name=f"fs_brainmask_to_nifti_{pipe_num}",
@@ -1119,7 +1119,7 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/7927754/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L156
     """
     wmparc_to_nifti = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file", "reslice_like", "args"],
             output_names=["out_file"],
             function=mri_convert,
@@ -1130,7 +1130,7 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     # Register wmparc file if ingressing FreeSurfer data
     if strat_pool.check_rpool("pipeline-fs_xfm"):
         wmparc_to_native = pe.Node(
-            util.Function(
+            Function(
                 input_names=["source_file", "target_file", "xfm", "out_file"],
                 output_names=["transformed_file"],
                 function=normalize_wmparc,
@@ -1168,7 +1168,7 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(wmparc_to_nifti, "out_file", binary_mask, "in_file")
 
     wb_command_fill_holes = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file"], output_names=["out_file"], function=wb_command
         ),
         name=f"wb_command_fill_holes_{pipe_num}",
@@ -1206,7 +1206,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # mri_convert -it mgz ${SUBJECTS_DIR}/${subject}/mri/brainmask.mgz -ot nii brainmask.nii.gz
     convert_fs_brainmask_to_nifti = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file"], output_names=["out_file"], function=mri_convert
         ),
         name=f"convert_fs_brainmask_to_nifti_{node_id}",
@@ -1217,7 +1217,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # mri_convert -it mgz ${SUBJECTS_DIR}/${subject}/mri/T1.mgz -ot nii T1.nii.gz
     convert_fs_T1_to_nifti = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file"], output_names=["out_file"], function=mri_convert
         ),
         name=f"convert_fs_T1_to_nifti_{node_id}",
@@ -2888,7 +2888,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # fslmaths "$T1wImageFile"_1mm.nii.gz -div $Mean -mul 150 -abs "$T1wImageFile"_1mm.nii.gz
     normalize_head = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file", "number", "out_file_suffix"],
             output_names=["out_file"],
             function=fslmaths_command,

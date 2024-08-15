@@ -18,7 +18,7 @@ from nipype.interfaces import fsl, utility as util
 from nipype.interfaces.afni import preprocess
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.sca.utils import *
 from CPAC.timeseries.timeseries_analysis import (
     get_roi_timeseries,
@@ -30,11 +30,15 @@ from CPAC.utils.datasource import (
     create_spatial_map_dataflow,
     resample_func_roi,
 )
+from CPAC.utils.interfaces import Function
 
 
 def create_sca(name_sca="sca"):
     """
-    Map of the correlations of the Region of Interest(Seed in native or MNI space) with the rest of brain voxels.
+    Create map of the correlations of the Region of Interest with the rest of brain voxels.
+
+    (Seed in native or MNI space)
+
     The map is normalized to contain Z-scores, mapped in standard space and treated with spatial smoothing.
 
     Parameters
@@ -150,8 +154,8 @@ def create_sca(name_sca="sca"):
 
 
 def create_temporal_reg(wflow_name="temporal_reg", which="SR"):
-    r"""
-    Temporal multiple regression workflow
+    r"""Create temporal multiple regression workflow.
+
     Provides a spatial map of parameter estimates corresponding to each
     provided timeseries in a timeseries.txt file as regressors.
 
@@ -280,9 +284,7 @@ def create_temporal_reg(wflow_name="temporal_reg", which="SR"):
     )
 
     check_timeseries = pe.Node(
-        util.Function(
-            input_names=["in_file"], output_names=["out_file"], function=check_ts
-        ),
+        Function(input_names=["in_file"], output_names=["out_file"], function=check_ts),
         name="check_timeseries",
     )
 
@@ -325,7 +327,7 @@ def create_temporal_reg(wflow_name="temporal_reg", which="SR"):
         map_roi_imports = ['import os', 'import numpy as np']
 
         # get roi order and send to output node for raw outputs
-        get_roi_order = pe.Node(util.Function(input_names=['maps',
+        get_roi_order = pe.Node(Function(input_names=['maps',
                                                            'timeseries'],
                                               output_names=['labels',
                                                             'maps'],
@@ -350,7 +352,7 @@ def create_temporal_reg(wflow_name="temporal_reg", which="SR"):
                       outputNode, 'temp_reg_map_files')
 
         # get roi order and send to output node for z-stat outputs
-        get_roi_order_zstat = pe.Node(util.Function(input_names=['maps',
+        get_roi_order_zstat = pe.Node(Function(input_names=['maps',
                                                            'timeseries'],
                                                     output_names=['labels',
                                                                   'maps'],
@@ -396,7 +398,7 @@ def SCA_AVG(wf, cfg, strat_pool, pipe_num, opt=None):
     # same workflow, except to run TSE and send it to the resource
     # pool so that it will not get sent to SCA
     resample_functional_roi_for_sca = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_func", "in_roi", "realignment", "identity_matrix"],
             output_names=["out_func", "out_roi"],
             function=resample_func_roi,

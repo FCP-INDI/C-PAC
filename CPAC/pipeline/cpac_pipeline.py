@@ -25,12 +25,16 @@ import shutil
 import sys
 import time
 from time import strftime
+from typing import Any
 
 import yaml
-import nipype
+import nipype  # type: ignore [import-untyped]
 from nipype import config, logging
-from flowdump import save_workflow_json, WorkflowJSONMeta
-from indi_aws import aws_utils, fetch_creds
+from flowdump import (  # type: ignore [import-untyped]
+    save_workflow_json,
+    WorkflowJSONMeta,
+)
+from indi_aws import aws_utils, fetch_creds  # type: ignore [import-untyped]
 
 import CPAC
 from CPAC.alff.alff import alff_falff, alff_falff_space_template
@@ -126,11 +130,8 @@ from CPAC.nuisance.nuisance import (
     ingress_regressors,
     nuisance_regression_template,
 )
-
-# pylint: disable=wrong-import-order
-from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import check_outputs
-from CPAC.pipeline.engine.engine import initiate_rpool, NodeBlock
+from CPAC.pipeline.engine import ResourcePool
 from CPAC.pipeline.nipype_pipeline_engine.plugins import (
     LegacyMultiProcPlugin,
     MultiProcPlugin,
@@ -197,16 +198,14 @@ from CPAC.utils import Configuration, set_subject
 from CPAC.utils.docs import version_report
 from CPAC.utils.monitoring import (
     FMLOGGER,
-    getLogger,
     log_nodes_cb,
     log_nodes_initial,
-    LOGTAIL,
     set_up_logger,
-    WARNING_FREESURFER_OFF_WITH_DATA,
     WFLOGGER,
 )
 from CPAC.utils.monitoring.draw_gantt_chart import resource_report
 from CPAC.utils.trimmer import the_trimmer
+from CPAC.utils.typing import SUB_GROUP
 from CPAC.utils.utils import (
     check_config_resources,
     check_system_deps,
@@ -221,7 +220,7 @@ faulthandler.enable()
 
 
 def run_workflow(
-    sub_group,
+    sub_group: SUB_GROUP,
     c,
     run,
     pipeline_timing_info=None,
@@ -422,9 +421,10 @@ def run_workflow(
             license_notice=CPAC.license_notice.replace("\n", "\n    "),
         ),
     )
-    subject_info = {}
+    subject_info: dict[str, Any] = {}
     subject_info["subject_id"] = subject_id
     subject_info["start_time"] = pipeline_start_time
+
     check_centrality_degree = c.network_centrality["run"] and (
         len(c.network_centrality["degree_centrality"]["weight_options"]) != 0
         or len(c.network_centrality["eigenvector_centrality"]["weight_options"]) != 0
@@ -547,7 +547,9 @@ Please, make yourself aware of how it works and its assumptions:
         workflow, _ = the_trimmer(
             workflow,
             output_dir=c.pipeline_setup["output_directory"]["path"],
-            s3_creds_path=input_creds_path,
+            s3_creds_path=c.pipeline_setup["Amazon-AWS"][
+                "aws_output_bucket_credentials"
+            ],
         )
 
     pipeline_start_datetime = strftime("%Y-%m-%d %H:%M:%S")
@@ -559,7 +561,7 @@ Please, make yourself aware of how it works and its assumptions:
 
         # for strat_no, strat in enumerate(strat_list):
         #    strat_label = 'strat_%d' % strat_no
-        #    subject_info[strat_label] = strat.get_name()
+        #    subject_info[strat_label] = strat.name
         #    subject_info['resource_pool'].append(strat.get_resource_pool())
 
         subject_info["status"] = "Running"
@@ -709,21 +711,24 @@ Please, make yourself aware of how it works and its assumptions:
                 ]
                 timeHeader = dict(zip(gpaTimeFields, gpaTimeFields))
 
-                with open(
-                    os.path.join(
-                        c.pipeline_setup["log_directory"]["path"],
-                        "cpac_individual_timing"
-                        f"_{c.pipeline_setup['pipeline_name']}.csv",
-                    ),
-                    "a",
-                ) as timeCSV, open(
-                    os.path.join(
-                        c.pipeline_setup["log_directory"]["path"],
-                        "cpac_individual_timing_%s.csv"
-                        % c.pipeline_setup["pipeline_name"],
-                    ),
-                    "r",
-                ) as readTimeCSV:
+                with (
+                    open(
+                        os.path.join(
+                            c.pipeline_setup["log_directory"]["path"],
+                            "cpac_individual_timing"
+                            f"_{c.pipeline_setup['pipeline_name']}.csv",
+                        ),
+                        "a",
+                    ) as timeCSV,
+                    open(
+                        os.path.join(
+                            c.pipeline_setup["log_directory"]["path"],
+                            "cpac_individual_timing_%s.csv"
+                            % c.pipeline_setup["pipeline_name"],
+                        ),
+                        "r",
+                    ) as readTimeCSV,
+                ):
                     timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
                     timeReader = csv.DictReader(readTimeCSV)
 
@@ -750,7 +755,10 @@ Please, make yourself aware of how it works and its assumptions:
                     os.path.basename(log_dir),
                 )
                 bucket_name = c.pipeline_setup["output_directory"]["path"].split("/")[2]
-                bucket = fetch_creds.return_bucket(creds_path, bucket_name)
+                bucket = fetch_creds.return_bucket(
+                    c.pipeline_setup["Amazon-AWS"]["aws_output_bucket_credentials"],
+                    bucket_name,
+                )
 
                 # Collect local log files
                 local_log_files = []
@@ -850,22 +858,6 @@ def remove_workdir(wdpath: str) -> None:
             shutil.rmtree(wdpath)
     except (FileNotFoundError, PermissionError):
         FMLOGGER.warning("Could not remove working directory %s", wdpath)
-
-
-def initialize_nipype_wf(cfg, sub_data_dct, name=""):
-    """Initialize a new nipype workflow."""
-    if name:
-        name = f"_{name}"
-
-    workflow_name = f"cpac{name}_{sub_data_dct[0][0]}_{sub_data_dct[0][1]}"
-    wf = pe.Workflow(name=workflow_name)
-    wf.base_dir = cfg.pipeline_setup["working_directory"]["path"]
-    wf.config["execution"] = {
-        "hash_method": "timestamp",
-        "crashdump_dir": os.path.abspath(cfg.pipeline_setup["log_directory"]["path"]),
-    }
-
-    return wf
 
 
 def load_cpac_pipe_config(pipe_config):
@@ -1125,98 +1117,9 @@ def build_segmentation_stack(rpool, cfg, pipeline_blocks=None):
     return pipeline_blocks
 
 
-def list_blocks(pipeline_blocks, indent=None):
-    """List node blocks line by line.
-
-    Parameters
-    ----------
-    pipeline_blocks : list or tuple
-
-    indent : int or None
-       number of spaces after a tab indent
-
-    Returns
-    -------
-    str
-    """
-    blockstring = yaml.dump(
-        [
-            getattr(
-                block,
-                "__name__",
-                getattr(
-                    block,
-                    "name",
-                    yaml.safe_load(list_blocks(list(block)))
-                    if isinstance(block, (tuple, list, set))
-                    else str(block),
-                ),
-            )
-            for block in pipeline_blocks
-        ]
-    )
-    if isinstance(indent, int):
-        blockstring = "\n".join(
-            [
-                "\t" + " " * indent + line.replace("- - ", "- ")
-                for line in blockstring.split("\n")
-            ]
-        )
-    return blockstring
-
-
-def connect_pipeline(wf, cfg, rpool, pipeline_blocks):
-    """Connect the pipeline blocks to the workflow."""
-    WFLOGGER.info(
-        "Connecting pipeline blocks:\n%s", list_blocks(pipeline_blocks, indent=1)
-    )
-
-    previous_nb = None
-    for block in pipeline_blocks:
-        try:
-            nb = NodeBlock(block, debug=cfg["pipeline_setup", "Debugging", "verbose"])
-            wf = nb.connect_block(wf, cfg, rpool)
-        except LookupError as e:
-            if nb.name == "freesurfer_postproc":
-                WFLOGGER.warning(WARNING_FREESURFER_OFF_WITH_DATA)
-                LOGTAIL["warnings"].append(WARNING_FREESURFER_OFF_WITH_DATA)
-                continue
-            previous_nb_str = (
-                (f"after node block '{previous_nb.get_name()}':")
-                if previous_nb
-                else "at beginning:"
-            )
-            # Alert user to block that raises error
-            if isinstance(block, list):
-                node_block_names = str([NodeBlock(b).get_name() for b in block])
-                e.args = (
-                    f"When trying to connect one of the node blocks "
-                    f"{node_block_names} "
-                    f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
-                )
-            else:
-                node_block_names = NodeBlock(block).get_name()
-                e.args = (
-                    f"When trying to connect node block "
-                    f"'{node_block_names}' "
-                    f"to workflow '{wf}' {previous_nb_str} {e.args[0]}",
-                )
-            if cfg.pipeline_setup["Debugging"]["verbose"]:
-                verbose_logger = getLogger("CPAC.engine")
-                verbose_logger.debug(e.args[0])
-                verbose_logger.debug(rpool)
-            raise
-        previous_nb = nb
-
-    return wf
-
-
-def build_workflow(subject_id, sub_group, cfg, pipeline_name=None):
+def build_workflow(subject_id, sub_group: SUB_GROUP, cfg, pipeline_name=None):
     """Build a C-PAC workflow for a single subject."""
     from CPAC.utils.datasource import gather_extraction_maps
-
-    # Workflow setup
-    wf = initialize_nipype_wf(cfg, sub_group, name=pipeline_name)
 
     # Extract credentials path if it exists
     # try:
@@ -1241,8 +1144,7 @@ def build_workflow(subject_id, sub_group, cfg, pipeline_name=None):
     # PREPROCESSING
     # """""""""""""""""""""""""""""""""""""""""""""""""""
 
-    wf, rpool = initiate_rpool(wf, cfg, sub_group)
-
+    rpool = ResourcePool(cfg=cfg, data_paths=sub_group, pipeline_name=pipeline_name)
     pipeline_blocks = build_anat_preproc_stack(rpool, cfg)
 
     # Anatomical to T1 template registration
@@ -1287,7 +1189,7 @@ def build_workflow(subject_id, sub_group, cfg, pipeline_name=None):
         # Distortion/Susceptibility Correction
         distcor_blocks = []
         if "fmap" in sub_group[0]:
-            fmap_keys = sub_group[1]["ent__suffix"].values
+            fmap_keys = sub_group[1]["suffix"].values
             if "phasediff" in fmap_keys or "phase1" in fmap_keys:
                 if "magnitude" in fmap_keys or "magnitude1" in fmap_keys:
                     distcor_blocks.append(distcor_phasediff_fsl_fugue)
@@ -1434,7 +1336,7 @@ def build_workflow(subject_id, sub_group, cfg, pipeline_name=None):
         if rpool.check_rpool(func):
             apply_func_warp["T1"] = False
 
-    target_space_nuis = cfg.nuisance_corrections["2-nuisance_regression"]["space"]
+    # target_space_nuis = cfg.nuisance_corrections["2-nuisance_regression"]["space"]
     target_space_alff = cfg.amplitude_low_frequency_fluctuation["target_space"]
     target_space_reho = cfg.regional_homogeneity["target_space"]
 
@@ -1609,7 +1511,7 @@ def build_workflow(subject_id, sub_group, cfg, pipeline_name=None):
 
     # Connect the entire pipeline!
     try:
-        wf = connect_pipeline(wf, cfg, rpool, pipeline_blocks)
+        wf = rpool.connect_pipeline(rpool.wf, cfg, pipeline_blocks)
     except LookupError as lookup_error:
         missing_key = None
         errorstrings = [arg for arg in lookup_error.args[0].split("\n") if arg.strip()]

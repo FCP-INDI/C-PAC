@@ -1,10 +1,14 @@
 """Tests for cpac_pipeline.py."""
 
+from typing import cast
+
+import pandas as pd
 import pytest
 
 from CPAC.pipeline.cpac_pipeline import run_workflow
 from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.configuration import Configuration
+from CPAC.utils.typing import SUB_GROUP
 
 
 @pytest.mark.parametrize("plugin", [MultiProcPlugin(), False, "MultiProc", None])
@@ -16,7 +20,8 @@ def test_plugin_param(plugin):
     cfg = Configuration()
 
     with pytest.raises((TypeError, KeyError)) as e:
-        exitcode = run_workflow({}, cfg, False, plugin=plugin)
+        sub_group = cast(SUB_GROUP, ((("", ""), pd.DataFrame([]))))
+        exitcode = run_workflow(sub_group, cfg, run=False, plugin=plugin)
         assert exitcode != 0
     if isinstance(plugin, str) or plugin is None:
         assert e.typename == "KeyError"
