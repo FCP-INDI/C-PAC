@@ -786,10 +786,9 @@ def run_main():
                 # fillna
                 bids_table["ses"] = bids_table["ses"].fillna("None")
                 grouped_tab = bids_table.groupby(["sub", "ses"])
-            except Exception as e:  # TODO: raise exception
-                WFLOGGER.warning("Could not create bids table: %s", e)
-                print("Could not create bids table: %s", e)
-                sys.exit(1)
+            except Exception as e:
+                msg = f"Could not create bids table: {e}"
+                raise ValueError(msg) from e
         # else:
         #     sub_list = load_cpac_data_config(
         #         args.data_config_file, args.participant_label, args.aws_input_creds
