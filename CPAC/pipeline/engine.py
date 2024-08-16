@@ -35,7 +35,7 @@ from CPAC.image_utils.statistical_transforms import (
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.pipeline.nodeblock import NodeBlockFunction
-from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
+from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set, check_all_orientations
 from CPAC.registration.registration import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
 from CPAC.utils.bids_utils import res_in_filename
@@ -63,6 +63,7 @@ from CPAC.utils.utils import (
     read_json,
     write_output_json,
 )
+
 
 
 class ResourcePool:
@@ -2409,9 +2410,11 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
     import pandas as pd
     import pkg_resources as p
+    import sys
 
     template_csv = p.resource_filename("CPAC", "resources/cpac_templates.csv")
     template_df = pd.read_csv(template_csv, keep_default_na=False)
+    templates = []
 
     for row in template_df.itertuples():
         key = row.Key
@@ -2511,6 +2514,18 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 "",
                 f"{key}_config_ingress",
             )
+        #check if val is a nifti file .nii.gz
+        if val.endswith('.nii.gz'):
+            templates.append([key, val])
+
+    table = check_all_orientations(templates,"RPI")
+    df = pd.DataFrame(table, columns = ['Resource', 'Path', 'Orientation'])
+    
+    # check if any of the values in Orientation column are not RPI
+    if not df[df['Orientation'] != 'RPI'].empty:
+        WFLOGGER.info(f"The following templates are not in RPI orientation: {df}")
+        sys.exit()
+
     # templates, resampling from config
     """
     template_keys = [
@@ -2596,7 +2611,6 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
         )
         cfg.set_nested(cfg, key, node)
     """
-
     return rpool
 
 
