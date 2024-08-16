@@ -36,7 +36,7 @@ from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
-from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
+from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set, check_all_orientations
 from CPAC.registration.registration import transform_derivative
 from CPAC.utils.bids_utils import res_in_filename
 from CPAC.utils.datasource import (
@@ -2165,10 +2165,11 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
     import pkg_resources as p
     import pandas as pd
-    import ast
+    import sys
 
     template_csv = p.resource_filename('CPAC', 'resources/cpac_templates.csv')
     template_df = pd.read_csv(template_csv, keep_default_na=False)
+    templates = []
     
     for row in template_df.itertuples():
     
@@ -2246,6 +2247,18 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 )
                 rpool.set_data(key, config_ingress, 'outputspec.data',
                                json_info, "", f"{key}_config_ingress")
+        #check if val is a nifti file .nii.gz
+        if val.endswith('.nii.gz'):
+            templates.append([key, val])
+
+    table = check_all_orientations(templates,"RPI")
+    df = pd.DataFrame(table, columns = ['Resource', 'Path', 'Orientation'])
+
+    # check if any of the values in Orientation column are not RPI
+    if not df[df['Orientation'] != 'RPI'].empty:
+        logger.info(f"The following templates are not in RPI orientation: {df}")
+        sys.exit()
+
     # templates, resampling from config
     '''
     template_keys = [

@@ -19,8 +19,40 @@ from typing import Union
 from itertools import chain
 from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
+from nipype import Node, Workflow, Function
+from CPAC.pipeline import nipype_pipeline_engine as pe
+from nipype.interfaces import afni
+from nipype.interfaces.afni import Info
+import os
+import pandas as pd
 
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
+
+
+def find_orientation(input_file):
+    import subprocess
+    cmd_3dinfo = [
+        "3dinfo",
+        "-orient", input_file
+    ]
+
+    orientation = subprocess.run(cmd_3dinfo, capture_output=True, text=True).stdout.strip().upper()
+    return orientation
+
+
+def check_all_orientations(input_images:list, desired_orientation:str="RPI"):
+    desired_orientation = desired_orientation.upper()
+    orientations = []
+    find_orient = Node(Function(input_names=["input_file"],
+                            output_names=["orientation"],
+                            function=find_orientation),
+                    name="find_orient")
+
+    for key, image in input_images:
+        find_orient.inputs.input_file = image
+        orientation = find_orient.run().outputs.orientation
+        orientations.append([key, image, orientation])
+    return orientations
 
 
 def name_fork(resource_idx, cfg, json_info, out_dct):
