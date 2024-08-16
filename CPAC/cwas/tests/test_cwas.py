@@ -16,8 +16,6 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Test the CWAS pipeline."""
 
-from logging import basicConfig, INFO
-
 import pytest
 import nibabel as nib
 
@@ -25,7 +23,6 @@ from CPAC.pipeline.nipype_pipeline_engine.plugins import MultiProcPlugin
 from CPAC.utils.monitoring.custom_logging import getLogger
 
 logger = getLogger("CPAC.cwas.tests")
-basicConfig(format="%(message)s", level=INFO)
 
 
 @pytest.mark.skip(reason="requires RegressionTester")

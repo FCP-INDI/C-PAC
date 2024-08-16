@@ -16,14 +16,12 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Build a C-PAC data configuration."""
 
-from logging import basicConfig, INFO
 from pathlib import Path
 from typing import Any
 
 from CPAC.utils.monitoring.custom_logging import getLogger
 
 logger = getLogger("CPAC.utils.data-config")
-basicConfig(format="%(message)s", level=INFO)
 
 
 def _cannot_write(file_name: Path | str) -> None:

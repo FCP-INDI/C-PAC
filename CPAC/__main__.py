@@ -15,7 +15,6 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from logging import basicConfig, INFO
 import os
 
 import click
@@ -26,7 +25,6 @@ from CPAC.utils.docs import version_report
 from CPAC.utils.monitoring.custom_logging import getLogger
 
 logger = getLogger("CPAC")
-basicConfig(format="%(message)s", level=INFO)
 
 # CLI tree
 #

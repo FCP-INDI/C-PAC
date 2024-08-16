@@ -59,7 +59,11 @@ def check_outputs(output_dir: str, log_dir: str, pipe_name: str, unique_id: str)
     if isinstance(outputs_logger, (Logger, MockLogger)) and len(
         outputs_logger.handlers
     ):
-        outputs_log = getattr(outputs_logger.handlers[0], "baseFilename", None)
+        outputs_log = getattr(
+            MockLogger._get_first_file_handler(outputs_logger.handlers),
+            "baseFilename",
+            None,
+        )
     else:
         outputs_log = None
     if outputs_log is None:
@@ -103,7 +107,7 @@ def check_outputs(output_dir: str, log_dir: str, pipe_name: str, unique_id: str)
             try:
                 log_note = (
                     "Missing outputs have been logged in "
-                    f"{missing_log.handlers[0].baseFilename}"
+                    f"{MockLogger._get_first_file_handler(missing_log.handlers).baseFilename}"
                 )
             except (AttributeError, IndexError):
                 log_note = ""
