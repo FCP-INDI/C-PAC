@@ -763,7 +763,7 @@ def set_subject(
 
     Parameters
     ----------
-    sub_group : dict
+    sub_group : tuple(tuple(str, str), ~pandas.DataFrame)
 
     pipe_config : CPAC.utils.configuration.Configuration
 
