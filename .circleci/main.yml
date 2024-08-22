@@ -68,7 +68,9 @@ commands:
     steps:
       - run:
           name: Getting Sample BIDS Data
-          command: git clone https://github.com/bids-standard/bids-examples.git
+          command: |
+            mkdir -p /home/circleci/project/dev/circleci_data/.pytest_cache/d/bids-examples
+            git clone https://github.com/bids-standard/bids-examples.git /home/circleci/project/dev/circleci_data/.pytest_cache/d/bids-examples
   get-singularity:
     parameters:
       version:
@@ -156,7 +158,7 @@ commands:
             then
               TAG=nightly
             else
-              TAG="${CIRCLE_BRANCH//\//_}"
+              TAG=`echo ${CIRCLE_BRANCH} | sed 's/[^a-zA-Z0-9._]/-/g'`
             fi
             DOCKER_TAG="ghcr.io/${CIRCLE_PROJECT_USERNAME,,}/${CIRCLE_PROJECT_REPONAME,,}:${TAG,,}"
             if [[ -n "<< parameters.variant >>" ]]
@@ -172,7 +174,7 @@ commands:
           name: Testing Singularity installation
           command: |
             pip install -r dev/circleci_data/requirements.txt
-            coverage run -m pytest --junitxml=test-results/junit.xml --continue-on-collection-errors dev/circleci_data/test_install.py
+            coverage run -m pytest --capture=no --junitxml=test-results/junit.xml --continue-on-collection-errors dev/circleci_data/test_install.py
 
 jobs:
   combine-coverage:

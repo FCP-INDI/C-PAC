@@ -17,7 +17,7 @@
 # pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
 """Workflows for registration."""
 
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from voluptuous import RequiredFieldInvalid
 from nipype.interfaces import afni, ants, c3, fsl, utility as util
@@ -26,7 +26,7 @@ from nipype.interfaces.afni import utils as afni_utils
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.registration.utils import (
     change_itk_transform_type,
     check_transforms,
@@ -39,9 +39,13 @@ from CPAC.registration.utils import (
     seperate_warps_list,
     single_ants_xfm_to_list,
 )
+from CPAC.utils.configuration.configuration import Configuration
 from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
+
+if TYPE_CHECKING:
+    from CPAC.pipeline.engine.resource import StratPool
 
 
 def apply_transform(
@@ -2616,7 +2620,7 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = connect
     wf.connect(node, out, ants_rc, "inputspec.input_brain")
 
-    t1w_brain_template = strat_pool.node_data("T1w-brain-template")
+    t1w_brain_template = strat_pool.get_data("T1w-brain-template")
     wf.connect(
         t1w_brain_template.node,
         t1w_brain_template.out,
@@ -2635,10 +2639,10 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     )
     wf.connect(node, out, ants_rc, "inputspec.input_head")
 
-    t1w_template = strat_pool.node_data("T1w-template")
+    t1w_template = strat_pool.get_data("T1w-template")
     wf.connect(t1w_template.node, t1w_template.out, ants_rc, "inputspec.reference_head")
 
-    brain_mask = strat_pool.node_data(
+    brain_mask = strat_pool.get_data(
         [
             "space-T1w_desc-brain_mask",
             "space-longitudinal_desc-brain_mask",
@@ -5416,8 +5420,8 @@ def warp_tissuemask_to_template(wf, cfg, strat_pool, pipe_num, xfm, template_spa
 
 def warp_resource_to_template(
     wf: pe.Workflow,
-    cfg,
-    strat_pool,
+    cfg: Configuration,
+    strat_pool: "StratPool",
     pipe_num: int,
     input_resource: list[str] | str,
     xfm: str,
@@ -5428,24 +5432,24 @@ def warp_resource_to_template(
 
     Parameters
     ----------
-    wf : pe.Workflow
+    wf
 
-    cfg : CPAC.utils.configuration.Configuration
+    cfg
 
-    strat_pool : CPAC.pipeline.engine.ResourcePool
+    strat_pool
 
-    pipe_num : int
+    pipe_num
 
-    input_resource : str or list
+    input_resource
         key for the resource to warp to template
 
-    xfm : str
+    xfm
         key for the transform to apply
 
-    reference : str, optional
+    reference
         key for reference if not using f'{template_space}-template'
 
-    time_series : boolean, optional
+    time_series
         resource to transform is 4D?
 
     Returns

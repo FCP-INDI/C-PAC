@@ -3,7 +3,7 @@ from nipype.interfaces.afni import preprocess
 
 from CPAC.image_utils import spatial_smoothing
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.registration.registration import apply_transform
 from CPAC.utils.utils import check_prov_for_regtool
 from CPAC.vmhc import *

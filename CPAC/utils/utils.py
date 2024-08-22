@@ -138,7 +138,7 @@ def get_flag_wf(wf_name="get_flag"):
     wf.connect(input_node, "in_flag", get_flag, "in_flag")
 
 
-def read_json(json_file):
+def read_json(json_file: str) -> dict:
     """Read a JSON file and return the contents as a dictionary."""
     try:
         with open(json_file, "r") as f:
@@ -224,6 +224,7 @@ def create_id_string(
     return combine_multiple_entity_instances(res_in_filename(cfg, out_filename))
 
 
+@Function.sig_imports(["import os", "import json"])
 def write_output_json(json_data, filename, indent=3, basedir=None):
     """Write a dictionary to a JSON file."""
     if not basedir:

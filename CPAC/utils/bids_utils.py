@@ -14,6 +14,9 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Utilities for using BIDS data."""
+
+from base64 import b64decode
 import json
 import os
 import re
@@ -91,8 +94,7 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
         )
         if raise_error:
             raise ValueError(msg)
-        else:
-            UTLOGGER.error(msg)
+        UTLOGGER.error(msg)
     elif not f_dict["scantype"]:
         msg = (
             f"Filename ({fname}) does not appear to contain"
@@ -100,8 +102,7 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
         )
         if raise_error:
             raise ValueError(msg)
-        else:
-            UTLOGGER.error(msg)
+        UTLOGGER.error(msg)
     elif "bold" in f_dict["scantype"] and not f_dict["task"]:
         msg = (
             f"Filename ({fname}) is a BOLD file, but doesn't contain a task, does"
@@ -109,15 +110,13 @@ def bids_decode_fname(file_path, dbg=False, raise_error=True):
         )
         if raise_error:
             raise ValueError(msg)
-        else:
-            UTLOGGER.error(msg)
+        UTLOGGER.error(msg)
 
     return f_dict
 
 
 def bids_entities_from_filename(filename):
-    """Function to collect a list of BIDS entities from a given
-    filename.
+    """Collect a list of BIDS entities from a given filename.
 
     Parameters
     ----------
@@ -142,7 +141,7 @@ def bids_entities_from_filename(filename):
 
 
 def bids_match_entities(file_list, entities, suffix):
-    """Function to subset a list of filepaths by a passed BIDS entity.
+    """Subset a list of filepaths by a passed BIDS entity.
 
     Parameters
     ----------
@@ -250,10 +249,9 @@ def bids_remove_entity(name, key):
 
 
 def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
-    """
+    """Retrieve BIDS parameters for BIDS file corresponding to f_dict.
 
-    Retrieve the BIDS parameters from bids_config_dict for BIDS file
-    corresponding to f_dict. If an exact match for f_dict is not found
+    If an exact match for f_dict is not found
     the nearest match is returned, corresponding to the BIDS inheritance
     principle.
 
@@ -316,12 +314,10 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
     return params
 
 
-def bids_parse_sidecar(config_dict, dbg=False, raise_error=True):
-    # type: (dict, bool) -> dict
-    """
-    Uses the BIDS principle of inheritance to build a data structure that
-    maps parameters in side car .json files to components in the names of
-    corresponding nifti files.
+def bids_parse_sidecar(
+    config_dict: dict, dbg: bool = False, raise_error: bool = True
+) -> dict:
+    """Use BIDS inheritance to map parameters in sidecar to corresponding NIfTI files.
 
     :param config_dict: dictionary that maps paths of sidecar json files
        (the key) to a dictionary containing the contents of the files (the values)
@@ -428,9 +424,9 @@ def bids_parse_sidecar(config_dict, dbg=False, raise_error=True):
 
 
 def bids_shortest_entity(file_list):
-    """Function to return the single file with the shortest chain of
-    BIDS entities from a given list, returning the first if more than
-    one have the same minimum length.
+    """Return the single file with the shortest chain of BIDS entities from a list.
+
+    Return the first if more than one have the same minimum length.
 
     Parameters
     ----------
@@ -553,9 +549,7 @@ def bids_gen_cpac_sublist(
     raise_error=True,
     only_one_anat=True,
 ):
-    """
-    Generates a CPAC formatted subject list from information contained in a
-    BIDS formatted set of data.
+    """Generate a CPAC formatted subject list from a BIDS dataset.
 
     Parameters
     ----------
@@ -910,8 +904,9 @@ def camelCase(string: str) -> str:  # pylint: disable=invalid-name
 
 
 def combine_multiple_entity_instances(bids_str: str) -> str:
-    """Combines mutliple instances of a key in a BIDS string to a single
-    instance by camelCasing and concatenating the values.
+    """Combine mutliple instances of a key in a BIDS string to a single instance.
+
+    camelCase and concatenate the values.
 
     Parameters
     ----------
@@ -950,8 +945,7 @@ def combine_multiple_entity_instances(bids_str: str) -> str:
 
 
 def insert_entity(resource, key, value):
-    """Insert a `f'{key}-{value}'` BIDS entity before `desc-` if
-    present or before the suffix otherwise.
+    """Insert a BIDS entity before `desc-` if present or before the suffix otherwise.
 
     Parameters
     ----------
@@ -983,7 +977,8 @@ def insert_entity(resource, key, value):
     return "_".join([*new_entities[0], f"{key}-{value}", *new_entities[1], suff])
 
 
-def load_yaml_config(config_filename, aws_input_creds):
+def load_yaml_config(config_filename: str, aws_input_creds: str) -> dict | list:
+    """Load a YAML configuration file, locally or from AWS."""
     if config_filename.lower().startswith("data:"):
         try:
             header, encoded = config_filename.split(",", 1)
@@ -1020,8 +1015,7 @@ def load_yaml_config(config_filename, aws_input_creds):
 
 
 def cl_strip_brackets(arg_list):
-    """Removes '[' from before first and ']' from after final
-    arguments in a list of commandline arguments.
+    """Remove '[' from before first and ']' from after final arguments.
 
     Parameters
     ----------
@@ -1051,7 +1045,7 @@ def create_cpac_data_config(
     aws_input_creds=None,
     skip_bids_validator=False,
     only_one_anat=True,
-):
+) -> list[dict]:
     """
     Create a C-PAC data config YAML file from a BIDS directory.
 
@@ -1111,8 +1105,7 @@ def create_cpac_data_config(
 
 
 def load_cpac_data_config(data_config_file, participant_labels, aws_input_creds):
-    """
-    Loads the file as a check to make sure it is available and readable.
+    """Load the file to make sure it is available and readable.
 
     Parameters
     ----------
@@ -1210,8 +1203,7 @@ def res_in_filename(cfg, label):
 
 
 def sub_list_filter_by_labels(sub_list, labels):
-    """Function to filter a sub_list by provided BIDS labels for
-    specified suffixes.
+    """Filter a sub_list by provided BIDS labels for specified suffixes.
 
     Parameters
     ----------
@@ -1287,7 +1279,7 @@ def without_key(entity: str, key: str) -> str:
 
 
 def _t1w_filter(anat, shortest_entity, label):
-    """Helper function to filter T1w paths.
+    """Filter T1w paths.
 
     Parameters
     ----------
@@ -1318,7 +1310,7 @@ def _t1w_filter(anat, shortest_entity, label):
 
 
 def _sub_anat_filter(anat, shortest_entity, label):
-    """Helper function to filter anat paths in sub_list.
+    """Filter anat paths in sub_list.
 
     Parameters
     ----------
@@ -1341,7 +1333,7 @@ def _sub_anat_filter(anat, shortest_entity, label):
 
 
 def _sub_list_filter_by_label(sub_list, label_type, label):
-    """Function to filter a sub_list by a CLI-provided label.
+    """Filter a sub_list by a CLI-provided label.
 
     Parameters
     ----------
@@ -1410,7 +1402,7 @@ def _sub_list_filter_by_label(sub_list, label_type, label):
 
 
 def _match_functional_scan(sub_list_func_dict, scan_file_to_match):
-    """Function to subset a scan from a sub_list_func_dict by a scan filename.
+    """Subset a scan from a sub_list_func_dict by a scan filename.
 
     Parameters
     ----------
