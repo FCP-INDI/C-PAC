@@ -374,7 +374,7 @@ def ants_apply_warps_func_mni(
 
         itk_imports = ["import os"]
         change_transform = pe.Node(
-            util.Function(
+            Function(
                 input_names=["input_affine_file"],
                 output_names=["updated_affine_file"],
                 function=change_itk_transform_type,
@@ -534,7 +534,7 @@ def ants_apply_warps_func_mni(
 
         # check transform list (if missing any init/rig/affine) and exclude Nonetype
         check_transform = pe.Node(
-            util.Function(
+            Function(
                 input_names=["transform_list"],
                 output_names=["checked_transform_list", "list_length"],
                 function=check_transforms,
@@ -546,7 +546,7 @@ def ants_apply_warps_func_mni(
 
         # generate inverse transform flags, which depends on the number of transforms
         inverse_transform_flags = pe.Node(
-            util.Function(
+            Function(
                 input_names=["transform_list"],
                 output_names=["inverse_transform_flags"],
                 function=generate_inverse_transform_flags,

@@ -29,7 +29,8 @@ FROM neurodebian:jammy-non-free
 LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Ubuntu Jammy base image"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
-ARG DEBIAN_FRONTEND=noninteractive
+ARG BIDS_VALIDATOR_VERSION=1.14.6 \
+    DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/New_York \
     PATH=$PATH:/.local/bin \
     PYTHONPATH=$PYTHONPATH:/.local/lib/python3.10/site-packages
@@ -61,7 +62,10 @@ RUN groupadd -r c-pac \
     && echo $TZ > /etc/timezone \
     && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
     && dpkg-reconfigure --frontend=noninteractive locales \
-    && update-locale LANG="en_US.UTF-8"
+    && update-locale LANG="en_US.UTF-8" \
+    # # install bids-validator
+    && curl -fsSL https://raw.githubusercontent.com/tj/n/master/bin/n | bash -s lts \
+    && npm install -g "bids-validator@${BIDS_VALIDATOR_VERSION}"
 
 COPY --from=c-pac_templates /cpac_templates /cpac_templates
 COPY --from=dcan-hcp /opt/dcan-tools/pipeline/global /opt/dcan-tools/pipeline/global

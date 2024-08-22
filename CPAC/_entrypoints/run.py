@@ -25,7 +25,7 @@ import shutil
 import subprocess
 import sys
 import time
-from typing import Optional, Union
+from typing import Optional
 from warnings import simplefilter
 
 import yaml
@@ -83,7 +83,7 @@ def parse_yaml(value: str) -> dict:
         raise argparse.ArgumentTypeError(msg)
 
 
-def resolve_aws_credential(source: Union[Path, str]) -> str:
+def resolve_aws_credential(source: Path | str) -> str:
     """Set AWS credentials from a file or environment variable."""
     if source == "env":
         from urllib.request import urlopen

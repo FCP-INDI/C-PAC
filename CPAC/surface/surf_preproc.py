@@ -1,10 +1,25 @@
-import os
+# Copyright (C) 2021-2023  C-PAC Developers
 
-import nipype.interfaces.utility as util
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+import os
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.surface.PostFreeSurfer.surf_reho import run_surf_reho
+from CPAC.utils.interfaces import Function
 
 
 def run_surface(
@@ -1026,7 +1041,7 @@ def run_surface(
 )
 def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
     surf = pe.Node(
-        util.Function(
+        Function(
             input_names=[
                 "post_freesurfer_folder",
                 "freesurfer_folder",
@@ -1369,7 +1384,7 @@ def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def surface_falff(wf, cfg, strat_pool, pipe_num, opt):
     falff = pe.Node(
-        util.Function(
+        Function(
             input_names=["subject", "dtseries"],
             output_names=["surf_falff"],
             function=run_surf_falff,
@@ -1394,7 +1409,7 @@ def surface_falff(wf, cfg, strat_pool, pipe_num, opt):
 )
 def surface_alff(wf, cfg, strat_pool, pipe_num, opt):
     alff = pe.Node(
-        util.Function(
+        Function(
             input_names=["subject", "dtseries"],
             output_names=["surf_alff"],
             function=run_surf_alff,
@@ -1427,7 +1442,7 @@ def surface_alff(wf, cfg, strat_pool, pipe_num, opt):
 )
 def surface_reho(wf, cfg, strat_pool, pipe_num, opt):
     L_cortex_file = pe.Node(
-        util.Function(
+        Function(
             input_names=["subject", "dtseries", "structure", "cortex_filename"],
             output_names=["L_cortex_file"],
             function=run_get_cortex,
@@ -1442,7 +1457,7 @@ def surface_reho(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(node, out, L_cortex_file, "dtseries")
 
     R_cortex_file = pe.Node(
-        util.Function(
+        Function(
             input_names=["subject", "dtseries", "structure", "cortex_filename"],
             output_names=["R_cortex_file"],
             function=run_get_cortex,
@@ -1456,7 +1471,7 @@ def surface_reho(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(node, out, R_cortex_file, "dtseries")
 
     mean_timeseries = pe.Node(
-        util.Function(
+        Function(
             input_names=["subject", "dtseries"],
             output_names=["mean_timeseries"],
             function=run_mean_timeseries,
@@ -1468,7 +1483,7 @@ def surface_reho(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(node, out, mean_timeseries, "dtseries")
 
     L_reho = pe.Node(
-        util.Function(
+        Function(
             input_names=[
                 "subject",
                 "dtseries",
@@ -1499,7 +1514,7 @@ def surface_reho(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(node, out, L_reho, "dtseries")
 
     R_reho = pe.Node(
-        util.Function(
+        Function(
             input_names=[
                 "subject",
                 "dtseries",
@@ -1545,7 +1560,7 @@ def surface_reho(wf, cfg, strat_pool, pipe_num, opt):
 )
 def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
     connectivity_parcellation = pe.Node(
-        util.Function(
+        Function(
             input_names=["subject", "dtseries", "surf_atlaslabel"],
             output_names=["parcellation_file"],
             function=run_ciftiparcellate,
@@ -1561,7 +1576,7 @@ def surface_connectivity_matrix(wf, cfg, strat_pool, pipe_num, opt):
     ]["surface_parcellation_template"]
 
     correlation_matrix = pe.Node(
-        util.Function(
+        Function(
             input_names=["subject", "ptseries"],
             output_names=["correlation_matrix"],
             function=run_cifticorrelation,

@@ -1,6 +1,5 @@
 extend-exclude = ["dev/docker_data/get-pip_23.0.1.py"]
-# variants still use 3.7
-target-version = "py37"
+target-version = "py310"
 
 [format]
 line-ending = "auto"  # proposed setting to add next release: line-ending = "lf"
@@ -8,11 +7,11 @@ line-ending = "auto"  # proposed setting to add next release: line-ending = "lf"
 [lint]
 extend-select = ["A", "C4", "D", "EM", "F541", "G", "I", "ICN", "NPY", "PL", "RET", "RSE", "RUF", "Q", "T20", "UP032", "W"]  # proposed rules to add next release cycle: ["B904", "LOG007", "TRY002", "TRY201", "TRY400", "TRY401"]
 external = ["T20"]  # Don't autoremove 'noqa` comments for these rules
-typing-modules = ["CPAC.utils.typing"]
 
 [lint.per-file-ignores]
 "CPAC/func_preproc/func_preproc.py" = ["E402"]
 "CPAC/utils/sklearn.py" = ["RUF003"]
+"CPAC/utils/tests/old_functions.py" = ["C", "D", "E", "EM", "PLW", "RET"]
 "CPAC/utils/utils.py" = ["T201"]  # until `repickle` is removed
 "setup.py" = ["D1"]
 
@@ -45,7 +44,3 @@ max-args = 10
 max-branches = 50
 max-returns = 12
 max-statements = 100
-
-[lint.pyupgrade]
-# Until variants Python >= 3.10
-keep-runtime-typing = true

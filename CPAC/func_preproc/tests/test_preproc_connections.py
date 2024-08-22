@@ -1,4 +1,4 @@
-# Copyright (C) 2023  C-PAC Developers
+# Copyright (C) 2023-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -19,7 +19,6 @@
 from itertools import product
 from random import sample
 import re
-from typing import Union
 
 import pytest
 from traits.trait_base import Undefined
@@ -48,7 +47,6 @@ from CPAC.registration.registration import (
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.interfaces.function import Function as CpacFunction
 from CPAC.utils.test_init import create_dummy_node
-from CPAC.utils.typing import LIST
 
 _FILTERS = [
     {
@@ -116,12 +114,12 @@ _PARAMS = {  # for test_motion_filter_connections
     sample(list(product(*_PARAMS.values())), NUM_TESTS),
 )
 def test_motion_filter_connections(
-    run: Union[bool, LIST[bool]],
-    filters: LIST[dict],
-    regtool: LIST[str],
+    run: bool | list[bool],
+    filters: list[dict],
+    regtool: list[str],
     calculate_motion_first: bool,
-    pre_resources: LIST[str],
-    motion_correction: LIST[LIST[str]],
+    pre_resources: list[str],
+    motion_correction: list[list[str]],
 ) -> None:
     """Test that appropriate connections occur vis-à-vis motion filters."""
     if isinstance(motion_correction, list) and len(motion_correction) != 1:

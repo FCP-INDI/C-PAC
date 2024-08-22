@@ -20,7 +20,6 @@ import csv
 import json
 from pathlib import Path
 import re
-from typing import Union
 
 from voluptuous import RequiredFieldInvalid
 from nipype.interfaces import utility as util
@@ -31,7 +30,6 @@ from CPAC.utils import function
 from CPAC.utils.bids_utils import bids_remove_entity
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.monitoring import FMLOGGER
-from CPAC.utils.typing import TUPLE
 from CPAC.utils.utils import get_scan_params
 
 
@@ -410,10 +408,9 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
     )
 
 
-@Function.sig_imports(["from CPAC.utils.typing import TUPLE"])
 def calc_delta_te_and_asym_ratio(
     effective_echo_spacing: float, echo_times: list
-) -> TUPLE[float, float]:
+) -> tuple[float, float]:
     """Calcluate ``deltaTE`` and ``ees_asym_ratio`` from given metadata.
 
     Parameters
@@ -679,7 +676,7 @@ def ingress_func_metadata(
                     input_names=["effective_echo_spacing", "echo_times"],
                     output_names=["deltaTE", "ees_asym_ratio"],
                     function=calc_delta_te_and_asym_ratio,
-                    imports=["from typing import Optional, Tuple"],
+                    imports=["from typing import Optional"],
                 ),
                 name=f"diff_distcor_calc_delta{name_suffix}",
             )
@@ -733,7 +730,6 @@ def ingress_func_metadata(
                 "effective_echo_spacing",
             ],
             function=get_scan_params,
-            imports=["from CPAC.utils.utils import check, try_fetch_parameter"],
         ),
         name=f"bold_scan_params_{subject_id}{name_suffix}",
     )
@@ -1087,7 +1083,7 @@ def gather_extraction_maps(c):
     return (ts_analysis_dict, sca_analysis_dict)
 
 
-def get_highest_local_res(template: Union[Path, str], tagname: str) -> Path:
+def get_highest_local_res(template: Path | str, tagname: str) -> Path:
     """Return the highest resolution of a template in the same local path.
 
     Given a reference template path and a resolution string, get all

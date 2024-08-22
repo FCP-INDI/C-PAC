@@ -17,14 +17,13 @@
 """Utlities for NIfTI images."""
 
 import os
-from typing import Union
 
 import numpy as np
 import nibabel as nib
 
 
 def nifti_image_input(
-    image: Union[str, nib.nifti1.Nifti1Image],
+    image: str | nib.nifti1.Nifti1Image,
 ) -> nib.nifti1.Nifti1Image:
     """Test if an input is a path or a nifti.image and the image loaded through nibabel.
 

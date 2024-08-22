@@ -16,8 +16,8 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Tests for bids_utils."""
 
-from logging import basicConfig, INFO
 import os
+from subprocess import run
 
 import pytest
 import yaml
@@ -33,7 +33,6 @@ from CPAC.utils.bids_utils import (
 from CPAC.utils.monitoring.custom_logging import getLogger
 
 logger = getLogger("CPAC.utils.tests")
-basicConfig(format="%(message)s", level=INFO)
 
 
 def create_sample_bids_structure(root_dir):
@@ -71,6 +70,11 @@ def create_sample_bids_structure(root_dir):
                 os.path.join(path, "_".join([_prefix_entities(paths, path), suffix])),
                 "w",
             )
+
+
+def test_bids_validator() -> None:
+    """Test subprocess call to `bids-validator`."""
+    run(["bids-validator", "--version"], check=True)
 
 
 @pytest.mark.parametrize("only_one_anat", [True, False])

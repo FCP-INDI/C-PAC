@@ -39,8 +39,8 @@ from CPAC.registration.utils import (
     seperate_warps_list,
     single_ants_xfm_to_list,
 )
+from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
-from CPAC.utils.typing import ListOrStr, TUPLE
 from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
 
 
@@ -105,7 +105,7 @@ def apply_transform(
         wf.connect(inputNode, "reference", apply_warp, "reference_image")
 
         interp_string = pe.Node(
-            util.Function(
+            Function(
                 input_names=["interpolation", "reg_tool"],
                 output_names=["interpolation"],
                 function=interpolation_string,
@@ -119,7 +119,7 @@ def apply_transform(
         wf.connect(interp_string, "interpolation", apply_warp, "interpolation")
 
         ants_xfm_list = pe.Node(
-            util.Function(
+            Function(
                 input_names=["transform"],
                 output_names=["transform_list"],
                 function=single_ants_xfm_to_list,
@@ -136,7 +136,7 @@ def apply_transform(
         if int(num_cpus) > 1 and time_series:
             chunk_imports = ["import nibabel as nib"]
             chunk = pe.Node(
-                util.Function(
+                Function(
                     input_names=["func_file", "n_chunks", "chunk_size"],
                     output_names=["TR_ranges"],
                     function=chunk_ts,
@@ -155,7 +155,7 @@ def apply_transform(
 
             split_imports = ["import os", "import subprocess"]
             split = pe.Node(
-                util.Function(
+                Function(
                     input_names=["func_file", "tr_ranges"],
                     output_names=["split_funcs"],
                     function=split_ts_chunks,
@@ -197,7 +197,7 @@ def apply_transform(
             )
 
         interp_string = pe.Node(
-            util.Function(
+            Function(
                 input_names=["interpolation", "reg_tool"],
                 output_names=["interpolation"],
                 function=interpolation_string,
@@ -223,7 +223,7 @@ def apply_transform(
         if int(num_cpus) > 1 and time_series:
             chunk_imports = ["import nibabel as nib"]
             chunk = pe.Node(
-                util.Function(
+                Function(
                     input_names=["func_file", "n_chunks", "chunk_size"],
                     output_names=["TR_ranges"],
                     function=chunk_ts,
@@ -242,7 +242,7 @@ def apply_transform(
 
             split_imports = ["import os", "import subprocess"]
             split = pe.Node(
-                util.Function(
+                Function(
                     input_names=["func_file", "tr_ranges"],
                     output_names=["split_funcs"],
                     function=split_ts_chunks,
@@ -762,7 +762,7 @@ def create_register_func_to_anat(
 
     if phase_diff_distcor:
         conv_pedir = pe.Node(
-            interface=util.Function(
+            interface=Function(
                 input_names=["pedir", "convert"],
                 output_names=["pedir"],
                 function=convert_pedir,
@@ -1068,7 +1068,7 @@ def create_bbregister_func_to_anat(
 
     if phase_diff_distcor:
         conv_pedir = pe.Node(
-            interface=util.Function(
+            interface=Function(
                 input_names=["pedir", "convert"],
                 output_names=["pedir"],
                 function=convert_pedir,
@@ -1277,7 +1277,7 @@ def create_wf_calculate_ants_warp(
     """
     reg_imports = ["import os", "import subprocess"]
     calculate_ants_warp = pe.Node(
-        interface=util.Function(
+        interface=Function(
             input_names=[
                 "moving_brain",
                 "reference_brain",
@@ -1303,7 +1303,7 @@ def create_wf_calculate_ants_warp(
     calculate_ants_warp.interface.num_threads = num_threads
 
     select_forward_initial = pe.Node(
-        util.Function(
+        Function(
             input_names=["warp_list", "selection"],
             output_names=["selected_warp"],
             function=seperate_warps_list,
@@ -1314,7 +1314,7 @@ def create_wf_calculate_ants_warp(
     select_forward_initial.inputs.selection = "Initial"
 
     select_forward_rigid = pe.Node(
-        util.Function(
+        Function(
             input_names=["warp_list", "selection"],
             output_names=["selected_warp"],
             function=seperate_warps_list,
@@ -1325,7 +1325,7 @@ def create_wf_calculate_ants_warp(
     select_forward_rigid.inputs.selection = "Rigid"
 
     select_forward_affine = pe.Node(
-        util.Function(
+        Function(
             input_names=["warp_list", "selection"],
             output_names=["selected_warp"],
             function=seperate_warps_list,
@@ -1336,7 +1336,7 @@ def create_wf_calculate_ants_warp(
     select_forward_affine.inputs.selection = "Affine"
 
     select_forward_warp = pe.Node(
-        util.Function(
+        Function(
             input_names=["warp_list", "selection"],
             output_names=["selected_warp"],
             function=seperate_warps_list,
@@ -1347,7 +1347,7 @@ def create_wf_calculate_ants_warp(
     select_forward_warp.inputs.selection = "Warp"
 
     select_inverse_warp = pe.Node(
-        util.Function(
+        Function(
             input_names=["warp_list", "selection"],
             output_names=["selected_warp"],
             function=seperate_warps_list,
@@ -1789,7 +1789,7 @@ def ANTs_registration_connector(
 
     # check transform list to exclude Nonetype (missing) init/rig/affine
     check_transform = pe.Node(
-        util.Function(
+        Function(
             input_names=["transform_list"],
             output_names=["checked_transform_list", "list_length"],
             function=check_transforms,
@@ -1852,7 +1852,7 @@ def ANTs_registration_connector(
 
     # check transform list to exclude Nonetype (missing) init/rig/affine
     check_invlinear_transform = pe.Node(
-        util.Function(
+        Function(
             input_names=["transform_list"],
             output_names=["checked_transform_list", "list_length"],
             function=check_transforms,
@@ -1874,7 +1874,7 @@ def ANTs_registration_connector(
     # generate inverse transform flags, which depends on the
     # number of transforms
     inverse_transform_flags = pe.Node(
-        util.Function(
+        Function(
             input_names=["transform_list"],
             output_names=["inverse_transform_flags"],
             function=generate_inverse_transform_flags,
@@ -1936,7 +1936,7 @@ def ANTs_registration_connector(
 
     # check transform list to exclude Nonetype (missing) init/rig/affine
     check_all_transform = pe.Node(
-        util.Function(
+        Function(
             input_names=["transform_list"],
             output_names=["checked_transform_list", "list_length"],
             function=check_transforms,
@@ -2005,7 +2005,7 @@ def ANTs_registration_connector(
 
     # check transform list to exclude Nonetype (missing) init/rig/affine
     check_all_inv_transform = pe.Node(
-        util.Function(
+        Function(
             input_names=["transform_list"],
             output_names=["checked_transform_list", "list_length"],
             function=check_transforms,
@@ -2027,7 +2027,7 @@ def ANTs_registration_connector(
     # generate inverse transform flags, which depends on the
     # number of transforms
     inverse_all_transform_flags = pe.Node(
-        util.Function(
+        Function(
             input_names=["transform_list"],
             output_names=["inverse_transform_flags"],
             function=generate_inverse_transform_flags,
@@ -2123,7 +2123,7 @@ def bold_to_T1template_xfm_connector(
 
         itk_imports = ["import os"]
         change_transform = pe.Node(
-            util.Function(
+            Function(
                 input_names=["input_affine_file"],
                 output_names=["updated_affine_file"],
                 function=change_itk_transform_type,
@@ -2965,7 +2965,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         # c4d -mcs ${WD}/xfms/ANTs_CombinedWarp.nii.gz -oo ${WD}/xfms/e1.nii.gz ${WD}/xfms/e2.nii.gz ${WD}/xfms/e3.nii.gz
         # -mcs: -multicomponent-split, -oo: -output-multiple
         split_combined_warp = pe.Node(
-            util.Function(
+            Function(
                 input_names=["input_name", "output_name"],
                 output_names=["output1", "output2", "output3"],
                 function=run_c4d,
@@ -2983,7 +2983,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
 
         # c4d -mcs ${WD}/xfms/ANTs_CombinedInvWarp.nii.gz -oo ${WD}/xfms/e1inv.nii.gz ${WD}/xfms/e2inv.nii.gz ${WD}/xfms/e3inv.nii.gz
         split_combined_inv_warp = pe.Node(
-            util.Function(
+            Function(
                 input_names=["input_name", "output_name"],
                 output_names=["output1", "output2", "output3"],
                 function=run_c4d,
@@ -3679,7 +3679,7 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, opt=
     wf.connect(warp_fmap, "out_file", mask_fmap, "in_file")
 
     conv_pedir = pe.Node(
-        interface=util.Function(
+        interface=Function(
             input_names=["pedir", "convert"],
             output_names=["pedir"],
             function=convert_pedir,
@@ -4820,7 +4820,7 @@ def single_step_resample_timeseries_to_T1template(
     reg_tool = check_prov_for_regtool(xfm_prov)
 
     bbr2itk = pe.Node(
-        util.Function(
+        Function(
             input_names=["reference_file", "source_file", "transform_file"],
             output_names=["itk_transform"],
             function=run_c3d,
@@ -4861,7 +4861,7 @@ def single_step_resample_timeseries_to_T1template(
 
     ### Loop starts! ###
     motionxfm2itk = pe.MapNode(
-        util.Function(
+        Function(
             input_names=["reference_file", "source_file", "transform_file"],
             output_names=["itk_transform"],
             function=run_c3d,
@@ -4882,7 +4882,7 @@ def single_step_resample_timeseries_to_T1template(
         wf.connect(node, out, motionxfm2itk, "transform_file")
     elif motion_correct_tool == "3dvolreg":
         convert_transform = pe.Node(
-            util.Function(
+            Function(
                 input_names=["one_d_filename"],
                 output_names=["transform_directory"],
                 function=one_d_to_mat,
@@ -5419,11 +5419,11 @@ def warp_resource_to_template(
     cfg,
     strat_pool,
     pipe_num: int,
-    input_resource: ListOrStr,
+    input_resource: list[str] | str,
     xfm: str,
     reference: Optional[str] = None,
     time_series: Optional[bool] = False,
-) -> TUPLE[pe.Workflow, pe.Workflow, str]:
+) -> tuple[pe.Workflow, pe.Workflow, str]:
     """Warp a resource into a template space.
 
     Parameters
@@ -5510,7 +5510,7 @@ def warp_resource_to_template(
 
 def _warp_return(
     wf: pe.Workflow, apply_xfm: Optional[pe.Workflow], outputs: dict
-) -> TUPLE[pe.Workflow, dict]:
+) -> tuple[pe.Workflow, dict]:
     """Check if we have a transform to apply; if not, don't add the outputs."""
     if apply_xfm is None:
         return wf, {}

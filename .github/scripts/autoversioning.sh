@@ -63,8 +63,6 @@ wait_for_git_lock && git add CPAC/resources/configs .github/Dockerfiles
 
 # Overwrite top-level Dockerfiles with the CI Dockerfiles
 wait_for_git_lock && cp .github/Dockerfiles/C-PAC.develop-jammy.Dockerfile Dockerfile
-wait_for_git_lock && cp .github/Dockerfiles/C-PAC.develop-ABCD-HCP-bionic.Dockerfile variant-ABCD-HCP.Dockerfile
-wait_for_git_lock && cp .github/Dockerfiles/C-PAC.develop-fMRIPrep-LTS-xenial.Dockerfile variant-fMRIPrep-LTS.Dockerfile
 wait_for_git_lock && cp .github/Dockerfiles/C-PAC.develop-lite-jammy.Dockerfile variant-lite.Dockerfile
 for DOCKERFILE in $(ls *Dockerfile)
 do

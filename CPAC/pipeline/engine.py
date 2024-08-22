@@ -19,13 +19,12 @@ import copy
 import hashlib
 from itertools import chain
 import json
-import logging
 import os
 import re
-from typing import Optional, Union
+from typing import Optional
 import warnings
 
-from nipype import config
+from nipype import config, logging
 from nipype.interfaces.utility import Rename
 
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
@@ -57,7 +56,6 @@ from CPAC.utils.monitoring import (
     WFLOGGER,
 )
 from CPAC.utils.outputs import Outputs
-from CPAC.utils.typing import ListOrStr, TUPLE
 from CPAC.utils.utils import (
     check_prov_for_regtool,
     create_id_string,
@@ -392,11 +390,11 @@ class ResourcePool:
 
     def get(
         self,
-        resource: ListOrStr,
+        resource: list[str] | str,
         pipe_idx: Optional[str] = None,
         report_fetched: Optional[bool] = False,
         optional: Optional[bool] = False,
-    ) -> Union[TUPLE[Optional[dict], Optional[str]], Optional[dict]]:
+    ) -> tuple[Optional[dict], Optional[str]] | Optional[dict]:
         # NOTE!!!
         # if this is the main rpool, this will return a dictionary of strats, and inside those, are dictionaries like {'data': (node, out), 'json': info}
         # BUT, if this is a sub rpool (i.e. a strat_pool), this will return a one-level dictionary of {'data': (node, out), 'json': info} WITHOUT THE LEVEL OF STRAT KEYS ABOVE IT
@@ -1219,7 +1217,8 @@ class ResourcePool:
             }
             # del all_jsons
             for key, forks in all_forks.items():
-                if len(forks) < 2:  # no int suffix needed if only one fork
+                if len(forks) < 2:  # noqa: PLR2004
+                    # no int suffix needed if only one fork
                     unlabelled.remove(key)
             # del all_forks
             for pipe_idx in self.rpool[resource]:
