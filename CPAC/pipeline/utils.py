@@ -39,7 +39,8 @@ def find_orientation(input_file):
 
     orientation = subprocess.run(cmd_3dinfo, capture_output=True, text=True).stdout.strip().upper()
     return orientation
-    
+
+
 def check_all_orientations(input_images:list, desired_orientation:str="RPI"):
     desired_orientation = desired_orientation.upper()
     orientations = []
