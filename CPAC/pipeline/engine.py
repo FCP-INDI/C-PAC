@@ -2524,8 +2524,8 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
         if val.endswith(".nii.gz"):
             templates.append([key, val])
 
-    table = check_all_orientations(templates,"RPI")
-    df = pd.DataFrame(table, columns = ['Resource', 'Path', 'Orientation'])
+    table = check_all_orientations(templates, "RPI")
+    df = pd.DataFrame(table, columns=["Resource", "Path", "Orientation"])
     
     # check if any of the values in Orientation column are not RPI
     if not df[df['Orientation'] != 'RPI'].empty:
