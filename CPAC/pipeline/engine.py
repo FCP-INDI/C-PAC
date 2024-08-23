@@ -2520,8 +2520,8 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 "",
                 f"{key}_config_ingress",
             )
-        #check if val is a nifti file .nii.gz
-        if val.endswith('.nii.gz'):
+        # check if val is a nifti file .nii.gz
+        if val.endswith(".nii.gz"):
             templates.append([key, val])
 
     table = check_all_orientations(templates,"RPI")
