@@ -18,14 +18,10 @@
 
 from itertools import chain
 
+from nipype import Function, Node
+
 from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
-from nipype import Node, Workflow, Function
-from CPAC.pipeline import nipype_pipeline_engine as pe
-from nipype.interfaces import afni
-from nipype.interfaces.afni import Info
-import os
-import pandas as pd
 
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
