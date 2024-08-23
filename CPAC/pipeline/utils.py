@@ -53,7 +53,7 @@ def check_all_orientations(input_images:list, desired_orientation:str="RPI"):
         orientation = find_orient.run().outputs.orientation
         orientations.append([key, image, orientation])
     return orientations
-    
+
 
 def name_fork(resource_idx, cfg, json_info, out_dct):
     """Create and insert entities for forkpoints.
