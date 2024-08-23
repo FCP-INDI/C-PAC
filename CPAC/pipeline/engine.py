@@ -2528,9 +2528,10 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
     df = pd.DataFrame(table, columns=["Resource", "Path", "Orientation"])
     
     # check if any of the values in Orientation column are not RPI
-    if not df[df['Orientation'] != 'RPI'].empty:
-        WFLOGGER.info(f"The following templates are not in RPI orientation: {df}")
-        sys.exit()
+    other_orientation = df[df["Orientation"] != "RPI"]
+    if not other_orientation.empty:
+        msg = f"The following templates are not in RPI orientation: {other_orientation}"
+        OrientationError(msg)
 
     # templates, resampling from config
     """
