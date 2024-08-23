@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2023  C-PAC Developers
+# Copyright (C) 2021-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -2168,9 +2168,10 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
     # ingress config file paths
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
 
+    import sys
+
     import pkg_resources as p
     import pandas as pd
-    import sys
 
     template_csv = p.resource_filename('CPAC', 'resources/cpac_templates.csv')
     template_df = pd.read_csv(template_csv, keep_default_na=False)
