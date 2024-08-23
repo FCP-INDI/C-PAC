@@ -28,10 +28,7 @@ MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
 def find_orientation(input_file):
     import subprocess
-    cmd_3dinfo = [
-        "3dinfo",
-        "-orient", input_file
-    ]
+    cmd_3dinfo = ["3dinfo", "-orient", input_file]
 
     orientation = (
         subprocess.run(cmd_3dinfo, capture_output=True, text=True, check=False)
