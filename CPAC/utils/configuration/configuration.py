@@ -783,12 +783,12 @@ def set_subject(
     Examples
     --------
     >>> from tempfile import TemporaryDirectory
+    >>> from pandas import DataFrame
     >>> from CPAC.utils.configuration import Configuration
-    >>> sub_dict = {'site_id': 'site1', 'subject_id': 'sub1',
-    ...             'unique_id': 'uid1'}
+    >>> sub_group = (('sub1', 'uid1', 'site1'), DataFrame([]))
     >>> with TemporaryDirectory() as tmpdir:
     ...     subject_id, p_name, log_dir = set_subject(
-    ...         sub_dict, Configuration({'pipeline_setup': {'log_directory':
+    ...         sub_group, Configuration({'pipeline_setup': {'log_directory':
     ...             {'path': tmpdir}}}))
     >>> subject_id
     'sub1_uid1'
