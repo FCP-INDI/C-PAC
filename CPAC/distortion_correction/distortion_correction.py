@@ -32,7 +32,7 @@ from CPAC.distortion_correction.utils import (
     run_fsl_topup,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
 from CPAC.utils import function
 from CPAC.utils.datasource import match_epi_fmaps
 from CPAC.utils.interfaces.function import Function
@@ -131,7 +131,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
         == "AFNI"
     ):
         skullstrip_args = pe.Node(
-            util.Function(
+            Function(
                 input_names=["shrink_fac"],
                 output_names=["expr"],
                 function=create_afni_arg,
@@ -165,7 +165,7 @@ def distcor_phasediff_fsl_fugue(wf, cfg, strat_pool, pipe_num, opt=None):
         == "BET"
     ):
         bet = pe.Node(
-            interface=fsl.BET(), name="distcor_phasediff_bet_skullstrip_{pipe_num}"
+            interface=fsl.BET(), name=f"distcor_phasediff_bet_skullstrip_{pipe_num}"
         )
         bet.inputs.output_type = "NIFTI_GZ"
         bet.inputs.frac = cfg.functional_preproc["distortion_correction"]["PhaseDiff"][
@@ -438,11 +438,6 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("pe-direction")
     wf.connect(node, out, match_epi_fmaps_node, "bold_pedir")
 
-    # interface = {'bold': (match_epi_fmaps_node, 'opposite_pe_epi'),
-    #             'desc-brain_bold': 'opposite_pe_epi_brain'}
-    # wf, strat_pool = wrap_block([bold_mask_afni, bold_masking],
-    #                            interface, wf, cfg, strat_pool, pipe_num, opt)
-
     func_get_brain_mask = pe.Node(
         interface=preprocess.Automask(), name=f"afni_mask_opposite_pe_{pipe_num}"
     )
@@ -529,10 +524,6 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, undistort_func_mean, "input_image")
     wf.connect(node, out, undistort_func_mean, "reference_image")
     wf.connect(convert_afni_warp, "ants_warp", undistort_func_mean, "transforms")
-
-    # interface = {'desc-preproc_bold': (undistort_func_mean, 'output_image')}
-    # wf, strat_pool = wrap_block([bold_mask_afni],
-    #                            interface, wf, cfg, strat_pool, pipe_num, opt)
 
     remask = pe.Node(
         interface=preprocess.Automask(), name=f"afni_remask_boldmask_{pipe_num}"
@@ -667,7 +658,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
         "import sys",
     ]
     phase_encoding = pe.Node(
-        util.Function(
+        Function(
             input_names=[
                 "unwarp_dir",
                 "phase_one",
@@ -710,7 +701,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
 
     topup_imports = ["import os", "import subprocess"]
     run_topup = pe.Node(
-        util.Function(
+        Function(
             input_names=["merged_file", "acqparams"],
             output_names=[
                 "out_fieldcoef",
@@ -732,7 +723,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(phase_encoding, "acq_params", run_topup, "acqparams")
 
     choose_phase = pe.Node(
-        util.Function(
+        Function(
             input_names=["phase_imgs", "unwarp_dir"],
             output_names=["out_phase_image", "vnum"],
             function=choose_phase_image,
@@ -746,7 +737,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, choose_phase, "unwarp_dir")
 
     vnum_base = pe.Node(
-        util.Function(
+        Function(
             input_names=[
                 "vnum",
                 "motion_mat_list",
@@ -764,7 +755,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(run_topup, "out_jacs", vnum_base, "jac_matrix_list")
     wf.connect(run_topup, "out_warps", vnum_base, "warp_field_list")
 
-    mean_bold = strat_pool.node_data("sbref")
+    mean_bold = strat_pool.get_data("sbref")
 
     flirt = pe.Node(interface=fsl.FLIRT(), name="flirt")
     flirt.inputs.dof = 6
@@ -797,7 +788,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     name = "PhaseTwo_aw"
 
     vnum_base_two = pe.Node(
-        util.Function(
+        Function(
             input_names=[
                 "vnum",
                 "motion_mat_list",
@@ -840,7 +831,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
     name = "PhaseOne_aw"
 
     vnum_base_one = pe.Node(
-        util.Function(
+        Function(
             input_names=[
                 "vnum",
                 "motion_mat_list",

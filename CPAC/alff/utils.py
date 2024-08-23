@@ -3,7 +3,10 @@
 
 from pathlib import Path
 
+from CPAC.utils.interfaces.function import Function
 
+
+@Function.sig_imports(["from pathlib import Path"])
 def get_opt_string(mask: Path | str) -> str:
     """
     Return option string for 3dTstat.

@@ -25,6 +25,7 @@ from click import BadParameter
 import pkg_resources as p
 import yaml
 
+from CPAC.utils.typing import SUB_GROUP
 from .diff import dct_diff
 
 CONFIG_KEY_TYPE = str | list[str]
@@ -622,7 +623,7 @@ class Configuration:
         )
 
 
-def check_pname(p_name: str, pipe_config: Configuration) -> str:
+def check_pname(p_name: Optional[str], pipe_config: Configuration) -> str:
     """Check / set `p_name`, the str representation of a pipeline for use in filetrees.
 
     Parameters
@@ -756,13 +757,13 @@ class Preconfiguration(Configuration):
 
 
 def set_subject(
-    sub_group, pipe_config: "Configuration", p_name: Optional[str] = None
+    sub_group: SUB_GROUP, pipe_config: "Configuration", p_name: Optional[str] = None
 ) -> tuple[str, str, str]:
     """Set pipeline name and log directory path for a given sub_dict.
 
     Parameters
     ----------
-    sub_dict : dict
+    sub_group : tuple(tuple(str, str), ~pandas.DataFrame)
 
     pipe_config : CPAC.utils.configuration.Configuration
 
@@ -782,12 +783,12 @@ def set_subject(
     Examples
     --------
     >>> from tempfile import TemporaryDirectory
+    >>> from pandas import DataFrame
     >>> from CPAC.utils.configuration import Configuration
-    >>> sub_dict = {'site_id': 'site1', 'subject_id': 'sub1',
-    ...             'unique_id': 'uid1'}
+    >>> sub_group = (('sub1', 'uid1', 'site1'), DataFrame([]))
     >>> with TemporaryDirectory() as tmpdir:
     ...     subject_id, p_name, log_dir = set_subject(
-    ...         sub_dict, Configuration({'pipeline_setup': {'log_directory':
+    ...         sub_group, Configuration({'pipeline_setup': {'log_directory':
     ...             {'path': tmpdir}}}))
     >>> subject_id
     'sub1_uid1'

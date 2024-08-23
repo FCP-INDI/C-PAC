@@ -22,7 +22,8 @@ from nipype.interfaces.afni import preprocess, utils as afni_utils
 
 from CPAC.func_preproc.utils import nullify
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine.nodeblock import nodeblock
+from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.ants import (
     AI,  # niworkflows
     PrintHeader,
@@ -343,7 +344,7 @@ def create_wf_edit_func(wf_name="edit_func"):
     # allocate a node to check that the requested edits are
     # reasonable given the data
     func_get_idx = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_files", "stop_idx", "start_idx"],
             output_names=["stopidx", "startidx"],
             function=get_idx,
@@ -877,7 +878,7 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
                 return "-thr %s" % (threshold_z)
 
             form_thr_string = pe.Node(
-                util.Function(
+                Function(
                     input_names=["thr"],
                     output_names=["out_str"],
                     function=form_thr_string,
@@ -992,7 +993,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     #     and this function has been changed.
 
     # CHANGES:
-    #     * Converted from a plain function to a CPAC.pipeline.nodeblock.NodeBlockFunction
+    #     * Converted from a plain function to a CPAC.pipeline.engine.nodeblock.NodeBlockFunction
     #     * Removed Registration version check
     #     * Hardcoded Registration parameters instead of loading epi_atlasbased_brainmask.json
     #     * Uses C-PAC's ``FSL-AFNI-brain-probseg`` template in place of ``templateflow.api.get("MNI152NLin2009cAsym", resolution=1, label="brain", suffix="probseg")``

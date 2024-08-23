@@ -16,27 +16,37 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Tests for packaged templates."""
 
+from importlib.util import find_spec
 import os
 
 import pytest
 
 from CPAC.pipeline import ALL_PIPELINE_CONFIGS
-from CPAC.pipeline.engine import ingress_pipeconfig_paths, ResourcePool
+from CPAC.pipeline.engine import ResourcePool
 from CPAC.utils.configuration import Preconfiguration
 from CPAC.utils.datasource import get_highest_local_res
 
 
-@pytest.mark.parametrize("pipeline", ALL_PIPELINE_CONFIGS)
+@pytest.mark.parametrize(
+    "pipeline",
+    [
+        pytest.param(
+            config,
+            marks=pytest.mark.skipif(
+                not find_spec("torch"), reason="torch required for NHP configs."
+            ),
+        )
+        if config in ["monkey", "nhp-macaque"]
+        else config
+        for config in ALL_PIPELINE_CONFIGS
+    ],
+)
 def test_packaged_path_exists(pipeline):
-    """
-    Check that all local templates are included in image at at
-    least one resolution.
-    """
-    rpool = ingress_pipeconfig_paths(
-        Preconfiguration(pipeline), ResourcePool(), "pytest"
-    )
+    """Check that all local templates are included in at least one resolution."""
+    rpool = ResourcePool(cfg=Preconfiguration(pipeline), part_id="pytest")
+    rpool.ingress_pipeconfig_paths()
     for resource in rpool.rpool.values():
-        node = next(iter(resource.values())).get("data")[0]
+        node = next(iter(resource.values())).data[0]
         if hasattr(node.inputs, "template") and not node.inputs.template.startswith(
             "s3:"
         ):

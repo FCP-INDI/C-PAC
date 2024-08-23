@@ -19,6 +19,7 @@ import os
 from time import strftime
 import warnings
 
+from pandas.core.groupby import DataFrameGroupBy
 from voluptuous.error import Invalid
 import yaml
 
@@ -261,7 +262,7 @@ def run_T1w_longitudinal(sublist, cfg):
 
 
 def run(
-    bids_table,
+    bids_table: DataFrameGroupBy,
     config_file=None,
     p_name=None,
     plugin=None,

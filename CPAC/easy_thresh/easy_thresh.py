@@ -1,3 +1,19 @@
+# Copyright (C) 2012-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 import re
 import subprocess
@@ -7,12 +23,11 @@ from nipype.interfaces import fsl
 import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.interfaces import Function
 
 
 def easy_thresh(wf_name):
-    """
-    Workflow for carrying out cluster-based thresholding
-    and colour activation overlaying.
+    """Carry out cluster-based thresholding and colour activation overlaying.
 
     Parameters
     ----------
@@ -213,7 +228,7 @@ def easy_thresh(wf_name):
     # or qform/sform info) from one image to another
     geo_imports = ["import subprocess"]
     copy_geometry = pe.MapNode(
-        util.Function(
+        Function(
             input_names=["infile_a", "infile_b"],
             output_names=["out_file"],
             function=copy_geom,
@@ -246,7 +261,7 @@ def easy_thresh(wf_name):
 
     cluster_imports = ["import os", "import re", "import subprocess"]
     cluster = pe.MapNode(
-        util.Function(
+        Function(
             input_names=[
                 "in_file",
                 "volume",
@@ -271,7 +286,7 @@ def easy_thresh(wf_name):
 
     # create tuple of z_threshold and max intensity value of threshold file
     create_tuple = pe.MapNode(
-        util.Function(
+        Function(
             input_names=["infile_a", "infile_b"],
             output_names=["out_file"],
             function=get_tuple,
@@ -299,7 +314,7 @@ def easy_thresh(wf_name):
     # as FSLDIR,MNI and voxel size
     get_bg_imports = ["import os", "import nibabel as nib"]
     get_backgroundimage = pe.MapNode(
-        util.Function(
+        Function(
             input_names=["in_file", "file_parameters"],
             output_names=["out_file"],
             function=get_standard_background_img,
@@ -312,7 +327,7 @@ def easy_thresh(wf_name):
     # function node to get the standard fsl brain image
     # outputs single file
     get_backgroundimage2 = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file", "file_parameters"],
             output_names=["out_file"],
             function=get_standard_background_img,
@@ -412,10 +427,9 @@ def call_cluster(in_file, volume, dlh, threshold, pthreshold, parameters):
 
 
 def copy_geom(infile_a, infile_b):
-    """
-    Method to call fsl fslcpgeom command to copy
-    certain parts of the header information (image dimensions,
-    voxel dimensions, voxel dimensions units string, image
+    """Call fsl fslcpgeom command to copy certain parts of the header information.
+
+    Copy (image dimensions, voxel dimensions, voxel dimensions units string, image
     orientation/origin or qform/sform info) from one image to another.
 
     Parameters
@@ -449,9 +463,7 @@ def copy_geom(infile_a, infile_b):
 
 
 def get_standard_background_img(in_file, file_parameters):
-    """
-    Method to get the standard brain image from FSL
-    standard data directory.
+    """Get the standard brain image from FSL standard data directory.
 
     Parameters
     ----------
@@ -487,10 +499,7 @@ def get_standard_background_img(in_file, file_parameters):
 
 
 def get_tuple(infile_a, infile_b):
-    """
-    Simple method to return tuple of z_threhsold
-    maximum intensity values of Zstatistic image
-    for input to the overlay.
+    """Return tuple of z_threhsold maximum intensity values of Zstatistic image for input to the overlay.
 
     Parameters
     ----------

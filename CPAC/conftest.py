@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2024  C-PAC Developers
+# Copyright (C) 2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,13 +14,19 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""C-PAC engine."""
+"""Global pytest configuration."""
 
-from .nodeblock import NodeBlock
-from .resource import ResourcePool, StratPool
+from pathlib import Path
 
-__all__ = [
-    "NodeBlock",
-    "ResourcePool",
-    "StratPool",
-]
+import pytest
+
+
+@pytest.fixture
+def bids_examples(cache: pytest.Cache) -> Path:
+    """Get cached example BIDS directories."""
+    bids_dir = cache.mkdir("bids-examples").absolute()
+    if not (bids_dir.exists() and list(bids_dir.iterdir())):
+        from git import Repo
+
+        Repo.clone_from("https://github.com/bids-standard/bids-examples.git", bids_dir)
+    return bids_dir

@@ -15,22 +15,19 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 
-from CPAC.pipeline.engine.resource_pool import ResourcePool
+from CPAC.pipeline.engine.resource import ResourcePool
 from CPAC.utils.monitoring import WFLOGGER
 
 
 class Strategy:
     def __init__(self):
-        self._resource_pool = ResourcePool({})
+        self._resource_pool = ResourcePool()
         self.leaf_node = None
         self.leaf_out_file = None
         self.name = []
 
     def append_name(self, name):
         self.name.append(name)
-
-    def get_name(self):
-        return self.name
 
     def set_leaf_properties(self, node, out_file):
         self.leaf_node = node
@@ -57,7 +54,7 @@ class Strategy:
     @property
     def resource_pool(self):
         """Strategy's ResourcePool dict."""
-        return self._resource_pool.get_entire_rpool()
+        return self._resource_pool.rpool
 
     @property
     def rpool(self):

@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2024  C-PAC Developers
+# Copyright (C) 2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,13 +14,14 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""C-PAC engine."""
+"""Type aliases for C-PAC."""
 
-from .nodeblock import NodeBlock
-from .resource import ResourcePool, StratPool
+from typing import ForwardRef
 
-__all__ = [
-    "NodeBlock",
-    "ResourcePool",
-    "StratPool",
-]
+from pandas import DataFrame
+
+LIST_OF_LIST_OF_STR = str | list[ForwardRef("LIST_OF_LIST_OF_STR")]
+# _PIPE_IDX = list[ForwardRef("PIPE_IDX")] | str | tuple[ForwardRef("PIPE_IDX"), ...]
+# PIPE_IDX = TypeVar("PIPE_IDX", bound=_PIPE_IDX)
+PIPE_IDX = list[str | tuple] | str | tuple
+SUB_GROUP = tuple[tuple[str, str], DataFrame]

@@ -1,10 +1,26 @@
+# Copyright (C) 2019-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import json
 
 import pytest
-import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.datasource import match_epi_fmaps
+from CPAC.utils.interfaces import Function
 from CPAC.utils.test_resources import setup_test_wf
 
 
@@ -48,7 +64,7 @@ def test_match_epi_fmaps():
     }
 
     match_fmaps = pe.Node(
-        util.Function(
+        Function(
             input_names=["fmap_dct", "bold_pedir"],
             output_names=["opposite_pe_epi", "same_pe_epi"],
             function=match_epi_fmaps,

@@ -1,12 +1,29 @@
+# Copyright (C) 2012-2023  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.interfaces import Function
 
 
 def median_angle_correct(target_angle_deg, realigned_file):
-    """
-    Performs median angle correction on fMRI data.  Median angle correction algorithm
-    based on [1]_.
+    """Perform median angle correction on fMRI data.
+
+    Median angle correction algorithm based on [1]_.
 
     Parameters
     ----------
@@ -89,8 +106,7 @@ def median_angle_correct(target_angle_deg, realigned_file):
 
 
 def calc_median_angle_params(subject):
-    """
-    Calculates median angle parameters of a subject.
+    """Calculate median angle parameters of a subject.
 
     Parameters
     ----------
@@ -133,8 +149,7 @@ def calc_median_angle_params(subject):
 
 def calc_target_angle(mean_bolds, median_angles):
     """
-    Calculates a target angle based on median angle parameters of
-    the group.
+    Calculate a target angle based on median angle parameters of the group.
 
     Parameters
     ----------
@@ -229,7 +244,7 @@ def create_median_angle_correction(name="median_angle_correction"):
     )
 
     mac = pe.Node(
-        util.Function(
+        Function(
             input_names=["target_angle_deg", "realigned_file"],
             output_names=["corrected_file", "angles_file"],
             function=median_angle_correct,
@@ -305,7 +320,7 @@ def create_target_angle(name="target_angle"):
     )
 
     cmap = pe.MapNode(
-        util.Function(
+        Function(
             input_names=["subject"],
             output_names=["mean_bold", "median_angle"],
             function=calc_median_angle_params,
@@ -315,7 +330,7 @@ def create_target_angle(name="target_angle"):
     )
 
     cta = pe.Node(
-        util.Function(
+        Function(
             input_names=["mean_bolds", "median_angles"],
             output_names=["target_angle"],
             function=calc_target_angle,
