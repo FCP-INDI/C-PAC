@@ -2413,9 +2413,10 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
     # ingress config file paths
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
 
+    import sys
+
     import pandas as pd
     import pkg_resources as p
-    import sys
 
     template_csv = p.resource_filename("CPAC", "resources/cpac_templates.csv")
     template_df = pd.read_csv(template_csv, keep_default_na=False)
