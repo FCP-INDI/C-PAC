@@ -37,7 +37,11 @@ def find_orientation(input_file):
         "-orient", input_file
     ]
 
-    orientation = subprocess.run(cmd_3dinfo, capture_output=True, text=True).stdout.strip().upper()
+    orientation = (
+        subprocess.run(cmd_3dinfo, capture_output=True, text=True, check=False)
+        .stdout.strip()
+        .upper()
+    )
     return orientation
 
 
