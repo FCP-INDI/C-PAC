@@ -36,7 +36,12 @@ from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
-from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set, check_all_orientations
+from CPAC.pipeline.utils import (
+    check_all_orientations,
+    MOVEMENT_FILTER_KEYS,
+    name_fork,
+    source_set,
+)
 from CPAC.registration.registration import transform_derivative
 from CPAC.utils.bids_utils import res_in_filename
 from CPAC.utils.datasource import (
