@@ -43,10 +43,14 @@ def find_orientation(input_file):
 def check_all_orientations(input_images:list, desired_orientation:str="RPI"):
     desired_orientation = desired_orientation.upper()
     orientations = []
-    find_orient = Node(Function(input_names=["input_file"],
-                            output_names=["orientation"],
-                            function=find_orientation),
-                    name="find_orient")
+    find_orient = Node(
+        Function(
+            input_names=["input_file"],
+            output_names=["orientation"],
+            function=find_orientation,
+        ),
+        name="find_orient",
+    )
 
     for key, image in input_images:
         find_orient.inputs.input_file = image
