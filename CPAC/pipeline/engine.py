@@ -35,7 +35,12 @@ from CPAC.image_utils.statistical_transforms import (
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.pipeline.nodeblock import NodeBlockFunction
-from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set, check_all_orientations
+from CPAC.pipeline.utils import (
+    check_all_orientations,
+    MOVEMENT_FILTER_KEYS,
+    name_fork,
+    source_set,
+)
 from CPAC.registration.registration import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
 from CPAC.utils.bids_utils import res_in_filename
