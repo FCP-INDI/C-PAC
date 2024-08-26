@@ -159,14 +159,6 @@ def cosine_filter(
 
     input_img = nib.load(input_image_path)
 
-    def voxel_generator():
-        for i in range(datashape[0]):
-            for j in range(datashape[1]):
-                for k in range(datashape[2]):
-                    yield input_data[i, j, k, :]
-
-    input_img = nb.load(input_image_path)
-
     input_data = input_img.get_fdata()
 
     datashape = input_data.shape
