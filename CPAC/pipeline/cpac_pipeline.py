@@ -710,21 +710,24 @@ Please, make yourself aware of how it works and its assumptions:
                 ]
                 timeHeader = dict(zip(gpaTimeFields, gpaTimeFields))
 
-                with open(
-                    os.path.join(
-                        c.pipeline_setup["log_directory"]["path"],
-                        "cpac_individual_timing"
-                        f"_{c.pipeline_setup['pipeline_name']}.csv",
-                    ),
-                    "a",
-                ) as timeCSV, open(
-                    os.path.join(
-                        c.pipeline_setup["log_directory"]["path"],
-                        "cpac_individual_timing_%s.csv"
-                        % c.pipeline_setup["pipeline_name"],
-                    ),
-                    "r",
-                ) as readTimeCSV:
+                with (
+                    open(
+                        os.path.join(
+                            c.pipeline_setup["log_directory"]["path"],
+                            "cpac_individual_timing"
+                            f"_{c.pipeline_setup['pipeline_name']}.csv",
+                        ),
+                        "a",
+                    ) as timeCSV,
+                    open(
+                        os.path.join(
+                            c.pipeline_setup["log_directory"]["path"],
+                            "cpac_individual_timing_%s.csv"
+                            % c.pipeline_setup["pipeline_name"],
+                        ),
+                        "r",
+                    ) as readTimeCSV,
+                ):
                     timeWriter = csv.DictWriter(timeCSV, fieldnames=gpaTimeFields)
                     timeReader = csv.DictReader(readTimeCSV)
 
