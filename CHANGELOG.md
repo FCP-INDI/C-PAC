@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `pyproject.toml` file with `[build-system]` defined.
+- [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/FCP-INDI/C-PAC/main.svg)](https://results.pre-commit.ci/latest/github/FCP-INDI/C-PAC/main) badge to [`README`](./README.md).
 
 ### Changed
 
