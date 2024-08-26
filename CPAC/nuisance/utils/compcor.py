@@ -91,6 +91,9 @@ def cosine_filter(
     failure_mode="error",
 ):
     """
+    `cosine_filter` adapted from Nipype.
+    https://github.com/nipy/nipype/blob/d353f0d/nipype/algorithms/confounds.py#L1086-L1107
+    
     Parameters:
     -----------
     input_image_path : str
