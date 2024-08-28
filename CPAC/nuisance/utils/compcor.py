@@ -134,7 +134,6 @@ def cosine_filter(
     #     * Modified docstring to reflect local changes
     #     * Updated style to match C-PAC codebase
 
-
     # ORIGINAL WORK'S ATTRIBUTION NOTICE:
     #    Copyright (c) 2009-2016, Nipype developers
 
