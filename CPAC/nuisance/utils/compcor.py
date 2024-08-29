@@ -91,11 +91,14 @@ def cosine_filter(
     failure_mode="error",
 ):
     """
-    `cosine_filter` adapted from Nipype.
-    https://github.com/nipy/nipype/blob/d353f0d/nipype/algorithms/confounds.py#L1086-L1107
+    The function applies a cosine filter to the input BOLD image using the discrete cosine transform (DCT) method.
     
-    Parameters:
-    -----------
+    Adapted from nipype implementation. https://github.com/nipy/nipype/blob/d353f0d/nipype/algorithms/confounds.py#L1086-L1107
+    It removes the low-frequency drift from the voxel time series. The filtered image is saved to disk.
+
+
+    Parameters
+    ----------
     input_image_path : str
         Path to the BOLD image to be filtered.
     timestep : float
@@ -110,19 +113,11 @@ def cosine_filter(
         Specifies how to handle failure modes. If set to 'error', the function raises an error.
         If set to 'ignore', it returns the input data unchanged in case of failure. Default is 'error'.
 
-    Returns:
-    --------
+    Returns
+    -------
     cosfiltered_img : str
         Path to the filtered BOLD image.
 
-    Notes:
-    ------
-    The function applies a cosine filter to the input BOLD image using the discrete cosine transform (DCT) method.
-    It removes the low-frequency drift from the voxel time series. The filtered image is saved to disk.
-
-    Adapted from nipype implementation.
-
-    The function uses a generator to iterate over voxel time series to optimize memory usage.
     """
     # STATEMENT OF CHANGES:
     #     This function is derived from sources licensed under the Apache-2.0 terms,
@@ -133,6 +128,7 @@ def cosine_filter(
     #     * Removed caluclation and return of `non_constant_regressors`
     #     * Modified docstring to reflect local changes
     #     * Updated style to match C-PAC codebase
+    #     * Updated to use generator and iterate over voxel time series to optimize memory usage.
 
     # ORIGINAL WORK'S ATTRIBUTION NOTICE:
     #    Copyright (c) 2009-2016, Nipype developers
@@ -158,11 +154,11 @@ def cosine_filter(
             for j in range(datashape[1]):
                 for k in range(datashape[2]):
                     yield input_data[i, j, k, :]
-
+    
+    from nipype.algorithms.confounds import _cosine_drift, _full_rank
+    
     input_img = nib.load(input_image_path)
-
     input_data = input_img.get_fdata()
-
     datashape = input_data.shape
     timepoints = datashape[axis]
     if datashape[0] == 0 and failure_mode != "error":
@@ -171,28 +167,38 @@ def cosine_filter(
     frametimes = timestep * np.arange(timepoints)
     X = _full_rank(_cosine_drift(period_cut, frametimes))[0]
 
-    output_data = np.zeros(input_data.shape)
+    # Reshape the input data to bring the time dimension to the last axis if it's not already
+    if axis != -1:
+        reshaped_data = np.moveaxis(input_data, axis, -1)
+    else:
+        reshaped_data = input_data
+
+    reshaped_output_data = np.zeros_like(reshaped_data)
 
     voxel_gen = voxel_generator()
 
-    for i in range(datashape[0]):
-        print(f"calculating {i+1} of {datashape[0]} row of voxels")
-        for j in range(datashape[1]):
-            for k in range(datashape[2]):
+    for i in range(reshaped_data.shape[0]):
+        print(f"calculating {i+1} of {reshaped_data.shape[0]} row of voxels")
+        for j in range(reshaped_data.shape[1]):
+            for k in range(reshaped_data.shape[2]):
                 voxel_time_series = next(voxel_gen)
-                betas = np.linalg.lstsq(X, voxel_time_series.T)[0]
+                betas = np.linalg.lstsq(X, voxel_time_series.T, rcond=None)[0]
 
                 if not remove_mean:
                     X = X[:, :-1]
                     betas = betas[:-1]
 
                 residuals = voxel_time_series - X.dot(betas)
+                reshaped_output_data[i, j, k, :] = residuals
 
-                output_data[i, j, k, :] = residuals
+    # Move the time dimension back to its original position if it was reshaped
+    if axis != -1:
+        output_data = np.moveaxis(reshaped_output_data, -1, axis)
+    else:
+        output_data = reshaped_output_data
 
     hdr = input_img.header
     output_img = nib.Nifti1Image(output_data, header=hdr, affine=input_img.affine)
-
     file_name = input_image_path[input_image_path.rindex("/") + 1 :]
 
     cosfiltered_img = os.path.join(os.getcwd(), file_name)
