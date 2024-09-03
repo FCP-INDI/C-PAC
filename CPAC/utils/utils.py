@@ -808,7 +808,6 @@ def get_scan_params(
     effective_echo_spacing
         https://bids-specification.readthedocs.io/en/stable/glossary.html#effectiveechospacing-metadata
     """
-    # initialize vars to empty
     unit: Literal["ms", "s"] = "s"
 
     if isinstance(pipeconfig_stop_indx, str):

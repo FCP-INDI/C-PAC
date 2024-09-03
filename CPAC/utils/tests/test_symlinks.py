@@ -14,7 +14,6 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from logging import basicConfig, INFO
 import os
 import tempfile
 
@@ -24,7 +23,6 @@ from CPAC.utils.monitoring.custom_logging import getLogger
 from CPAC.utils.symlinks import create_symlinks
 
 logger = getLogger("CPAC.utils.tests")
-basicConfig(format="%(message)s", level=INFO)
 
 mocked_outputs = p.resource_filename(
     "CPAC", os.path.join("utils", "tests", "test_symlinks-outputs.txt")

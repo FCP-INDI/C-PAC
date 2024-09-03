@@ -14,12 +14,11 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from logging import basicConfig, INFO
+
 
 from CPAC.utils.monitoring.custom_logging import getLogger
 
 logger = getLogger("CPAC.pipeline.test")
-basicConfig(format="%(message)s", level=INFO)
 
 
 def run_gather_outputs_func(pipeline_out_dir):

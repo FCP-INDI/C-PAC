@@ -14,7 +14,6 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-from logging import basicConfig, INFO
 import os
 
 import pytest
@@ -26,7 +25,6 @@ import CPAC.utils.test_init as test_utils
 from CPAC.utils.test_mocks import configuration_strategy_mock
 
 logger = getLogger("CPAC.image_utils.tests")
-basicConfig(format="%(message)s", level=INFO)
 
 
 @pytest.mark.skip(reason="needs refactoring")

@@ -2457,6 +2457,8 @@ def nuisance_regressors_generation(
         reg_tool = check_prov_for_regtool(xfm_prov)
     if reg_tool is not None:
         use_ants = reg_tool == "ants"
+    else:
+        use_ants = False
     if cfg.switch_is_on(
         [
             "functional_preproc",

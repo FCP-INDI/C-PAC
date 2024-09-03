@@ -32,7 +32,6 @@
 # Modifications Copyright (C) 2022-2024  C-PAC Developers
 
 # This file is part of C-PAC.
-from logging import basicConfig, INFO
 import os
 
 import numpy as np
@@ -41,7 +40,6 @@ import nibabel as nib
 from CPAC.utils.monitoring.custom_logging import getLogger
 
 logger = getLogger("nuerodata.m2g.ndmg")
-basicConfig(format="%(message)s", level=INFO)
 
 
 def ndmg_roi_timeseries(func_file, label_file):
