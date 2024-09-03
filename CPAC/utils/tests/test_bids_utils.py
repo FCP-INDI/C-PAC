@@ -16,6 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Tests for bids_utils."""
 
+from importlib import resources
 import os
 from subprocess import run
 
@@ -23,11 +24,13 @@ import pytest
 import yaml
 
 from CPAC.utils.bids_utils import (
+    _check_value_type,
     bids_gen_cpac_sublist,
     cl_strip_brackets,
     collect_bids_files_configs,
     create_cpac_data_config,
     load_cpac_data_config,
+    load_yaml_config,
     sub_list_filter_by_labels,
 )
 from CPAC.utils.monitoring.custom_logging import getLogger
@@ -105,6 +108,21 @@ def test_gen_bids_sublist(bids_dir, test_yml, creds_path, dbg=False):
         yaml.dump(sublist, ofd, encoding="utf-8")
 
     assert sublist
+
+
+def test_load_data_config_with_ints() -> None:
+    """Check that C-PAC coerces sub- and ses- ints to strings."""
+    data_config_file = resources.files("CPAC").joinpath(
+        "utils/tests/configs/github_2144.yml"
+    )
+    # make sure there are ints in the test data
+    assert _check_value_type(
+        load_yaml_config(str(data_config_file), None, safe_load=True)
+    )
+    # make sure there aren't ints when it's loaded through the loader
+    assert not _check_value_type(
+        load_cpac_data_config(str(data_config_file), None, None)
+    )
 
 
 @pytest.mark.parametrize("t1w_label", ["acq-HCP", "acq-VNavNorm", "T1w", None])

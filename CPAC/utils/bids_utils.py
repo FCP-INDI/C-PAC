@@ -14,16 +14,29 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+from base64 import b64decode
+from collections.abc import Iterable
 import json
 import os
 import re
 import sys
+from typing import Any, Callable
 from warnings import warn
 
 from botocore.exceptions import BotoCoreError
 import yaml
 
 from CPAC.utils.monitoring import UTLOGGER
+
+
+class SpecifiedBotoCoreError(BotoCoreError):
+    """Specified :py:class:`~botocore.exceptions.BotoCoreError`."""
+
+    def __init__(self, msg: str, *args, **kwargs) -> None:
+        """Initialize BotoCoreError with message."""
+        msg = msg.format(**kwargs)
+        Exception.__init__(self, msg)
+        self.kwargs = kwargs
 
 
 def bids_decode_fname(file_path, dbg=False, raise_error=True):
@@ -842,7 +855,7 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=""):
                                 f"Error retrieving {s3_obj.key.replace(prefix, '')}"
                                 f" ({e.message})"
                             )
-                            raise BotoCoreError(msg) from e
+                            raise SpecifiedBotoCoreError(msg) from e
                     elif "nii" in str(s3_obj.key):
                         file_paths.append(
                             str(s3_obj.key).replace(prefix, "").lstrip("/")
@@ -868,9 +881,15 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=""):
                                         ): json.load(open(os.path.join(root, f), "r"))
                                     }
                                 )
-                            except UnicodeDecodeError:
+                            except UnicodeDecodeError as unicode_decode_error:
                                 msg = f"Could not decode {os.path.join(root, f)}"
-                                raise UnicodeDecodeError(msg)
+                                raise UnicodeDecodeError(
+                                    unicode_decode_error.encoding,
+                                    unicode_decode_error.object,
+                                    unicode_decode_error.start,
+                                    unicode_decode_error.end,
+                                    msg,
+                                )
 
     if not file_paths and not config_dict:
         msg = (
@@ -983,15 +1002,17 @@ def insert_entity(resource, key, value):
     return "_".join([*new_entities[0], f"{key}-{value}", *new_entities[1], suff])
 
 
-def load_yaml_config(config_filename, aws_input_creds):
+def load_yaml_config(config_filename: str, aws_input_creds, safe_load: bool = False):
     if config_filename.lower().startswith("data:"):
         try:
             header, encoded = config_filename.split(",", 1)
             config_content = b64decode(encoded)
-            return yaml.safe_load(config_content)
+            if safe_load:
+                return yaml.safe_load(config_content)
+            return yaml.load(config_content, Loader=yaml.loader.BaseLoader)
         except:
             msg = f"Error! Could not find load config from data URI {config_filename}"
-            raise BotoCoreError(msg)
+            raise SpecifiedBotoCoreError(msg=msg)
 
     if config_filename.lower().startswith("s3://"):
         # s3 paths begin with s3://bucket/
@@ -1013,7 +1034,9 @@ def load_yaml_config(config_filename, aws_input_creds):
     config_filename = os.path.realpath(config_filename)
 
     try:
-        return yaml.safe_load(open(config_filename, "r"))
+        if safe_load:
+            return yaml.safe_load(open(config_filename, "r"))
+        return yaml.load(open(config_filename, "r"), Loader=yaml.loader.BaseLoader)
     except IOError:
         msg = f"Error! Could not find config file {config_filename}"
         raise FileNotFoundError(msg)
@@ -1110,6 +1133,18 @@ def create_cpac_data_config(
     return sub_list
 
 
+def _check_value_type(
+    sub_list: list[dict[str, Any]],
+    keys: list[str] = ["subject_id", "unique_id"],
+    value_type: type = int,
+    any_or_all: Callable[[Iterable], bool] = any,
+) -> bool:
+    """Check if any or all of a key in a sub_list is of a given type."""
+    return any_or_all(
+        isinstance(sub.get(key), value_type) for key in keys for sub in sub_list
+    )
+
+
 def load_cpac_data_config(data_config_file, participant_labels, aws_input_creds):
     """
     Loads the file as a check to make sure it is available and readable.
@@ -1127,7 +1162,10 @@ def load_cpac_data_config(data_config_file, participant_labels, aws_input_creds)
     -------
     list
     """
-    sub_list = load_yaml_config(data_config_file, aws_input_creds)
+    sub_list: list[dict[str, str]] = load_yaml_config(data_config_file, aws_input_creds)
+
+    if _check_value_type(sub_list, ["subject_id", "unique_id"], int, any):
+        sub_list = load_yaml_config(data_config_file, aws_input_creds, safe_load=False)
 
     if participant_labels:
         sub_list = [
