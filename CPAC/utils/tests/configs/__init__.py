@@ -1,7 +1,11 @@
 """Configs for testing."""
 
 from importlib import resources
-from importlib.resources.abc import Traversable
+
+try:
+    from importlib.resources.abc import Traversable
+except ModuleNotFoundError:  # TODO: Remove this block once minimum Python version includes `importlib.resources.abc`
+    from importlib.abc import Traversable
 
 import yaml
 
