@@ -116,9 +116,7 @@ def test_load_data_config_with_ints() -> None:
         "utils/tests/configs/github_2144.yml"
     )
     # make sure there are ints in the test data
-    assert _check_value_type(
-        load_yaml_config(str(data_config_file), None, safe_load=True)
-    )
+    assert _check_value_type(load_yaml_config(str(data_config_file), None))
     # make sure there aren't ints when it's loaded through the loader
     assert not _check_value_type(
         load_cpac_data_config(str(data_config_file), None, None)
