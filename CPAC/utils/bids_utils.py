@@ -1165,8 +1165,8 @@ def _check_value_type(
 def coerce_data_config_strings(contents: str) -> str:
     """Coerge `subject_id` and `unique_id` to be strings."""
     for key in ["subject_id: ", "unique_id: "]:
-        contents = contents.replace(key, f"{key}!!str ")
-    return contents
+        contents = re.sub(f"{key}(?!!!)", f"{key}!!str ", contents)
+    return contents.replace(": !!str !!", ": !!")
 
 
 def load_cpac_data_config(data_config_file, participant_labels, aws_input_creds):
