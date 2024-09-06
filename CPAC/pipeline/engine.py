@@ -2093,152 +2093,151 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id
     return (wf, rpool, diff, blip, fmap_rp_list)
 
 
-def ingress_output_dir(
-    wf, cfg, rpool, unique_id, data_paths, part_id, ses_id, creds_path=None
-):
-    dir_path = data_paths["derivatives_dir"]
+def ingress_output_dir(cfg, rpool, unique_id, creds_path=None):
 
-    WFLOGGER.info("\nPulling outputs from %s.\n", dir_path)
+    out_dir = cfg.pipeline_setup['output_directory']['path']
+    cpac_dir = "/ocean/projects/med220004p/kenneall/longitudinal/default/output/pipeline_longitudinal_cpac-default-pipeline/longitudinal/ses-sub-0025428"
+    #print('out_dir', out_dir)
+    source = False
 
-    anat = os.path.join(dir_path, "anat")
-    func = os.path.join(dir_path, "func")
+    print(f"\nPulling outputs from {cpac_dir}.\n")
 
-    exts = [".nii", ".gz", ".mat", ".1D", ".txt", ".csv", ".rms", ".tsv"]
 
-    outdir_anat = []
-    outdir_func = []
-    func_paths = {}
-    func_dict = {}
+    cpac_dir_anat = os.path.join(cpac_dir, 'anat')
+    cpac_dir_func = os.path.join(cpac_dir, 'func')
 
-    for subdir in [anat, func]:
-        if os.path.isdir(subdir):
-            for filename in os.listdir(subdir):
-                for ext in exts:
-                    if ext in filename:
-                        if subdir == anat:
-                            outdir_anat.append(os.path.join(subdir, filename))
-                        else:
-                            outdir_func.append(os.path.join(subdir, filename))
+    exts = ['.nii', '.gz', '.mat', '.1D', '.txt', '.csv', '.rms']
 
-    # Add derivatives directory to rpool
-    ingress = create_general_datasource("gather_derivatives_dir")
-    ingress.inputs.inputnode.set(
-        unique_id=unique_id,
-        data=dir_path,
-        creds_path=creds_path,
-        dl_dir=cfg.pipeline_setup["working_directory"]["path"],
-    )
-    rpool.set_data(
-        "derivatives-dir", ingress, "outputspec.data", {}, "", "outdir_config_ingress"
-    )
-
-    for subdir in [outdir_anat, outdir_func]:
-        for filepath in subdir:
-            filename = str(filepath)
+    all_output_dir = []
+    if os.path.isdir(cpac_dir_anat):
+        for filename in os.listdir(cpac_dir_anat):
             for ext in exts:
-                filename = filename.split("/")[-1].replace(ext, "")
+                if ext in filename:
+                    all_output_dir.append(os.path.join(cpac_dir_anat,
+                                                       filename))
 
-            data_label = filename.split(unique_id)[1].lstrip("_")
+    if os.path.isdir(cpac_dir_func):
+        for filename in os.listdir(cpac_dir_func):
+            for ext in exts:
+                if ext in filename:
+                    all_output_dir.append(os.path.join(cpac_dir_func,
+                                                       filename))
 
-            if len(filename) == len(data_label):
-                msg = (
-                    "\n\n[!] Possibly wrong participant or "
-                    "session in this directory?\n\n"
-                    f"Filepath: {filepath}\n\n"
-                )
-                raise Exception(msg)
+    for filepath in all_output_dir:
+        filename = str(filepath)
+        for ext in exts:
+            filename = filename.split("/")[-1].replace(ext, '')
+        data_label = filename.split(unique_id)[1].lstrip('_')
 
-            bidstag = ""
-            for tag in data_label.split("_"):
-                for prefix in ["task-", "run-", "acq-", "rec"]:
-                    if tag.startswith(prefix):
-                        bidstag += f"{tag}_"
-                        data_label = data_label.replace(f"{tag}_", "")
-            data_label, json = strip_template(data_label, dir_path, filename)
+        if len(filename) == len(data_label):
+            raise Exception('\n\n[!] Possibly wrong participant or '
+                            'session in this directory?\n\n'
+                            f'Filepath: {filepath}\n\n')
 
-            rpool, json_info, pipe_idx, node_name, data_label = json_outdir_ingress(
-                rpool, filepath, exts, data_label, json
-            )
+        if 'task-' in data_label:
+            for tag in data_label.split('_'):
+                if 'task-' in tag:
+                    break
+            runtag = None
+            if 'run-' in data_label:
+                for runtag in data_label.split('_'):
+                    if 'run-' in runtag:
+                        break
+            data_label = data_label.replace(f'{tag}_', '')
+            if runtag:
+                data_label = data_label.replace(f'{runtag}_', '')
 
-            if (
-                "template" in data_label
-                and not json_info["Template"]
-                == cfg.pipeline_setup["outdir_ingress"]["Template"]
-            ):
-                continue
-            # Rename confounds to avoid confusion in nuisance regression
-            if data_label.endswith("desc-confounds_timeseries"):
-                data_label = "pipeline-ingress_desc-confounds_timeseries"
+        if 'MNI' in data_label:
+            for tag in data_label.split('-'):
+                if tag.startswith('MNI'):
+                    print('mni', tag)
+                    if 'MNI152NLin6Sym' in tag:
+                        data_label = data_label.replace(tag.split('_')[0], 'symtemplate')
+                    else:
+                        data_label = data_label.replace(tag.split('_')[0], 'template')
+        unique_data_label = str(data_label)
 
-            if len(bidstag) > 1:
-                # Remove tail symbol
-                bidstag = bidstag[:-1]
-                if bidstag.startswith("task-"):
-                    bidstag = bidstag.replace("task-", "")
+        #if 'sub-' in data_label or 'ses-' in data_label:
+        #    raise Exception('\n\n[!] Possibly wrong participant or '
+        #                    'session in this directory?\n\nDirectory: '
+        #                    f'{cpac_dir_anat}\nFilepath: {filepath}\n\n')
+        suffix = data_label.split('_')[-1]
+        desc_val = None
+        for tag in data_label.split('_'):
+            if 'desc-' in tag:
+                desc_val = tag
+                break
+        jsonpath = str(filepath)
+        for ext in exts:
+            jsonpath = jsonpath.replace(ext, '')
+        jsonpath = f"{jsonpath}.json"
 
-            # Rename bold mask for CPAC naming convention
-            # and to avoid collision with anat brain mask
-            if data_label.endswith("desc-brain_mask") and filepath in outdir_func:
-                data_label = data_label.replace("brain_mask", "bold_mask")
+        if not os.path.exists(jsonpath):
+            print(f'\n\n[!] No JSON found for file {filepath}.\nCreating '
+                  f'{jsonpath}..\n\n')
+            json_info = {
+                'Description': 'This data was generated elsewhere and '
+                               'supplied by the user into this C-PAC run\'s '
+                               'output directory. This JSON file was '
+                               'automatically generated by C-PAC because a '
+                               'JSON file was not supplied with the data.'
+            }
+            write_output_json(json_info, jsonpath)
+        else:        
+            json_info = read_json(jsonpath)
+            
+        if 'CpacProvenance' in json_info:
+            if desc_val:
+                # it's a C-PAC output, let's check for pipe_idx/strat integer
+                # suffixes in the desc- entries.
+                only_desc = str(desc_val)
+            
+                if only_desc[-1].isdigit():
+                    for idx in range(0, 3):
+                        # let's stop at 3, please don't run >999 strategies okay?
+                        if only_desc[-1].isdigit():
+                            only_desc = only_desc[:-1]
+            
+                    if only_desc[-1] == '-':
+                        only_desc = only_desc.rstrip('-')
+                    else:
+                        raise Exception('\n[!] Something went wrong with either '
+                                        'reading in the output directory or when '
+                                        'it was written out previously.\n\nGive '
+                                        'this to your friendly local C-PAC '
+                                        f'developer:\n\n{unique_data_label}\n')
 
-            try:
-                pipe_x = rpool.get_pipe_number(pipe_idx)
-            except ValueError:
-                pipe_x = len(rpool.pipe_list)
-            if filepath in outdir_anat:
-                ingress = create_general_datasource(
-                    f"gather_anat_outdir_{data_label!s}_{pipe_x}"
-                )
-                ingress.inputs.inputnode.set(
-                    unique_id=unique_id,
-                    data=filepath,
-                    creds_path=creds_path,
-                    dl_dir=cfg.pipeline_setup["working_directory"]["path"],
-                )
-                rpool.set_data(
-                    data_label,
-                    ingress,
-                    "outputspec.data",
-                    json_info,
-                    pipe_idx,
-                    node_name,
-                    f"outdir_{data_label}_ingress",
-                    inject=True,
-                )
-            else:
-                if data_label.endswith("desc-preproc_bold"):
-                    func_key = data_label
-                    func_dict[bidstag] = {}
-                    func_dict[bidstag]["scan"] = str(filepath)
-                    func_dict[bidstag]["scan_parameters"] = json_info
-                    func_dict[bidstag]["pipe_idx"] = pipe_idx
-                if data_label.endswith("desc-brain_mask"):
-                    data_label = data_label.replace("brain_mask", "bold_mask")
-                try:
-                    func_paths[data_label].append(filepath)
-                except:
-                    func_paths[data_label] = []
-                    func_paths[data_label].append(filepath)
+                # remove the integer at the end of the desc-* variant, we will 
+                # get the unique pipe_idx from the CpacProvenance below
+                data_label = data_label.replace(desc_val, only_desc)
 
-    if func_dict:
-        wf, rpool = func_outdir_ingress(
-            wf,
-            cfg,
-            func_dict,
-            rpool,
-            unique_id,
-            creds_path,
-            part_id,
-            func_key,
-            func_paths,
+            # preserve cpac provenance/pipe_idx
+            pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])
+            node_name = ""
+        else:
+            json_info['CpacProvenance'] = [f'{data_label}:Non-C-PAC Origin']
+            if not 'Description' in json_info:
+                json_info['Description'] = 'This data was generated elsewhere and ' \
+                                           'supplied by the user into this C-PAC run\'s '\
+                                           'output directory. This JSON file was '\
+                                           'automatically generated by C-PAC because a '\
+                                           'JSON file was not supplied with the data.'
+            pipe_idx = rpool.generate_prov_string(json_info['CpacProvenance'])
+            node_name = f"{data_label}_ingress"
+
+        resource = data_label
+
+        ingress = create_general_datasource(f'gather_{unique_data_label}')
+        ingress.inputs.inputnode.set(
+            unique_id=unique_id,
+            data=filepath,
+            creds_path=creds_path,
+            dl_dir=cfg.pipeline_setup['working_directory']['path']
         )
+        rpool.set_data(resource, ingress, 'outputspec.data', json_info,
+                       pipe_idx, node_name, inject=True)
 
-    if cfg.surface_analysis["freesurfer"]["ingress_reconall"]:
-        rpool = ingress_freesurfer(
-            wf, rpool, cfg, data_paths, unique_id, part_id, ses_id
-        )
-    return wf, rpool
-
+    return rpool
 
 def json_outdir_ingress(rpool, filepath, exts, data_label, json):
     desc_val = None
