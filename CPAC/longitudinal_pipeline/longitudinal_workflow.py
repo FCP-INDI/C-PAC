@@ -249,6 +249,7 @@ def mask_longitudinal_T1w_brain(wf, cfg, strat_pool, pipe_num, opt=None):
         (
             "space-longitudinal_desc-preproc_T1w",
             "from-longitudinal_to-template_mode-image_xfm",
+            "T1w-brain-template",
         )
     ],
     outputs=["space-template_desc-brain_T1w"],
@@ -283,7 +284,7 @@ def warp_longitudinal_T1w_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("space-longitudinal_desc-preproc_T1w")
     wf.connect(node, out, apply_xfm, "inputspec.input_image")
 
-    node, out = strat_pool.get_data("T1w_brain_template")
+    node, out = strat_pool.get_data("T1w-brain-template")
     wf.connect(node, out, apply_xfm, "inputspec.reference")
 
     node, out = strat_pool.get_data("from-longitudinal_to-template_mode-image_xfm")
@@ -300,7 +301,7 @@ def warp_longitudinal_T1w_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     switch=["run"],
     inputs=[
         (
-            "from-longitudinal_to-T1w_mode-image_desc-linear_xfm",
+            "from-longitudinal_to-symtemplate_mode-image_xfm",
             "space-longitudinal_label-CSF_mask",
             "space-longitudinal_label-GM_mask",
             "space-longitudinal_label-WM_mask",
@@ -310,6 +311,9 @@ def warp_longitudinal_T1w_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
             "space-longitudinal_label-CSF_probseg",
             "space-longitudinal_label-GM_probseg",
             "space-longitudinal_label-WM_probseg",
+            "space-longitudinal_desc-preproc_T1w",
+            "T1w-brain-template",
+            "from-longitudinal_to-template_mode-image_xfm",
         )
     ],
     outputs=[
@@ -326,7 +330,7 @@ def warp_longitudinal_T1w_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def warp_longitudinal_seg_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
     xfm_prov = strat_pool.get_cpac_provenance(
-        "from-longitudinal_to-T1w_mode-image_desc-linear_xfm"
+        "from-longitudinal_to-symtemplate_mode-image_xfm"
     )
     reg_tool = check_prov_for_regtool(xfm_prov)
 
@@ -369,7 +373,7 @@ def warp_longitudinal_seg_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data("space-longitudinal_desc-preproc_T1w")
         wf.connect(node, out, apply_xfm, "inputspec.input_image")
 
-        node, out = strat_pool.get_data("T1w_brain_template")
+        node, out = strat_pool.get_data("T1w-brain-template")
         wf.connect(node, out, apply_xfm, "inputspec.reference")
 
         node, out = strat_pool.get_data("from-longitudinal_to-template_mode-image_xfm")
@@ -396,6 +400,10 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
     -------
         None
     """
+    
+    # For developer use
+    use_fs = False
+    
     # list of lists for every strategy
     session_id_list = []
     session_wfs = {}
@@ -567,11 +575,12 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 
         # now, just write out a copy of the above to each session
         config.pipeline_setup["pipeline_name"] = orig_pipe_name
-        for session in sub_list:
-            unique_id = session["unique_id"]
-
+        for i in range(len(sub_list)):
+            unique_id = sub_list[i]["unique_id"]
+            session_id_list.append(unique_id)
+            
             try:
-                creds_path = session["creds_path"]
+                creds_path = sub_list[i]["creds_path"]
                 if creds_path and "none" not in creds_path.lower():
                     if os.path.exists(creds_path):
                         input_creds_path = os.path.abspath(creds_path)
@@ -587,11 +596,15 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             except KeyError:
                 input_creds_path = None
 
-            wf = initialize_nipype_wf(config, sub_list[0])
+            workflow = initialize_nipype_wf(
+            config,
+            sub_list[i],
+        )
 
-            wf, rpool = initiate_rpool(wf, config, session)
-
+            wf, rpool = initiate_rpool(wf, config, sub_list[i])
+            long_id = f"sub-longitudinal_ses-{subject_id}"
             config.pipeline_setup["pipeline_name"] = f"longitudinal_{orig_pipe_name}"
+            long_id = long_id.replace("ses-sub-", "ses-sub")
             rpool = ingress_output_dir(
                 config, rpool, long_id, creds_path=input_creds_path
             )
@@ -631,46 +644,51 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             config.pipeline_setup["pipeline_name"] = orig_pipe_name
             excl = ["space-template_desc-brain_T1w", "space-T1w_desc-brain_mask"]
 
-            rpool.gather_pipes(wf, config, add_excl=excl)
-            wf.run()
+            # rpool.gather_pipes(wf, config, add_excl=excl)
+            
+            # wf.run()
 
-    # begin single-session stuff again
-    for session in sub_list:
-        unique_id = session["unique_id"]
+    # # begin single-session stuff again
+    # for session in sub_list:
+    #     unique_id = session["unique_id"]
 
-        try:
-            creds_path = session["creds_path"]
-            if creds_path and "none" not in creds_path.lower():
-                if os.path.exists(creds_path):
-                    input_creds_path = os.path.abspath(creds_path)
-                else:
-                    err_msg = (
-                        'Credentials path: "%s" for subject "%s" '
-                        'session "%s" was not found. Check this path '
-                        "and try again." % (creds_path, subject_id, unique_id)
-                    )
-                    raise Exception(err_msg)
-            else:
-                input_creds_path = None
-        except KeyError:
-            input_creds_path = None
+    #     try:
+    #         creds_path = session["creds_path"]
+    #         if creds_path and "none" not in creds_path.lower():
+    #             if os.path.exists(creds_path):
+    #                 input_creds_path = os.path.abspath(creds_path)
+    #             else:
+    #                 err_msg = (
+    #                     'Credentials path: "%s" for subject "%s" '
+    #                     'session "%s" was not found. Check this path '
+    #                     "and try again." % (creds_path, subject_id, unique_id)
+    #                 )
+    #                 raise Exception(err_msg)
+    #         else:
+    #             input_creds_path = None
+    #     except KeyError:
+    #         input_creds_path = None
 
-        wf = initialize_nipype_wf(config, sub_list[0])
+        # nothing in rpool hmm 
 
-        wf, rpool = initiate_rpool(wf, config, session)
+        #wf = initialize_nipype_wf(config, sub_list[0])
 
-        pipeline_blocks = [
-            warp_longitudinal_T1w_to_template,
-            warp_longitudinal_seg_to_T1w,
-        ]
+        #wf, rpool = initiate_rpool(wf, config, session)
+        # print('first', rpool.get_resources())
+        
+        # print('second', rpool.get_resources())
+            pipeline_blocks = [
+                warp_longitudinal_T1w_to_template,
+                warp_longitudinal_seg_to_T1w,
+            ]
 
-        wf = connect_pipeline(wf, config, rpool, pipeline_blocks)
+            wf = connect_pipeline(wf, config, rpool, pipeline_blocks)
 
-        rpool.gather_pipes(wf, config)
+            rpool.gather_pipes(wf, config)
 
         # this is going to run multiple times!
         # once for every strategy!
-        wf.run()
+            wf.run()
 
 
 # TODO check:
