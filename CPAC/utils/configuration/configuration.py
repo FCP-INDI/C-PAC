@@ -50,7 +50,10 @@ class Configuration:
     will form the base of the Configuration object with the values in
     the given dictionary overriding matching keys in the base at any
     depth. If no ``FROM`` key is included, the base Configuration is
-    the default Configuration.
+    the blank preconfiguration.
+
+    .. versionchanged:: 1.8.5
+       From version 1.8.0 to version 1.8.5, unspecified keys were based on the default configuration rather than the blank preconfiguration.
 
     ``FROM`` accepts either the name of a preconfigured pipleine or a
     path to a YAML file.
