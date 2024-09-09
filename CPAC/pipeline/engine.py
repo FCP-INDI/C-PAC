@@ -64,7 +64,6 @@ from CPAC.resources.templates.lookup_table import lookup_identifier
 
 logger = getLogger('nipype.workflow')
 
-
 class ResourcePool:
     def __init__(self, rpool=None, name=None, cfg=None, pipe_list=None):
 
@@ -2168,14 +2167,15 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
     # ingress config file paths
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
 
-    from nibabel.orientations import OrientationError
-    import pkg_resources as p
     import pandas as pd
+    import pkg_resources as p
+    from nibabel.orientations import OrientationError
 
     template_csv = p.resource_filename('CPAC', 'resources/cpac_templates.csv')
     template_df = pd.read_csv(template_csv, keep_default_na=False)
     templates = []
-    
+    desired_orientation = cfg.pipeline_setup["desired_orientation"]
+
     for row in template_df.itertuples():
     
         key = row.Key
@@ -2256,11 +2256,11 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
         if val.endswith(".nii.gz"):
             templates.append([key, val])
 
-    table = check_all_orientations(templates, "RPI")
+    table = check_all_orientations(templates, desired_orientation)
     df = pd.DataFrame(table, columns=["Resource", "Path", "Orientation"])
 
     # check if any of the values in Orientation column are not RPI
-    other_orientation = df[df["Orientation"] != "RPI"]
+    other_orientation = df[df["Orientation"] != desired_orientation]
     if not other_orientation.empty:
         msg = f"The following templates are not in RPI orientation: {other_orientation}"
         OrientationError(msg)
@@ -2414,7 +2414,10 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
 
     # output files with 4 different scans
-
+    for x in rpool.get_entire_pool().keys():
+        print(x)
+    import sys
+    sys.exit()
     return (wf, rpool)
 
 

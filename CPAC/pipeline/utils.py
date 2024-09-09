@@ -27,18 +27,45 @@ MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
 
 def find_orientation(input_file):
+    """Find the orientation of the input file.
+
+    Parameters
+    ----------
+    input_file : str
+        Input file path
+
+    Returns
+    -------
+    orientation : str
+        Orientation of the input file
+    """
     import subprocess
+
     cmd_3dinfo = ["3dinfo", "-orient", input_file]
 
-    orientation = (
+    return (
         subprocess.run(cmd_3dinfo, capture_output=True, text=True, check=False)
         .stdout.strip()
         .upper()
     )
-    return orientation
 
 
-def check_all_orientations(input_images:list, desired_orientation:str="RPI"):
+def check_all_orientations(input_images: list, desired_orientation: str = "RPI"):
+    """Check the orientation of all input images.
+
+    Parameters
+    ----------
+    input_images : list
+        List of input images
+    desired_orientation : str
+        Desired orientation of the input images
+
+    Returns
+    -------
+    orientations : list
+        List of orientations of the input images
+
+    """
     desired_orientation = desired_orientation.upper()
     orientations = []
     find_orient = Node(

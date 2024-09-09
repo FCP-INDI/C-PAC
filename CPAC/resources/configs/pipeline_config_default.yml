@@ -13,6 +13,9 @@ pipeline_setup:
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac-default-pipeline
 
+  # Desired orientation for the output data. "RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"
+  desired_orientation: RPI
+
   output_directory:
 
     # Directory where C-PAC should write out processed data, logs, and crash reports.
