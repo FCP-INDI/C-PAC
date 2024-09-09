@@ -49,6 +49,7 @@ def find_orientation(input_file):
         .upper()
     )
 
+
 def reorient_image(input_file, orientation):
     """Reorient the input image to the desired orientation. Replaces the original input_file with the reoriented image.
 
@@ -79,7 +80,7 @@ def reorient_image(input_file, orientation):
     ]
     cmd_mv = ["mv", output_file, input_file]
     print(f"""+++
-Reorienting : {input_file} 
+Reorienting : {input_file}
 to : {orientation}
 +++""")
     subprocess.run(cmd_3drefit, check=True)
@@ -90,7 +91,9 @@ to : {orientation}
     return
 
 
-def check_all_orientations(input_images: list, desired_orientation: str = "RPI", reorient=True):
+def check_all_orientations(
+    input_images: list, desired_orientation: str = "RPI", reorient=True
+):
     """Check the orientation of all input images.
 
     Parameters
