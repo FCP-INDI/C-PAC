@@ -423,6 +423,7 @@ latest_schema = Schema(
         "skip env check": Maybe(bool),  # flag for skipping an environment check
         "pipeline_setup": {
             "pipeline_name": All(str, Length(min=1), sanitize),
+            "desired_orientation": In({"RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"}),
             "output_directory": {
                 "path": str,
                 "source_outputs_dir": Maybe(str),
