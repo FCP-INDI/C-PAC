@@ -25,6 +25,7 @@ import re
 from typing import Any, Optional, Union
 import warnings
 
+from nibabel.orientations import OrientationError
 
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
@@ -2169,7 +2170,6 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
     import pandas as pd
     import pkg_resources as p
-    from nibabel.orientations import OrientationError
 
     template_csv = p.resource_filename('CPAC', 'resources/cpac_templates.csv')
     template_df = pd.read_csv(template_csv, keep_default_na=False)
@@ -2256,7 +2256,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
         if val.endswith(".nii.gz"):
             templates.append([key, val])
 
-    table = check_all_orientations(templates, desired_orientation)
+    table = check_all_orientations(templates, desired_orientation, reorient=True)
     df = pd.DataFrame(table, columns=["Resource", "Path", "Orientation"])
 
     # check if any of the values in Orientation column are not RPI
@@ -2394,8 +2394,32 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
         creds_path = None
 
     rpool = ResourcePool(name=unique_id, cfg=cfg)
+    desired_orientation = cfg.pipeline_setup["desired_orientation"]
 
     if data_paths:
+        # check all data_paths and convert it to the desired_orientations
+        # Convert all anat to desired_orientation
+        if "anat" in data_paths:
+            anat = []
+            for key in data_paths["anat"]:
+                anat.append([key, data_paths["anat"][key]])
+            if anat:
+                try:
+                    orientation = check_all_orientations(anat, desired_orientation, reorient=True)
+                except OrientationError as e:
+                    raise OrientationError("Anatomical data is not in the desired orientation") from e
+
+        # Convert all func to desired_orientation
+        if "func" in data_paths:
+            func = []
+            for key in data_paths["func"]:
+                func.append([key, data_paths["func"][key]["scan"]])
+            if func:
+                try:
+                    orientation = check_all_orientations(func, desired_orientation, reorient=True)
+                except:
+                    raise OrientationError("Functional data is not in the desired orientation")
+
         # ingress outdir
         try: 
             if data_paths['derivatives_dir'] and cfg.pipeline_setup['outdir_ingress']['run']:
@@ -2414,11 +2438,6 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
     rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
 
     # output files with 4 different scans
-    for x in rpool.get_entire_pool().keys():
-        print(x)
-    import sys
-
-    sys.exit()
     return (wf, rpool)
 
 

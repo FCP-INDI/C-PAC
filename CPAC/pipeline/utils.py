@@ -49,8 +49,48 @@ def find_orientation(input_file):
         .upper()
     )
 
+def reorient_image(input_file, orientation):
+    """Reorient the input image to the desired orientation. Replaces the original input_file with the reoriented image.
 
-def check_all_orientations(input_images: list, desired_orientation: str = "RPI"):
+    Parameters
+    ----------
+    input_file : str
+        Input image file path
+    orientation : str
+        Desired orientation of the input image
+
+    """
+    import os
+    import subprocess
+
+    output_file = os.path.join(
+        os.path.dirname(input_file),
+        f"reoriented_{os.path.basename(input_file)}",
+    )
+    cmd_3drefit = ["3drefit", "-deoblique", input_file]
+    cmd_3dresample = [
+        "3dresample",
+        "-orient",
+        orientation,
+        "-prefix",
+        output_file,
+        "-inset",
+        input_file,
+    ]
+    cmd_mv = ["mv", output_file, input_file]
+    print(f"""+++
+Reorienting : {input_file} 
+to : {orientation}
++++""")
+    subprocess.run(cmd_3drefit, check=True)
+    subprocess.run(cmd_3dresample, check=True)
+    print(f"""+++Replacing {input_file} with reoriented image
+          """)
+    subprocess.run(cmd_mv, check=True)
+    return
+
+
+def check_all_orientations(input_images: list, desired_orientation: str = "RPI", reorient=True):
     """Check the orientation of all input images.
 
     Parameters
@@ -80,6 +120,8 @@ def check_all_orientations(input_images: list, desired_orientation: str = "RPI")
     for key, image in input_images:
         find_orient.inputs.input_file = image
         orientation = find_orient.run().outputs.orientation
+        if reorient and orientation != desired_orientation:
+            reorient_image(image, desired_orientation)
         orientations.append([key, image, orientation])
     return orientations
 
