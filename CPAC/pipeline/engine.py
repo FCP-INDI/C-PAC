@@ -70,6 +70,7 @@ from CPAC.utils.utils import (
 )
 from nibabel.orientations import OrientationError
 
+
 class ResourcePool:
     def __init__(self, rpool=None, name=None, cfg=None, pipe_list=None):
         if not rpool:
@@ -2414,7 +2415,6 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
     import pandas as pd
     import pkg_resources as p
-    
 
     template_csv = p.resource_filename("CPAC", "resources/cpac_templates.csv")
     template_df = pd.read_csv(template_csv, keep_default_na=False)
@@ -2660,33 +2660,39 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
         creds_path = None
 
     rpool = ResourcePool(name=unique_id, cfg=cfg)
-    
+
     desired_orientation = cfg.pipeline_setup["desired_orientation"]
 
     if data_paths:
         # check all data_paths and convert it to the desired_orientations
-        #Convert all anat to desired_orientation
+        # Convert all anat to desired_orientation
         if "anat" in data_paths:
             anat = []
             for key in data_paths["anat"]:
                 anat.append([key, data_paths["anat"][key]])
             if anat:
                 try:
-                    orientation = check_all_orientations(anat, desired_orientation, reorient=True)
+                    orientation = check_all_orientations(
+                        anat, desired_orientation, reorient=True
+                    )
                 except OrientationError as e:
                     raise e("Anatomical data is not in the desired orientation")
-        
-        #Convert all func to desired_orientation    
+
+        # Convert all func to desired_orientation
         if "func" in data_paths:
             func = []
             for key in data_paths["func"]:
                 func.append([key, data_paths["func"][key]["scan"]])
             if func:
                 try:
-                    orientation = check_all_orientations(func, desired_orientation, reorient=True)
-                except :
-                    raise OrientationError("Functional data is not in the desired orientation")
-    
+                    orientation = check_all_orientations(
+                        func, desired_orientation, reorient=True
+                    )
+                except:
+                    raise OrientationError(
+                        "Functional data is not in the desired orientation"
+                    )
+
         # ingress outdir
         try:
             if (
