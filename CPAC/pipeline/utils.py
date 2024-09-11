@@ -22,7 +22,49 @@ from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
 
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
+import nibabel as nib
+import os
+import subprocess
 
+def find_pixel_dim4(file_path):
+    nii = nib.load(file_path)
+    header = nii.header
+    pixdim = header.get_zooms()
+    return pixdim[3]
+
+def update_pixel_dim4(file_path, new_pixdim4):
+
+    if not os.path.isfile(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
+    
+    # Print the current pixdim[4] value for verification
+    print(f'Updating {file_path} with new pixdim[4] value: {new_pixdim4}')
+
+    # Construct the command to update the pixdim[4] value using 3drefit
+    command = ['3drefit', '-TR', str(new_pixdim4), file_path]
+    
+    # Execute the command
+    try:
+        subprocess.run(command, check=True)
+        print(f'Successfully updated TR to {new_pixdim4} seconds.')
+    except subprocess.CalledProcessError as e:
+        print(f'Error occurred while updating the file: {e}')
+
+def validate_outputs(input_bold, RawSource_bold):
+    """Match pixdim[4]/TR of the input_bold with RawSource_bold."""
+    input_pixdim4 = find_pixel_dim4(input_bold)
+    source_pixdim4 = find_pixel_dim4(RawSource_bold)
+
+    if input_pixdim4 != source_pixdim4:
+        print(f"TR mismatch detected between input_bold and RawSource_bold.")
+        print(f"input_bold TR: {input_pixdim4} seconds")
+        print(f"RawSource_bold TR: {source_pixdim4} seconds")
+        print(f"Attempting to update the TR of input_bold to match RawSource_bold.")
+        update_pixel_dim4(input_bold, source_pixdim4)
+    else:
+        print(f"TR match detected between input_bold and RawSource_bold.")
+        print(f"input_bold TR: {input_pixdim4} seconds")
+        print(f"RawSource_bold TR: {source_pixdim4} seconds")
 
 def name_fork(resource_idx, cfg, json_info, out_dct):
     """Create and insert entities for forkpoints.
