@@ -1357,7 +1357,7 @@ class ResourcePool:
                 except OSError as os_error:
                     WFLOGGER.warning(os_error)
                     continue
-
+                
                 write_json_imports = ["import os", "import json"]
                 write_json = pe.Node(
                     Function(
@@ -1371,6 +1371,17 @@ class ResourcePool:
                 write_json.inputs.json_data = json_info
 
                 wf.connect(id_string, "out_filename", write_json, "filename")
+                
+                # Node to validate TR (and other scan parameters)
+                validate_bold_header = pe.Node(
+                    Function(
+                        input_names=["input_resource", "RawSource"],
+                        output_names=["output_resource"],
+                        function=validate_bold_header,
+                    ),
+                    name=f"validate_bold_header_{resource_idx}_{pipe_x}",
+                )
+
                 ds = pe.Node(DataSink(), name=f"sinker_{resource_idx}_{pipe_x}")
                 ds.inputs.parameterization = False
                 ds.inputs.base_directory = out_dct["out_dir"]
