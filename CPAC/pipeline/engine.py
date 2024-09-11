@@ -35,7 +35,7 @@ from CPAC.image_utils.statistical_transforms import (
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.pipeline.nodeblock import NodeBlockFunction
-from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
+from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set, validate_outputs
 from CPAC.registration.registration import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
 from CPAC.utils.bids_utils import res_in_filename
@@ -1377,7 +1377,7 @@ class ResourcePool:
                     Function(
                         input_names=["input_bold", "RawSource_bold"],
                         output_names=["output_bold"],
-                        function=validate_bold_header,
+                        function=validate_outputs,
                     ),
                     name=f"validate_bold_header_{resource_idx}_{pipe_x}",
                 )
@@ -1405,7 +1405,16 @@ class ResourcePool:
                         subdir=out_dct["subdir"],
                     ),
                 )
-                wf.connect(nii_name, "out_file", ds, f'{out_dct["subdir"]}.@data')
+                if resource.endswith("_bold"):
+                    raw_source, raw_out = self.get_data("bold", pipe_idx=pipe_idx)
+                    wf.connect([
+                        (node, validate_bold_header, [out, "input_bold"]),
+                        (raw_source, validate_bold_header, [raw_out, "RawSource_bold"]),
+                        (validate_bold_header, ds, ["output_resource", f'{out_dct["subdir"]}.@data'])
+                    ])
+                else:
+                    wf.connect(nii_name, "out_file", ds, f'{out_dct["subdir"]}.@data')
+
                 wf.connect(write_json, "json_file", ds, f'{out_dct["subdir"]}.@json')
         outputs_logger.info(expected_outputs)
 
