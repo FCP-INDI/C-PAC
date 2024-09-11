@@ -51,19 +51,22 @@ def update_pixel_dim4(file_path, new_pixdim4):
 
 def validate_outputs(input_bold, RawSource_bold):
     """Match pixdim[4]/TR of the input_bold with RawSource_bold."""
-    input_pixdim4 = find_pixel_dim4(input_bold)
+
+    output_bold = input_bold
+    output_pixdim4 = find_pixel_dim4(output_bold)
     source_pixdim4 = find_pixel_dim4(RawSource_bold)
 
-    if input_pixdim4 != source_pixdim4:
+    if output_pixdim4 != source_pixdim4:
         print(f"TR mismatch detected between input_bold and RawSource_bold.")
-        print(f"input_bold TR: {input_pixdim4} seconds")
+        print(f"input_bold TR: {output_pixdim4} seconds")
         print(f"RawSource_bold TR: {source_pixdim4} seconds")
         print(f"Attempting to update the TR of input_bold to match RawSource_bold.")
-        update_pixel_dim4(input_bold, source_pixdim4)
+        update_pixel_dim4(output_bold, source_pixdim4)
     else:
         print(f"TR match detected between input_bold and RawSource_bold.")
-        print(f"input_bold TR: {input_pixdim4} seconds")
+        print(f"input_bold TR: {output_pixdim4} seconds")
         print(f"RawSource_bold TR: {source_pixdim4} seconds")
+    return output_bold
 
 def name_fork(resource_idx, cfg, json_info, out_dct):
     """Create and insert entities for forkpoints
