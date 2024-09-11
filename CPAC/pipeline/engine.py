@@ -36,7 +36,7 @@ from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
-from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
+from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set, validate_outputs
 from CPAC.registration.registration import transform_derivative
 from CPAC.utils.bids_utils import res_in_filename
 from CPAC.utils.datasource import (
@@ -1238,7 +1238,7 @@ class ResourcePool:
                     Function(
                         input_names=["input_bold", "RawSource_bold"],
                         output_names=["output_bold"],
-                        function=validate_bold_header,
+                        function=validate_outputs,
                     ),
                     name=f"validate_bold_header_{resource_idx}_{pipe_x}",
                 )
@@ -1259,8 +1259,15 @@ class ResourcePool:
                     self.cfg, unique_id, resource_idx,
                     template_desc=id_string.inputs.template_desc,
                     atlas_id=atlas_id, subdir=out_dct['subdir']))
-                wf.connect(nii_name, 'out_file',
-                           ds, f'{out_dct["subdir"]}.@data')
+                if resource.endswith("_bold"):
+                    raw_source, raw_out = self.get_data("bold", pipe_idx=pipe_idx)
+                    wf.connect([
+                        (node, validate_bold_header, [out, "input_bold"]),
+                        (raw_source, validate_bold_header, [raw_out, "RawSource_bold"]),
+                        (validate_bold_header, ds, ["output_resource", f'{out_dct["subdir"]}.@data'])
+                    ])
+                else:
+                    wf.connect(nii_name, "out_file", ds, f'{out_dct["subdir"]}.@data')
                 wf.connect(write_json, 'json_file',
                            ds, f'{out_dct["subdir"]}.@json')
         outputs_logger.info(expected_outputs)
