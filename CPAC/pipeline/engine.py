@@ -1375,8 +1375,8 @@ class ResourcePool:
                 # Node to validate TR (and other scan parameters)
                 validate_bold_header = pe.Node(
                     Function(
-                        input_names=["input_resource", "RawSource"],
-                        output_names=["output_resource"],
+                        input_names=["input_bold", "RawSource_bold"],
+                        output_names=["output_bold"],
                         function=validate_bold_header,
                     ),
                     name=f"validate_bold_header_{resource_idx}_{pipe_x}",
