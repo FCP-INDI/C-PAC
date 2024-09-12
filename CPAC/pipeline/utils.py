@@ -17,57 +17,141 @@
 """C-PAC pipeline engine utilities."""
 
 from itertools import chain
-
-from CPAC.func_preproc.func_motion import motion_estimate_filter
-from CPAC.utils.bids_utils import insert_entity
-
-MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
-import nibabel as nib
 import os
 import subprocess
 
-def find_pixel_dim4(file_path):
-    nii = nib.load(file_path)
-    header = nii.header
-    pixdim = header.get_zooms()
-    return pixdim[3]
+import nibabel as nib
 
-def update_pixel_dim4(file_path, new_pixdim4):
+from CPAC.func_preproc.func_motion import motion_estimate_filter
+from CPAC.utils.bids_utils import insert_entity
+from CPAC.utils.monitoring import WFLOGGER
 
+MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
+
+
+def find_pixdim4(file_path):
+    """Find the pixdim4 value of a NIfTI file.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the NIfTI file.
+
+    Returns
+    -------
+    float
+        The pixdim4 value of the NIfTI file.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the file does not exist.
+    nibabel.filebasedimages.ImageFileError
+        If there is an error loading the NIfTI file.
+    IndexError
+        If pixdim4 is not found in the header.
+    """
     if not os.path.isfile(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
-    
-    # Print the current pixdim[4] value for verification
-    print(f'Updating {file_path} with new pixdim[4] value: {new_pixdim4}')
+        error_message = f"File not found: {file_path}"
+        raise FileNotFoundError(file_path)
 
-    # Construct the command to update the pixdim[4] value using 3drefit
-    command = ['3drefit', '-TR', str(new_pixdim4), file_path]
-    
-    # Execute the command
+    try:
+        nii = nib.load(file_path)
+        header = nii.header
+        pixdim = header.get_zooms()
+        return pixdim[3]
+    except nib.filebasedimages.ImageFileError as e:
+        error_message = f"Error loading the NIfTI file: {e}"
+        raise nib.filebasedimages.ImageFileError(error_message)
+    except IndexError as e:
+        error_message = f"pixdim4 not found in the header: {e}"
+        raise IndexError(error_message)
+
+
+def update_pixdim4(file_path, new_pixdim4):
+    """Update the pixdim4 value of a NIfTI file using 3drefit.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the NIfTI file.
+    new_pixdim4 : float
+        New pixdim4 value to update the NIfTI file with.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the file does not exist.
+    subprocess.CalledProcessError
+        If there is an error running the subprocess.
+
+    Notes
+    -----
+    The pixdim4 value is the Repetition Time (TR) of the NIfTI file.
+
+    """
+    if not os.path.isfile(file_path):
+        error_message = f"File not found: {file_path}"
+        raise FileNotFoundError(error_message)
+
+    # Print the current pixdim4 value for verification
+    WFLOGGER.info(f"Updating {file_path} with new pixdim[4] value: {new_pixdim4}")
+
+    # Construct the command to update the pixdim4 value using 3drefit
+    command = ["3drefit", "-TR", str(new_pixdim4), file_path]
+
     try:
         subprocess.run(command, check=True)
-        print(f'Successfully updated TR to {new_pixdim4} seconds.')
+        WFLOGGER.info(f"Successfully updated TR to {new_pixdim4} seconds.")
     except subprocess.CalledProcessError as e:
-        print(f'Error occurred while updating the file: {e}')
+        error_message = f"Error occurred while updating the file: {e}"
+        raise subprocess.CalledProcessError(error_message)
+
 
 def validate_outputs(input_bold, RawSource_bold):
-    """Match pixdim[4]/TR of the input_bold with RawSource_bold."""
+    """Match pixdim4/TR of the input_bold with RawSource_bold.
 
-    output_bold = input_bold
-    output_pixdim4 = find_pixel_dim4(output_bold)
-    source_pixdim4 = find_pixel_dim4(RawSource_bold)
+    Parameters
+    ----------
+    input_bold : str
+        Path to the input BOLD file.
+    RawSource_bold : str
+        Path to the RawSource BOLD file.
 
-    if output_pixdim4 != source_pixdim4:
-        print(f"TR mismatch detected between input_bold and RawSource_bold.")
-        print(f"input_bold TR: {output_pixdim4} seconds")
-        print(f"RawSource_bold TR: {source_pixdim4} seconds")
-        print(f"Attempting to update the TR of input_bold to match RawSource_bold.")
-        update_pixel_dim4(output_bold, source_pixdim4)
-    else:
-        print(f"TR match detected between input_bold and RawSource_bold.")
-        print(f"input_bold TR: {output_pixdim4} seconds")
-        print(f"RawSource_bold TR: {source_pixdim4} seconds")
-    return output_bold
+    Returns
+    -------
+    str
+        Path to the input BOLD file.
+
+    Raises
+    ------
+    Exception
+        If there is an error in finding or updating pixdim4.
+    """
+    try:
+        output_bold = input_bold
+        output_pixdim4 = find_pixdim4(output_bold)
+        source_pixdim4 = find_pixdim4(RawSource_bold)
+
+        if output_pixdim4 != source_pixdim4:
+            WFLOGGER.info(
+                "TR mismatch detected between output_bold and RawSource_bold."
+            )
+            WFLOGGER.info(f"output_bold TR: {output_pixdim4} seconds")
+            WFLOGGER.info(f"RawSource_bold TR: {source_pixdim4} seconds")
+            WFLOGGER.info(
+                "Attempting to update the TR of output_bold to match RawSource_bold."
+            )
+            update_pixdim4(output_bold, source_pixdim4)
+        else:
+            WFLOGGER.info("TR match detected between output_bold and RawSource_bold.")
+            WFLOGGER.info(f"output_bold TR: {output_pixdim4} seconds")
+            WFLOGGER.info(f"RawSource_bold TR: {source_pixdim4} seconds")
+        return output_bold
+    except Exception as e:
+        error_message = f"Error in validating outputs: {e}"
+        raise Exception(error_message)
+
 
 def name_fork(resource_idx, cfg, json_info, out_dct):
     """Create and insert entities for forkpoints.
