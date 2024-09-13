@@ -1260,12 +1260,18 @@ class ResourcePool:
                     template_desc=id_string.inputs.template_desc,
                     atlas_id=atlas_id, subdir=out_dct['subdir']))
                 if resource.endswith("_bold"):
-                    raw_source, raw_out = self.get_data("bold", pipe_idx=pipe_idx)
+                    raw_source, raw_out = self.get_data("bold")
                     wf.connect([
-                        (node, validate_bold_header, [out, "input_bold"]),
-                        (raw_source, validate_bold_header, [raw_out, "RawSource_bold"]),
-                        (validate_bold_header, ds, ["output_resource", f'{out_dct["subdir"]}.@data'])
-                    ])
+                                (node, validate_bold_header, [
+                                    (out, "input_bold")
+                                ]),
+                                (raw_source, validate_bold_header, [
+                                    (raw_out, "RawSource")
+                                ]),
+                                (validate_bold_header, ds, [
+                                    ("output_bold", f'{out_dct["subdir"]}.@data')
+                                ])
+                            ])
                 else:
                     wf.connect(nii_name, "out_file", ds, f'{out_dct["subdir"]}.@data')
                 wf.connect(write_json, 'json_file',
