@@ -35,7 +35,12 @@ from CPAC.image_utils.statistical_transforms import (
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.pipeline.nodeblock import NodeBlockFunction
-from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set, validate_outputs
+from CPAC.pipeline.utils import (
+    MOVEMENT_FILTER_KEYS,
+    name_fork,
+    source_set,
+    validate_outputs,
+)
 from CPAC.registration.registration import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
 from CPAC.utils.bids_utils import res_in_filename
@@ -1357,7 +1362,7 @@ class ResourcePool:
                 except OSError as os_error:
                     WFLOGGER.warning(os_error)
                     continue
-                
+
                 write_json_imports = ["import os", "import json"]
                 write_json = pe.Node(
                     Function(
@@ -1371,7 +1376,7 @@ class ResourcePool:
                 write_json.inputs.json_data = json_info
 
                 wf.connect(id_string, "out_filename", write_json, "filename")
-                
+
                 # Node to validate TR (and other scan parameters)
                 validate_bold_header = pe.Node(
                     Function(
@@ -1407,17 +1412,21 @@ class ResourcePool:
                 )
                 if resource.endswith("_bold"):
                     raw_source, raw_out = self.get_data("bold")
-                    wf.connect([
-                                (node, validate_bold_header, [
-                                    (out, "input_bold")
-                                ]),
-                                (raw_source, validate_bold_header, [
-                                    (raw_out, "RawSource")
-                                ]),
-                                (validate_bold_header, ds, [
-                                    ("output_bold", f'{out_dct["subdir"]}.@data')
-                                ])
-                            ])
+                    wf.connect(
+                        [
+                            (node, validate_bold_header, [(out, "input_bold")]),
+                            (
+                                raw_source,
+                                validate_bold_header,
+                                [(raw_out, "RawSource")],
+                            ),
+                            (
+                                validate_bold_header,
+                                ds,
+                                [("output_bold", f'{out_dct["subdir"]}.@data')],
+                            ),
+                        ]
+                    )
                 else:
                     wf.connect(nii_name, "out_file", ds, f'{out_dct["subdir"]}.@data')
 
