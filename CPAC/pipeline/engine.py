@@ -2507,10 +2507,10 @@ def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
         check_orient = pe.Node(
             Function(
                 input_names=["input_file", "desired_orientation", "reorient"],
-                output_names=["orientation"],
+                output_names=["output_file"],
                 function=check_orientation,
             ),
-            name=f"check_orientation_{key}",
+            name=f"check_orient_{key}",
         )
         wf.connect(node, output, check_orient, "input_file")
         check_orient.inputs.desired_orientation = desired_orientation
