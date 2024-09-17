@@ -36,7 +36,7 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.pipeline.nodeblock import NodeBlockFunction
 from CPAC.pipeline.utils import (
-    check_all_orientations,
+    check_orientation,
     MOVEMENT_FILTER_KEYS,
     name_fork,
     source_set,
@@ -68,7 +68,6 @@ from CPAC.utils.utils import (
     read_json,
     write_output_json,
 )
-from nibabel.orientations import OrientationError
 
 
 class ResourcePool:
@@ -2409,7 +2408,7 @@ def strip_template(data_label, dir_path, filename):
     return data_label, json
 
 
-def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
+def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
     # ingress config file paths
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
 
@@ -2418,7 +2417,6 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
     template_csv = p.resource_filename("CPAC", "resources/cpac_templates.csv")
     template_df = pd.read_csv(template_csv, keep_default_na=False)
-    templates = []
     desired_orientation = cfg.pipeline_setup["desired_orientation"]
 
     for row in template_df.itertuples():
@@ -2489,19 +2487,9 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
             resampled_template.inputs.template_name = key
             resampled_template.inputs.tag = tag
 
-            # the set_data below is set up a little differently, because we are
-            # injecting and also over-writing already-existing entries
-            # other alternative would have been to ingress into the
-            # resampled_template node from the already existing entries, but we
-            # didn't do that here
-            rpool.set_data(
-                key,
-                resampled_template,
-                "resampled_template",
-                json_info,
-                "",
-                "template_resample",
-            )  # pipe_idx (after the blank json {}) should be the previous strat that you want deleted! because you're not connecting this the regular way, you have to do it manually
+            node = resampled_template
+            output = "resampled_template"
+            node_name = f"{key}_resampled_template"
 
         elif val:
             config_ingress = create_general_datasource(f"gather_{key}")
@@ -2511,27 +2499,31 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 creds_path=creds_path,
                 dl_dir=cfg.pipeline_setup["working_directory"]["path"],
             )
-            rpool.set_data(
-                key,
-                config_ingress,
-                "outputspec.data",
-                json_info,
-                "",
-                f"{key}_config_ingress",
-            )
-        # check if val is a nifti file .nii.gz
-        if val.endswith(".nii.gz"):
-            templates.append([key, val])
+            node = config_ingress
+            output = "outputspec.data"
+            node_name = f"{key}_config_ingress"
 
-    table = check_all_orientations(templates, desired_orientation, reorient=True)
-    df = pd.DataFrame(table, columns=["Resource", "Path", "Orientation"])
+        # check if the output is in desired orientation, if not reorient it
+        check_orient = pe.Node(
+            Function(
+                input_names=["input_file", "desired_orientation", "reorient"],
+                output_names=["orientation"],
+                function=check_orientation,
+            ),
+            name=f"check_orientation_{key}",
+        )
+        wf.connect(node, output, check_orient, "input_file")
+        check_orient.inputs.desired_orientation = desired_orientation
+        check_orient.inputs.reorient = True
 
-    # check if any of the values in Orientation column are not RPI
-    other_orientation = df[df["Orientation"] != desired_orientation]
-    if not other_orientation.empty:
-        msg = f"The following templates are not in RPI orientation: {other_orientation}"
-        OrientationError(msg)
-
+        rpool.set_data(
+            key,
+            check_orient,
+            "output_file",
+            json_info,
+            "",
+            f"check_orient-{node_name}-{key}",
+        )
     # templates, resampling from config
     """
     template_keys = [
@@ -2617,7 +2609,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
         )
         cfg.set_nested(cfg, key, node)
     """
-    return rpool
+    return wf, rpool
 
 
 def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
@@ -2661,38 +2653,8 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
 
     rpool = ResourcePool(name=unique_id, cfg=cfg)
 
-    desired_orientation = cfg.pipeline_setup["desired_orientation"]
 
     if data_paths:
-        # check all data_paths and convert it to the desired_orientations
-        # Convert all anat to desired_orientation
-        if "anat" in data_paths:
-            anat = []
-            for key in data_paths["anat"]:
-                anat.append([key, data_paths["anat"][key]])
-            if anat:
-                try:
-                    orientation = check_all_orientations(
-                        anat, desired_orientation, reorient=True
-                    )
-                except OrientationError as e:
-                    raise e("Anatomical data is not in the desired orientation")
-
-        # Convert all func to desired_orientation
-        if "func" in data_paths:
-            func = []
-            for key in data_paths["func"]:
-                func.append([key, data_paths["func"][key]["scan"]])
-            if func:
-                try:
-                    orientation = check_all_orientations(
-                        func, desired_orientation, reorient=True
-                    )
-                except:
-                    raise OrientationError(
-                        "Functional data is not in the desired orientation"
-                    )
-
         # ingress outdir
         try:
             if (
@@ -2719,7 +2681,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
                 )
 
     # grab any file paths from the pipeline config YAML
-    rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
+    wf, rpool = ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path)
 
     # output files with 4 different scans
 

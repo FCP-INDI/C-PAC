@@ -18,21 +18,24 @@
 
 from itertools import chain
 
-from nipype import Function, Node
-
 from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
+from CPAC.utils.monitoring import IFLOGGER
 
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
 
-def find_orientation(input_file):
-    """Find the orientation of the input file.
+def check_orientation(input_file, desired_orientation, reorient=False):
+    """Find the orientation of the input file and reorient it if necessary.
 
     Parameters
     ----------
     input_file : str
         Input file path
+    desired_orientation : str
+        Desired orientation of the input file
+    reorient : bool
+        Reorient the input file to the desired orientation
 
     Returns
     -------
@@ -43,11 +46,16 @@ def find_orientation(input_file):
 
     cmd_3dinfo = ["3dinfo", "-orient", input_file]
 
-    return (
+    orientation = (
         subprocess.run(cmd_3dinfo, capture_output=True, text=True, check=False)
         .stdout.strip()
         .upper()
     )
+    if orientation != desired_orientation and reorient:
+        output_file = reorient_image(input_file, desired_orientation)
+    else:
+        output_file = input_file
+    return output_file
 
 
 def reorient_image(input_file, orientation):
@@ -60,73 +68,37 @@ def reorient_image(input_file, orientation):
     orientation : str
         Desired orientation of the input image
 
-    """
-    import os
-    import subprocess
-
-    output_file = os.path.join(
-        os.path.dirname(input_file),
-        f"reoriented_{os.path.basename(input_file)}",
-    )
-    cmd_3drefit = ["3drefit", "-deoblique", input_file]
-    cmd_3dresample = [
-        "3dresample",
-        "-orient",
-        orientation,
-        "-prefix",
-        output_file,
-        "-inset",
-        input_file,
-    ]
-    cmd_mv = ["mv", output_file, input_file]
-    print(f"""+++
-Reorienting : {input_file}
-to : {orientation}
-+++""")
-    subprocess.run(cmd_3drefit, check=True)
-    subprocess.run(cmd_3dresample, check=True)
-    print(f"""+++Replacing {input_file} with reoriented image
-          """)
-    subprocess.run(cmd_mv, check=True)
-    return
-
-
-def check_all_orientations(
-    input_images: list, desired_orientation: str = "RPI", reorient=True
-):
-    """Check the orientation of all input images.
-
-    Parameters
-    ----------
-    input_images : list
-        List of input images
-    desired_orientation : str
-        Desired orientation of the input images
-
     Returns
     -------
-    orientations : list
-        List of orientations of the input images
-
+    output_file : str
+        Reoriented image file path
     """
-    desired_orientation = desired_orientation.upper()
-    orientations = []
-    find_orient = Node(
-        Function(
-            input_names=["input_file"],
-            output_names=["orientation"],
-            function=find_orientation,
-        ),
-        name="find_orient",
-    )
+    try:
+        import os
+        import subprocess
 
-    for key, image in input_images:
-        find_orient.inputs.input_file = image
-        orientation = find_orient.run().outputs.orientation
-        if reorient and orientation != desired_orientation:
-            reorient_image(image, desired_orientation)
-        orientations.append([key, image, orientation])
-    return orientations
+        output_file = os.path.join(
+            os.path.dirname(input_file),
+            f"reoriented_{os.path.basename(input_file)}",
+        )
+        cmd_3drefit = ["3drefit", "-deoblique", input_file]
+        cmd_3dresample = [
+            "3dresample",
+            "-orient",
+            orientation,
+            "-prefix",
+            output_file,
+            "-inset",
+            input_file,
+        ]
+
+        IFLOGGER.info(f"""+++\nReorienting : {input_file}\nto : {orientation}\n+++""")
+        subprocess.run(cmd_3drefit, check=True)
+        subprocess.run(cmd_3dresample, check=True)
+        return output_file
+    except Exception as e:
+        IFLOGGER.error(f"Reorienting failed for {input_file} with error: {e}")
+        return input_file
 
 
 def name_fork(resource_idx, cfg, json_info, out_dct):
