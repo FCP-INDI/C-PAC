@@ -1418,7 +1418,7 @@ class ResourcePool:
                             (
                                 raw_source,
                                 validate_bold_header,
-                                [(raw_out, "RawSource")],
+                                [(raw_out, "RawSource_bold")],
                             ),
                             (
                                 validate_bold_header,
