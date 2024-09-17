@@ -106,14 +106,14 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs, sample_perio
             img.to_filename(regressor_bandpassed_file)
 
         else:
-            with open(regressor_file, "r") as f:
-                header = []
-
-                # header wouldn't be longer than 5, right? I don't want to
-                # loop over the whole file
-                for i in range(5):
-                    line = f.readline()
-                    if line.startswith("#") or isinstance(line[0], str):
+            header = []
+            with open(regressor_file, "r") as _f:
+                # Each leading line that doesn't start with a number goes into the header
+                for line in _f.readlines():
+                    try:
+                        float(line.split()[0])
+                        break
+                    except ValueError:
                         header.append(line)
 
             # usecols=[list]
