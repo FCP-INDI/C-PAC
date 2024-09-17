@@ -1,6 +1,8 @@
 import os
+from pathlib import Path
 
 import numpy as np
+from numpy.typing import NDArray
 import nibabel as nib
 from scipy.fftpack import fft, ifft
 
@@ -42,6 +44,22 @@ def ideal_bandpass(data, sample_period, bandpass_freqs):
     f_data = fft(data_p)
     f_data[freq_mask is not True] = 0.0
     return np.real_if_close(ifft(f_data)[:sample_length])
+
+
+def read_1D(one_D: Path | str) -> tuple[list[str], NDArray]:
+    """Parse a header from a 1D file, returing that header and a Numpy Array."""
+    header = []
+    with open(one_D, "r") as _f:
+        # Each leading line that doesn't start with a number goes into the header
+        for line in _f.readlines():
+            try:
+                float(line.split()[0])
+                break
+            except ValueError:
+                header.append(line)
+
+    regressor = np.loadtxt(one_D, skiprows=len(header))
+    return header, regressor
 
 
 def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs, sample_period=None):
@@ -106,18 +124,9 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs, sample_perio
             img.to_filename(regressor_bandpassed_file)
 
         else:
-            header = []
-            with open(regressor_file, "r") as _f:
-                # Each leading line that doesn't start with a number goes into the header
-                for line in _f.readlines():
-                    try:
-                        float(line.split()[0])
-                        break
-                    except ValueError:
-                        header.append(line)
-
-            # usecols=[list]
-            regressor = np.loadtxt(regressor_file, skiprows=len(header))
+            header: list[str]
+            regressor: NDArray
+            header, regressor = read_1D(regressor_file)
             Yc = regressor - np.tile(regressor.mean(0), (regressor.shape[0], 1))
             Y_bp = np.zeros_like(Yc)
 
