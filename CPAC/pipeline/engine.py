@@ -1266,7 +1266,7 @@ class ResourcePool:
                                     (out, "input_bold")
                                 ]),
                                 (raw_source, validate_bold_header, [
-                                    (raw_out, "RawSource")
+                                    (raw_out, "RawSource_bold")
                                 ]),
                                 (validate_bold_header, ds, [
                                     ("output_bold", f'{out_dct["subdir"]}.@data')
