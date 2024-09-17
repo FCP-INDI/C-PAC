@@ -2653,7 +2653,6 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
 
     rpool = ResourcePool(name=unique_id, cfg=cfg)
 
-
     if data_paths:
         # ingress outdir
         try:
