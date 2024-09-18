@@ -1239,7 +1239,9 @@ class ResourcePool:
                         input_names=["input_bold", "RawSource_bold"],
                         output_names=["output_bold"],
                         function=validate_outputs,
-                        imports=["from CPAC.pipeline.utils import find_pixdim4, update_pixdim4"],
+                        imports=[
+                            "from CPAC.pipeline.utils import find_pixdim4, update_pixdim4"
+                        ],
                     ),
                     name=f"validate_bold_header_{resource_idx}_{pipe_x}",
                 )
