@@ -144,9 +144,9 @@ def validate_outputs(input_bold, RawSource_bold):
             )
             update_pixdim4(output_bold, source_pixdim4)
         else:
-            IFLOGGER.info("TR match detected between output_bold and RawSource_bold.")
-            IFLOGGER.info(f"output_bold TR: {output_pixdim4} seconds")
-            IFLOGGER.info(f"RawSource_bold TR: {source_pixdim4} seconds")
+            IFLOGGER.debug("TR match detected between output_bold and RawSource_bold.")
+            IFLOGGER.debug(f"output_bold TR: {output_pixdim4} seconds")
+            IFLOGGER.debug(f"RawSource_bold TR: {source_pixdim4} seconds")
         return output_bold
     except Exception as e:
         error_message = f"Error in validating outputs: {e}"
