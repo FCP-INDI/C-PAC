@@ -1383,6 +1383,7 @@ class ResourcePool:
                         input_names=["input_bold", "RawSource_bold"],
                         output_names=["output_bold"],
                         function=validate_outputs,
+                        imports=["from CPAC.pipeline.utils import find_pixdim4, update_pixdim4"],
                     ),
                     name=f"validate_bold_header_{resource_idx}_{pipe_x}",
                 )
@@ -1414,7 +1415,7 @@ class ResourcePool:
                     raw_source, raw_out = self.get_data("bold")
                     wf.connect(
                         [
-                            (node, validate_bold_header, [(out, "input_bold")]),
+                            (nii_name, validate_bold_header, [(out, "input_bold")]),
                             (
                                 raw_source,
                                 validate_bold_header,

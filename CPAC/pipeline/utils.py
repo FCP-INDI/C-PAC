@@ -24,7 +24,7 @@ import nibabel as nib
 
 from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
-from CPAC.utils.monitoring import WFLOGGER
+from CPAC.utils.monitoring import IFLOGGER
 
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
@@ -95,14 +95,14 @@ def update_pixdim4(file_path, new_pixdim4):
         raise FileNotFoundError(error_message)
 
     # Print the current pixdim4 value for verification
-    WFLOGGER.info(f"Updating {file_path} with new pixdim[4] value: {new_pixdim4}")
+    IFLOGGER.info(f"Updating {file_path} with new pixdim[4] value: {new_pixdim4}")
 
     # Construct the command to update the pixdim4 value using 3drefit
     command = ["3drefit", "-TR", str(new_pixdim4), file_path]
 
     try:
         subprocess.run(command, check=True)
-        WFLOGGER.info(f"Successfully updated TR to {new_pixdim4} seconds.")
+        IFLOGGER.info(f"Successfully updated TR to {new_pixdim4} seconds.")
     except subprocess.CalledProcessError as e:
         error_message = f"Error occurred while updating the file: {e}"
         raise subprocess.CalledProcessError(error_message)
@@ -120,8 +120,8 @@ def validate_outputs(input_bold, RawSource_bold):
 
     Returns
     -------
-    str
-        Path to the input BOLD file.
+    output_bold : str
+        Path to the output BOLD file.
 
     Raises
     ------
@@ -134,23 +134,24 @@ def validate_outputs(input_bold, RawSource_bold):
         source_pixdim4 = find_pixdim4(RawSource_bold)
 
         if output_pixdim4 != source_pixdim4:
-            WFLOGGER.info(
+            IFLOGGER.info(
                 "TR mismatch detected between output_bold and RawSource_bold."
             )
-            WFLOGGER.info(f"output_bold TR: {output_pixdim4} seconds")
-            WFLOGGER.info(f"RawSource_bold TR: {source_pixdim4} seconds")
-            WFLOGGER.info(
+            IFLOGGER.info(f"output_bold TR: {output_pixdim4} seconds")
+            IFLOGGER.info(f"RawSource_bold TR: {source_pixdim4} seconds")
+            IFLOGGER.info(
                 "Attempting to update the TR of output_bold to match RawSource_bold."
             )
             update_pixdim4(output_bold, source_pixdim4)
         else:
-            WFLOGGER.info("TR match detected between output_bold and RawSource_bold.")
-            WFLOGGER.info(f"output_bold TR: {output_pixdim4} seconds")
-            WFLOGGER.info(f"RawSource_bold TR: {source_pixdim4} seconds")
+            IFLOGGER.info("TR match detected between output_bold and RawSource_bold.")
+            IFLOGGER.info(f"output_bold TR: {output_pixdim4} seconds")
+            IFLOGGER.info(f"RawSource_bold TR: {source_pixdim4} seconds")
         return output_bold
     except Exception as e:
         error_message = f"Error in validating outputs: {e}"
-        raise Exception(error_message)
+        IFLOGGER.error(error_message)
+        return output_bold
 
 
 def name_fork(resource_idx, cfg, json_info, out_dct):
