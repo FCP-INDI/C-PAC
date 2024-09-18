@@ -2243,26 +2243,30 @@ def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
             output = "outputspec.data"
             node_name = f"{key}_config_ingress"
 
-        # check if the output is in desired orientation, if not reorient it
-        check_orient = pe.Node(
-            Function(
-                input_names=["input_file", "desired_orientation", "reorient"],
-                output_names=["output_file"],
-                function=check_orientation,
-            ),
-            name=f"check_orient_{key}",
-        )
-        wf.connect(node, output, check_orient, "input_file")
-        check_orient.inputs.desired_orientation = desired_orientation
-        check_orient.inputs.reorient = True
-        rpool.set_data(
-            key,
-            check_orient,
-            "output_file",
-            json_info,
-            "",
-            f"check_orient-{node_name}-{key}",
-        )
+        if val.endswith(".nii.gz"):
+            # check if the output is in desired orientation, if not reorient it
+            check_orient = pe.Node(
+                Function(
+                    input_names=["input_file", "desired_orientation", "reorient"],
+                    output_names=["output_file"],
+                    function=check_orientation,
+                    imports=["from CPAC.pipeline.utils import reorient_image"],
+                ),
+                name=f"check_orient_{key}",
+            )
+            wf.connect(node, output, check_orient, "input_file")
+            check_orient.inputs.desired_orientation = desired_orientation
+            check_orient.inputs.reorient = True
+            rpool.set_data(
+                key,
+                check_orient,
+                "output_file",
+                json_info,
+                "",
+                f"check_orient-{node_name}-{key}",
+            )
+        else:
+            rpool.set_data(key, node, output, json_info, "", node_name)
 
     # templates, resampling from config
     '''
