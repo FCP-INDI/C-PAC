@@ -16,8 +16,8 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Tests for bandpass filters."""
 
+from importlib.abc import Traversable
 from importlib.resources import files
-from importlib.resources.abc import Traversable
 from pathlib import Path
 
 from numpy.typing import NDArray
