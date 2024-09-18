@@ -1233,19 +1233,6 @@ class ResourcePool:
 
                 wf.connect(id_string, 'out_filename', write_json, 'filename')
 
-                # Node to validate TR (and other scan parameters)
-                validate_bold_header = pe.Node(
-                    Function(
-                        input_names=["input_bold", "RawSource_bold"],
-                        output_names=["output_bold"],
-                        function=validate_outputs,
-                        imports=[
-                            "from CPAC.pipeline.utils import find_pixdim4, update_pixdim4"
-                        ],
-                    ),
-                    name=f"validate_bold_header_{resource_idx}_{pipe_x}",
-                )
-
                 ds = pe.Node(DataSink(), name=f'sinker_{resource_idx}_'
                                               f'{pipe_x}')
                 ds.inputs.parameterization = False
@@ -1263,6 +1250,18 @@ class ResourcePool:
                     template_desc=id_string.inputs.template_desc,
                     atlas_id=atlas_id, subdir=out_dct['subdir']))
                 if resource.endswith("_bold"):
+                    # Node to validate TR (and other scan parameters)
+                    validate_bold_header = pe.Node(
+                        Function(
+                            input_names=["input_bold", "RawSource_bold"],
+                            output_names=["output_bold"],
+                            function=validate_outputs,
+                            imports=[
+                                "from CPAC.pipeline.utils import find_pixdim4, update_pixdim4"
+                            ],
+                        ),
+                        name=f"validate_bold_header_{resource_idx}_{pipe_x}",
+                    )
                     raw_source, raw_out = self.get_data("bold")
                     wf.connect([
                                 (nii_name, validate_bold_header, [
