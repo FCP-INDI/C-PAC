@@ -181,7 +181,7 @@ def cosine_filter(
         reshaped_output_data = np.zeros_like(reshaped_data)
 
         # Choose the appropriate X matrix
-        X = X_with_mean if remove_mean else X_without_mean
+        X = X_without_mean if remove_mean else X_with_mean
 
         voxel_gen = voxel_generator()
 
