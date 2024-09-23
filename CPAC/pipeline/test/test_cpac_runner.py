@@ -1,11 +1,20 @@
 import os
+from pathlib import Path
 
 import pkg_resources as p
 import pytest
 
 from CPAC.pipeline.cpac_pipeline import load_cpac_pipe_config
 from CPAC.pipeline.cpac_runner import run_T1w_longitudinal
+from CPAC.pipeline.utils import get_shell
 from CPAC.utils.bids_utils import create_cpac_data_config
+
+
+def test_shell() -> None:
+    """Test that ``get_shell`` returns a path to an executable BASH."""
+    shell = Path(get_shell())
+    assert shell.exists(), "No default shell found."
+    assert os.access(shell, os.X_OK), "Default shell not executable."
 
 
 @pytest.mark.skip(reason="not a pytest test")
