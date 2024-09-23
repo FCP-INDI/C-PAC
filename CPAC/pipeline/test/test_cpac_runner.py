@@ -12,8 +12,9 @@ from CPAC.utils.bids_utils import create_cpac_data_config
 
 def test_shell() -> None:
     """Test that ``get_shell`` returns a path to an executable BASH."""
-    shell = Path(get_shell())
-    assert shell.exists(), "No default shell found."
+    shell: str = get_shell()
+    assert shell.lower().endswith("bash"), "Default shell isn't BASH?"
+    assert Path(shell).exists(), "No default shell found."
     assert os.access(shell, os.X_OK), "Default shell not executable."
 
 
