@@ -29,6 +29,7 @@ from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
 from nipype import config, logging  # pylint: disable=wrong-import-order
 from CPAC.pipeline.nodeblock import NodeBlockFunction  # pylint: disable=ungrouped-imports
+from nipype.interfaces import afni
 from nipype.interfaces.utility import \
     Rename  # pylint: disable=wrong-import-order
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
@@ -36,7 +37,6 @@ from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.pipeline.utils import (
-    check_orientation,
     MOVEMENT_FILTER_KEYS,
     name_fork,
     source_set,
@@ -1716,7 +1716,7 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
-
+    desired_orientation = cfg.pipeline_setup["desired_orientation"]
     if 'anat' not in data_paths:
         print('No anatomical data present.')
         return rpool
@@ -1740,8 +1740,14 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
             dl_dir=cfg.pipeline_setup['working_directory']['path'],
             img_type='anat'
         )
-        rpool.set_data('T1w', anat_flow, 'outputspec.anat', {},
-                    "", "anat_ingress")
+        reorient = pe.Node(
+            interface=afni.Resample(),
+            name=f"reorient_T1w_{part_id}_{ses_id}",
+        )
+        reorient.inputs.orientation = desired_orientation
+        reorient.inputs.outputtype = "NIFTI_GZ"
+        wf.connect(anat_flow, "outputspec.anat", reorient, "in_file")
+        rpool.set_data("T1w", reorient, "out_file", {}, "", "anat_ingress")
     
     if 'T2w' in data_paths['anat']: 
         anat_flow_T2 = create_anat_datasource(f'anat_T2w_gather_{part_id}_{ses_id}')
@@ -1752,8 +1758,14 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
             dl_dir=cfg.pipeline_setup['working_directory']['path'],
             img_type='anat'
         )
-        rpool.set_data('T2w', anat_flow_T2, 'outputspec.anat', {},
-                    "", "anat_ingress")
+        reorient = pe.Node(
+            interface=afni.Resample(),
+            name=f"reorient_T1w_{part_id}_{ses_id}",
+        )
+        reorient.inputs.orientation = desired_orientation
+        reorient.inputs.outputtype = "NIFTI_GZ"
+        wf.connect(anat_flow_T2, "outputspec.anat", reorient, "in_file")
+        rpool.set_data("T2w", reorient, "out_file", {}, "", "anat_ingress")
 
     if cfg.surface_analysis['freesurfer']['ingress_reconall']:
         rpool = ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
@@ -1795,8 +1807,28 @@ def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
         data=fs_path,
         creds_path=data_paths['creds_path'],
         dl_dir=cfg.pipeline_setup['working_directory']['path'])
-    rpool.set_data("freesurfer-subject-dir", fs_ingress, 'outputspec.data',
-                    {}, "", "freesurfer_config_ingress")
+    node = fs_ingress
+    out = "outputspec.data"
+    node_name = "freesurfer_config_ingress"
+    if fs_path.endswith(".nii.gz" or ".nii"):
+        reorient = pe.Node(
+            interface=afni.Resample(),
+            name=f"reorient_fs_{part_id}_{ses_id}",
+        )
+        reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
+        reorient.inputs.outputtype = "NIFTI_GZ"
+        wf.connect(fs_ingress, "outputspec.data", reorient, "in_file")
+        node = reorient
+        out = "out_file"
+        node_name = "reorient_fs"
+    rpool.set_data(
+        "freesurfer-subject-dir",
+        node,
+        out,
+        {},
+        "",
+        node_name,
+    )
 
     recon_outs = {
         'pipeline-fs_raw-average': 'mri/rawavg.mgz',
@@ -1858,7 +1890,14 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id,
 
     rpool.set_data('subject', func_wf, 'outputspec.subject', {}, "",
                    "func_ingress")
-    rpool.set_data('bold', func_wf, 'outputspec.rest', {}, "", "func_ingress")
+    reorient = pe.Node(
+        interface=afni.Resample(),
+        name=f"reorient_func_{part_id}_{ses_id}",
+    )
+    reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
+    reorient.inputs.outputtype = "NIFTI_GZ"
+    wf.connect(func_wf, "outputspec.rest", reorient, "in_file")
+    rpool.set_data("bold", reorient, "out_file", {}, "", "func_ingress")
     rpool.set_data('scan', func_wf, 'outputspec.scan', {}, "", "func_ingress")
     rpool.set_data('scan-params', func_wf, 'outputspec.scan_params', {}, "",
                    "scan_params_ingress")
@@ -2213,15 +2252,16 @@ def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
             resolution = cfg.get_nested(cfg, res_keys)
             json_info['Resolution'] = resolution
 
-            resampled_template = pe.Node(Function(input_names=['resolution',
-                                                               'template',
-                                                               'template_name',
-                                                               'tag'],
+            resampled_template = pe.Node(Function(input_names=["orientation",
+                                                               "resolution",
+                                                               "template",
+                                                               "template_name",
+                                                               "tag"],
                                                   output_names=['resampled_template'],
                                                   function=resolve_resolution,
                                                   as_module=True),
                                          name='resampled_' + key)
-
+            resampled_template.inputs.orientation = desired_orientation
             resampled_template.inputs.resolution = resolution
             resampled_template.inputs.template = val
             resampled_template.inputs.template_name = key
@@ -2229,7 +2269,7 @@ def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
             
             node = resampled_template
             output = "resampled_template"
-            node_name = f"{key}_resampled_template"
+            node_name = "template_resample"
 
         elif val:
             config_ingress = create_general_datasource(f'gather_{key}')
@@ -2243,30 +2283,25 @@ def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
             output = "outputspec.data"
             node_name = f"{key}_config_ingress"
 
-        if val.endswith(".nii.gz"):
-            # check if the output is in desired orientation, if not reorient it
-            check_orient = pe.Node(
-                Function(
-                    input_names=["input_file", "desired_orientation", "reorient"],
-                    output_names=["output_file"],
-                    function=check_orientation,
-                    imports=["from CPAC.pipeline.utils import reorient_image"],
-                ),
-                name=f"check_orient_{key}",
-            )
-            wf.connect(node, output, check_orient, "input_file")
-            check_orient.inputs.desired_orientation = desired_orientation
-            check_orient.inputs.reorient = True
-            rpool.set_data(
-                key,
-                check_orient,
-                "output_file",
-                json_info,
-                "",
-                f"check_orient-{node_name}-{key}",
-            )
-        else:
-            rpool.set_data(key, node, output, json_info, "", node_name)
+            if val.endswith(".nii" or ".nii.gz"):
+                check_reorient = pe.Node(
+                    interface=afni.Resample(),
+                    name=f"reorient_{key}",
+                )
+                check_reorient.inputs.orientation = desired_orientation
+                check_reorient.inputs.outputtype = "NIFTI_GZ"
+                wf.connect(node, output, check_reorient, "in_file")
+                node = check_reorient
+                output = "out_file"
+                node_name = f"{key}_reorient"
+        rpool.set_data(
+            key,
+            node,
+            output,
+            json_info,
+            "",
+            node_name,
+        )
 
     # templates, resampling from config
     '''
