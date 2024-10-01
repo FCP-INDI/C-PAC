@@ -1716,7 +1716,6 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
-    desired_orientation = cfg.pipeline_setup["desired_orientation"]
     if 'anat' not in data_paths:
         print('No anatomical data present.')
         return rpool
