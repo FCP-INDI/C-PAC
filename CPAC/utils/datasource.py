@@ -1203,7 +1203,7 @@ def resolve_resolution(orientation, resolution, template, template_name, tag=Non
         resample.inputs.resample_mode = "Cu"
         resample.inputs.in_file = local_path
         resample.base_dir = "."
-        resample.orientation = orientation
+        resample.inputs.orientation = orientation
 
         resampled_template = resample.run()
         local_path = resampled_template.outputs.out_file
