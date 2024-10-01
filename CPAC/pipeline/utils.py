@@ -26,6 +26,7 @@ from CPAC.utils.bids_utils import insert_entity
 IFLOGGER = logging.getLogger("nipype.interface")
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
+
 def name_fork(resource_idx, cfg, json_info, out_dct):
     """Create and insert entities for forkpoints
 
