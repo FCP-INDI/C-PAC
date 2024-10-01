@@ -1908,7 +1908,6 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
-    desired_orientation = cfg.pipeline_setup["desired_orientation"]
     if "anat" not in data_paths:
         WFLOGGER.warning("No anatomical data present.")
         return rpool
@@ -2059,11 +2058,8 @@ def ingress_raw_func_data(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id
     func_wf.get_node("inputnode").iterables = ("scan", list(func_paths_dct.keys()))
 
     rpool.set_data("subject", func_wf, "outputspec.subject", {}, "", "func_ingress")
-
     rpool.set_data("bold", func_wf, "outputspec.rest", {}, "", "func_ingress")
-
     rpool.set_data("scan", func_wf, "outputspec.scan", {}, "", "func_ingress")
-
     rpool.set_data(
         "scan-params", func_wf, "outputspec.scan_params", {}, "", "scan_params_ingress"
     )
