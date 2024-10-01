@@ -1145,6 +1145,7 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
         resampled_template.inputs.template = template
         resampled_template.inputs.template_name = template_name
         resampled_template.inputs.tag = tag
+        resampled_template.inputs.orientation = config['desired_orientation']
 
         strat_init.update_resource_pool({
             template_name: (resampled_template, 'resampled_template')
