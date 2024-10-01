@@ -1233,7 +1233,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         mem_gb=0,
         mem_x=(0.0115, "in_file", "t"),
     )
-    reorient_fs_brainmask.inputs.orientation = "RPI"
+    reorient_fs_brainmask.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     reorient_fs_brainmask.inputs.outputtype = "NIFTI_GZ"
 
     wf.connect(
@@ -1255,7 +1255,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         mem_gb=0,
         mem_x=(0.0115, "in_file", "t"),
     )
-    reorient_fs_T1.inputs.orientation = "RPI"
+    reorient_fs_T1.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     reorient_fs_T1.inputs.outputtype = "NIFTI_GZ"
 
     wf.connect(convert_fs_T1_to_nifti, "out_file", reorient_fs_T1, "in_file")
@@ -1454,10 +1454,21 @@ def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("T1w")
     wf.connect(node, out, anat_deoblique, "in_file")
 
+    anat_reorient = pe.Node(
+        interface=afni.Resample(),
+        name=f"anat_reorient_{pipe_num}",
+        mem_gb=0,
+        mem_x=(0.0115, "in_file", "t"),
+    )
+    anat_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
+    anat_reorient.inputs.outputtype = "NIFTI_GZ"
+
+    wf.connect(anat_deoblique, "out_file", anat_reorient, "in_file")
+
     outputs = {
-        "desc-preproc_T1w": (anat_deoblique, "out_file"),
-        "desc-reorient_T1w": (anat_deoblique, "out_file"),
-        "desc-head_T1w": (anat_deoblique, "out_file"),
+        "desc-preproc_T1w": (anat_reorient, "out_file"),
+        "desc-reorient_T1w": (anat_reorient, "out_file"),
+        "desc-head_T1w": (anat_reorient, "out_file"),
     }
 
     return (wf, outputs)
@@ -2251,10 +2262,21 @@ def anatomical_init_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("T2w")
     wf.connect(node, out, T2_deoblique, "in_file")
 
+    T2_reorient = pe.Node(
+        interface=afni.Resample(),
+        name=f"T2_reorient_{pipe_num}",
+        mem_gb=0,
+        mem_x=(0.0115, "in_file", "t"),
+    )
+    T2_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
+    T2_reorient.inputs.outputtype = "NIFTI_GZ"
+
+    wf.connect(T2_deoblique, "out_file", T2_reorient, "in_file")
+
     outputs = {
-        "desc-preproc_T2w": (T2_deoblique, "out_file"),
-        "desc-reorient_T2w": (T2_deoblique, "out_file"),
-        "desc-head_T2w": (T2_deoblique, "out_file"),
+        "desc-preproc_T2w": (T2_reorient, "out_file"),
+        "desc-reorient_T2w": (T2_reorient, "out_file"),
+        "desc-head_T2w": (T2_reorient, "out_file"),
     }
 
     return (wf, outputs)
