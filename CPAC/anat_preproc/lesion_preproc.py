@@ -19,6 +19,7 @@ from nipype.interfaces import afni
 import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.configuration import Configuration as cfg
 from CPAC.utils.interfaces import Function
 
 
@@ -133,7 +134,7 @@ def create_lesion_preproc(wf_name="lesion_preproc"):
         mem_x=(0.0115, "in_file", "t"),
     )
 
-    lesion_reorient.inputs.orientation = "RPI"
+    lesion_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     lesion_reorient.inputs.outputtype = "NIFTI_GZ"
 
     preproc.connect(lesion_deoblique, "out_file", lesion_reorient, "in_file")

@@ -1290,7 +1290,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
         mem_x=(0.0115, "in_file", "t"),
     )
 
-    func_reorient.inputs.orientation = "RPI"
+    func_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     func_reorient.inputs.outputtype = "NIFTI_GZ"
 
     wf.connect(func_deoblique, "out_file", func_reorient, "in_file")
