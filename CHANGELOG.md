@@ -20,10 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `pyproject.toml` file with `[build-system]` defined.
 - [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/FCP-INDI/C-PAC/main.svg)](https://results.pre-commit.ci/latest/github/FCP-INDI/C-PAC/main) badge to [`README`](./README.md).
+- `desired_orientation` key in the blank config under `pipeline_setup`.
+- Workflow (`wf`) parameter in input and output of `ingress_pipeconfig_paths` function, where a node to reorient templates is added to the `wf`
 
 ### Changed
 
 - Moved `pygraphviz` from requirements to `graphviz` optional dependencies group.
+- Fixed-orientation-parameter `RPI` in resolve_resolution `freesurfer_fs_brain_connector`, `anatomical_init_T1`, `anatomical_init_T2`, `func_reorient` to take in whatever is set in the config `desired_orientation` field.
 
 ### Fixed
 
