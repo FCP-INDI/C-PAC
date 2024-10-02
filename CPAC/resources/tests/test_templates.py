@@ -29,8 +29,9 @@ def test_packaged_path_exists(pipeline):
     Check that all local templates are included in image at at
     least one resolution
     """
-    rpool = ingress_pipeconfig_paths(Preconfiguration(pipeline),
-                                     ResourcePool(), 'pytest')
+    wf, rpool = ingress_pipeconfig_paths(
+        wf, Preconfiguration(pipeline), ResourcePool(), "pytest"
+    )
     for resource in rpool.rpool.values():
         node = list(resource.values())[0].get('data')[0]
         if hasattr(node.inputs, 'template'

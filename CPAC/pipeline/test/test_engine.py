@@ -96,7 +96,7 @@ def test_ingress_pipeconfig_data(pipe_config, bids_dir, test_dir):
 
     rpool = ResourcePool(name=unique_id, cfg=cfg)
 
-    rpool = ingress_pipeconfig_paths(cfg, rpool, sub_data_dct, unique_id)
+    wf, rpool = ingress_pipeconfig_paths(wf, cfg, rpool, sub_data_dct, unique_id)
 
     rpool.gather_pipes(wf, cfg, all=True)
 
