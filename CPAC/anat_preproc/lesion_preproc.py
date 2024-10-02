@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from nipype.interfaces import afni
+from nipype.interfaces import afni, utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.utility as util
+from CPAC.utils.configuration import Configuration as cfg
 
 
 def inverse_lesion(lesion_path):
@@ -116,8 +116,8 @@ def create_lesion_preproc(wf_name='lesion_preproc'):
                               mem_gb=0,
                               mem_x=(0.0115, 'in_file', 't'))
 
-    lesion_reorient.inputs.orientation = 'RPI'
-    lesion_reorient.inputs.outputtype = 'NIFTI_GZ'
+    lesion_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
+    lesion_reorient.inputs.outputtype = "NIFTI_GZ"
 
     preproc.connect(
         lesion_deoblique, 'out_file', lesion_reorient,
