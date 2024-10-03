@@ -1736,7 +1736,7 @@ def ANTs_registration_connector(
             "ANTs"
         ]["use_lesion_mask"]:
             # Create lesion preproc node to apply afni Refit and Resample
-            lesion_preproc = create_lesion_preproc(wf_name=f"lesion_preproc{symm}", cfg.pipeline_setup["desired_orientation"])
+            lesion_preproc = create_lesion_preproc(cfg, wf_name=f"lesion_preproc{symm}")
             wf.connect(inputNode, "lesion_mask", lesion_preproc, "inputspec.lesion")
             wf.connect(
                 lesion_preproc,
