@@ -19,7 +19,6 @@ from nipype.interfaces import afni
 import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.utils.configuration import Configuration as cfg
 from CPAC.utils.interfaces import Function
 
 
@@ -59,7 +58,7 @@ def inverse_lesion(lesion_path):
     return lesion_out
 
 
-def create_lesion_preproc(wf_name="lesion_preproc"):
+def create_lesion_preproc(wf_name="lesion_preproc", cfg="RPI"):
     """Process lesions masks.
 
     Lesion mask file is deobliqued and reoriented in the same way as the T1 in
