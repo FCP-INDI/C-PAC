@@ -58,7 +58,7 @@ def inverse_lesion(lesion_path):
     return lesion_out
 
 
-def create_lesion_preproc(wf_name="lesion_preproc", cfg="RPI"):
+def create_lesion_preproc(wf_name="lesion_preproc", orientation="RPI"):
     """Process lesions masks.
 
     Lesion mask file is deobliqued and reoriented in the same way as the T1 in
@@ -133,7 +133,7 @@ def create_lesion_preproc(wf_name="lesion_preproc", cfg="RPI"):
         mem_x=(0.0115, "in_file", "t"),
     )
 
-    lesion_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
+    lesion_reorient.inputs.orientation = orientation
     lesion_reorient.inputs.outputtype = "NIFTI_GZ"
 
     preproc.connect(lesion_deoblique, "out_file", lesion_reorient, "in_file")
