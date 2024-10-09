@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `desired_orientation` key in the blank config under `pipeline_setup`.
+- `desired_orientation` key in participant-level pipeline config under `pipeline_setup`.
 - Required positional parameter "wf" in input and output of `ingress_pipeconfig_paths` function, where a node to reorient templates is added to the `wf`.
 - Required positional parameter "orientation" to `resolve_resolution`.
 - Optional positional argument "cfg" to `create_lesion_preproc`.
