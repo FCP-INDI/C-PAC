@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Disabled variant image builds.
-- Fixed-orientation-parameter `RPI` in resolve_resolution `freesurfer_fs_brain_connector`, `anatomical_init_T1`, `lesion_preproc`, `anatomical_init_T2`, `func_reorient` to take in whatever is set in the config `desired_orientation` field.
+- Made orientation configurable (was hard-coded as "RPI").
 
 ### Removed
 
