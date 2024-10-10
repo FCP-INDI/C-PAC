@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Moved `pygraphviz` from requirements to `graphviz` optional dependencies group.
+- Automatically tag untagged `subject_id` and `unique_id` as `!!str` when loading data config files.
 - Made orientation configurable (was hard-coded as "RPI").
 
 ### Fixed
