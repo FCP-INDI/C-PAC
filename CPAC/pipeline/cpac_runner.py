@@ -14,6 +14,8 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Run C-PAC."""
+
 from multiprocessing import Process
 import os
 from time import strftime
@@ -23,6 +25,7 @@ from voluptuous.error import Invalid
 import yaml
 
 from CPAC.longitudinal_pipeline.longitudinal_workflow import anat_longitudinal_wf
+from CPAC.pipeline.utils import get_shell
 from CPAC.utils.configuration import check_pname, Configuration, set_subject
 from CPAC.utils.configuration.yaml_template import upgrade_pipeline_to_1_8
 from CPAC.utils.ga import track_run
@@ -100,10 +103,7 @@ def run_condor_jobs(c, config_file, subject_list_file, p_name):
 
 # Create and run script for CPAC to run on cluster
 def run_cpac_on_cluster(config_file, subject_list_file, cluster_files_dir):
-    """
-    Function to build a SLURM batch job submission script and
-    submit it to the scheduler via 'sbatch'.
-    """
+    """Build a batch job submission script and submit to the scheduler."""
     # Import packages
     import getpass
     import re
@@ -137,7 +137,6 @@ def run_cpac_on_cluster(config_file, subject_list_file, cluster_files_dir):
     time_limit = "%d:00:00" % hrs_limit
 
     # Batch file variables
-    shell = subprocess.getoutput("echo $SHELL")
     user_account = getpass.getuser()
     num_subs = len(sublist)
 
@@ -174,7 +173,7 @@ def run_cpac_on_cluster(config_file, subject_list_file, cluster_files_dir):
     # Set up config dictionary
     config_dict = {
         "timestamp": timestamp,
-        "shell": shell,
+        "shell": get_shell(),
         "job_name": "CPAC_" + pipeline_config.pipeline_setup["pipeline_name"],
         "num_tasks": num_subs,
         "queue": pipeline_config.pipeline_setup["system_config"]["on_grid"]["SGE"][

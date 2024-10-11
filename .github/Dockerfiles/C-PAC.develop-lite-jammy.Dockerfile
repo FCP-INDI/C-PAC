@@ -46,7 +46,8 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
     && chmod 777 $(ls / | grep -v sys | grep -v proc)
 ENV PYTHONUSERBASE=/home/c-pac_user/.local
 ENV PATH=$PATH:/home/c-pac_user/.local/bin \
-    PYTHONPATH=$PYTHONPATH:$PYTHONUSERBASE/lib/python3.10/site-packages
+    PYTHONPATH=$PYTHONPATH:$PYTHONUSERBASE/lib/python3.10/site-packages \
+    _SHELL=/bin/bash
 
 # set user
 WORKDIR /home/c-pac_user
