@@ -190,6 +190,7 @@ REQUIREMENTS = [
     "nipype",
     "nose",
     "numpy",
+    "niwrap",
     "pandas",
     "pathvalidate",
     "patsy",
