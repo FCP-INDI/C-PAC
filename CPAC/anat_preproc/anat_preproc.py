@@ -1233,7 +1233,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         mem_gb=0,
         mem_x=(0.0115, "in_file", "t"),
     )
-    reorient_fs_brainmask.inputs.orientation = "RPI"
+    reorient_fs_brainmask.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     reorient_fs_brainmask.inputs.outputtype = "NIFTI_GZ"
 
     wf.connect(
@@ -1255,7 +1255,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         mem_gb=0,
         mem_x=(0.0115, "in_file", "t"),
     )
-    reorient_fs_T1.inputs.orientation = "RPI"
+    reorient_fs_T1.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     reorient_fs_T1.inputs.outputtype = "NIFTI_GZ"
 
     wf.connect(convert_fs_T1_to_nifti, "out_file", reorient_fs_T1, "in_file")
@@ -1460,7 +1460,7 @@ def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
         mem_gb=0,
         mem_x=(0.0115, "in_file", "t"),
     )
-    anat_reorient.inputs.orientation = "RPI"
+    anat_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     anat_reorient.inputs.outputtype = "NIFTI_GZ"
 
     wf.connect(anat_deoblique, "out_file", anat_reorient, "in_file")
@@ -2268,7 +2268,7 @@ def anatomical_init_T2(wf, cfg, strat_pool, pipe_num, opt=None):
         mem_gb=0,
         mem_x=(0.0115, "in_file", "t"),
     )
-    T2_reorient.inputs.orientation = "RPI"
+    T2_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     T2_reorient.inputs.outputtype = "NIFTI_GZ"
 
     wf.connect(T2_deoblique, "out_file", T2_reorient, "in_file")
