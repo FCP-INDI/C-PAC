@@ -17,11 +17,28 @@
 """C-PAC pipeline engine utilities."""
 
 from itertools import chain
+import os
+import subprocess
+from typing import Optional
 
 from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
 
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
+
+
+def get_shell() -> str:
+    """Return the path to default shell."""
+    shell: Optional[str] = subprocess.getoutput(
+        f"which $(ps -p {os.getppid()} -o comm=)"
+    )
+    if not shell:
+        try:
+            shell = os.environ["_SHELL"]
+        except KeyError:
+            msg = "Shell command not found."
+            raise EnvironmentError(msg)
+    return shell
 
 
 def name_fork(resource_idx, cfg, json_info, out_dct):
