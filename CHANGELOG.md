@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatically tag untagged `subject_id` and `unique_id` as `!!str` when loading data config files.
 - Made orientation configurable (was hard-coded as "RPI").
 
+### Changed
+
+- Disabled variant image builds.
+
 ### Fixed
 
 - A bug in which AWS S3 encryption was looked for in Nipype config instead of pipeline config (only affected uploading logs).
