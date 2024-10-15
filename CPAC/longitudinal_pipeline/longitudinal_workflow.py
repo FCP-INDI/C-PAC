@@ -421,7 +421,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
     -------
         None
     """
-
+    config["subject_id"] = subject_id
     # list of lists for every strategy
     session_id_list = []
     session_wfs = {}
