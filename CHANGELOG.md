@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.8.7.post1.dev1] - unreleased
 
+### Changed
+
+- Disabled variant image builds.
+
 ### Fixed
 
 - Supplied missing `subject_id` for longitudinal workflow logger and make that field optional for the logger.
