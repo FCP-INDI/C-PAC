@@ -38,6 +38,7 @@ from CPAC.registration import (
     create_wf_calculate_ants_warp,
 )
 from CPAC.registration.registration import apply_transform
+from CPAC.utils.configuration.configuration import Configuration
 from CPAC.utils.datasource import (
     resolve_resolution,
 )
@@ -380,24 +381,25 @@ def warp_longitudinal_seg_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def anat_longitudinal_wf(subject_id, sub_list, config):
+def anat_longitudinal_wf(
+    subject_id: str, sub_list: list[dict], config: Configuration
+) -> None:
     """
+    Create and run anatomical longitudinal workflow(s).
+
     Parameters
     ----------
-    subject_id : str
+    subject_id
         the id of the subject
-    sub_list : list of dict
+    sub_list
         this is a list of sessions for one subject and each session if the same dictionary as the one given to
         prep_workflow
-    config : configuration
+    config
         a configuration object containing the information of the pipeline config. (Same as for prep_workflow)
-
-    Returns
-    -------
-        None
     """
-    # list of lists for every strategy
-    session_id_list = []
+    config["subject_id"] = subject_id
+    session_id_list: list[list] = []
+    """List of lists for every strategy"""
     session_wfs = {}
 
     cpac_dirs = []
