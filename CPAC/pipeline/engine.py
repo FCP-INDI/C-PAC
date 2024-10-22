@@ -1073,7 +1073,9 @@ class ResourcePool:
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
         excl = []
         substring_excl = []
-        outputs_logger = getLogger(f'{cfg.get("subject_id", getattr(wf, "name", ""))}_expectedOutputs')
+        outputs_logger = getLogger(
+            f'{cfg.get("subject_id", getattr(wf, "name", ""))}_expectedOutputs'
+        )
         expected_outputs = ExpectedOutputs()
 
         if add_excl:
