@@ -18,7 +18,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with C-PAC. If not, see <https://www.gnu.org/licenses/>."""
 import os
 import re
-from typing import Optional
+from typing import Any, Optional
 from warnings import warn
 import pkg_resources as p
 from click import BadParameter
@@ -244,9 +244,13 @@ class Configuration:
         '''
         return(dct_diff(self.dict(), other.dict()))
 
-    def dict(self):
+    def dict(self) -> dict[Any, Any]:
         '''Show contents of a C-PAC configuration as a dict'''
         return {k: v for k, v in self.__dict__.items() if not callable(v)}
+
+    def get(self, key: Any, default: Any = None, /) -> Any:
+        '''Convenience access to self.dict().get'''
+        return self.dict().get(key, default)
 
     def keys(self):
         '''Show toplevel keys of a C-PAC configuration dict'''
