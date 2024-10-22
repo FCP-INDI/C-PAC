@@ -255,7 +255,18 @@ class Configuration:
         return {k: v for k, v in self.__dict__.items() if not callable(v)}
 
     def get(self, key: Any, default: Any = None, /) -> Any:
-        """Provide convenience access from `Configuration` to :meth:`dict.get` ."""
+        """Provide convenience access from `Configuration` to :meth:`dict.get` .
+
+        Examples
+        --------
+        >>> c = Configuration()
+        >>> c.get("subject_id") is None
+        True
+        >>> c.get("subject_id", "fake_ID")
+        'fake_ID'
+        >>> isinstance(c.get("pipeline_setup"), dict)
+        True
+        """
         return self.dict().get(key, default)
 
     def keys(self):
