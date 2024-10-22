@@ -18,7 +18,7 @@
 
 import os
 import re
-from typing import Optional
+from typing import Any, Optional
 from warnings import warn
 
 from click import BadParameter
@@ -250,9 +250,24 @@ class Configuration:
         """
         return dct_diff(self.dict(), other.dict())
 
-    def dict(self):
+    def dict(self) -> dict[Any, Any]:
         """Show contents of a C-PAC configuration as a dict."""
         return {k: v for k, v in self.__dict__.items() if not callable(v)}
+
+    def get(self, key: Any, default: Any = None, /) -> Any:
+        """Provide convenience access from `Configuration` to :meth:`dict.get` .
+
+        Examples
+        --------
+        >>> c = Configuration()
+        >>> c.get("subject_id") is None
+        True
+        >>> c.get("subject_id", "fake_ID")
+        'fake_ID'
+        >>> isinstance(c.get("pipeline_setup"), dict)
+        True
+        """
+        return self.dict().get(key, default)
 
     def keys(self):
         """Show toplevel keys of a C-PAC configuration dict."""
