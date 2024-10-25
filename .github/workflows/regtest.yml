@@ -1,4 +1,4 @@
-name: Launch lite regression test
+name: Launch  regression test
 
 on:
   pull_request:
@@ -9,6 +9,10 @@ on:
       - ready_for_review
       - reopened
   workflow_call:
+    inputs:
+      test_mode:
+        type: string
+        required: true
     secrets:
       GH_CLI_BIN_PATH:
         description: 'path to directory containing GitHub CLI binary if not on default $PATH'
@@ -22,10 +26,14 @@ on:
       SSH_WORK_DIR:
         required: true
   workflow_dispatch:
+    inputs:
+      test_mode:
+        type: string
+        required: true
 
 jobs:
   test:
-    name: Regression Test - Lite
+    name: Regression Test - ${{ inputs.test_mode }}
     environment: ACCESS
     env:
       COMPARISON_PATH: ${{ secrets.COMPARISON_PATH }}
@@ -70,7 +78,7 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H -t rsa "${{ env.SSH_HOST }}" > ~/.ssh/known_hosts
 
-      - name: Connect and Run Regression Test Lite
+      - name: Connect and Run Regression Test ${{ inputs.test_mode }}
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ env.SSH_HOST }}
