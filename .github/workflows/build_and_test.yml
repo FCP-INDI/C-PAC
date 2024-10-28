@@ -331,6 +331,12 @@ jobs:
     if: github.ref_name == 'develop' || github.ref_name == 'main'
     uses: ./.github/workflows/smoke_test_participant.yml
 
+  check_test_mode:
+    name: check_test_mode
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ${{ inputs.test_mode }}
+
   regtest:
     name: Run regression and integration test
     needs:
@@ -339,7 +345,7 @@ jobs:
     if: inputs.test_mode == 'lite'
     uses: ./.github/workflows/regtest.yml
     with:
-      test_mode: inputs.test_mode
+      test_mode: ${{ inputs.test_mode }}
 
   Circle_tests:
     name: Run tests on CircleCI
