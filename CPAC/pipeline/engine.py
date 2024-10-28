@@ -21,6 +21,7 @@ import json
 from itertools import chain
 import logging
 import os
+import pickle
 import re
 from typing import Any, Optional, Union
 import warnings
@@ -555,6 +556,9 @@ class ResourcePool:
             total_pool.append(sub_pool)
 
         if not total_pool:
+            print(self.rpool.keys())
+            with open("rpool.pickle", "wb") as _f:
+                pickle.dump(self, _f)
             raise LookupError('\n\n[!] C-PAC says: None of the listed '
                               'resources in the node block being connected '
                               'exist in the resource pool.\n\nResources:\n'
