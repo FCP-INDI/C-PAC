@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.8.7.post1.dev1] - unreleased
+## [1.8.7.post1] - unreleased
 
 ### Changed
 
@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Supplied missing `subject_id` for longitudinal workflow logger and make that field optional for the logger.
+- Graph-building bugs that prevented longitudinal workflows from running.
 
 ## [1.8.7] - 2024-05-03
 
@@ -304,7 +304,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 See [Version 1.8.1 Beta](https://fcp-indi.github.io/docs/user/release_notes/v1.8.1) for release notes for v1.8.1 and [Release Notes](https://fcp-indi.github.io/docs/user/release_notes) for all release notes back to v0.1.1.
 
-[1.8.7.post1.dev1]: https://github.com/FCP-INDI/C-PAC/compare/v1.8.7...v1.8.7.post1.dev1
+[1.8.7.post1]: https://github.com/FCP-INDI/C-PAC/compare/v1.8.7...v1.8.7.post1.dev3
 [1.8.7]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.7
 [1.8.6]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.6
 [1.8.5]: https://github.com/FCP-INDI/C-PAC/releases/tag/v1.8.5
