@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
+from typing import Optional
 
 from nipype.interfaces import fsl
 import nipype.interfaces.io as nio
@@ -30,7 +31,7 @@ from CPAC.pipeline.cpac_pipeline import (
     connect_pipeline,
     initialize_nipype_wf,
 )
-from CPAC.pipeline.engine import ingress_output_dir, initiate_rpool
+from CPAC.pipeline.engine import ingress_output_dir, initiate_rpool, ResourcePool
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.registration import (
     create_fsl_flirt_linear_reg,
@@ -474,6 +475,8 @@ def anat_longitudinal_wf(
                                 os.path.join(cpac_dir, head_file)
                             )
 
+    longitudinal_rpool: Optional[ResourcePool] = None
+
     for strat in strats_brain_dct.keys():
         wf = initialize_nipype_wf(
             config,
@@ -567,6 +570,8 @@ def anat_longitudinal_wf(
         # once for every strategy!
         wf.run()
 
+        longitudinal_rpool = rpool.copy_rpool()
+
         # now, just write out a copy of the above to each session
         config.pipeline_setup["pipeline_name"] = orig_pipe_name
         for session in sub_list:
@@ -591,7 +596,7 @@ def anat_longitudinal_wf(
 
             wf = initialize_nipype_wf(config, sub_list[0])
 
-            wf, rpool = initiate_rpool(wf, config, session)
+            wf, rpool = initiate_rpool(wf, config, session, rpool=longitudinal_rpool)
 
             config.pipeline_setup["pipeline_name"] = f"longitudinal_{orig_pipe_name}"
             rpool = ingress_output_dir(
@@ -635,6 +640,7 @@ def anat_longitudinal_wf(
 
             rpool.gather_pipes(wf, config, add_excl=excl)
             wf.run()
+            longitudinal_rpool = rpool.copy_rpool()
 
     # begin single-session stuff again
     for session in sub_list:
@@ -659,7 +665,7 @@ def anat_longitudinal_wf(
 
         wf = initialize_nipype_wf(config, sub_list[0])
 
-        wf, rpool = initiate_rpool(wf, config, session)
+        wf, rpool = initiate_rpool(wf, config, session, rpool=longitudinal_rpool)
 
         pipeline_blocks = [
             warp_longitudinal_T1w_to_template,

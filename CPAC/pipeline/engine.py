@@ -1073,7 +1073,9 @@ class ResourcePool:
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
         excl = []
         substring_excl = []
-        outputs_logger = getLogger(f'{cfg.get("subject_id", getattr(wf, "name", ""))}_expectedOutputs')
+        outputs_logger = getLogger(
+            f'{cfg.get("subject_id", getattr(wf, "name", ""))}_expectedOutputs'
+        )
         expected_outputs = ExpectedOutputs()
 
         if add_excl:
@@ -2621,7 +2623,9 @@ def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
     return wf, rpool
 
 
-def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
+def initiate_rpool(
+    wf, cfg, data_paths=None, part_id=None, *, rpool: Optional[ResourcePool] = None
+):
     """
     Initialize a new ResourcePool.
 
@@ -2660,7 +2664,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
         unique_id = part_id
         creds_path = None
 
-    rpool = ResourcePool(name=unique_id, cfg=cfg)
+    rpool = ResourcePool(rpool=rpool.rpool if rpool else None, name=unique_id, cfg=cfg)
 
     if data_paths:
         # ingress outdir
