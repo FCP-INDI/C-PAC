@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: cpac tag on INCF Neurostars
+    url: https://neurostars.org/tag/cpac
+    about: Please ask and answer questions here.
+  - name: C-PAC GitHub Discussions
+    url: https://github.com/FCP-INDI/C-PAC/discussions
+    about: Ideas, polls, questions-&-answers and other discussions that don't fit any issue categories.
+  - name: C-PAC channel in Brainhack Mattermost workspace
+    url: https://mattermost.brainhack.org/brainhack/channels/c-pac
+    about: Conversational, real-time Slack-like messages
