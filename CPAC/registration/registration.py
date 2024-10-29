@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 # pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
+from copy import deepcopy
 from typing import Optional
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
@@ -2365,11 +2366,11 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(node, out, ants_rc, 'inputspec.lesion_mask')
 
     if 'space-longitudinal' in brain:
-        for key in outputs:
+        for key in list(outputs.keys()):
             for direction in ['from', 'to']:
                 if f'{direction}-T1w' in key:
                     new_key = key.replace(f'{direction}-T1w',
-                                          f'{direction}-longitudinal')
+                                               f'{direction}-longitudinal')
                     outputs[new_key] = outputs[key]
                     del outputs[key]
 
