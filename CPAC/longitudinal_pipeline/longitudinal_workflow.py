@@ -471,7 +471,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         workflow.run()
         rpool.pickle("472")
         cpac_dir = os.path.join(out_dir, f'pipeline_{orig_pipe_name}',
-                                f'{subject_id}_{unique_id}')
+                                f'{subject_id}/{unique_id}')
         cpac_dirs.append(os.path.join(cpac_dir, 'anat'))
 
     # Now we have all the anat_preproc set up for every session
@@ -483,16 +483,18 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             for filename in os.listdir(cpac_dir):
                 if 'T1w.nii' in filename:
                     for tag in filename.split('_'):
-                        if 'desc-' in tag and 'brain' in tag:
-                            if tag not in strats_brain_dct:
-                                strats_brain_dct[tag] = []
-                            strats_brain_dct[tag].append(os.path.join(cpac_dir,
-                                                                      filename))
-                            if tag not in strats_head_dct:
-                                strats_head_dct[tag] = []
-                            head_file = filename.replace(tag, 'desc-reorient')
-                            strats_head_dct[tag].append(os.path.join(cpac_dir,
-                                                                     head_file))
+                        braintag: str = tag
+                        if 'desc-' in tag and ('brain' in tag or 'preproc' in tag):
+                            braintag = tag.replace('preproc', 'brain')
+                            if braintag not in strats_brain_dct:
+                                strats_brain_dct[braintag] = []
+                            strats_brain_dct[braintag].append(os.path.join(cpac_dir,
+                                                                           filename))
+                        if braintag not in strats_head_dct:
+                            strats_head_dct[braintag] = []
+                        head_file = filename.replace(braintag, 'desc-head')
+                        strats_head_dct[braintag].append(os.path.join(cpac_dir,
+                                                                      head_file))
 
     for strat in strats_brain_dct.keys():
 
