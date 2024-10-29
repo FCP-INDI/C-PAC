@@ -81,3 +81,12 @@ repos:
           - "pathvalidate"
           - "pyyaml"
           - "voluptuous"
+      - id: update-issue-templates
+        name: Update issue templates
+        entry: .github/scripts/update_issue_template.py
+        language: python
+        files: 'info.py|^CPAC/resources/configs/.*|^CPAC/utils/configuration/.*|^\.github/ISSUE_TEMPLATE/.*'
+        additional_dependencies:
+          - "nipype"
+          - "pyyaml"
+          - "voluptuous"
