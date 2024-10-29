@@ -3519,8 +3519,9 @@ def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
     switch=["run"],
     inputs=[
         (
-            "desc-head_T1w",
-            "from-T1w_to-template_mode-image_xfm",
+            ["desc-head_T1w", "space-longitudinal_desc-reorient_T1w"],
+            ["from-T1w_to-template_mode-image_xfm",
+             "from-longitudinal_to-template_mode-image_xfm"],
             "space-template_desc-head_T1w",
         ),
         "T1w-template",
@@ -3528,10 +3529,10 @@ def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
     outputs={"space-template_desc-head_T1w": {"Template": "T1w-template"}},
 )
 def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
-
+    xfm: list[str] = ["from-T1w_to-template_mode-image_xfm",
+                      "from-longitudinal_to-template_mode-image_xfm"]
     try:
-        xfm_prov = strat_pool.get_cpac_provenance(
-            'from-T1w_to-template_mode-image_xfm')
+        xfm_prov = strat_pool.get_cpac_provenance(xfm)
         reg_tool = check_prov_for_regtool(xfm_prov)
     except KeyError:
         reg_tool = cfg["registration_workflows", "anatomical_registration", "registration", "using"]
@@ -3554,7 +3555,8 @@ def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
             'functional_registration']['func_registration_to_template'][
             'FNIRT_pipelines']['interpolation']
 
-    connect = strat_pool.get_data("desc-head_T1w")
+    connect = strat_pool.get_data(["desc-head_T1w",
+                                        "space-longitudinal_desc-reorient_T1w"])
     node, out = connect
     wf.connect(node, out, apply_xfm, 'inputspec.input_image')
 
