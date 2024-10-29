@@ -3529,9 +3529,12 @@ def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num,
 )
 def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
-    xfm_prov = strat_pool.get_cpac_provenance(
-        'from-T1w_to-template_mode-image_xfm')
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    try:
+        xfm_prov = strat_pool.get_cpac_provenance(
+            'from-T1w_to-template_mode-image_xfm')
+        reg_tool = check_prov_for_regtool(xfm_prov)
+    except KeyError:
+        reg_tool = cfg["registration_workflows", "anatomical_registration", "registration", "using"]
 
     num_cpus = cfg.pipeline_setup['system_config'][
         'max_cores_per_participant']
