@@ -21,6 +21,7 @@ import json
 from itertools import chain
 import logging
 import os
+from pathlib import Path
 import pickle
 import re
 from typing import Any, Optional, Union
@@ -62,6 +63,22 @@ logger = getLogger('nipype.workflow')
 
 
 class ResourcePool:
+    def pickle(self, name: Optional[str] = None) -> None:
+        """Pickle rpool."""
+        if name:
+            filename: str = f"{name}.pickle"
+        elif hasattr(self, "name") and isinstance(self.name, str):
+            filename: str = f"{self.name.replace(' ', '')}.pickle"
+        else:
+            existing_names: list[str] = [path.name[:-7] for path in Path().iterdir() if path.name.endswith(".pickle")]
+            i: int = 0
+            while str(i) in existing_names:
+                i += 1
+            filename = f"{i}.pickle"
+        with open(filename, "wb") as _f:
+            pickle.dump(self, _f)
+
+
     def __init__(self, rpool=None, name=None, cfg=None, pipe_list=None):
 
         if not rpool:
@@ -557,7 +574,7 @@ class ResourcePool:
 
         if not total_pool:
             print(self.rpool.keys())
-            with open("rpool.pickle", "wb") as _f:
+            with open("rpool_no_total_pool.pickle", "wb") as _f:
                 pickle.dump(self, _f)
             raise LookupError('\n\n[!] C-PAC says: None of the listed '
                               'resources in the node block being connected '

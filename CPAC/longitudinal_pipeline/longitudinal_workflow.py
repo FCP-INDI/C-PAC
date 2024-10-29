@@ -467,9 +467,9 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         session_wfs[unique_id] = rpool
 
         rpool.gather_pipes(workflow, config)
-
+        rpool.pickle("470")
         workflow.run()
-
+        rpool.pickle("472")
         cpac_dir = os.path.join(out_dir, f'pipeline_{orig_pipe_name}',
                                 f'{subject_id}_{unique_id}')
         cpac_dirs.append(os.path.join(cpac_dir, 'anat'))
@@ -493,8 +493,6 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                             head_file = filename.replace(tag, 'desc-reorient')
                             strats_head_dct[tag].append(os.path.join(cpac_dir,
                                                                      head_file))
-
-    longitudinal_rpool: Optional[ResourcePool] = None
 
     for strat in strats_brain_dct.keys():
 
@@ -565,12 +563,13 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         excl = ['space-longitudinal_desc-brain_T1w',
                 'space-longitudinal_desc-reorient_T1w',
                 'space-longitudinal_desc-brain_mask']
+        rpool.pickle("566")
         rpool.gather_pipes(wf, config, add_excl=excl)
 
         # this is going to run multiple times!
         # once for every strategy!
         wf.run()
-
+        rpool.pickle("572")
         longitudinal_rpool = rpool.copy_rpool()
 
         # now, just write out a copy of the above to each session
@@ -598,12 +597,13 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             wf = initialize_nipype_wf(config, sub_list[0])
 
             wf, rpool = initiate_rpool(wf, config, session, rpool=longitudinal_rpool)
+            rpool.pickle("600")
 
             config.pipeline_setup[
                 'pipeline_name'] = f'longitudinal_{orig_pipe_name}'
             rpool = ingress_output_dir(config, rpool, long_id,
                                        creds_path=input_creds_path)
-
+            rpool.pickle("606")
             select_node_name = f'select_{unique_id}'
             select_sess = pe.Node(Function(input_names=['session',
                                                         'output_brains',
@@ -632,8 +632,10 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
                     'space-T1w_desc-brain_mask']
 
             rpool.gather_pipes(wf, config, add_excl=excl)
+            rpool.pickle("635")
             wf.run()
             longitudinal_rpool = rpool.copy_rpool()
+            rpool.pickle("638")
 
     # begin single-session stuff again
     for session in sub_list:
@@ -666,10 +668,11 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         wf = connect_pipeline(wf, config, rpool, pipeline_blocks)
 
         rpool.gather_pipes(wf, config)
-
+        rpool.pickle("671")
         # this is going to run multiple times!
         # once for every strategy!
         wf.run()
+        rpool.pickle("675")
 
 
 
