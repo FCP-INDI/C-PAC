@@ -3572,8 +3572,51 @@ def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
+def _warp_mask_to_template(space):
+    def warp_mask_to_template_fxn(wf, cfg, strat_pool, pipe_num, opt=None):
 
-@nodeblock(
+        xfm_prov = strat_pool.get_cpac_provenance(
+            f'from-{space}_to-template_mode-image_xfm')
+        reg_tool = check_prov_for_regtool(xfm_prov)
+
+        num_cpus = cfg.pipeline_setup['system_config'][
+            'max_cores_per_participant']
+
+        num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+
+        apply_xfm = apply_transform(f'warp_T1mask_to_T1template_{pipe_num}', 
+                                    reg_tool, time_series=False, num_cpus=num_cpus,
+                                    num_ants_cores=num_ants_cores)
+
+        apply_xfm.inputs.inputspec.interpolation = "NearestNeighbor"
+        '''
+        if reg_tool == 'ants':
+            apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+                'functional_registration']['func_registration_to_template'][
+                'ANTs_pipelines']['interpolation']
+        elif reg_tool == 'fsl':
+            apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+                'functional_registration']['func_registration_to_template'][
+                'FNIRT_pipelines']['interpolation']
+        '''
+        connect = strat_pool.get_data(f"space-{space}_desc-brain_mask")
+        node, out = connect
+        wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+
+        node, out = strat_pool.get_data("T1w-template")
+        wf.connect(node, out, apply_xfm, 'inputspec.reference')
+
+        node, out = strat_pool.get_data(f"from-{space}_to-template_mode-image_xfm")
+        wf.connect(node, out, apply_xfm, 'inputspec.transform')
+
+        outputs = {
+            'space-template_desc-brain_mask': (apply_xfm, 'outputspec.output_image')
+        }
+
+        return wf, outputs
+    return warp_mask_to_template_fxn
+
+warp_mask_to_template = {"T1": nodeblock(
     name="transform_T1mask_to_T1template",
     switch=[
         ["registration_workflows", "anatomical_registration", "run"],
@@ -3585,48 +3628,19 @@ def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         "T1w-template",
     ],
     outputs={"space-template_desc-brain_mask": {"Template": "T1w-template"}},
-)
-def warp_T1mask_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
-
-    xfm_prov = strat_pool.get_cpac_provenance(
-        'from-T1w_to-template_mode-image_xfm')
-    reg_tool = check_prov_for_regtool(xfm_prov)
-
-    num_cpus = cfg.pipeline_setup['system_config'][
-        'max_cores_per_participant']
-
-    num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
-
-    apply_xfm = apply_transform(f'warp_T1mask_to_T1template_{pipe_num}', 
-                                reg_tool, time_series=False, num_cpus=num_cpus,
-                                num_ants_cores=num_ants_cores)
-
-    apply_xfm.inputs.inputspec.interpolation = "NearestNeighbor"
-    '''
-    if reg_tool == 'ants':
-        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
-            'functional_registration']['func_registration_to_template'][
-            'ANTs_pipelines']['interpolation']
-    elif reg_tool == 'fsl':
-        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
-            'functional_registration']['func_registration_to_template'][
-            'FNIRT_pipelines']['interpolation']
-    '''
-    connect = strat_pool.get_data("space-T1w_desc-brain_mask")
-    node, out = connect
-    wf.connect(node, out, apply_xfm, 'inputspec.input_image')
-
-    node, out = strat_pool.get_data("T1w-template")
-    wf.connect(node, out, apply_xfm, 'inputspec.reference')
-
-    node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
-    wf.connect(node, out, apply_xfm, 'inputspec.transform')
-
-    outputs = {
-        'space-template_desc-brain_mask': (apply_xfm, 'outputspec.output_image')
-    }
-
-    return (wf, outputs)
+)(_warp_mask_to_template("T1")), "longitudinal": nodeblock(
+    name="transform_longitudinal_mask_to_T1template",
+    switch=[
+        ["registration_workflows", "anatomical_registration", "run"],
+        ["anatomical_preproc", "run"],
+        ["anatomical_preproc", "brain_extraction", "run"],
+    ],
+    inputs=[
+        ("space-longitudinal_desc-brain_mask", "from-longitudinal_to-template_mode-image_xfm"),
+        "T1w-template",
+    ],
+    outputs={"space-template_desc-brain_mask": {"Template": "T1w-template"}},
+)(_warp_mask_to_template("longitudinal"))}
 
 
 @nodeblock(

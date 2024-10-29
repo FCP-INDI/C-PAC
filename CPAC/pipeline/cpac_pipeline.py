@@ -98,7 +98,7 @@ from CPAC.registration.registration import (
     create_func_to_T1template_xfm,
     create_func_to_T1template_symmetric_xfm,
     warp_wholeheadT1_to_template,
-    warp_T1mask_to_template,
+    warp_mask_to_template,
     apply_phasediff_to_timeseries_separately,
     apply_blip_to_timeseries_separately,
     warp_timeseries_to_T1template,
@@ -1033,25 +1033,25 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
     return pipeline_blocks
 
 
-def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
+def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None, space="T1w"):
 
     if not pipeline_blocks:
         pipeline_blocks = []
 
     reg_blocks = []
-    if not rpool.check_rpool('from-T1w_to-template_mode-image_xfm'):
+    if not rpool.check_rpool(f'from-{space}_to-template_mode-image_xfm'):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
             overwrite_transform_anat_to_template,
             warp_wholeheadT1_to_template,
-            warp_T1mask_to_template
+            warp_mask_to_template[space]
         ]
 
     if not rpool.check_rpool('desc-restore-brain_T1w'):
         reg_blocks.append(correct_restore_brain_intensity_abcd)
 
     if cfg.voxel_mirrored_homotopic_connectivity['run']:
-        if not rpool.check_rpool('from-T1w_to-symtemplate_mode-image_xfm'):
+        if not rpool.check_rpool(f'from-{space}_to-symtemplate_mode-image_xfm'):
             reg_blocks.append([register_symmetric_ANTs_anat_to_template,
                                register_symmetric_FSL_anat_to_template])
     pipeline_blocks += reg_blocks

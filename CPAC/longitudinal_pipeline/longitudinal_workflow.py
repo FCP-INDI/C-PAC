@@ -555,7 +555,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
         pipeline_blocks = [mask_longitudinal_T1w_brain]
 
         pipeline_blocks = build_T1w_registration_stack(rpool, config,
-                                                       pipeline_blocks)
+                                                       pipeline_blocks, space="longitudinal")
 
         pipeline_blocks = build_segmentation_stack(rpool, config,
                                                    pipeline_blocks)
