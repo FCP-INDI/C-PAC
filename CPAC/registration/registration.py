@@ -2372,7 +2372,7 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                     new_key = key.replace(f'{direction}-T1w',
                                                f'{direction}-longitudinal')
                     outputs[new_key] = outputs[key]
-                    del outputs[key]
+                    # del outputs[key]
 
     return (wf, outputs)
 
