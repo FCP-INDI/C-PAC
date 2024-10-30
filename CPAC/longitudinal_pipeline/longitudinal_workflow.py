@@ -603,8 +603,10 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 
             config.pipeline_setup[
                 'pipeline_name'] = f'longitudinal_{orig_pipe_name}'
-            rpool = ingress_output_dir(config, rpool, long_id,
-                                       creds_path=input_creds_path)
+            if "derivatives_dir" in session:
+                rpool = ingress_output_dir(
+                    wf, config, rpool, long_id, data_paths=session, part_id=subject_id,
+                    ses_id=unique_id, creds_path=input_creds_path)
             rpool.pickle("606")
             select_node_name = f'select_{unique_id}'
             select_sess = pe.Node(Function(input_names=['session',
