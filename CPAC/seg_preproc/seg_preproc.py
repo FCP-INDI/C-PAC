@@ -456,6 +456,9 @@ def create_seg_preproc_antsJointLabel_method(
         "space-longitudinal_label-CSF_probseg",
         "space-longitudinal_label-GM_probseg",
         "space-longitudinal_label-WM_probseg",
+        "space-longitudinal_label-CSF_pveseg",
+        "space-longitudinal_label-GM_pveseg",
+        "space-longitudinal_label-WM_pveseg",
     ],
 )
 def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
