@@ -434,32 +434,10 @@ def create_seg_preproc_antsJointLabel_method(
         "GM-path",
         "WM-path",
     ],
-    outputs=[
-        "label-CSF_mask",
-        "label-GM_mask",
-        "label-WM_mask",
-        "label-CSF_desc-preproc_mask",
-        "label-GM_desc-preproc_mask",
-        "label-WM_desc-preproc_mask",
-        "label-CSF_probseg",
-        "label-GM_probseg",
-        "label-WM_probseg",
-        "label-CSF_pveseg",
-        "label-GM_pveseg",
-        "label-WM_pveseg",
-        "space-longitudinal_label-CSF_mask",
-        "space-longitudinal_label-GM_mask",
-        "space-longitudinal_label-WM_mask",
-        "space-longitudinal_label-CSF_desc-preproc_mask",
-        "space-longitudinal_label-GM_desc-preproc_mask",
-        "space-longitudinal_label-WM_desc-preproc_mask",
-        "space-longitudinal_label-CSF_probseg",
-        "space-longitudinal_label-GM_probseg",
-        "space-longitudinal_label-WM_probseg",
-        "space-longitudinal_label-CSF_pveseg",
-        "space-longitudinal_label-GM_pveseg",
-        "space-longitudinal_label-WM_pveseg",
-    ],
+    outputs=[f"{long}label-{tissue}_{entity}" for
+             long in ["", "space-longitudinal_"] for
+             tissue in ["CSF", "GM", "WM"] for
+             entity in ["mask", "desc-preproc_mask", "probseg", "pveseg"]],
 )
 def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     # FSL-FAST
