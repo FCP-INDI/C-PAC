@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A bug in which bandpass filters always assumed 1D regressor files have exactly 5 header rows.
 - Graph-building bugs that prevented longitudinal workflows from running.
 
 ## [1.8.7] - 2024-05-03
