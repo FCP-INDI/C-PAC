@@ -130,5 +130,5 @@ def update_all(template_name: str) -> None:
 
 
 if __name__ == "__main__":
-    for template in ["bug_report"]:
+    for template in ["1-bug_report"]:
         update_all(template)
