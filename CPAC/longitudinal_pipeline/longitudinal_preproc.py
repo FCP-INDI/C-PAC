@@ -270,7 +270,8 @@ def register_img_list(input_brain_list, ref_img, dof=12, interp='trilinear', cos
     return node_list
 
 
-def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None, avg_method='median', dof=12,
+def template_creation_flirt(input_brain_list, input_skull_list, init_reg=None,
+                            avg_method='median', dof=12,
                             interp='trilinear', cost='corratio', mat_type='matrix',
                             convergence_threshold=-1, thread_pool=2, unique_id_list=None):
     """

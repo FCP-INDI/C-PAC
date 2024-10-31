@@ -1115,7 +1115,10 @@ class ResourcePool:
                     unlabelled.remove(key)
             # del all_forks
             for pipe_idx in self.rpool[resource]:
-                pipe_x = self.get_pipe_number(pipe_idx)
+                try:
+                    pipe_x = self.get_pipe_number(pipe_idx)
+                except ValueError:
+                    continue
                 json_info = self.rpool[resource][pipe_idx]['json']
                 out_dct = self.rpool[resource][pipe_idx]['out']
 

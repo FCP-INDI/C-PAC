@@ -3616,7 +3616,7 @@ def _warp_mask_to_template(space):
         return wf, outputs
     return warp_mask_to_template_fxn
 
-warp_mask_to_template = {"T1": nodeblock(
+warp_mask_to_template = {"T1w": nodeblock(
     name="transform_T1mask_to_T1template",
     switch=[
         ["registration_workflows", "anatomical_registration", "run"],
@@ -3628,7 +3628,7 @@ warp_mask_to_template = {"T1": nodeblock(
         "T1w-template",
     ],
     outputs={"space-template_desc-brain_mask": {"Template": "T1w-template"}},
-)(_warp_mask_to_template("T1")), "longitudinal": nodeblock(
+)(_warp_mask_to_template("T1w")), "longitudinal": nodeblock(
     name="transform_longitudinal_mask_to_T1template",
     switch=[
         ["registration_workflows", "anatomical_registration", "run"],
