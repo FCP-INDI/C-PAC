@@ -499,7 +499,9 @@ def anat_longitudinal_wf(subject_id: str, sub_list: list[dict], config: Configur
     # Rename nodes to include session name to avoid duplicates
     for key in strats_dct:
         for i, resource in enumerate(strats_dct[key]):
-            resource[0].name = f"{resource[0].name}_{session_id_list[i]}"
+            resource = (
+                resource[0].clone(f"{resource[0].name}_{session_id_list[i]}"),
+                resource[1])
 
     wf = initialize_nipype_wf(config, sub_list[0],
                                 # just grab the first one for the name
