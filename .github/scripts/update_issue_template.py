@@ -20,12 +20,18 @@
 from dataclasses import dataclass
 from importlib.resources import files
 from pathlib import Path
-from typing import Any
+import re
+import sys
+from typing import Any, Optional
 
+from git import Repo
+from github import Github
+from github.GithubException import UnknownObjectException
 import yaml
 
-from CPAC import __version__
-from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS
+C_PAC_ROOT = str(Path().parent.parent)
+sys.path.append(C_PAC_ROOT)
+from CPAC.pipeline import AVAILABLE_PIPELINE_CONFIGS  # noqa: E402
 
 
 @dataclass
@@ -51,10 +57,35 @@ class Template:
         return TemplateItem(-1, {})
 
     def update_c_pac_version(self) -> None:
-        """Update placeholder version of C-PAC in issue template."""
+        """Update placeholder version of C-PAC in issue template.
+
+        In priority order, tries:
+
+        1. The remote ``origin`` repository on GitHub's latest tag
+        2. ``FCP-INDI/C-PAC`` on GitHub's latest tag
+        3. The current local version
+        """
         item = self.get_template_item("c-pac-version")
+        repo = "FCP-INDI/C-PAC"
+        try:
+            match: Optional[re.Match] = re.search(
+                r"github\.com[:/](.+/.+?)(?:\.git)?$",
+                Repo(C_PAC_ROOT).remotes.origin.url,
+            )
+        except AttributeError:
+            match = None
+        if match:
+            repo = match.groups()[0]
+        try:
+            version: Optional[str] = (
+                Github().get_repo(repo).get_latest_release().tag_name
+            )
+        except UnknownObjectException:
+            version = None
+        if not version:
+            from CPAC import __version__ as version
         if "attributes" in item.contents:
-            self.contents["body"][item.index]["attributes"]["placeholder"] = __version__
+            self.contents["body"][item.index]["attributes"]["placeholder"] = version
 
     def update_preconfigs(self) -> None:
         """Update list of available preconfigs."""

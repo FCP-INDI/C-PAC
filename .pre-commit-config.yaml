@@ -85,8 +85,10 @@ repos:
         name: Update issue templates
         entry: .github/scripts/update_issue_template.py
         language: python
-        files: 'info.py|^CPAC/resources/configs/.*|^CPAC/utils/configuration/.*|^\.github/ISSUE_TEMPLATE/.*'
+        files: 'info.py|^CPAC/resources/configs/.*|^CPAC/utils/configuration/.*|^\.github/ISSUE_TEMPLATE/.*|^\.github/scripts/update_issue_template.py|^\.pre-commit-config\.yaml'
         additional_dependencies:
+          - "gitpython"
           - "nipype"
+          - "pygithub"
           - "pyyaml"
           - "voluptuous"
