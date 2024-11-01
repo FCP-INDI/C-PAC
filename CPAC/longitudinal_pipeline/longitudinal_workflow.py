@@ -1188,10 +1188,10 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
         thread_pool=config.longitudinal_template_thread_pool,
     )
 
-    # workflow.connect(merge_func_preproc_node, 'brain_list',
-    #                  template_node, 'input_brain_list')
-    # workflow.connect(merge_func_preproc_node, 'skull_list',
-    #                  template_node, 'input_skull_list')
+    workflow.connect(merge_func_preproc_node, 'brain_list',
+                     template_node, 'input_brain_list')
+    workflow.connect(merge_func_preproc_node, 'skull_list',
+                     template_node, 'input_skull_list')
 
     workflow, strat_list = register_func_longitudinal_template_to_standard(
         template_node,
