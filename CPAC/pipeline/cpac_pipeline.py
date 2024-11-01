@@ -17,6 +17,7 @@
 import os
 import sys
 import time
+from typing import Literal
 import csv
 import shutil
 import pickle
@@ -1033,7 +1034,8 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
     return pipeline_blocks
 
 
-def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None, space="T1w"):
+def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None,
+                                 space: Literal["longitudinal", "T1w"] = "T1w"):
 
     if not pipeline_blocks:
         pipeline_blocks = []
@@ -1044,7 +1046,7 @@ def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None, space="T1w"):
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
             overwrite_transform_anat_to_template,
             warp_wholeheadT1_to_template,
-            warp_mask_to_template[space]
+            warp_mask_to_template(space)
         ]
 
     if not rpool.check_rpool('desc-restore-brain_T1w'):

@@ -16,9 +16,9 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 # pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
 from copy import deepcopy
-from typing import Optional
+from typing import Literal, Optional
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.nodeblock import nodeblock, NodeBlockFunction
 from nipype.interfaces import afni, ants, c3, fsl, utility as util
 from nipype.interfaces.afni import utils as afni_utils
 
@@ -3572,8 +3572,24 @@ def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     return (wf, outputs)
 
-def _warp_mask_to_template(space):
+def warp_mask_to_template(space: Literal["longitudinal", "T1w"]) -> NodeBlockFunction:
+    """Get a NodeBlockFunction to transform a mask from ``space`` to template."""
+    @nodeblock(
+        name=f"transform_{space}-mask_to_T1-template",
+        switch=[
+            ["registration_workflows", "anatomical_registration", "run"],
+            ["anatomical_preproc", "run"],
+            ["anatomical_preproc", "brain_extraction", "run"],
+        ],
+        inputs=[
+            (f"space-{space}_desc-brain_mask",
+             f"from-{space}_to-template_mode-image_xfm"),
+            "T1w-template",
+        ],
+        outputs={"space-template_desc-brain_mask": {"Template": "T1w-template"}},
+    )
     def warp_mask_to_template_fxn(wf, cfg, strat_pool, pipe_num, opt=None):
+        """Transform a mask to template space."""
 
         xfm_prov = strat_pool.get_cpac_provenance(
             f'from-{space}_to-template_mode-image_xfm')
@@ -3615,32 +3631,6 @@ def _warp_mask_to_template(space):
 
         return wf, outputs
     return warp_mask_to_template_fxn
-
-warp_mask_to_template = {"T1w": nodeblock(
-    name="transform_T1mask_to_T1template",
-    switch=[
-        ["registration_workflows", "anatomical_registration", "run"],
-        ["anatomical_preproc", "run"],
-        ["anatomical_preproc", "brain_extraction", "run"],
-    ],
-    inputs=[
-        ("space-T1w_desc-brain_mask", "from-T1w_to-template_mode-image_xfm"),
-        "T1w-template",
-    ],
-    outputs={"space-template_desc-brain_mask": {"Template": "T1w-template"}},
-)(_warp_mask_to_template("T1w")), "longitudinal": nodeblock(
-    name="transform_longitudinal_mask_to_T1template",
-    switch=[
-        ["registration_workflows", "anatomical_registration", "run"],
-        ["anatomical_preproc", "run"],
-        ["anatomical_preproc", "brain_extraction", "run"],
-    ],
-    inputs=[
-        ("space-longitudinal_desc-brain_mask", "from-longitudinal_to-template_mode-image_xfm"),
-        "T1w-template",
-    ],
-    outputs={"space-template_desc-brain_mask": {"Template": "T1w-template"}},
-)(_warp_mask_to_template("longitudinal"))}
 
 
 @nodeblock(
