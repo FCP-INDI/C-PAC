@@ -1,4 +1,22 @@
+# Copyright (C) 2014-2024  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+# pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
 import os
+from typing import overload
 
 import numpy as np
 
@@ -638,3 +656,18 @@ def run_c4d(input, output_name):
     os.system(cmd)
 
     return output1, output2, output3
+
+
+@overload
+def prepend_space(resource: list[str], space: str) -> list[str]: ...
+@overload
+def prepend_space(resource: str, space: str) -> str: ...
+def prepend_space(resource: str | list[str], space: str) -> str | list[str]:
+    """Given a resource or list of resources, return same but with updated space."""
+    if isinstance(resource, list):
+        return [prepend_space(_, space) for _ in resource]
+    if "space" not in resource:
+        return f"space-{space}_{resource}"
+    pre, post = resource.split("space-")
+    _old_space, post = post.split("_", 1)
+    return f"space-{space}_".join([pre, post])

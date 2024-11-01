@@ -499,7 +499,7 @@ def anat_longitudinal_wf(subject_id: str, sub_list: list[dict], config: Configur
     # Rename nodes to include session name to avoid duplicates
     for key in strats_dct:
         for i, resource in enumerate(strats_dct[key]):
-            resource = (
+            strats_dct[key][i] = (
                 resource[0].clone(f"{resource[0].name}_{session_id_list[i]}"),
                 resource[1])
 
