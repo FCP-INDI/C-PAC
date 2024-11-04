@@ -453,10 +453,11 @@ def anat_longitudinal_wf(subject_id: str, sub_list: list[dict], config: Configur
 
     orig_pipe_name: str = config.pipeline_setup['pipeline_name']
 
-    pools: list[ResourcePool] = []
     # Loop over the sessions to create the input for the longitudinal
     # algorithm
-    for session in sub_list:
+    strats_dct: dict[str, list[tuple[pe.Node, str]]] = {"desc-brain_T1w": [],
+                                                        "desc-head_T1w": []}
+    for i, session in enumerate(sub_list):
 
         unique_id: str = session['unique_id']
         session_id_list.append(unique_id)
@@ -488,20 +489,13 @@ def anat_longitudinal_wf(subject_id: str, sub_list: list[dict], config: Configur
         session_wfs[unique_id] = rpool
 
         rpool.gather_pipes(workflow, config)
+        for key in strats_dct.keys():
+            _resource: tuple[pe.Node, str] = rpool.get_data(key)
+            clone = _resource[0].clone(f"{_resource[0].name}_{session_id_list[i]}")
+            workflow.copy_input_connections(_resource[0], clone)
+            strats_dct[key].append((clone, _resource[1]))
         if not dry_run:
             workflow.run()
-        pools.append(rpool)
-
-    # Now we have all the anat_preproc set up for every session
-    # loop over the different anat preproc strategies
-    strats_dct: dict[str, list] = {key: [pool.get_data(key) for pool in pools]
-                                         for key in ["desc-brain_T1w", "desc-head_T1w"]}
-    # Rename nodes to include session name to avoid duplicates
-    for key in strats_dct:
-        for i, resource in enumerate(strats_dct[key]):
-            strats_dct[key][i] = (
-                resource[0].clone(f"{resource[0].name}_{session_id_list[i]}"),
-                resource[1])
 
     wf = initialize_nipype_wf(config, sub_list[0],
                                 # just grab the first one for the name

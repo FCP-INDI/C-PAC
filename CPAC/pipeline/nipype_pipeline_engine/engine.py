@@ -496,6 +496,26 @@ class Workflow(pe.Workflow):
         self._nodes_cache = set()
         self._nested_workflows_cache = set()
 
+    def copy_input_connections(self, node1: pe.Node, node2: pe.Node) -> None:
+        """Copy input connections from ``node1`` to ``node2``."""
+        new_connections: list[tuple[pe.Node, str, pe.Node, str]] = []
+        for connection in self._graph.edges:
+            _out: pe.Node
+            _in: pe.Node
+            _out, _in = connection
+            if _in == node1:
+                details = self._graph.get_edge_data(*connection)
+                if "connect" in details:
+                    for connect in details["connect"]:
+                        new_connections.append((_out, connect[0], node2, connect[1]))
+        for connection in new_connections:
+            try:
+                self.connect(*connection)
+            except Exception:
+                # connection already exists
+                continue
+
+
     def _configure_exec_nodes(self, graph):
         """Ensure that each node knows where to get inputs from"""
         for node in graph.nodes():
