@@ -18,7 +18,14 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 
 # Update version comment strings
-cd CPAC
+function wait_for_git_lock() {
+    while [ -f "./.git/index.lock" ]; do
+        echo "Waiting for the git lock file to be removed..."
+        sleep 1
+    done
+}
+
+cd CPAC || exit 1
 VERSION=$(python -c "from info import __version__; print(('.'.join(('.'.join(__version__[::-1].split('-')[1].split('.')[1:])[::-1], __version__.split('-')[1])) if '-' in __version__ else __version__).split('+', 1)[0])")
 cd ..
 echo "v${VERSION}" > version
@@ -30,8 +37,8 @@ else
     # Linux and others
     find ./CPAC/resources/configs -name "*.yml" -exec sed -i'' -r "${_SED_COMMAND}" {} \;
 fi
-git add version
-VERSIONS=( `git show $(git log --pretty=format:'%h' -n 2 version | tail -n 1):version` `cat version` )
+wait_for_git_lock && git add version
+VERSIONS=( `git show $(git log --pretty=format:'%h' -n 1 version | tail -n 1):version` `cat version` )
 export PATTERN="(declare|typeset) -a"
 if [[ "$(declare -p VERSIONS)" =~ $PATTERN ]]
 then
@@ -52,11 +59,12 @@ then
   done
   unset IFS
 fi
-git add CPAC/resources/configs .github/Dockerfiles
+wait_for_git_lock && git add CPAC/resources/configs .github/Dockerfiles
 
 # Overwrite top-level Dockerfiles with the CI Dockerfiles
-cp .github/Dockerfiles/C-PAC.develop-jammy.Dockerfile Dockerfile
-cp .github/Dockerfiles/C-PAC.develop-ABCD-HCP-bionic.Dockerfile variant-ABCD-HCP.Dockerfile
-cp .github/Dockerfiles/C-PAC.develop-fMRIPrep-LTS-xenial.Dockerfile variant-fMRIPrep-LTS.Dockerfile
-cp .github/Dockerfiles/C-PAC.develop-lite-jammy.Dockerfile variant-lite.Dockerfile
-git add *Dockerfile
+wait_for_git_lock && cp .github/Dockerfiles/C-PAC.develop-jammy.Dockerfile Dockerfile
+wait_for_git_lock && cp .github/Dockerfiles/C-PAC.develop-lite-jammy.Dockerfile variant-lite.Dockerfile
+for DOCKERFILE in $(ls *Dockerfile)
+do
+  wait_for_git_lock && git add $DOCKERFILE
+done
