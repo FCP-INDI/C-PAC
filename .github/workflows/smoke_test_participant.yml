@@ -52,12 +52,12 @@ jobs:
           - preconfig: default
             variant: lite
             participant: 1019436 2014113 3154996 3699991 3884955 NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9 NDARAD481FXF NDARAV894XWD NDARCA186WGH 0025428 0025429 0025448 0025452 0025453
-          - preconfig: abcd-options
-            variant: ABCD-HCP
-            participant: 1019436 2014113 3154996 3699991 3884955 NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9 NDARAD481FXF NDARAV894XWD NDARCA186WGH 0025428 0025429 0025448 0025452 0025453
-          - preconfig: fmriprep-options
-            variant: fMRIPrep-LTS
-            participant: 1019436 2014113 3154996 3699991 3884955 NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9 NDARAD481FXF NDARAV894XWD NDARCA186WGH 0025428 0025429 0025448 0025452 0025453
+          # - preconfig: abcd-options
+          #   variant: ABCD-HCP
+          #   participant: 1019436 2014113 3154996 3699991 3884955 NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9 NDARAD481FXF NDARAV894XWD NDARCA186WGH 0025428 0025429 0025448 0025452 0025453
+          # - preconfig: fmriprep-options
+          #   variant: fMRIPrep-LTS
+          #   participant: 1019436 2014113 3154996 3699991 3884955 NDARAA504CRN NDARAA947ZG5 NDARAB348EWR NDARAB458VK9 NDARAD481FXF NDARAV894XWD NDARCA186WGH 0025428 0025429 0025448 0025452 0025453
     steps:
       - name: Get C-PAC
         run: |
@@ -148,7 +148,7 @@ jobs:
         run: |
           git config --global user.email "CMI_CPAC_Support@childmind.org"
           git config --global user.name "Theodore (Machine User)"
-          wget -O- http://neuro.debian.net/lists/focal.us-tn.libre | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+          wget -O- http://neuro.debian.net/lists/jammy.us-tn.libre | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
           sudo apt-key adv --recv-keys --keyserver hkps://keyserver.ubuntu.com 0xA5D32F012649A5A9
           sudo apt-get update
           sudo apt-get install datalad git-annex-standalone
@@ -207,7 +207,7 @@ jobs:
         run: |
           git config --global user.email "CMI_CPAC_Support@childmind.org"
           git config --global user.name "Theodore (Machine User)"
-          wget -O- http://neuro.debian.net/lists/focal.us-tn.libre | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+          wget -O- http://neuro.debian.net/lists/jammy.us-tn.libre | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
           sudo apt-key adv --recv-keys --keyserver hkps://keyserver.ubuntu.com 0xA5D32F012649A5A9
           sudo apt-get update
           sudo apt-get install datalad git-annex-standalone

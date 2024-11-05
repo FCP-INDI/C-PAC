@@ -1,21 +1,25 @@
 # -*- coding: utf-8 -*-
+"""Utilities for ALFF."""
 
-def get_opt_string(mask):
+from pathlib import Path
+
+from CPAC.utils.interfaces.function import Function
+
+
+@Function.sig_imports(["from pathlib import Path"])
+def get_opt_string(mask: Path | str) -> str:
     """
-    Method to return option string for 3dTstat
-    
+    Return option string for 3dTstat.
+
     Parameters
     ----------
     mask : string
         Path to mask file
-    
+
     Returns
     -------
     opt_str : string
         Command args
-    
+
     """
-
-    opt_str = " -stdev -mask %s" % mask
-
-    return opt_str
+    return f" -stdev -mask {mask}"

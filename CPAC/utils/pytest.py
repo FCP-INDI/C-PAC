@@ -14,19 +14,23 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Utilities for Pytest integration"""
+"""Utilities for Pytest integration."""
+
 try:
     import pytest
+
     HAVE_PYTEST = True
 except ImportError:
     HAVE_PYTEST = False
 
 
 def skipif(condition, reason):
-    """Skip test if we have Pytest, ignore test entirely if not"""
+    """Skip test if we have Pytest, ignore test entirely if not."""
+
     def decorator(func):
-        """Skip test if we have Pytest"""
+        """Skip test if we have Pytest."""
         if HAVE_PYTEST:
             return pytest.mark.skipif(condition, reason)(func)
         return func  # return undecorated function
+
     return decorator  # return conditionally decorated function

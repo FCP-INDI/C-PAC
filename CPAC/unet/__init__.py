@@ -15,33 +15,44 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from ._torch import torch  # this import has to be first to install torch
-
-from .function import write_nifti, estimate_dice, extract_large_comp, \
-    predict_volumes, MyParser
-
-from .model import weigths_init, Conv3dBlock, UpConv3dBlock, Conv2dBlock, \
-    UpConv2dBlock, UNet3d, UNet2d, MultiSliceBcUNet, MultiSliceSsUNet, \
-        MultiSliceModel
-
-from .dataset import VolumeDataset, BlockDataset
+from .dataset import BlockDataset, VolumeDataset
+from .function import (
+    estimate_dice,
+    extract_large_comp,
+    MyParser,
+    predict_volumes,
+    write_nifti,
+)
+from .model import (
+    Conv2dBlock,
+    Conv3dBlock,
+    MultiSliceBcUNet,
+    MultiSliceModel,
+    MultiSliceSsUNet,
+    UNet2d,
+    UNet3d,
+    UpConv2dBlock,
+    UpConv3dBlock,
+    weigths_init,
+)
 
 __all__ = [
-    'write_nifti',
-    'estimate_dice',
-    'extract_large_comp',
-    'predict_volumes',
-    'MyParser',
-    'weigths_init',
-    'Conv3dBlock',
-    'UpConv3dBlock',
-    'Conv2dBlock',
-    'UpConv2dBlock',
-    'UNet3d',
-    'UNet2d',
-    'MultiSliceBcUNet',
-    'MultiSliceSsUNet',
-    'MultiSliceModel',
-    'VolumeDataset',
-    'BlockDataset',
-    'torch'
+    "write_nifti",
+    "estimate_dice",
+    "extract_large_comp",
+    "predict_volumes",
+    "MyParser",
+    "weigths_init",
+    "Conv3dBlock",
+    "UpConv3dBlock",
+    "Conv2dBlock",
+    "UpConv2dBlock",
+    "UNet3d",
+    "UNet2d",
+    "MultiSliceBcUNet",
+    "MultiSliceSsUNet",
+    "MultiSliceModel",
+    "VolumeDataset",
+    "BlockDataset",
+    "torch",
 ]

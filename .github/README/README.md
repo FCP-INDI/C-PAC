@@ -25,8 +25,6 @@ flowchart LR
 
       cpacdockerfiles["C-PAC.develop-(?!lite).*"]
 
-      cpaclitedockerfile[C-PAC.develop-lite.*]
-
       stagedockerfiles[AFNI.*\nANTs.*\nc3d.*\nconnectome-workbench.*\nFSL.*\nICA-AROMA.*\nmsm.*]
 
       ubuntudockerfiles[Ubuntu.*]
@@ -50,9 +48,9 @@ flowchart LR
       end
       subgraph build_and_test.yml
         ubuntu[[Ubnutu]]-->stages[[stages]]-->build-base[[build-base]]-->build-base-standard[[build-base-standard]]
-        
+
         Circle_tests[[Circle_tests]]
-      
+
         build-base-standard-->C-PAC
         C-PAC[[C-PAC]]-->bCPAC
         C-PAC-->Circle_tests
@@ -63,16 +61,6 @@ flowchart LR
         C-PAC-lite[[C-PAC-lite]]-->bCPAC
         C-PAC-lite-->Circle_tests
         C-PAC-lite-->smoke-tests-participant
-
-        build-base-->C-PAC-ABCD-HCP
-        C-PAC-ABCD-HCP[[C-PAC-ABCD-HCP]]-->bCPAC
-        C-PAC-ABCD-HCP-->Circle_tests
-        C-PAC-ABCD-HCP-->smoke-tests-participant
-
-        build-base-->C-PAC-fMRIPREP
-        C-PAC-fMRIPrep[[C-PAC-fMRIPrep-LTS]]-->bCPAC
-        C-PAC-fMRIPrep-->Circle_tests
-        C-PAC-fMRIPrep-->smoke-tests-participant
 
         smoke-tests-participant[[smoke-tests-participant]]
       end
@@ -95,8 +83,6 @@ flowchart LR
     on_push.yml-->update_all_preconfigs
 
     cpacdockerfiles<-->C-PAC
-    cpacdockerfiles<-->C-PAC-ABCD-HCP
-    cpacdockerfiles<-->C-PAC-fMRIPrep
 
     cpaclitedockerfile<-->C-PAC-lite
 
@@ -164,7 +150,7 @@ in the commit message. For this to work, all of these must be true:
    ```YAML
    strategy:
      matrix:
-       Dockerfile: 
+       Dockerfile:
    ```
 
    in a job in a [workflow](../workflows) file.

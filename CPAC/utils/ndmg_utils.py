@@ -1,42 +1,45 @@
-"""
-Functions in this file adapted from NeuroData group:
-STATEMENT OF CHANGES:
-    This file is derived from sources licensed under the Apache-2.0 terms,
-    and this file has been changed.
+# Functions in this file adapted from NeuroData group:
 
-CHANGES:
-    * Minor refactoring for compatibility with C-PAC
+# STATEMENT OF CHANGES:
+#     This file is derived from sources licensed under the Apache-2.0 terms,
+#     and this file has been changed.
 
-ORIGINAL WORK'S ATTRIBUTION NOTICE:
-    Copyright 2016 NeuroData (http://neurodata.io)
+# CHANGES:
+#     * Minor refactoring for compatibility with C-PAC
 
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+# ORIGINAL WORK'S ATTRIBUTION NOTICE:
+#     Copyright 2016 NeuroData (http://neurodata.io)
 
-        http://www.apache.org/licenses/LICENSE-2.0
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
 
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+#         http://www.apache.org/licenses/LICENSE-2.0
 
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
 
-    graph.py
-    Created by Greg Kiar on 2016-01-27.
-    Email: gkiar@jhu.edu
+#     graph.py
+#     Created by Greg Kiar on 2016-01-27.
+#     Email: gkiar@jhu.edu
 
-Can be found here:
-    https://github.com/neurodata/m2g/blob/v0.1.0/ndmg/graph/graph.py
+# Can be found here:
+#     https://github.com/neurodata/m2g/blob/v0.1.0/ndmg/graph/graph.py
 
-Modifications Copyright (C) 2022  C-PAC Developers
+# Modifications Copyright (C) 2022-2024  C-PAC Developers
 
-This file is part of C-PAC.
-"""
+# This file is part of C-PAC.
 import os
-import nibabel as nb
+
 import numpy as np
+import nibabel as nib
+
+from CPAC.utils.monitoring.custom_logging import getLogger
+
+logger = getLogger("nuerodata.m2g.ndmg")
 
 
 def ndmg_roi_timeseries(func_file, label_file):
@@ -57,10 +60,10 @@ def ndmg_roi_timeseries(func_file, label_file):
     # Adapted from ndmg v0.1.1
     # Copyright 2016 NeuroData (http://neurodata.io)
     """
-    labeldata = nb.load(label_file).get_fdata()
+    labeldata = nib.load(label_file).get_fdata()
     # rois are all the nonzero unique values the parcellation can take
     rois = np.sort(np.unique(labeldata[labeldata > 0]))
-    funcdata = nb.load(func_file).get_fdata()
+    funcdata = nib.load(func_file).get_fdata()
 
     # initialize time series to [numrois]x[numtimepoints]
     roi_ts = np.zeros((len(rois), funcdata.shape[3]))
@@ -71,9 +74,11 @@ def ndmg_roi_timeseries(func_file, label_file):
         try:
             roi_vts = funcdata[roibool, :]
         except IndexError as e:
-            err = '\n[!] Error: functional data and ROI mask may not be in ' \
-                  'the same space or be the same size.\nDetails: ' \
-                  '{0}'.format(e)
+            err = (
+                "\n[!] Error: functional data and ROI mask may not be in "
+                "the same space or be the same size.\nDetails: "
+                f"{e}"
+            )
             raise IndexError(err)
         # take the mean for the voxel timeseries, and ignore voxels with
         # no variance
@@ -81,7 +86,7 @@ def ndmg_roi_timeseries(func_file, label_file):
         if ts.size != 0:
             roi_ts[idx, :] = ts
 
-    roits_file = os.path.join(os.getcwd(), 'timeseries.npz')
+    roits_file = os.path.join(os.getcwd(), "timeseries.npz")
     np.savez(roits_file, ts=roi_ts, rois=rois)
     return (roi_ts, rois, roits_file)
 
@@ -104,13 +109,15 @@ class graph(object):
         # Adapted from ndmg v0.1.1
         # Copyright 2016 NeuroData (http://neurodata.io)
         """
-        import numpy as np
-        import nibabel as nb
         from collections import defaultdict
+
+        import numpy as np
+        import nibabel as nib
+
         self.N = N
         self.edge_dict = defaultdict(int)
 
-        self.rois = nb.load(rois).get_fdata()
+        self.rois = nib.load(rois).get_fdata()
         n_ids = np.unique(self.rois)
         self.n_ids = n_ids[n_ids > 0]
 
@@ -125,29 +132,31 @@ class graph(object):
                     - Fiber streamlines either file or array in a dipy EuDX
                       or compatible format.
         """
-        import time
-        import numpy as np
-        import networkx as nx
         from itertools import product
+        import time
 
-        self.g = nx.Graph(name="Generated by NeuroData's MRI Graphs (ndmg)",
-                          version='0.1.1',
-                          date=time.asctime(time.localtime()),
-                          source="http://m2g.io",
-                          region="brain",
-                          sensor=self.modal,
-                          ecount=0,
-                          vcount=len(self.n_ids)
-                          )
-        print(self.g.graph)
+        import networkx as nx
+        import numpy as np
+
+        self.g = nx.Graph(
+            name="Generated by NeuroData's MRI Graphs (ndmg)",
+            version="0.1.1",
+            date=time.asctime(time.localtime()),
+            source="http://m2g.io",
+            region="brain",
+            sensor=self.modal,
+            ecount=0,
+            vcount=len(self.n_ids),
+        )
+        logger.info(self.g.graph)
         [str(self.g.add_node(ids)) for ids in self.n_ids]
 
         nlines = np.shape(streamlines)[0]
-        print("# of Streamlines: " + str(nlines))
-        print_id = np.max((int(nlines*0.05), 1))  # in case nlines*.05=0
+        logger.info("# of Streamlines: %s", nlines)
+        print_id = np.max((int(nlines * 0.05), 1))  # in case nlines*.05=0
         for idx, streamline in enumerate(streamlines):
             if (idx % print_id) == 0:
-                print(idx)
+                logger.info(idx)
 
             points = np.round(streamline).astype(int)
             p = set()
@@ -161,7 +170,7 @@ class graph(object):
 
                 if loc:
                     p.add(loc)
-            edges = set([tuple(sorted(x)) for x in product(p, p)])
+            edges = {tuple(sorted(x)) for x in product(p, p)}
             for edge in edges:
                 lst = tuple(sorted([str(node) for node in edge]))
                 self.edge_dict[lst] += 1
@@ -174,12 +183,13 @@ class graph(object):
         **Positional Arguments:**
             timeseries:
                 -the timeseries file to extract correlation for.
-                          dimensions are [numrois]x[numtimesteps]
+                          dimensions are [numrois]x[numtimesteps].
         """
         import numpy as np
-        ts = timeseries[0]
+
+        ts = timeseries[0]  # noqa: F841
         rois = timeseries[1]
-        print("Estimating correlation matrix for {} ROIs...".format(self.N))
+        logger.info("Estimating correlation matrix for %s ROIs...", self.N)
         self.g = np.abs(np.corrcoef(timeseries))  # calculate pearson correlation
         self.g = np.nan_to_num(self.g).astype(object)
         self.n_ids = rois
@@ -194,20 +204,17 @@ class graph(object):
         return self.g
 
     def get_graph(self):
-        """
-        Returns the graph object created
-        """
+        """Returns the graph object created."""
         try:
             return self.g
         except AttributeError:
-            print("Error: the graph has not yet been defined.")
+            logger.error("The graph has not yet been defined.")
             pass
 
     def as_matrix(self):
-        """
-        Returns the graph as a matrix.
-        """
+        """Returns the graph as a matrix."""
         import networkx as nx
+
         g = self.get_graph()
         return nx.to_numpy_matrix(g, nodelist=np.sort(g.nodes()).tolist())
 
@@ -216,34 +223,37 @@ class graph(object):
         Saves the graph to disk
         **Positional Arguments:**
                 graphname:
-                    - Filename for the graph
+                    - Filename for the graph.
         """
-        import numpy as np
         import networkx as nx
-        if self.modal == 'dwi':
-            self.g.graph['ecount'] = nx.number_of_edges(self.g)
+        import numpy as np
+
+        if self.modal == "dwi":
+            self.g.graph["ecount"] = nx.number_of_edges(self.g)
             nx.write_weighted_edgelist(self.g, graphname, delimiter=",")
 
-        elif self.modal == 'func':
-            np.savetxt(graphname, self.g, comments='', delimiter=',',
-                header=','.join([str(n) for n in self.n_ids]))
+        elif self.modal == "func":
+            np.savetxt(
+                graphname,
+                self.g,
+                comments="",
+                delimiter=",",
+                header=",".join([str(n) for n in self.n_ids]),
+            )
         else:
-            raise ValueError("Unsupported Modality.")
-        pass
+            msg = "Unsupported Modality."
+            raise ValueError(msg)
 
     def summary(self):
-        """
-        User friendly wrapping and display of graph properties
-        """
+        """User friendly wrapping and display of graph properties."""
         import networkx as nx
-        print("\n Graph Summary:")
-        print(nx.info(self.g))
-        pass
+
+        logger.info("\n Graph Summary: %s", nx.info(self.g))
 
 
 def ndmg_create_graphs(ts, labels):
-    out_file = os.path.join(os.getcwd(), 'measure-correlation.csv')
+    out_file = os.path.join(os.getcwd(), "measure-correlation.csv")
     connectome = graph(ts.shape[0], labels, sens="func")
-    conn = connectome.cor_graph(ts)
+    connectome.cor_graph(ts)
     connectome.save_graph(out_file)
     return out_file
