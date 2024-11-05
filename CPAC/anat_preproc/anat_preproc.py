@@ -15,7 +15,6 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-# from copy import deepcopy
 import os
 
 from nipype.interfaces import afni, ants, freesurfer, fsl
@@ -36,6 +35,7 @@ from CPAC.anat_preproc.utils import (
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 
 
@@ -86,7 +86,7 @@ def acpc_alignment(
     elif config.anatomical_preproc["acpc_alignment"]["FOV_crop"] == "flirt":
         # robustfov doesn't work on some monkey data. prefer using flirt.
         # ${FSLDIR}/bin/flirt -in "${Input}" -applyxfm -ref "${Input}" -omat "$WD"/roi2full.mat -out "$WD"/robustroi.nii.gz
-        # adopted from DCAN NHP https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/PreFreeSurfer/scripts/ACPCAlignment.sh#L80-L81
+        # adopted from DCAN NHP https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/8fe9f61/PreFreeSurfer/scripts/ACPCAlignment.sh#L80-L81
         flirt_fov = pe.Node(interface=fsl.FLIRT(), name="anat_acpc_1_fov")
         flirt_fov.inputs.args = "-applyxfm"
 
@@ -138,7 +138,7 @@ def acpc_alignment(
 
     aff_to_rig_imports = ["import os", "from numpy import *"]
     aff_to_rig = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_xfm", "out_name"],
             output_names=["out_mat"],
             function=fsl_aff_to_rigid,
@@ -198,7 +198,7 @@ def acpc_alignment(
 
 def T2wToT1wReg(wf_name="T2w_to_T1w_reg"):
     # Adapted from DCAN lab
-    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/PreFreeSurfer/scripts/T2wToT1wReg.sh
+    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/8fe9f61/PreFreeSurfer/scripts/T2wToT1wReg.sh
 
     preproc = pe.Workflow(name=wf_name)
 
@@ -240,7 +240,7 @@ def T2wToT1wReg(wf_name="T2w_to_T1w_reg"):
 
 def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name="biasfield_correction_t1t2"):
     # Adapted from DCAN lab
-    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/PreFreeSurfer/scripts/BiasFieldCorrection_sqrtT1wXT1w.sh
+    # https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/8fe9f61/PreFreeSurfer/scripts/BiasFieldCorrection_sqrtT1wXT1w.sh
 
     preproc = pe.Workflow(name=wf_name)
 
@@ -319,7 +319,7 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name="biasfield_correction_t
         return "-s %f -div %s" % (sigma, in_file)
 
     T1wmulT2w_brain_norm_s_string = pe.Node(
-        util.Function(
+        Function(
             input_names=["sigma", "in_file"],
             output_names=["out_str"],
             function=T1wmulT2w_brain_norm_s_string,
@@ -378,7 +378,7 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name="biasfield_correction_t
         return "-thr %s -bin -ero -mul 255" % (lower)
 
     form_lower_string = pe.Node(
-        util.Function(
+        Function(
             input_names=["mean", "std"],
             output_names=["out_str"],
             function=form_lower_string,
@@ -441,10 +441,10 @@ def BiasFieldCorrection_sqrtT1wXT1w(config=None, wf_name="biasfield_correction_t
 
     # 6. Use bias field output to create corrected images
     def file_to_a_list(infile_1, infile_2):
-        return list([infile_1, infile_2])
+        return [infile_1, infile_2]
 
     file_to_a_list = pe.Node(
-        util.Function(
+        Function(
             input_names=["infile_1", "infile_2"],
             output_names=["out_list"],
             function=file_to_a_list,
@@ -544,7 +544,7 @@ def afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     )
 
     skullstrip_args = pe.Node(
-        util.Function(
+        Function(
             input_names=[
                 "spat_norm",
                 "spat_norm_dxyz",
@@ -762,7 +762,7 @@ def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     anat_robustfov.inputs.output_type = "NIFTI_GZ"
 
     anat_pad_RobustFOV_cropped = pe.Node(
-        util.Function(
+        Function(
             input_names=["cropped_image_path", "target_image_path"],
             output_names=["padded_image_path"],
             function=pad,
@@ -891,8 +891,9 @@ def niworkflows_ants_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
 def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     """
-    UNet
-    options (following numbers are default):
+    UNet options.
+
+    Following numbers are default:
     input_slice: 3
     conv_block: 5
     kernel_root: 16
@@ -901,7 +902,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     from CPAC.unet.function import predict_volumes
 
     unet_mask = pe.Node(
-        util.Function(
+        Function(
             input_names=["model_path", "cimg_in"],
             output_names=["out_path"],
             function=predict_volumes,
@@ -939,9 +940,9 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     wf.connect(unet_mask, "out_path", unet_masked_brain, "operand_files")
 
-    # flirt -v -dof 6 -in brain.nii.gz -ref NMT_SS_0.5mm.nii.gz -o brain_rot2atl -omat brain_rot2atl.mat -interp sinc
+    # flirt -v -dof 6 -in brain.nii.gz -ref NMT_SS_0.5mm.nii.gz -o brain_rot2atl -omat brain_rot2atl.mat -interp sinc
     native_brain_to_template_brain = pe.Node(
-        interface=fsl.FLIRT(), name=f"native_brain_to_template_" f"brain_{pipe_num}"
+        interface=fsl.FLIRT(), name=f"native_brain_to_template_brain_{pipe_num}"
     )
     native_brain_to_template_brain.inputs.dof = 6
     native_brain_to_template_brain.inputs.interp = "sinc"
@@ -950,9 +951,9 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     node, out = strat_pool.get_data("T1w-brain-template")
     wf.connect(node, out, native_brain_to_template_brain, "reference")
 
-    # flirt -in head.nii.gz -ref NMT_0.5mm.nii.gz -o head_rot2atl -applyxfm -init brain_rot2atl.mat
+    # flirt -in head.nii.gz -ref NMT_0.5mm.nii.gz -o head_rot2atl -applyxfm -init brain_rot2atl.mat
     native_head_to_template_head = pe.Node(
-        interface=fsl.FLIRT(), name=f"native_head_to_template_" f"head_{pipe_num}"
+        interface=fsl.FLIRT(), name=f"native_head_to_template_head_{pipe_num}"
     )
     native_head_to_template_head.inputs.apply_xfm = True
 
@@ -974,7 +975,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     node, out = strat_pool.get_data("T1w-template")
     wf.connect(node, out, native_head_to_template_head, "reference")
 
-    # fslmaths NMT_SS_0.5mm.nii.gz -bin templateMask.nii.gz
+    # fslmaths NMT_SS_0.5mm.nii.gz -bin templateMask.nii.gz
     template_brain_mask = pe.Node(
         interface=fsl.maths.MathsCommand(), name=f"template_brain_mask_{pipe_num}"
     )
@@ -985,7 +986,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # ANTS 3 -m  CC[head_rot2atl.nii.gz,NMT_0.5mm.nii.gz,1,5] -t SyN[0.25] -r Gauss[3,0] -o atl2T1rot -i 60x50x20 --use-Histogram-Matching  --number-of-affine-iterations 10000x10000x10000x10000x10000 --MI-option 32x16000
     ants_template_head_to_template = pe.Node(
-        interface=ants.Registration(), name=f"template_head_to_" f"template_{pipe_num}"
+        interface=ants.Registration(), name=f"template_head_to_template_{pipe_num}"
     )
     ants_template_head_to_template.inputs.metric = ["CC"]
     ants_template_head_to_template.inputs.metric_weight = [1, 5]
@@ -1006,7 +1007,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     node, out = strat_pool.get_data("T1w-brain-template")
     wf.connect(node, out, ants_template_head_to_template, "moving_image")
 
-    # antsApplyTransforms -d 3 -i templateMask.nii.gz -t atl2T1rotWarp.nii.gz atl2T1rotAffine.txt -r brain_rot2atl.nii.gz -o brain_rot2atl_mask.nii.gz
+    # antsApplyTransforms -d 3 -i templateMask.nii.gz -t atl2T1rotWarp.nii.gz atl2T1rotAffine.txt -r brain_rot2atl.nii.gz -o brain_rot2atl_mask.nii.gz
     template_head_transform_to_template = pe.Node(
         interface=ants.ApplyTransforms(),
         name=f"template_head_transform_to_template_{pipe_num}",
@@ -1032,14 +1033,14 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         "transforms",
     )
 
-    # convert_xfm -omat brain_rot2native.mat -inverse brain_rot2atl.mat
+    # convert_xfm -omat brain_rot2native.mat -inverse brain_rot2atl.mat
     invt = pe.Node(interface=fsl.ConvertXFM(), name="convert_xfm")
     invt.inputs.invert_xfm = True
     wf.connect(native_brain_to_template_brain, "out_matrix_file", invt, "in_file")
 
     # flirt -in brain_rot2atl_mask.nii.gz -ref brain.nii.gz -o brain_mask.nii.gz -applyxfm -init brain_rot2native.mat
     template_brain_to_native_brain = pe.Node(
-        interface=fsl.FLIRT(), name=f"template_brain_to_native_" f"brain_{pipe_num}"
+        interface=fsl.FLIRT(), name=f"template_brain_to_native_brain_{pipe_num}"
     )
     template_brain_to_native_brain.inputs.apply_xfm = True
     wf.connect(
@@ -1054,9 +1055,7 @@ def unet_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(invt, "out_file", template_brain_to_native_brain, "in_matrix_file")
 
     # fslmaths brain_mask.nii.gz -thr .5 -bin brain_mask_thr.nii.gz
-    refined_mask = pe.Node(
-        interface=fsl.Threshold(), name=f"refined_mask" f"_{pipe_num}"
-    )
+    refined_mask = pe.Node(interface=fsl.Threshold(), name=f"refined_mask_{pipe_num}")
     refined_mask.inputs.thresh = 0.5
     refined_mask.inputs.args = "-bin"
     wf.connect(template_brain_to_native_brain, "out_file", refined_mask, "in_file")
@@ -1084,7 +1083,7 @@ def freesurfer_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # convert brain mask file from .mgz to .nii.gz
     fs_brain_mask_to_nifti = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file"], output_names=["out_file"], function=mri_convert
         ),
         name=f"fs_brainmask_to_nifti_{pipe_num}",
@@ -1115,12 +1114,12 @@ def freesurfer_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
 def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     """
-    ABCD harmonization - anatomical brain mask generation
+    ABCD harmonization - anatomical brain mask generation.
 
-    Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L156
+    Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/7927754/PostFreeSurfer/PostFreeSurferPipeline.sh#L151-L156
     """
     wmparc_to_nifti = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file", "reslice_like", "args"],
             output_names=["out_file"],
             function=mri_convert,
@@ -1131,7 +1130,7 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     # Register wmparc file if ingressing FreeSurfer data
     if strat_pool.check_rpool("pipeline-fs_xfm"):
         wmparc_to_native = pe.Node(
-            util.Function(
+            Function(
                 input_names=["source_file", "target_file", "xfm", "out_file"],
                 output_names=["transformed_file"],
                 function=normalize_wmparc,
@@ -1169,7 +1168,7 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     wf.connect(wmparc_to_nifti, "out_file", binary_mask, "in_file")
 
     wb_command_fill_holes = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file"], output_names=["out_file"], function=wb_command
         ),
         name=f"wb_command_fill_holes_{pipe_num}",
@@ -1207,7 +1206,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # mri_convert -it mgz ${SUBJECTS_DIR}/${subject}/mri/brainmask.mgz -ot nii brainmask.nii.gz
     convert_fs_brainmask_to_nifti = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file"], output_names=["out_file"], function=mri_convert
         ),
         name=f"convert_fs_brainmask_to_nifti_{node_id}",
@@ -1218,7 +1217,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     # mri_convert -it mgz ${SUBJECTS_DIR}/${subject}/mri/T1.mgz -ot nii T1.nii.gz
     convert_fs_T1_to_nifti = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file"], output_names=["out_file"], function=mri_convert
         ),
         name=f"convert_fs_T1_to_nifti_{node_id}",
@@ -1234,7 +1233,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         mem_gb=0,
         mem_x=(0.0115, "in_file", "t"),
     )
-    reorient_fs_brainmask.inputs.orientation = "RPI"
+    reorient_fs_brainmask.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     reorient_fs_brainmask.inputs.outputtype = "NIFTI_GZ"
 
     wf.connect(
@@ -1256,7 +1255,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
         mem_gb=0,
         mem_x=(0.0115, "in_file", "t"),
     )
-    reorient_fs_T1.inputs.orientation = "RPI"
+    reorient_fs_T1.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     reorient_fs_T1.inputs.outputtype = "NIFTI_GZ"
 
     wf.connect(convert_fs_T1_to_nifti, "out_file", reorient_fs_T1, "in_file")
@@ -1385,7 +1384,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
 def mask_T2(wf_name="mask_T2"):
     # create T2 mask based on T1 mask
-    # reference https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/master/PreliminaryMasking/macaque_masking.py
+    # reference https://github.com/DCAN-Labs/dcan-macaque-pipeline/blob/83512b0/PreliminaryMasking/macaque_masking.py
 
     preproc = pe.Workflow(name=wf_name)
 
@@ -1461,7 +1460,7 @@ def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
         mem_gb=0,
         mem_x=(0.0115, "in_file", "t"),
     )
-    anat_reorient.inputs.orientation = "RPI"
+    anat_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     anat_reorient.inputs.outputtype = "NIFTI_GZ"
 
     wf.connect(anat_deoblique, "out_file", anat_reorient, "in_file")
@@ -2269,7 +2268,7 @@ def anatomical_init_T2(wf, cfg, strat_pool, pipe_num, opt=None):
         mem_gb=0,
         mem_x=(0.0115, "in_file", "t"),
     )
-    T2_reorient.inputs.orientation = "RPI"
+    T2_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     T2_reorient.inputs.outputtype = "NIFTI_GZ"
 
     wf.connect(T2_deoblique, "out_file", T2_reorient, "in_file")
@@ -2829,7 +2828,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
     )
 
     ### ABCD Harmonization ###
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/FreeSurfer/FreeSurferPipeline.sh#L140-L144
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/9a02c47/FreeSurfer/FreeSurferPipeline.sh#L140-L144
 
     # flirt -interp spline -in "$T1wImage" -ref "$T1wImage" -applyisoxfm 1 -out "$T1wImageFile"_1mm.nii.gz
     resample_head_1mm = pe.Node(
@@ -2889,7 +2888,7 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # fslmaths "$T1wImageFile"_1mm.nii.gz -div $Mean -mul 150 -abs "$T1wImageFile"_1mm.nii.gz
     normalize_head = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_file", "number", "out_file_suffix"],
             output_names=["out_file"],
             function=fslmaths_command,
@@ -2980,7 +2979,7 @@ def freesurfer_reconall(wf, cfg, strat_pool, pipe_num, opt=None):
 
 def fnirt_based_brain_extraction(config=None, wf_name="fnirt_based_brain_extraction"):
     ### ABCD Harmonization - FNIRT-based brain extraction ###
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PreFreeSurfer/scripts/BrainExtraction_FNIRTbased.sh
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/4d9996b/PreFreeSurfer/scripts/BrainExtraction_FNIRTbased.sh
 
     preproc = pe.Workflow(name=wf_name)
 
@@ -3101,7 +3100,7 @@ def fnirt_based_brain_extraction(config=None, wf_name="fnirt_based_brain_extract
 
 def fast_bias_field_correction(config=None, wf_name="fast_bias_field_correction"):
     ### ABCD Harmonization - FAST bias field correction ###
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PreFreeSurfer/PreFreeSurferPipeline.sh#L688-L694
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/9291324/PreFreeSurfer/PreFreeSurferPipeline.sh#L688-L694
 
     preproc = pe.Workflow(name=wf_name)
 
@@ -3186,7 +3185,7 @@ def fast_bias_field_correction(config=None, wf_name="fast_bias_field_correction"
 )
 def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     ### ABCD Harmonization - Myelin Map ###
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PreFreeSurfer/PreFreeSurferPipeline.sh#L655-L656
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/9291324/PreFreeSurfer/PreFreeSurferPipeline.sh#L655-L656
     # fslmerge -t ${T1wFolder}/xfms/${T1wImage}_dc ${T1wFolder}/${T1wImage}_acpc ${T1wFolder}/${T1wImage}_acpc ${T1wFolder}/${T1wImage}_acpc
     merge_t1_acpc_to_list = pe.Node(
         util.Merge(3), name=f"merge_t1_acpc_to_list_{pipe_num}"
@@ -3212,7 +3211,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
 
     wf.connect(merge_t1_acpc, "merged_file", multiply_t1_acpc_by_zero, "in_file")
 
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/PostFreeSurferPipeline.sh#L157
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/7927754/PostFreeSurfer/PostFreeSurferPipeline.sh#L157
     # convertwarp --relout --rel --ref="$T1wFolder"/"$T1wImageBrainMask" --premat="$T1wFolder"/xfms/"$InitialT1wTransform" \
     # --warp1="$T1wFolder"/xfms/"$dcT1wTransform" --out="$T1wFolder"/xfms/"$OutputOrigT1wToT1w"
     convertwarp_orig_t1_to_t1 = pe.Node(
@@ -3229,7 +3228,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     wf.connect(node, out, convertwarp_orig_t1_to_t1, "premat")
     wf.connect(multiply_t1_acpc_by_zero, "out_file", convertwarp_orig_t1_to_t1, "warp1")
 
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/scripts/CreateMyelinMaps.sh#L72-L73
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/a8d495a/PostFreeSurfer/scripts/CreateMyelinMaps.sh#L72-L73
     # applywarp --rel --interp=spline -i "$BiasField" -r "$T1wImageBrain" -w "$AtlasTransform" -o "$BiasFieldOutput"
     applywarp_biasfield = pe.Node(
         interface=fsl.ApplyWarp(), name=f"applywarp_biasfield_{pipe_num}"
@@ -3255,7 +3254,7 @@ def correct_restore_brain_intensity_abcd(wf, cfg, strat_pool, pipe_num, opt=None
     threshold_biasfield.inputs.op_string = "-thr 0.1"
     wf.connect(applywarp_biasfield, "out_file", threshold_biasfield, "in_file")
 
-    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/master/PostFreeSurfer/scripts/CreateMyelinMaps.sh#L67-L70
+    # Ref: https://github.com/DCAN-Labs/DCAN-HCP/blob/a8d495a/PostFreeSurfer/scripts/CreateMyelinMaps.sh#L67-L70
     # applywarp --rel --interp=spline -i "$OrginalT1wImage" -r "$T1wImageBrain" -w "$OutputOrigT1wToT1w" -o "$OutputT1wImage"
     applywarp_t1 = pe.Node(interface=fsl.ApplyWarp(), name=f"applywarp_t1_{pipe_num}")
 

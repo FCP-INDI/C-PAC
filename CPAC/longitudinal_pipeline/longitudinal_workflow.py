@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2020-2022  C-PAC Developers
+# Copyright (C) 2020-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -17,7 +17,6 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
 
-from nipype import logging
 from nipype.interfaces import fsl
 import nipype.interfaces.io as nio
 from indi_aws import aws_utils
@@ -47,8 +46,6 @@ from CPAC.utils.interfaces.function import Function
 from CPAC.utils.strategy import Strategy
 from CPAC.utils.utils import check_config_resources, check_prov_for_regtool
 
-logger = logging.getLogger("nipype.workflow")
-
 
 @nodeblock(
     name="mask_T1w_longitudinal_template",
@@ -60,7 +57,7 @@ logger = logging.getLogger("nipype.workflow")
 def mask_T1w_longitudinal_template(wf, cfg, strat_pool, pipe_num, opt=None):
     brain_mask = pe.Node(
         interface=fsl.maths.MathsCommand(),
-        name=f"longitudinal_anatomical_brain_mask_" f"{pipe_num}",
+        name=f"longitudinal_anatomical_brain_mask_{pipe_num}",
     )
     brain_mask.inputs.args = "-bin"
 
@@ -79,9 +76,8 @@ def create_datasink(
     session_id="",
     strat_name="",
     map_node_iterfield=None,
-):
+) -> pe.Node | pe.MapNode:
     """
-
     Parameters
     ----------
     datasink_name
@@ -90,15 +86,8 @@ def create_datasink(
     session_id
     strat_name
     map_node_iterfield
-
-    Returns
-    -------
-
     """
-    try:
-        encrypt_data = bool(config.pipeline_setup["Amazon-AWS"]["s3_encryption"])
-    except:
-        encrypt_data = False
+    encrypt_data = config.pipeline_setup["Amazon-AWS"]["s3_encryption"]
 
     # TODO Enforce value with schema validation
     # Extract credentials path for output if it exists
@@ -122,7 +111,8 @@ def create_datasink(
             )
 
             if not s3_write_access:
-                raise Exception("Not able to write to bucket!")
+                msg = "Not able to write to bucket!"
+                raise Exception(msg)
 
     except Exception as e:
         if (
@@ -360,7 +350,7 @@ def warp_longitudinal_seg_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
 
     for label in labels:
         apply_xfm = apply_transform(
-            f"warp_longitudinal_seg_to_T1w_{label}_" f"{pipe_num}",
+            f"warp_longitudinal_seg_to_T1w_{label}_{pipe_num}",
             reg_tool,
             time_series=False,
             num_cpus=num_cpus,
@@ -630,7 +620,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
             )
 
             rpool.set_data(
-                "from-T1w_to-longitudinal_mode-image_" "desc-linear_xfm",
+                "from-T1w_to-longitudinal_mode-image_desc-linear_xfm",
                 select_sess,
                 "warp_path",
                 {},
@@ -722,9 +712,9 @@ def func_preproc_longitudinal_wf(subject_id, sub_list, config):
     for sub_dict in sub_list:
         if "func" in sub_dict or "rest" in sub_dict:
             if "func" in sub_dict:
-                func_paths_dict = sub_dict["func"]
+                sub_dict["func"]
             else:
-                func_paths_dict = sub_dict["rest"]
+                sub_dict["rest"]
 
             unique_id = sub_dict["unique_id"]
             session_id_list.append(unique_id)
@@ -832,9 +822,12 @@ def merge_func_preproc(working_directory):
 def register_func_longitudinal_template_to_standard(
     longitudinal_template_node, c, workflow, strat_init, strat_name
 ):
-    sub_mem_gb, num_cores_per_sub, num_ants_cores, num_omp_cores = (
-        check_config_resources(c)
-    )
+    (
+        sub_mem_gb,
+        num_cores_per_sub,
+        num_ants_cores,
+        num_omp_cores,
+    ) = check_config_resources(c)
 
     strat_init_new = strat_init.fork()
 
@@ -1211,6 +1204,7 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
         resampled_template.inputs.template = template
         resampled_template.inputs.template_name = template_name
         resampled_template.inputs.tag = tag
+        resampled_template.inputs.orientation = config["desired_orientation"]
 
         strat_init.update_resource_pool(
             {template_name: (resampled_template, "resampled_template")}

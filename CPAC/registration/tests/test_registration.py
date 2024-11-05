@@ -22,15 +22,12 @@ def test_nonlinear_register():
     ## input_skull
 
     ## reference_brain
-    mni_file = "/usr/share/fsl/4.1/data/standard/MNI152_T1_3mm_brain.nii.gz"
 
     ## reference_skull
 
     ## fnirt_config
-    fnirt_config = "T1_2_MNI152_3mm"
 
     ## fnirt_warp_res
-    fnirt_warp_res = None
 
     # ?? what is this for?:
     func_file = "/home/data/Projects/nuisance_reliability_paper/working_dir_CPAC_order/resting_preproc/nuisance_preproc/_session_id_NYU_TRT_session1_subject_id_sub05676/_csf_threshold_0.4/_gm_threshold_0.2/_wm_threshold_0.66/_run_scrubbing_False/_nc_5/_selector_6.7/regress_nuisance/mapflow/_regress_nuisance0/residual.nii.gz"
@@ -133,7 +130,7 @@ def test_registration_lesion():
 
     anat_preproc.inputs.inputspec.anat = anat_file
 
-    lesion_preproc = create_lesion_preproc(wf_name="lesion_preproc")
+    lesion_preproc = create_lesion_preproc(cfg, wf_name="lesion_preproc")
 
     lesion_preproc.inputs.inputspec.lesion = lesion_file
 

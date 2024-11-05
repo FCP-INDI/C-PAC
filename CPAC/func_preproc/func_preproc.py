@@ -14,18 +14,16 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Functional preprocessing"""
+"""Functional preprocessing."""
 
 # pylint: disable=ungrouped-imports,wrong-import-order,wrong-import-position
-from nipype import logging
 from nipype.interfaces import afni, ants, fsl, utility as util
-
-logger = logging.getLogger("nipype.workflow")
 from nipype.interfaces.afni import preprocess, utils as afni_utils
 
 from CPAC.func_preproc.utils import nullify
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.ants import (
     AI,  # niworkflows
     PrintHeader,
@@ -35,6 +33,7 @@ from CPAC.utils.utils import add_afni_prefix
 
 
 def collect_arguments(*args):
+    """Collect arguments."""
     command_args = []
     if args[0]:
         command_args += [args[1]]
@@ -43,6 +42,7 @@ def collect_arguments(*args):
 
 
 def anat_refined_mask(init_bold_mask=True, wf_name="init_bold_mask"):
+    """Generate an anatomically refined mask."""
     wf = pe.Workflow(name=wf_name)
 
     input_node = pe.Node(
@@ -77,7 +77,7 @@ def anat_refined_mask(init_bold_mask=True, wf_name="init_bold_mask"):
     wf.connect(func_single_volume, "out_file", func_tmp_brain, "in_file_a")
 
     # 2.1 get a tmp func brain mask
-    if init_bold_mask == True:
+    if init_bold_mask:
         # 2.1.1 N4BiasFieldCorrection single volume of raw_func
         func_single_volume_n4_corrected = pe.Node(
             interface=ants.N4BiasFieldCorrection(
@@ -165,7 +165,7 @@ def anat_refined_mask(init_bold_mask=True, wf_name="init_bold_mask"):
 
     wf.connect(reg_anat_mask_to_func, "out_file", func_mask, "operand_files")
 
-    if init_bold_mask == True:
+    if init_bold_mask:
         wf.connect(func_tmp_brain_mask_dil, "out_file", func_mask, "in_file")
     else:
         wf.connect(input_node, "init_func_brain_mask", func_mask, "in_file")
@@ -176,7 +176,10 @@ def anat_refined_mask(init_bold_mask=True, wf_name="init_bold_mask"):
 
 
 def anat_based_mask(wf_name="bold_mask"):
-    """Reference `DCAN lab BOLD mask <https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh>`_"""
+    """Generate a functional mask from anatomical data.
+
+    Reference `DCAN lab BOLD mask <https://github.com/DCAN-Labs/DCAN-HCP/blob/a8d495a/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh>`_.
+    """
     wf = pe.Workflow(name=wf_name)
 
     input_node = pe.Node(
@@ -341,7 +344,7 @@ def create_wf_edit_func(wf_name="edit_func"):
     # allocate a node to check that the requested edits are
     # reasonable given the data
     func_get_idx = pe.Node(
-        util.Function(
+        Function(
             input_names=["in_files", "stop_idx", "start_idx"],
             output_names=["stopidx", "startidx"],
             function=get_idx,
@@ -379,6 +382,7 @@ def create_wf_edit_func(wf_name="edit_func"):
 
 
 def slice_timing_wf(name="slice_timing", tpattern=None, tzero=None):
+    """Calculate corrected slice-timing."""
     # allocate a workflow object
     wf = pe.Workflow(name=name)
 
@@ -443,11 +447,10 @@ def slice_timing_wf(name="slice_timing", tpattern=None, tzero=None):
 
 
 def get_idx(in_files, stop_idx=None, start_idx=None):
-    """
-    Method to get the first and the last slice for
-    the functional run. It verifies the user specified
-    first and last slice. If the values are not valid, it
-    calculates and returns the very first and the last slice
+    """Get the first and the last slice for the functional run.
+
+    Verify the user specified first and last slice. If the values are not valid,
+    calculate and return the very first and the last slice.
 
     Parameters
     ----------
@@ -480,12 +483,12 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     shape = hdr.get_data_shape()
 
     # Check to make sure the input file is 4-dimensional
-    if len(shape) != 4:
+    if len(shape) != 4:  # noqa: PLR2004
         raise TypeError("Input nifti file: %s is not a 4D file" % in_files)
     # Grab the number of volumes
     nvols = int(hdr.get_data_shape()[3])
 
-    if (start_idx == None) or (int(start_idx) < 0) or (int(start_idx) > (nvols - 1)):
+    if (start_idx is None) or (int(start_idx) < 0) or (int(start_idx) > (nvols - 1)):
         startidx = 0
     else:
         startidx = int(start_idx)
@@ -506,6 +509,7 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     outputs=["desc-preproc_bold", "desc-reorient_bold"],
 )
 def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Reorient functional timeseries."""
     func_deoblique = pe.Node(
         interface=afni_utils.Refit(),
         name=f"func_deoblique_{pipe_num}",
@@ -524,7 +528,7 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
         mem_x=(0.0115, "in_file", "t"),
     )
 
-    func_reorient.inputs.orientation = "RPI"
+    func_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     func_reorient.inputs.outputtype = "NIFTI_GZ"
 
     wf.connect(func_deoblique, "out_file", func_reorient, "in_file")
@@ -545,6 +549,7 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-preproc_bold"],
 )
 def func_scaling(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Scale functional timeseries."""
     scale_func_wf = create_scale_func_wf(
         scaling_factor=cfg.scaling_factor, wf_name=f"scale_func_{pipe_num}"
     )
@@ -568,6 +573,7 @@ def func_scaling(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def func_truncate(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Truncate functional timeseries."""
     # if cfg.functional_preproc['truncation']['start_tr'] == 0 and \
     #                cfg.functional_preproc['truncation']['stop_tr'] == None:
     #    data, key = strat_pool.get_data("desc-preproc_bold",
@@ -603,6 +609,7 @@ def func_truncate(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def func_despike(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate de-spiked functional timeseries in native space with AFNI."""
     despike = pe.Node(
         interface=preprocess.Despike(),
         name=f"func_despiked_{pipe_num}",
@@ -645,6 +652,7 @@ def func_despike(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def func_despike_template(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate de-spiked functional timeseries in template space with AFNI."""
     despike = pe.Node(
         interface=preprocess.Despike(),
         name=f"func_despiked_template_{pipe_num}",
@@ -699,8 +707,9 @@ def func_despike_template(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Genetare slice-time correctied timeseries."""
     slice_time = slice_timing_wf(
-        name="func_slice_timing_correction_" f"{pipe_num}",
+        name=f"func_slice_timing_correction_{pipe_num}",
         tpattern=cfg.functional_preproc["slice_timing_correction"]["tpattern"],
         tzero=cfg.functional_preproc["slice_timing_correction"]["tzero"],
     )
@@ -738,6 +747,7 @@ def func_slice_time(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def bold_mask_afni(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate a functional mask with AFNI."""
     func_get_brain_mask = pe.Node(
         interface=preprocess.Automask(), name=f"func_get_brain_mask_AFNI_{pipe_num}"
     )
@@ -763,6 +773,7 @@ def bold_mask_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["space-bold_desc-brain_mask"],
 )
 def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate functional mask with FSL."""
     inputnode_bet = pe.Node(
         util.IdentityInterface(
             fields=[
@@ -867,7 +878,7 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
                 return "-thr %s" % (threshold_z)
 
             form_thr_string = pe.Node(
-                util.Function(
+                Function(
                     input_names=["thr"],
                     output_names=["out_str"],
                     function=form_thr_string,
@@ -938,12 +949,105 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
         "FSL-AFNI-brain-mask",
         "FSL-AFNI-brain-probseg",
     ],
-    outputs=["space-bold_desc-brain_mask", "desc-ref_bold"],
+    outputs={
+        "space-bold_desc-brain_mask": {
+            "Description": "mask of the skull-stripped input file"
+        },
+        "desc-ref_bold": {
+            "Description": "the ``bias_corrected_file`` after skull-stripping"
+        },
+    },
 )
 def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
-    """fMRIPrep-style BOLD mask
-    `Ref <https://github.com/nipreps/niworkflows/blob/maint/1.3.x/niworkflows/func/util.py#L246-L514>`_
+    """fMRIPrep-style BOLD mask.
+
+        Enhance and run brain extraction on a BOLD EPI image.
+
+        This workflow takes in a :abbr:`BOLD (blood-oxygen level-dependant)`
+        :abbr:`fMRI (functional MRI)` average/summary (e.g., a reference image
+        averaging non-steady-state timepoints), and sharpens the histogram
+        with the application of the N4 algorithm for removing the
+        :abbr:`INU (intensity non-uniformity)` bias field and calculates a signal
+        mask.
+
+        Steps of this workflow are:
+
+        [1]. Binary dilation of the tentative mask with a sphere of 3mm diameter.
+        [2]. Run ANTs' ``N4BiasFieldCorrection`` on the input
+            :abbr:`BOLD (blood-oxygen level-dependant)` average, using the
+            mask generated in 1) instead of the internal Otsu thresholding.
+        [3]. Calculate a loose mask using FSL's ``bet``, with one mathematical morphology
+            dilation of one iteration and a sphere of 6mm as structuring element.
+        [4]. Mask the :abbr:`INU (intensity non-uniformity)`-corrected image
+            with the latest mask calculated in 3), then use AFNI's ``3dUnifize``
+            to *standardize* the T2* contrast distribution.
+        [5]. Calculate a mask using AFNI's ``3dAutomask`` after the contrast
+            enhancement of 4).
+        [6]. Calculate a final mask as the intersection of 4) and 6).
+        [7]. Apply final mask on the enhanced reference.
+
+    `Ref <https://github.com/nipreps/niworkflows/blob/maint/1.3.x/niworkflows/func/util.py#L246-L514>`_.
     """
+    # STATEMENT OF CHANGES:
+    #     This function is derived from sources licensed under the Apache-2.0 terms,
+    #     and this function has been changed.
+
+    # CHANGES:
+    #     * Converted from a plain function to a CPAC.pipeline.nodeblock.NodeBlockFunction
+    #     * Removed Registration version check
+    #     * Hardcoded Registration parameters instead of loading epi_atlasbased_brainmask.json
+    #     * Uses C-PAC's ``FSL-AFNI-brain-probseg`` template in place of ``templateflow.api.get("MNI152NLin2009cAsym", resolution=1, label="brain", suffix="probseg")``
+    #     * Replaced niworkflows.interfaces.nibabel.Binarize with fsl.maths.MathsCommand and hardcoded threshold
+    #     * Replaced niworkflows.interfaces.images.MatchHeader with CPAC.utils.interfaces.ants.(PrintHeader and SetDirectionByMatrix)
+    #     * Removed header fix for unifize
+    #     * Removed header fix for skullstrip_second_pass
+    #     * Removed ``if not pre_mask`` conditional block
+    #     * Modified docstring to reflect local changes
+    #     * Refactored some variables and connections and updated style to match C-PAC codebase
+
+    # ORIGINAL WORK'S ATTRIBUTION NOTICE:
+    #    Copyright (c) 2016, the CRN developers team.
+    #    All rights reserved.
+
+    #    Redistribution and use in source and binary forms, with or without
+    #    modification, are permitted provided that the following conditions are met:
+
+    #    * Redistributions of source code must retain the above copyright notice, this
+    #      list of conditions and the following disclaimer.
+
+    #    * Redistributions in binary form must reproduce the above copyright notice,
+    #      this list of conditions and the following disclaimer in the documentation
+    #      and/or other materials provided with the distribution.
+
+    #   * Neither the name of niworkflows nor the names of its
+    #      contributors may be used to endorse or promote products derived from
+    #      this software without specific prior written permission.
+
+    #    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    #    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    #    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    #    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+    #    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    #    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    #    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    #    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    #    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    #    Licensed under the Apache License, Version 2.0 (the "License");
+    #    you may not use this file except in compliance with the License.
+    #    You may obtain a copy of the License at
+
+    #        http://www.apache.org/licenses/LICENSE-2.0
+
+    #    Unless required by applicable law or agreed to in writing, software
+    #    distributed under the License is distributed on an "AS IS" BASIS,
+    #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    #    See the License for the specific language governing permissions and
+    #    limitations under the License.
+
+    # Modifications copyright (C) 2021 - 2024  C-PAC Developers
+
     # Initialize transforms with antsAI
     init_aff = pe.Node(
         AI(
@@ -1040,6 +1144,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         n_procs=1,
     )
 
+    # Create a generous BET mask out of the bias-corrected EPI
     skullstrip_first_pass = pe.Node(
         fsl.BET(frac=0.2, mask=True, functional=False),
         name=f"skullstrip_first_pass_{pipe_num}",
@@ -1055,8 +1160,9 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         name=f"skullstrip_first_dilate_{pipe_num}",
     )
 
-    bet_mask = pe.Node(fsl.ApplyMask(), name=f"skullstrip_first_mask_" f"{pipe_num}")
+    bet_mask = pe.Node(fsl.ApplyMask(), name=f"skullstrip_first_mask_{pipe_num}")
 
+    # Use AFNI's unifize for T2 constrast
     unifize = pe.Node(
         afni_utils.Unifize(
             t2=True,
@@ -1067,15 +1173,18 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
         name=f"unifize_{pipe_num}",
     )
 
+    # Run ANFI's 3dAutomask to extract a refined brain mask
     skullstrip_second_pass = pe.Node(
         preprocess.Automask(dilate=1, outputtype="NIFTI_GZ"),
         name=f"skullstrip_second_pass_{pipe_num}",
     )
 
+    # Take intersection of both masks
     combine_masks = pe.Node(
         fsl.BinaryMaths(operation="mul"), name=f"combine_masks_{pipe_num}"
     )
 
+    # Compute masked brain
     apply_mask = pe.Node(fsl.ApplyMask(), name=f"extract_ref_brain_bold_{pipe_num}")
 
     node, out = strat_pool.get_data(["motion-basefile"])
@@ -1140,6 +1249,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["space-bold_desc-brain_mask"],
 )
 def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate the BOLD mask by basing it off of the refined anatomical brain mask."""
     # binarize anat mask, in case it is not a binary mask.
     anat_brain_mask_bin = pe.Node(
         interface=fsl.ImageMaths(), name=f"anat_brain_mask_bin_{pipe_num}"
@@ -1180,7 +1290,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
         mem_x=(0.0115, "in_file", "t"),
     )
 
-    func_reorient.inputs.orientation = "RPI"
+    func_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     func_reorient.inputs.outputtype = "NIFTI_GZ"
 
     wf.connect(func_deoblique, "out_file", func_reorient, "in_file")
@@ -1206,7 +1316,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # refined_bold_mask : input motion corrected func
     refined_bold_mask = anat_refined_mask(
-        init_bold_mask=False, wf_name="refined_bold_mask" f"_{pipe_num}"
+        init_bold_mask=False, wf_name=f"refined_bold_mask_{pipe_num}"
     )
 
     node, out = strat_pool.get_data(["desc-preproc_bold", "bold"])
@@ -1284,7 +1394,8 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
     """Generate the BOLD mask by basing it off of the anatomical brain mask.
-    Adapted from `DCAN Lab's BOLD mask method from the ABCD pipeline <https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh>`_.
+
+    Adapted from `DCAN Lab's BOLD mask method from the ABCD pipeline <https://github.com/DCAN-Labs/DCAN-HCP/blob/a8d495a/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh>`_.
     """
     # 0. Take single volume of func
     func_single_volume = pe.Node(interface=afni.Calc(), name="func_single_volume")
@@ -1452,7 +1563,7 @@ def anat_brain_mask_to_bold_res(wf_name, cfg, pipe_num):
         "desc-preproc_bold",
         "T1w-template-funcreg",
         "space-template_desc-preproc_T1w",
-        "space-template_desc-brain_mask",
+        "space-template_desc-T1w_mask",
     ],
     outputs=[
         "space-template_res-bold_desc-brain_T1w",
@@ -1461,8 +1572,9 @@ def anat_brain_mask_to_bold_res(wf_name, cfg, pipe_num):
     ],
 )
 def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
-    """Resample anatomical brain mask in standard space to get BOLD brain mask in standard space
-    Adapted from `DCAN Lab's BOLD mask method from the ABCD pipeline <https://github.com/DCAN-Labs/DCAN-HCP/blob/master/fMRIVolume/scripts/OneStepResampling.sh#L121-L132>`_.
+    """Resample anatomical brain mask to get BOLD brain mask in standard space.
+
+    Adapted from `DCAN Lab's BOLD mask method from the ABCD pipeline <https://github.com/DCAN-Labs/DCAN-HCP/blob/1d90814/fMRIVolume/scripts/OneStepResampling.sh#L121-L132>`_.
     """
     anat_brain_to_func_res = anat_brain_to_bold_res(wf, cfg, pipe_num)
 
@@ -1480,7 +1592,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
         wf_name="anat_brain_mask_to_bold_res", cfg=cfg, pipe_num=pipe_num
     )
 
-    node, out = strat_pool.get_data("space-template_desc-brain_mask")
+    node, out = strat_pool.get_data("space-template_desc-T1w_mask")
     wf.connect(
         node, out, anat_brain_mask_to_func_res, "inputspec.space-template_desc-T1w_mask"
     )
@@ -1544,7 +1656,8 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     """Generate the BOLD mask by basing it off of the anatomical brain.
-    Adapted from `the BOLD mask method from the CCS pipeline <https://github.com/TingsterX/CCS/blob/master/ccs_01_funcpreproc.sh#L89-L110>`_.
+
+    Adapted from `the BOLD mask method from the CCS pipeline <https://github.com/TingsterX/CCS/blob/c5433fc/H1/ccs_01_funcpreproc.sh#L89-L110>`_.
     """
     # Run 3dAutomask to generate func initial mask
     func_tmp_brain_mask = pe.Node(
@@ -1680,6 +1793,7 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
     },
 )
 def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate a functional brain mask."""
     func_edge_detect = pe.Node(
         interface=afni_utils.Calc(), name=f"func_extract_brain_{pipe_num}"
     )
@@ -1711,6 +1825,7 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-mean_bold"],
 )
 def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Generate a mean functional image."""
     func_mean = pe.Node(interface=afni_utils.TStat(), name=f"func_mean_{pipe_num}")
 
     func_mean.inputs.options = "-mean"
@@ -1734,6 +1849,7 @@ def func_mean(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-preproc_bold"],
 )
 def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Normalize a functional image."""
     func_normalize = pe.Node(
         interface=fsl.ImageMaths(),
         name=f"func_normalize_{pipe_num}",
@@ -1759,6 +1875,7 @@ def func_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["space-bold_desc-brain_mask"],
 )
 def func_mask_normalize(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Normalize a functional mask."""
     func_mask_normalize = pe.Node(
         interface=fsl.ImageMaths(),
         name=f"func_mask_normalize_{pipe_num}",

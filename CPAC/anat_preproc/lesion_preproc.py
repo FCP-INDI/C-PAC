@@ -1,13 +1,30 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2019-2023  C-PAC Developers
 
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 from nipype.interfaces import afni
 import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.interfaces import Function
 
 
 def inverse_lesion(lesion_path):
-    """
+    """Replace non-zeroes with zeroes and zeroes with ones.
+
     Check if the image contains more zeros than non-zeros, if so,
     replaces non-zeros by zeros and zeros by ones.
 
@@ -38,13 +55,12 @@ def inverse_lesion(lesion_path):
         nii = nu.inverse_nifti_values(image=lesion_path)
         nib.save(nii, lesion_out)
         return lesion_out
-    else:
-        return lesion_out
+    return lesion_out
 
 
-def create_lesion_preproc(wf_name="lesion_preproc"):
-    """
-    The main purpose of this workflow is to process lesions masks.
+def create_lesion_preproc(cfg=None, wf_name="lesion_preproc"):
+    """Process lesions masks.
+
     Lesion mask file is deobliqued and reoriented in the same way as the T1 in
     the anat_preproc function.
 
@@ -95,7 +111,7 @@ def create_lesion_preproc(wf_name="lesion_preproc"):
     lesion_deoblique.inputs.deoblique = True
 
     lesion_inverted = pe.Node(
-        interface=util.Function(
+        interface=Function(
             input_names=["lesion_path"],
             output_names=["lesion_out"],
             function=inverse_lesion,
@@ -117,7 +133,9 @@ def create_lesion_preproc(wf_name="lesion_preproc"):
         mem_x=(0.0115, "in_file", "t"),
     )
 
-    lesion_reorient.inputs.orientation = "RPI"
+    lesion_reorient.inputs.orientation = (
+        cfg.pipeline_setup["desired_orientation"] if cfg else "RPI"
+    )
     lesion_reorient.inputs.outputtype = "NIFTI_GZ"
 
     preproc.connect(lesion_deoblique, "out_file", lesion_reorient, "in_file")

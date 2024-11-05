@@ -14,11 +14,12 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Tests for packaged templates"""
+"""Tests for packaged templates."""
 
 import os
 
 import pytest
+import nipype.pipeline.engine as pe
 
 from CPAC.pipeline import ALL_PIPELINE_CONFIGS
 from CPAC.pipeline.engine import ingress_pipeconfig_paths, ResourcePool
@@ -29,14 +30,14 @@ from CPAC.utils.datasource import get_highest_local_res
 @pytest.mark.parametrize("pipeline", ALL_PIPELINE_CONFIGS)
 def test_packaged_path_exists(pipeline):
     """
-    Check that all local templates are included in image at at
-    least one resolution
+    Check that all local templates are included in image at atleast one resolution.
     """
-    rpool = ingress_pipeconfig_paths(
-        Preconfiguration(pipeline), ResourcePool(), "pytest"
+    wf = pe.Workflow(name="test")
+    wf, rpool = ingress_pipeconfig_paths(
+        wf, Preconfiguration(pipeline), ResourcePool(), "pytest"
     )
     for resource in rpool.rpool.values():
-        node = list(resource.values())[0].get("data")[0]
+        node = next(iter(resource.values())).get("data")[0]
         if hasattr(node.inputs, "template") and not node.inputs.template.startswith(
             "s3:"
         ):
