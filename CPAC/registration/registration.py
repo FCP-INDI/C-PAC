@@ -3093,7 +3093,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         "input",
     ],
     option_val="Selected_Functional_Volume",
-    inputs=[("desc-brain_bold", ["desc-motion_bold", "bold"], "sbref")],
+    inputs=[("desc-brain_bold", ["desc-motion_bold", "desc-reorient_bold"], "sbref")],
     outputs=["sbref"],
 )
 def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -3115,7 +3115,7 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
     else:
         # TODO check which file is functional_skull_leaf
         # TODO add a function to choose brain or skull?
-        node, out = strat_pool.get_data(["desc-motion_bold", "bold"])
+        node, out = strat_pool.get_data(["desc-motion_bold", "desc-reorient_bold"])
 
     wf.connect(node, out, get_func_volume, "in_file_a")
 
@@ -3579,7 +3579,7 @@ def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num, opt=N
             "sbref",
             "desc-preproc_bold",
             "desc-stc_bold",
-            "bold",
+            "desc-reorient_bold",
             "from-bold_to-T1w_mode-image_desc-linear_xfm",
         ),
         "despiked-fieldmap",
@@ -3667,7 +3667,7 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, opt=
         node, out = strat_pool.get_data("desc-stc_bold")
         out_label = "desc-stc_bold"
     elif opt == "abcd":
-        node, out = strat_pool.get_data("bold")
+        node, out = strat_pool.get_data("desc-reorient_bold")
         out_label = "bold"
 
     wf.connect(node, out, warp_bold, "in_file")
@@ -3718,7 +3718,7 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, opt=
             "sbref",
             "desc-preproc_bold",
             "desc-stc_bold",
-            "bold",
+            "desc-reorient_bold",
             "from-bold_to-template_mode-image_xfm",
             "ants-blip-warp",
             "fsl-blip-warp",
@@ -3775,8 +3775,8 @@ def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, opt=None)
         node, out = strat_pool.get_data("desc-stc_bold")
         out_label = "desc-stc_bold"
     elif opt == "abcd":
-        node, out = strat_pool.get_data("bold")
-        out_label = "bold"
+        node, out = strat_pool.get_data("desc-reorient_bold")
+        out_label = "desc-reorient_bold"
 
     wf.connect(node, out, apply_xfm, "inputspec.input_image")
 
@@ -4421,7 +4421,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     option_val="dcan_nhp",
     inputs=[
         (
-            ["desc-reorient_bold", "bold"],
+            ["desc-reorient_bold", "desc-preproc_bold"],
             "coordinate-transformation",
             "from-T1w_to-template_mode-image_warp",
             "from-bold_to-T1w_mode-image_desc-linear_warp",
@@ -4552,7 +4552,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     extract_func_roi.inputs.t_min = 0
     extract_func_roi.inputs.t_size = 3
 
-    node, out = strat_pool.get_data(["desc-reorient_bold", "bold"])
+    node, out = strat_pool.get_data(["desc-reorient_bold", "desc-preproc_bold"])
     wf.connect(node, out, extract_func_roi, "in_file")
 
     # fslmaths "$fMRIFolder"/"$NameOffMRI"_gdc_warp -mul 0 "$fMRIFolder"/"$NameOffMRI"_gdc_warp
@@ -4570,7 +4570,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
 
     split_func.inputs.dimension = "t"
 
-    node, out = strat_pool.get_data(["desc-reorient_bold", "bold"])
+    node, out = strat_pool.get_data(["desc-reorient_bold", "desc-preproc_bold"])
     wf.connect(node, out, split_func, "in_file")
 
     ### Loop starts! ###

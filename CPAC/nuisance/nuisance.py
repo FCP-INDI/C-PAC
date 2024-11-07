@@ -75,8 +75,8 @@ def choose_nuisance_blocks(cfg, rpool, generate_only=False):
     ]
     apply_transform_using = to_template_cfg["apply_transform"]["using"]
     input_interface = {
-        "default": ("desc-preproc_bold", ["desc-preproc_bold", "bold"]),
-        "abcd": ("desc-preproc_bold", "bold"),
+        "default": ("desc-preproc_bold", ["desc-preproc_bold", "desc-reorient_bold"]),
+        "abcd": ("desc-preproc_bold", "desc-reorient_bold"),
         "single_step_resampling_from_stc": ("desc-preproc_bold", "desc-stc_bold"),
     }.get(apply_transform_using)
     if input_interface is not None:
