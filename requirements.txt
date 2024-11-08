@@ -40,7 +40,7 @@ voluptuous==0.13.1
 # the below are pinned specifically to match what the FSL installer installs
 botocore==1.31.4
 charset-normalizer==3.1.0
-cryptography==42.0.3
+cryptography==43.0.1
 h5py==3.8.0
 importlib-metadata==6.8.0
 lxml==4.9.2

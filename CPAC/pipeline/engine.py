@@ -25,6 +25,7 @@ from typing import Optional
 import warnings
 
 from nipype import config, logging
+from nipype.interfaces import afni
 from nipype.interfaces.utility import Rename
 
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
@@ -35,7 +36,11 @@ from CPAC.image_utils.statistical_transforms import (
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.pipeline.nodeblock import NodeBlockFunction
-from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
+from CPAC.pipeline.utils import (
+    MOVEMENT_FILTER_KEYS,
+    name_fork,
+    source_set,
+)
 from CPAC.registration.registration import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
 from CPAC.utils.bids_utils import res_in_filename
@@ -2403,7 +2408,7 @@ def strip_template(data_label, dir_path, filename):
     return data_label, json
 
 
-def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
+def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
     # ingress config file paths
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
 
@@ -2412,6 +2417,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
     template_csv = p.resource_filename("CPAC", "resources/cpac_templates.csv")
     template_df = pd.read_csv(template_csv, keep_default_na=False)
+    desired_orientation = cfg.pipeline_setup["desired_orientation"]
 
     for row in template_df.itertuples():
         key = row.Key
@@ -2468,7 +2474,13 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
             resampled_template = pe.Node(
                 Function(
-                    input_names=["resolution", "template", "template_name", "tag"],
+                    input_names=[
+                        "orientation",
+                        "resolution",
+                        "template",
+                        "template_name",
+                        "tag",
+                    ],
                     output_names=["resampled_template"],
                     function=resolve_resolution,
                     as_module=True,
@@ -2476,24 +2488,15 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 name="resampled_" + key,
             )
 
+            resampled_template.inputs.orientation = desired_orientation
             resampled_template.inputs.resolution = resolution
             resampled_template.inputs.template = val
             resampled_template.inputs.template_name = key
             resampled_template.inputs.tag = tag
 
-            # the set_data below is set up a little differently, because we are
-            # injecting and also over-writing already-existing entries
-            # other alternative would have been to ingress into the
-            # resampled_template node from the already existing entries, but we
-            # didn't do that here
-            rpool.set_data(
-                key,
-                resampled_template,
-                "resampled_template",
-                json_info,
-                "",
-                "template_resample",
-            )  # pipe_idx (after the blank json {}) should be the previous strat that you want deleted! because you're not connecting this the regular way, you have to do it manually
+            node = resampled_template
+            output = "resampled_template"
+            node_name = "template_resample"
 
         elif val:
             config_ingress = create_general_datasource(f"gather_{key}")
@@ -2503,14 +2506,33 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 creds_path=creds_path,
                 dl_dir=cfg.pipeline_setup["working_directory"]["path"],
             )
-            rpool.set_data(
-                key,
-                config_ingress,
-                "outputspec.data",
-                json_info,
-                "",
-                f"{key}_config_ingress",
-            )
+            node = config_ingress
+            output = "outputspec.data"
+            node_name = f"{key}_config_ingress"
+
+            if val.endswith(".nii" or ".nii.gz"):
+                check_reorient = pe.Node(
+                    interface=afni.Resample(),
+                    name=f"reorient_{key}",
+                )
+
+                check_reorient.inputs.orientation = desired_orientation
+                check_reorient.inputs.outputtype = "NIFTI_GZ"
+
+                wf.connect(node, output, check_reorient, "in_file")
+                node = check_reorient
+                output = "out_file"
+                node_name = f"{key}_reorient"
+
+        rpool.set_data(
+            key,
+            node,
+            output,
+            json_info,
+            "",
+            node_name,
+        )
+
     # templates, resampling from config
     """
     template_keys = [
@@ -2596,8 +2618,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
         )
         cfg.set_nested(cfg, key, node)
     """
-
-    return rpool
+    return wf, rpool
 
 
 def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
@@ -2668,7 +2689,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
                 )
 
     # grab any file paths from the pipeline config YAML
-    rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
+    wf, rpool = ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path)
 
     # output files with 4 different scans
 

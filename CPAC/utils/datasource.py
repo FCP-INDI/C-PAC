@@ -1156,7 +1156,7 @@ def res_string_to_tuple(resolution):
     return (float(resolution.replace("mm", "")),) * 3
 
 
-def resolve_resolution(resolution, template, template_name, tag=None):
+def resolve_resolution(orientation, resolution, template, template_name, tag=None):
     """Resample a template to a given resolution."""
     from nipype.interfaces import afni
 
@@ -1203,6 +1203,7 @@ def resolve_resolution(resolution, template, template_name, tag=None):
         resample.inputs.resample_mode = "Cu"
         resample.inputs.in_file = local_path
         resample.base_dir = "."
+        resample.inputs.orientation = orientation
 
         resampled_template = resample.run()
         local_path = resampled_template.outputs.out_file
