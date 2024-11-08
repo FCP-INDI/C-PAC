@@ -19,7 +19,7 @@ import copy
 import os
 import shutil
 import time
-from typing import Optional
+from typing import cast, Optional
 
 from CPAC.pipeline.nodeblock import nodeblock
 
@@ -455,8 +455,8 @@ def anat_longitudinal_wf(subject_id: str, sub_list: list[dict], config: Configur
 
     # Loop over the sessions to create the input for the longitudinal
     # algorithm
-    strats_dct: dict[str, list[tuple[pe.Node, str]]] = {"desc-brain_T1w": [],
-                                                        "desc-head_T1w": []}
+    strats_dct: dict[str, list[tuple[pe.Node, str] | str]] = {"desc-brain_T1w": [],
+                                                              "desc-head_T1w": []}
     for i, session in enumerate(sub_list):
 
         unique_id: str = session['unique_id']
@@ -489,13 +489,16 @@ def anat_longitudinal_wf(subject_id: str, sub_list: list[dict], config: Configur
         session_wfs[unique_id] = rpool
 
         rpool.gather_pipes(workflow, config)
-        for key in strats_dct.keys():
-            _resource: tuple[pe.Node, str] = rpool.get_data(key)
-            clone = _resource[0].clone(f"{_resource[0].name}_{session_id_list[i]}")
-            workflow.copy_input_connections(_resource[0], clone)
-            strats_dct[key].append((clone, _resource[1]))
+        if dry_run:  # build tbe graphs with connections that may be in other graphs
+            for key in strats_dct.keys():
+                _resource = cast(tuple[pe.Node, str], rpool.get_data(key))
+                clone = _resource[0].clone(f"{_resource[0].name}_{session_id_list[i]}")
+                workflow.copy_input_connections(_resource[0], clone)
+                strats_dct[key].append((clone, _resource[1]))
         if not dry_run:
             workflow.run()
+            for key in strats_dct.keys():  # get the outputs from run-nodes
+                strats_dct[key].append(workflow.get_output_path(key, rpool))
 
     wf = initialize_nipype_wf(config, sub_list[0],
                                 # just grab the first one for the name
@@ -533,8 +536,8 @@ def anat_longitudinal_wf(subject_id: str, sub_list: list[dict], config: Configur
     merge_skulls = pe.Node(Merge(num_sessions), name="merge_skulls")
 
     for i in list(range(0, num_sessions)):
-        wf.connect(*strats_dct["desc-brain_T1w"][i], merge_brains, f"in{i + 1}")
-        wf.connect(*strats_dct["desc-head_T1w"][i], merge_skulls, f"in{i + 1}")
+        _connect_node_or_path(wf, merge_brains, strats_dct, "desc-brain_T1w", i)
+        _connect_node_or_path(wf, merge_skulls, strats_dct, "desc-head_T1w", i)
     wf.connect(merge_brains, "out", template_node, "input_brain_list")
     wf.connect(merge_skulls, "out", template_node, "input_skull_list")
 
@@ -1198,3 +1201,11 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
     workflow.run()
 
     return
+
+def _connect_node_or_path(wf: pe.Workflow, node: pe.Node, strats_dct: dict[str, list[tuple[pe.Node, str] | str]], key: str, index: int) -> None:
+    """Set input appropriately for either a Node or a path string."""
+    input: str = f"in{index + 1}"
+    if isinstance(strats_dct[key][index], str):
+        setattr(node.inputs, input, strats_dct[key][index])
+    else:
+        wf.connect(*strats_dct[key][index], node, input)

@@ -51,8 +51,9 @@ import os
 import re
 from copy import deepcopy
 from inspect import Parameter, Signature, signature
-from typing import ClassVar, Optional, Union
+from typing import ClassVar, Optional, TYPE_CHECKING, Union
 from nibabel import load
+from nipype.interfaces.base.support import InterfaceResult
 from nipype.interfaces.utility import Function
 from nipype.pipeline import engine as pe
 from nipype.pipeline.engine.utils import (
@@ -71,6 +72,8 @@ from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
 from CPAC.utils.monitoring.custom_logging import getLogger
 from CPAC.utils.typing import DICT
+if TYPE_CHECKING:
+    from CPAC.pipeline.engine import ResourcePool
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
@@ -663,6 +666,19 @@ class Workflow(pe.Workflow):
                                    f'"{vname1.replace(".", "_")}";')
                     logger.debug("cross connection: %s", dotlist[-1])
         return ("\n" + prefix).join(dotlist)
+
+    def get_output_path(self, key: str, rpool: "ResourcePool") -> str:
+        """Get an output path from an already-run Node."""
+        _node, _out = rpool.get_data(key)
+        assert isinstance(_node, pe.Node)
+        assert isinstance(_out, str)
+        try:
+            _run_node: pe.Node = [_ for _ in self.run(updatehash=True).nodes if _.fullname == _node.fullname][0]
+        except IndexError as index_error:
+            msg = f"Could not find {key} in {self}'s run Nodes."
+            raise LookupError(msg) from index_error
+        _res: InterfaceResult = _run_node.run()
+        return getattr(_res.outputs, _out)
 
     def _handle_just_in_time_exception(self, node):
         # pylint: disable=protected-access
