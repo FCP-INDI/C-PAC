@@ -190,7 +190,7 @@ jobs:
         run: |
             sed -i -e 's/^/\.github\/Dockerfiles\//' .github/stage_requirements/${{ matrix.variant }}.txt
             echo 'dev/docker_data/required_afni_pkgs.txt' >> .github/stage_requirements/${{ matrix.variant }}.txt
-            echo '.github/workflows/build_and_test.yml' >> .github/stage_requirements/${{ matrix.variant }}.txt
+            echo '.github/workflows/build_and_test.yaml' >> .github/stage_requirements/${{ matrix.variant }}.txt
             echo '.github/stage_requirements/${{ matrix.variant }}.txt' >> .github/stage_requirements/${{ matrix.variant }}.txt
       - name: Set tag & see if it exists
         continue-on-error: true
@@ -262,7 +262,7 @@ jobs:
         run: |
             sed -i -e 's/^/\.github\/Dockerfiles\//' .github/stage_requirements/standard.txt
             echo 'dev/docker_data/required_afni_pkgs.txt' >> .github/stage_requirements/standard.txt
-            echo '.github/workflows/build_and_test.yml' >> .github/stage_requirements/standard.txt
+            echo '.github/workflows/build_and_test.yaml' >> .github/stage_requirements/standard.txt
             echo '.github/stage_requirements/standard.txt' >> .github/stage_requirements/standard.txt
       - name: Set tag & see if it exists
         continue-on-error: true
@@ -343,7 +343,7 @@ jobs:
       - C-PAC
     secrets: inherit
     if: inputs.test_mode == 'lite'
-    uses: ./.github/workflows/regtest.yml
+    uses: ./.github/workflows/regtest.yaml
     with:
       test_mode: ${{ inputs.test_mode }}
 

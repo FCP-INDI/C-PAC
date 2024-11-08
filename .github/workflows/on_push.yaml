@@ -136,7 +136,7 @@ jobs:
     needs:
       - check_pr
       - check-updated-preconfigs
-    uses: ./.github/workflows/build_and_test.yml
+    uses: ./.github/workflows/build_and_test.yaml
     secrets: inherit
     with:
       phase_one: ${{ needs.check-updated-preconfigs.outputs.phase_one }}
