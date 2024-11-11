@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2023  C-PAC Developers
+# Copyright (C) 2021-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -21,6 +21,8 @@ import json
 from itertools import chain
 import logging
 import os
+from pathlib import Path
+import pickle
 import re
 from typing import Any, Optional, Union
 import warnings
@@ -954,7 +956,7 @@ class ResourcePool:
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
         excl = []
         substring_excl = []
-        outputs_logger = getLogger(f'{cfg["subject_id"]}_expectedOutputs')
+        outputs_logger = getLogger(f'{cfg.get("subject_id", getattr(wf, "name", ""))}_expectedOutputs')
         expected_outputs = ExpectedOutputs()
 
         if add_excl:
@@ -1094,7 +1096,10 @@ class ResourcePool:
                     unlabelled.remove(key)
             # del all_forks
             for pipe_idx in self.rpool[resource]:
-                pipe_x = self.get_pipe_number(pipe_idx)
+                try:
+                    pipe_x = self.get_pipe_number(pipe_idx)
+                except ValueError:
+                    continue
                 json_info = self.rpool[resource][pipe_idx]['json']
                 out_dct = self.rpool[resource][pipe_idx]['out']
 
@@ -2335,7 +2340,9 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
     return rpool
 
 
-def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
+def initiate_rpool(
+    wf, cfg, data_paths=None, part_id=None, *, rpool: Optional[ResourcePool] = None
+):
     '''
 
     data_paths format:
@@ -2374,7 +2381,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
         unique_id = part_id
         creds_path = None
 
-    rpool = ResourcePool(name=unique_id, cfg=cfg)
+    rpool = ResourcePool(rpool=rpool.rpool if rpool else None, name=unique_id, cfg=cfg)
 
     if data_paths:
         # ingress outdir
