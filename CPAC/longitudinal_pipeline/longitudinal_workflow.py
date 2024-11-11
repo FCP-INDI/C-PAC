@@ -478,9 +478,10 @@ def anat_longitudinal_wf(subject_id: str, sub_list: list[dict], config: Configur
         except KeyError:
             input_creds_path = None
 
-        workflow: pe.Workflow = initialize_nipype_wf(config, sub_list[0],
-                                        # just grab the first one for the name
-                                        name="anat_longitudinal_pre-preproc")
+        workflow: pe.Workflow = initialize_nipype_wf(
+            config,
+            sub_list[i],
+            name="anat_longitudinal_pre-preproc")
         rpool: ResourcePool
         workflow, rpool = initiate_rpool(workflow, config, session)
         pipeline_blocks = build_anat_preproc_stack(rpool, config)
@@ -490,10 +491,7 @@ def anat_longitudinal_wf(subject_id: str, sub_list: list[dict], config: Configur
 
         rpool.gather_pipes(workflow, config)
         for key in strats_dct.keys():
-            _resource = cast(tuple[pe.Node, str], rpool.get_data(key))
-            clone = _resource[0].clone(f"{_resource[0].name}_{session_id_list[i]}")
-            workflow.copy_input_connections(_resource[0], clone)
-            strats_dct[key].append((clone, _resource[1]))
+            strats_dct[key].append(cast(tuple[pe.Node, str], rpool.get_data(key)))
         if not dry_run:
             workflow.run()
             for key in strats_dct.keys():  # get the outputs from run-nodes
