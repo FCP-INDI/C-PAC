@@ -667,18 +667,15 @@ class Workflow(pe.Workflow):
                     logger.debug("cross connection: %s", dotlist[-1])
         return ("\n" + prefix).join(dotlist)
 
-    def get_output_path(self, key: str, rpool: "ResourcePool") -> str:
+    def get_output_path(self, node: pe.Node, out: str) -> str:
         """Get an output path from an already-run Node."""
-        _node, _out = rpool.get_data(key)
-        assert isinstance(_node, pe.Node)
-        assert isinstance(_out, str)
         try:
-            _run_node: pe.Node = [_ for _ in self.run(updatehash=True).nodes if _.fullname == _node.fullname][0]
+            _run_node: pe.Node = [_ for _ in self.run(updatehash=True).nodes if _.fullname == node.fullname][0]
         except IndexError as index_error:
-            msg = f"Could not find {key} in {self}'s run Nodes."
+            msg = f"Could not find {node.fullname} in {self}'s run Nodes."
             raise LookupError(msg) from index_error
         _res: InterfaceResult = _run_node.run()
-        return getattr(_res.outputs, _out)
+        return getattr(_res.outputs, out)
 
     def _handle_just_in_time_exception(self, node):
         # pylint: disable=protected-access

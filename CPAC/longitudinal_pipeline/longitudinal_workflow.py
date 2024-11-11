@@ -489,16 +489,17 @@ def anat_longitudinal_wf(subject_id: str, sub_list: list[dict], config: Configur
         session_wfs[unique_id] = rpool
 
         rpool.gather_pipes(workflow, config)
-        if dry_run:  # build tbe graphs with connections that may be in other graphs
-            for key in strats_dct.keys():
-                _resource = cast(tuple[pe.Node, str], rpool.get_data(key))
-                clone = _resource[0].clone(f"{_resource[0].name}_{session_id_list[i]}")
-                workflow.copy_input_connections(_resource[0], clone)
-                strats_dct[key].append((clone, _resource[1]))
+        for key in strats_dct.keys():
+            _resource = cast(tuple[pe.Node, str], rpool.get_data(key))
+            clone = _resource[0].clone(f"{_resource[0].name}_{session_id_list[i]}")
+            workflow.copy_input_connections(_resource[0], clone)
+            strats_dct[key].append((clone, _resource[1]))
         if not dry_run:
             workflow.run()
             for key in strats_dct.keys():  # get the outputs from run-nodes
-                strats_dct[key].append(workflow.get_output_path(key, rpool))
+                for index, data in enumerate(list(strats_dct[key])):
+                    if isinstance(data, tuple):
+                        strats_dct[key][index] = workflow.get_output_path(*data)
 
     wf = initialize_nipype_wf(config, sub_list[0],
                                 # just grab the first one for the name
