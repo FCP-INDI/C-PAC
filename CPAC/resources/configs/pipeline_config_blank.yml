@@ -1528,17 +1528,18 @@ longitudinal_template_generation:
   # Additional option if using "C-PAC legacy": 9 (traditional)
   dof: 12
 
-  # Threshold of transformation distance to consider that the loop converged
-  # (-1 means numpy.finfo(np.float64).eps and is the default)
-  convergence_threshold: -1
-
   # Maximum iterations
   # Stop after this many iterations, even if still above convergence_threshold
+  # Additional option if using "mri_robust_template": "default" means 5 for 2 sessions, 6 for more than 2 sessions
   # Additional option if using "C-PAC legacy": -1 means loop forever until reaching convergence threshold
-  max_iter: 5
+  max_iter: default
 
   # Options for C-PAC legacy implementation that are not configurable in mri_robust_template
   legacy-specific:
+
+    # Threshold of transformation distance to consider that the loop converged
+    # (-1 means numpy.finfo(np.float64).eps and is the default)
+    convergence_threshold: -1
 
     # Interpolation parameter for FLIRT in the template creation
     # Options: trilinear, nearestneighbour, sinc or spline

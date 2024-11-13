@@ -387,8 +387,9 @@ def anat_longitudinal_wf(
             interp=config.longitudinal_template_generation["legacy-specific"]["interp"],
             cost=config.longitudinal_template_generation["legacy-specific"]["cost"],
             convergence_threshold=config.longitudinal_template_generation[
-                "convergence_threshold"
-            ],
+                "legacy-specific"
+            ]["convergence_threshold"],
+            max_iter=config.longitudinal_template_generation["max_iter"],
             thread_pool=config.longitudinal_template_generation["legacy-specific"][
                 "thread_pool"
             ],

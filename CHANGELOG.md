@@ -24,7 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Required positional parameter "wf" in input and output of `ingress_pipeconfig_paths` function, where a node to reorient templates is added to the `wf`.
 - Required positional parameter "orientation" to `resolve_resolution`.
 - Optional positional argument "cfg" to `create_lesion_preproc`.
-- Added `mri_robust_template` for longitudinal template generation.
+- `mri_robust_template` for longitudinal template generation.
+- `max_iter` parameter for longitudinal template generation.
 
 ### Changed
 

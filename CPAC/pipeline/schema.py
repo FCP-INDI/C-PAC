@@ -21,6 +21,7 @@
 from itertools import chain, permutations
 import re
 from subprocess import CalledProcessError
+from typing import Any as AnyType
 
 import numpy as np
 from pathvalidate import sanitize_filename
@@ -851,28 +852,34 @@ latest_schema = Schema(
             "using": In({"mri_robust_template", "C-PAC legacy"}),
             "average_method": In({"median", "mean", "std"}),
             "dof": In({12, 9, 7, 6}),
-            "convergence_threshold": Number,
-            "max_iter": int,
+            "max_iter": Any(
+                All(Number, Range(min=0, min_included=False)), In([-1, "default"])
+            ),
             "legacy-specific": Maybe(
-                {
-                    "interp": Maybe(
-                        In({"trilinear", "nearestneighbour", "sinc", "spline"})
-                    ),
-                    "cost": Maybe(
-                        In(
-                            {
-                                "corratio",
-                                "mutualinfo",
-                                "normmi",
-                                "normcorr",
-                                "leastsq",
-                                "labeldiff",
-                                "bbr",
-                            }
-                        )
-                    ),
-                    "thread_pool": Maybe(int),
-                }
+                Schema(
+                    {
+                        "convergence_threshold": Any(
+                            All(Number, Range(min=0, max=1, min_included=False)), -1
+                        ),
+                        "interp": Maybe(
+                            In({"trilinear", "nearestneighbour", "sinc", "spline"})
+                        ),
+                        "cost": Maybe(
+                            In(
+                                {
+                                    "corratio",
+                                    "mutualinfo",
+                                    "normmi",
+                                    "normcorr",
+                                    "leastsq",
+                                    "labeldiff",
+                                    "bbr",
+                                }
+                            )
+                        ),
+                        "thread_pool": Maybe(int),
+                    }
+                )
             ),
         },
         "functional_preproc": {
@@ -1266,6 +1273,20 @@ latest_schema = Schema(
 )
 
 
+def check_unimplemented(
+    to_check: dict[str, AnyType], k_v_pairs: list[tuple[str, AnyType]], category: str
+) -> None:
+    """Check for unimplemented combinations in subschema.
+
+    Raise NotImplementedError if any found.
+    """
+    error_msg = "`{value}` is not implemented for {category} `{key}`."
+    for key, value in k_v_pairs:
+        if to_check[key] == value:
+            msg = error_msg.format(category=category, key=key, value=value)
+            raise NotImplementedError(msg)
+
+
 def schema(config_dict):
     """Validate a participant-analysis pipeline configuration.
 
@@ -1432,11 +1453,15 @@ def schema(config_dict):
         # check for incompatible longitudinal options
         lgt = partially_validated["longitudinal_template_generation"]
         if lgt["using"] == "mri_robust_template":
-            error_msg = "{value} is not implemented for longitudinal {key} in `mri_robust_template`."
-            for key, value in [("average_method", "std"), ("dof", 9), ("max_iter", -1)]:
-                if lgt[key] == value:
-                    msg = error_msg.format(key=key, value=value)
-                    raise NotImplementedError(msg)
+            check_unimplemented(
+                lgt,
+                [("average_method", "std"), ("dof", 9), ("max_iter", -1)],
+                "longitudinal `mri_robust_template`",
+            )
+        if lgt["using"] == "C-PAC legacy":
+            check_unimplemented(
+                lgt, [("max_iter", "default")], "C-PAC legacy longitudinal"
+            )
     except KeyError:
         pass
     return partially_validated
