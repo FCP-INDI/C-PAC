@@ -848,22 +848,32 @@ latest_schema = Schema(
         },
         "longitudinal_template_generation": {
             "run": bool1_1,
+            "using": In({"mri_robust_template", "C-PAC legacy"}),
             "average_method": In({"median", "mean", "std"}),
             "dof": In({12, 9, 7, 6}),
-            "interp": In({"trilinear", "nearestneighbour", "sinc", "spline"}),
-            "cost": In(
+            "convergence_threshold": Number,
+            "max_iter": int,
+            "legacy-specific": Maybe(
                 {
-                    "corratio",
-                    "mutualinfo",
-                    "normmi",
-                    "normcorr",
-                    "leastsq",
-                    "labeldiff",
-                    "bbr",
+                    "interp": Maybe(
+                        In({"trilinear", "nearestneighbour", "sinc", "spline"})
+                    ),
+                    "cost": Maybe(
+                        In(
+                            {
+                                "corratio",
+                                "mutualinfo",
+                                "normmi",
+                                "normcorr",
+                                "leastsq",
+                                "labeldiff",
+                                "bbr",
+                            }
+                        )
+                    ),
+                    "thread_pool": Maybe(int),
                 }
             ),
-            "thread_pool": int,
-            "convergence_threshold": Number,
         },
         "functional_preproc": {
             "run": bool1_1,
@@ -1416,6 +1426,17 @@ def schema(config_dict):
                     f'"{site.USER_BASE}" in the container to use U-Net.'
                 )
                 raise OSError(msg) from error
+    except KeyError:
+        pass
+    try:
+        # check for incompatible longitudinal options
+        lgt = partially_validated["longitudinal_template_generation"]
+        if lgt["using"] == "mri_robust_template":
+            error_msg = "{value} is not implemented for longitudinal {key} in `mri_robust_template`."
+            for key, value in [("average_method", "std"), ("dof", 9), ("max_iter", -1)]:
+                if lgt[key] == value:
+                    msg = error_msg.format(key=key, value=value)
+                    raise NotImplementedError(msg)
     except KeyError:
         pass
     return partially_validated

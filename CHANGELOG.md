@@ -24,12 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Required positional parameter "wf" in input and output of `ingress_pipeconfig_paths` function, where a node to reorient templates is added to the `wf`.
 - Required positional parameter "orientation" to `resolve_resolution`.
 - Optional positional argument "cfg" to `create_lesion_preproc`.
+- Added `mri_robust_template` for longitudinal template generation.
 
 ### Changed
 
 - Moved `pygraphviz` from requirements to `graphviz` optional dependencies group.
 - Automatically tag untagged `subject_id` and `unique_id` as `!!str` when loading data config files.
 - Made orientation configurable (was hard-coded as "RPI").
+- Made `mri_robust_template` default implementation for longitudinal template generation.
 
 ### Fixed
 

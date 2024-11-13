@@ -14,7 +14,6 @@ pipeline_setup:
 
   # Desired orientation for the output data. "RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"
   desired_orientation: RPI
-
   output_directory:
 
     # Quality control outputs
@@ -1515,29 +1514,42 @@ longitudinal_template_generation:
   # at once.
   run: Off
 
-  # Freesurfer longitudinal template algorithm using FSL FLIRT
+  # Implementation to use
+  # Options: mri_robust_template, C-PAC legacy
+  using: mri_robust_template
+
   # Method to average the dataset at each iteration of the template creation
-  # Options: median, mean or std
+  # Options: median, mean
+  # Additional option if using "C-PAC legacy": std
   average_method: median
 
   # Degree of freedom for FLIRT in the template creation
-  # Options: 12 (affine), 9 (traditional), 7 (global rescale) or 6 (rigid body)
+  # Options: 12 (affine), 7 (global rescale), or 6 (rigid body)
+  # Additional option if using "C-PAC legacy": 9 (traditional)
   dof: 12
-
-  # Interpolation parameter for FLIRT in the template creation
-  # Options: trilinear, nearestneighbour, sinc or spline
-  interp: trilinear
-
-  # Cost function for FLIRT in the template creation
-  # Options: corratio, mutualinfo, normmi, normcorr, leastsq, labeldiff or bbr
-  cost: corratio
-
-  # Number of threads used for one run of the template generation algorithm
-  thread_pool: 2
 
   # Threshold of transformation distance to consider that the loop converged
   # (-1 means numpy.finfo(np.float64).eps and is the default)
   convergence_threshold: -1
+
+  # Maximum iterations
+  # Stop after this many iterations, even if still above convergence_threshold
+  # Additional option if using "C-PAC legacy": -1 means loop forever until reaching convergence threshold
+  max_iter: 5
+
+  # Options for C-PAC legacy implementation that are not configurable in mri_robust_template
+  legacy-specific:
+
+    # Interpolation parameter for FLIRT in the template creation
+    # Options: trilinear, nearestneighbour, sinc or spline
+    interp:
+
+    # Cost function for FLIRT in the template creation
+    # Options: corratio, mutualinfo, normmi, normcorr, leastsq, labeldiff or bbr
+    cost:
+
+    # Number of threads used for one run of the template generation algorithm
+    thread_pool:
 
 # OUTPUTS AND DERIVATIVES
 # -----------------------
