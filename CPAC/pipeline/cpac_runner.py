@@ -24,7 +24,7 @@ import warnings
 from voluptuous.error import Invalid
 import yaml
 
-from CPAC.longitudinal_pipeline.longitudinal_workflow import anat_longitudinal_wf
+from CPAC.longitudinal.wf.anat import anat_longitudinal_wf
 from CPAC.pipeline.utils import get_shell
 from CPAC.utils.configuration import check_pname, Configuration, set_subject
 from CPAC.utils.configuration.yaml_template import upgrade_pipeline_to_1_8

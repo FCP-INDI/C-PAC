@@ -16,7 +16,12 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Class and decorator for NodeBlock functions."""
 
-from typing import Any, Callable, Optional
+from collections.abc import Mapping
+from typing import Any, Callable, Optional, TypeAlias
+
+from nipype.pipeline import engine as pe
+
+NODEBLOCK_RETURN: TypeAlias = tuple[pe.Workflow, Mapping[str, tuple[pe.Node, str]]]
 
 
 class NodeBlockFunction:
@@ -78,7 +83,7 @@ class NodeBlockFunction:
         ).rstrip()
 
     # all node block functions have this signature
-    def __call__(self, wf, cfg, strat_pool, pipe_num, opt=None):
+    def __call__(self, wf, cfg, strat_pool, pipe_num, opt=None) -> NODEBLOCK_RETURN:
         """
 
         Parameters

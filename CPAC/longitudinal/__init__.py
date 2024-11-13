@@ -18,6 +18,7 @@
 
 from CPAC.utils.docs import DOCS_URL_PREFIX
 
+assert isinstance(__doc__, str)
 __doc__ += f"""
 
 See {DOCS_URL_PREFIX}/user/longitudinal
