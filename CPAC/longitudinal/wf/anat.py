@@ -15,10 +15,12 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Longitudinal workflows for anatomical data."""
+
 import os
+from typing import Optional
 
 from nipype.interfaces import fsl
-from indi_aws import aws_utils
 
 from CPAC.longitudinal.preproc import subject_specific_template
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -30,10 +32,9 @@ from CPAC.pipeline.cpac_pipeline import (
     initialize_nipype_wf,
 )
 from CPAC.pipeline.engine import ingress_output_dir, initiate_rpool
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.nodeblock import nodeblock, NODEBLOCK_RETURN
 from CPAC.registration.registration import apply_transform
-from CPAC.utils.configuration.configuration import Configuration
-from CPAC.utils.interfaces.datasink import DataSink
+from CPAC.utils.configuration import Configuration
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_regtool
 
@@ -42,10 +43,15 @@ from CPAC.utils.utils import check_prov_for_regtool
     name="mask_T1w_longitudinal_template",
     config=["longitudinal_template_generation"],
     switch=["run"],
+    option_key="using",
+    option_val="C-PAC legacy",
     inputs=["desc-brain_T1w"],
     outputs=["space-T1w_desc-brain_mask"],
 )
-def mask_T1w_longitudinal_template(wf, cfg, strat_pool, pipe_num, opt=None):
+def mask_T1w_longitudinal_template(
+    wf: pe.Workflow, cfg, strat_pool, pipe_num, opt=None
+) -> NODEBLOCK_RETURN:
+    """Create a native-space brain mask for longitudinal template generation."""
     brain_mask = pe.Node(
         interface=fsl.maths.MathsCommand(),
         name=f"longitudinal_anatomical_brain_mask_{pipe_num}",
@@ -57,148 +63,27 @@ def mask_T1w_longitudinal_template(wf, cfg, strat_pool, pipe_num, opt=None):
 
     outputs = {"space-T1w_desc-brain_mask": (brain_mask, "out_file")}
 
-    return (wf, outputs)
+    return wf, outputs
 
 
-def create_datasink(
-    datasink_name,
-    config,
-    subject_id,
-    session_id="",
-    strat_name="",
-    map_node_iterfield=None,
-) -> pe.Node | pe.MapNode:
-    """
-    Parameters
-    ----------
-    datasink_name
-    config
-    subject_id
-    session_id
-    strat_name
-    map_node_iterfield
-    """
-    encrypt_data = config.pipeline_setup["Amazon-AWS"]["s3_encryption"]
-
-    # TODO Enforce value with schema validation
-    # Extract credentials path for output if it exists
-    try:
-        # Get path to creds file
-        creds_path = ""
-        if config.pipeline_setup["Amazon-AWS"]["aws_output_bucket_credentials"]:
-            creds_path = str(
-                config.pipeline_setup["Amazon-AWS"]["aws_output_bucket_credentials"]
-            )
-            creds_path = os.path.abspath(creds_path)
-
-        if (
-            config.pipeline_setup["output_directory"]["path"]
-            .lower()
-            .startswith("s3://")
-        ):
-            # Test for s3 write access
-            s3_write_access = aws_utils.test_bucket_access(
-                creds_path, config.pipeline_setup["output_directory"]["path"]
-            )
-
-            if not s3_write_access:
-                msg = "Not able to write to bucket!"
-                raise Exception(msg)
-
-    except Exception as e:
-        if (
-            config.pipeline_setup["output_directory"]["path"]
-            .lower()
-            .startswith("s3://")
-        ):
-            err_msg = (
-                "There was an error processing credentials or "
-                "accessing the S3 bucket. Check and try again.\n"
-                "Error: %s" % e
-            )
-            raise Exception(err_msg)
-
-    if map_node_iterfield is not None:
-        ds = pe.MapNode(
-            DataSink(infields=map_node_iterfield),
-            name=f"sinker_{datasink_name}",
-            iterfield=map_node_iterfield,
-        )
-    else:
-        ds = pe.Node(DataSink(), name=f"sinker_{datasink_name}")
-
-    ds.inputs.base_directory = config.pipeline_setup["output_directory"]["path"]
-    ds.inputs.creds_path = creds_path
-    ds.inputs.encrypt_bucket_keys = encrypt_data
-    ds.inputs.container = os.path.join(
-        "pipeline_%s_%s" % (config.pipeline_setup["pipeline_name"], strat_name),
-        subject_id,
-        session_id,
-    )
-    return ds
-
-
-def connect_anat_preproc_inputs(
-    strat, anat_preproc, strat_name, strat_nodes_list_list, workflow
-):
-    """
-    Parameters
-    ----------
-    strat : Strategy
-        the strategy object you want to fork
-    anat_preproc : Workflow
-        the anat_preproc workflow node to be connected and added to the resource pool
-    strat_name : str
-        name of the strategy
-    strat_nodes_list_list : list
-        a list of strat_nodes_list
-    workflow : Workflow
-        main longitudinal workflow
-
-    Returns
-    -------
-    new_strat : Strategy
-        the fork of strat with the resource pool updated
-    strat_nodes_list_list : list
-        a list of strat_nodes_list
-    """
-    new_strat = strat.fork()
-
-    tmp_node, out_key = new_strat["anatomical"]
-    workflow.connect(tmp_node, out_key, anat_preproc, "inputspec.anat")
-
-    tmp_node, out_key = new_strat["template_cmass"]
-    workflow.connect(tmp_node, out_key, anat_preproc, "inputspec.template_cmass")
-
-    new_strat.append_name(anat_preproc.name)
-
-    new_strat.update_resource_pool(
-        {
-            "anatomical_brain": (anat_preproc, "outputspec.brain"),
-            "anatomical_skull_leaf": (anat_preproc, "outputspec.reorient"),
-            "anatomical_brain_mask": (anat_preproc, "outputspec.brain_mask"),
-        }
-    )
-
-    try:
-        strat_nodes_list_list[strat_name].append(new_strat)
-    except KeyError:
-        strat_nodes_list_list[strat_name] = [new_strat]
-
-    return new_strat, strat_nodes_list_list
-
-
-def pick_map(file_list, index, file_type):
+def pick_map(
+    file_list: list[list[str]] | list[str], index: str, file_type: str
+) -> Optional[str]:
+    """Choose a file from a list of files."""
     if isinstance(file_list, list):
-        if len(file_list) == 1:
+        if len(file_list) == 1 and isinstance(file_list[0], list):
             file_list = file_list[0]
         for file_name in file_list:
+            assert isinstance(file_name, str)
             if file_name.endswith(f"{file_type}_{index}.nii.gz"):
                 return file_name
     return None
 
 
-def select_session(session, output_brains, warps):
+def select_session(
+    session: str, output_brains: list[str], warps: list[str]
+) -> tuple[Optional[str], Optional[str]]:
+    """Select output brain image and warp for given session."""
     brain_path = None
     warp_path = None
     for brain_path in output_brains:
@@ -207,17 +92,22 @@ def select_session(session, output_brains, warps):
     for warp_path in warps:
         if f"{session}_" in warp_path:
             break
-    return (brain_path, warp_path)
+    return brain_path, warp_path
 
 
 @nodeblock(
     name="mask_longitudinal_T1w_brain",
     config=["longitudinal_template_generation"],
     switch=["run"],
+    option_key="using",
+    option_val="C-PAC legacy",
     inputs=["space-longitudinal_desc-brain_T1w"],
     outputs=["space-longitudinal_desc-brain_mask"],
 )
-def mask_longitudinal_T1w_brain(wf, cfg, strat_pool, pipe_num, opt=None):
+def mask_longitudinal_T1w_brain(
+    wf, cfg, strat_pool, pipe_num, opt=None
+) -> NODEBLOCK_RETURN:
+    """Create brain mask for longitudinal T1w image."""
     brain_mask = pe.Node(
         interface=fsl.maths.MathsCommand(),
         name=f"longitudinal_T1w_brain_mask_{pipe_num}",
@@ -236,6 +126,8 @@ def mask_longitudinal_T1w_brain(wf, cfg, strat_pool, pipe_num, opt=None):
     name="warp_longitudinal_T1w_to_template",
     config=["longitudinal_template_generation"],
     switch=["run"],
+    option_key="using",
+    option_val="C-PAC legacy",
     inputs=[
         (
             "space-longitudinal_desc-brain_T1w",
@@ -244,7 +136,10 @@ def mask_longitudinal_T1w_brain(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
     outputs=["space-template_desc-brain_T1w"],
 )
-def warp_longitudinal_T1w_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+def warp_longitudinal_T1w_to_template(
+    wf, cfg, strat_pool, pipe_num, opt=None
+) -> NODEBLOCK_RETURN:
+    """Transform longitudinal T1w images to template space."""
     xfm_prov = strat_pool.get_cpac_provenance(
         "from-longitudinal_to-template_mode-image_xfm"
     )
@@ -289,6 +184,8 @@ def warp_longitudinal_T1w_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     name="warp_longitudinal_seg_to_T1w",
     config=["longitudinal_template_generation"],
     switch=["run"],
+    option_key="using",
+    option_val="C-PAC legacy",
     inputs=[
         (
             "from-longitudinal_to-T1w_mode-image_desc-linear_xfm",
@@ -315,7 +212,10 @@ def warp_longitudinal_T1w_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         "label-WM_probseg",
     ],
 )
-def warp_longitudinal_seg_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
+def warp_longitudinal_seg_to_T1w(
+    wf, cfg, strat_pool, pipe_num, opt=None
+) -> NODEBLOCK_RETURN:
+    """Transform anatomical images from longitudinal space template space."""
     xfm_prov = strat_pool.get_cpac_provenance(
         "from-longitudinal_to-T1w_mode-image_desc-linear_xfm"
     )
@@ -375,17 +275,16 @@ def anat_longitudinal_wf(
     subject_id: str, sub_list: list[dict], config: Configuration
 ) -> None:
     """
-    Create and run anatomical longitudinal workflow(s).
+    Create and run longitudinal workflows for anatomical data.
 
     Parameters
     ----------
     subject_id
         the id of the subject
     sub_list
-        this is a list of sessions for one subject and each session if the same dictionary as the one given to
-        prep_workflow
+        a list of sessions for one subject
     config
-        a configuration object containing the information of the pipeline config. (Same as for prep_workflow)
+        a Configuration object containing the information for the participant pipeline
     """
     config["subject_id"] = subject_id
     session_id_list: list[list] = []
@@ -486,12 +385,15 @@ def anat_longitudinal_wf(
         template_node.inputs.set(
             avg_method=config.longitudinal_template_generation["average_method"],
             dof=config.longitudinal_template_generation["dof"],
-            interp=config.longitudinal_template_generation["interp"],
-            cost=config.longitudinal_template_generation["cost"],
+            interp=config.longitudinal_template_generation["legacy-specific"]["interp"],
+            cost=config.longitudinal_template_generation["legacy-specific"]["cost"],
             convergence_threshold=config.longitudinal_template_generation[
-                "convergence_threshold"
+                "legacy-specific"
+            ]["convergence_threshold"],
+            max_iter=config.longitudinal_template_generation["max_iter"],
+            thread_pool=config.longitudinal_template_generation["legacy-specific"][
+                "thread_pool"
             ],
-            thread_pool=config.longitudinal_template_generation["thread_pool"],
             unique_id_list=list(session_wfs.keys()),
         )
 
@@ -585,7 +487,14 @@ def anat_longitudinal_wf(
 
             config.pipeline_setup["pipeline_name"] = f"longitudinal_{orig_pipe_name}"
             rpool = ingress_output_dir(
-                config, rpool, long_id, creds_path=input_creds_path
+                wf,
+                config,
+                rpool,
+                long_id,
+                data_paths=session,
+                part_id=subject_id,
+                ses_id=unique_id,
+                creds_path=input_creds_path,
             )
 
             select_node_name = f"select_{unique_id}"

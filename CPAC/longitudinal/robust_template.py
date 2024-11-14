@@ -1,4 +1,5 @@
-# Copyright (C) 2020-2024  C-PAC Developers
+# -*- coding: utf-8 -*-
+# Copyright (C) 2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,12 +15,4 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Longitudinal preprocessing."""
-
-from CPAC.utils.docs import DOCS_URL_PREFIX
-
-assert isinstance(__doc__, str)
-__doc__ += f"""
-
-See {DOCS_URL_PREFIX}/user/longitudinal
-"""  # noqa: A001
+"""Create longitudinal template using ``mri_robust_template``."""
