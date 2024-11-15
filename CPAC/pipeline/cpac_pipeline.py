@@ -856,14 +856,19 @@ def remove_workdir(wdpath: str) -> None:
         FMLOGGER.warning("Could not remove working directory %s", wdpath)
 
 
-def initialize_nipype_wf(cfg, sub_data_dct, name=""):
+def initialize_nipype_wf(
+    cfg: Configuration,
+    subject: str,
+    session: Optional[str] = None,
+    name: Optional[str] = None,
+) -> pe.Workflow:
     """Initialize a new nipype workflow."""
-    if name:
-        name = f"_{name}"
+    name = f"_{name}" if name else ""
 
-    workflow_name = (
-        f'cpac{name}_{sub_data_dct["subject_id"]}_{sub_data_dct["unique_id"]}'
-    )
+    identifier = subject
+    if session:
+        identifier = "_".join([identifier, session])
+    workflow_name = f"cpac{name}_{identifier}"
     wf = pe.Workflow(name=workflow_name)
     wf.base_dir = cfg.pipeline_setup["working_directory"]["path"]
     wf.config["execution"] = {
@@ -1227,7 +1232,9 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
     from CPAC.utils.datasource import gather_extraction_maps
 
     # Workflow setup
-    wf = initialize_nipype_wf(cfg, sub_dict, name=pipeline_name)
+    wf = initialize_nipype_wf(
+        cfg, sub_dict["subject_id"], sub_dict.get("unique_id", None), name=pipeline_name
+    )
 
     # Extract credentials path if it exists
     try:

@@ -1368,6 +1368,8 @@ class ResourcePool:
                 except OSError as os_error:
                     WFLOGGER.warning(os_error)
                     continue
+                except AttributeError:
+                    breakpoint()
 
                 write_json_imports = ["import os", "import json"]
                 write_json = pe.Node(

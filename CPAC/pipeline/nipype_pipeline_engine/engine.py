@@ -51,7 +51,7 @@ See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine
 for Nipype's documentation.
 """  # pylint: disable=line-too-long
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from inspect import Parameter, Signature, signature
 import os
@@ -593,7 +593,7 @@ class Workflow(pe.Workflow):
     def _connect_node_or_path(
         self,
         node: pe.Node,
-        strats_dct: Mapping[str, list[tuple[pe.Node, str] | str]],
+        strats_dct: Mapping[str, Sequence[tuple[pe.Node, str] | str]],
         key: str,
         index: int,
     ) -> None:

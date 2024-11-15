@@ -110,7 +110,9 @@ def get_function_name_from_source(function_source: str) -> str:
 
 
 def create_function_from_source(
-    function_source: str, imports: Optional[list[str]] = None, ns: Optional[dict] = None
+    function_source: str | bytes,
+    imports: Optional[list[str]] = None,
+    ns: Optional[dict] = None,
 ):
     """Return a function object from a function source.
 

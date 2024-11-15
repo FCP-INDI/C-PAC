@@ -27,10 +27,10 @@ def test_ingress_func_raw_data(pipe_config, bids_dir, test_dir):
     cfg.pipeline_setup["output_directory"]["path"] = os.path.join(test_dir, "out")
     cfg.pipeline_setup["working_directory"]["path"] = os.path.join(test_dir, "work")
 
-    wf = initialize_nipype_wf(cfg, sub_data_dct)
-
     part_id = sub_data_dct["subject_id"]
     ses_id = sub_data_dct["unique_id"]
+
+    wf = initialize_nipype_wf(cfg, part_id, ses_id)
 
     unique_id = f"{part_id}_{ses_id}"
 
@@ -54,10 +54,10 @@ def test_ingress_anat_raw_data(pipe_config, bids_dir, test_dir):
     cfg.pipeline_setup["output_directory"]["path"] = os.path.join(test_dir, "out")
     cfg.pipeline_setup["working_directory"]["path"] = os.path.join(test_dir, "work")
 
-    wf = initialize_nipype_wf(cfg, sub_data_dct)
-
     part_id = sub_data_dct["subject_id"]
     ses_id = sub_data_dct["unique_id"]
+
+    wf = initialize_nipype_wf(cfg, part_id, ses_id)
 
     unique_id = f"{part_id}_{ses_id}"
 
@@ -81,10 +81,10 @@ def test_ingress_pipeconfig_data(pipe_config, bids_dir, test_dir):
     cfg.pipeline_setup["working_directory"]["path"] = os.path.join(test_dir, "work")
     cfg.pipeline_setup["log_directory"]["path"] = os.path.join(test_dir, "logs")
 
-    wf = initialize_nipype_wf(cfg, sub_data_dct)
-
     part_id = sub_data_dct["subject_id"]
     ses_id = sub_data_dct["unique_id"]
+
+    wf = initialize_nipype_wf(cfg, part_id, ses_id)
 
     unique_id = f"{part_id}_{ses_id}"
 
@@ -106,7 +106,9 @@ def test_build_anat_preproc_stack(pipe_config, bids_dir, test_dir):
     cfg.pipeline_setup["working_directory"]["path"] = os.path.join(test_dir, "work")
     cfg.pipeline_setup["log_directory"]["path"] = os.path.join(test_dir, "logs")
 
-    wf = initialize_nipype_wf(cfg, sub_data_dct)
+    wf = initialize_nipype_wf(
+        cfg, sub_data_dct["subject_id"], sub_data_dct["unique_id"]
+    )
 
     wf, rpool = initiate_rpool(wf, cfg, sub_data_dct)
 
@@ -127,7 +129,9 @@ def test_build_workflow(pipe_config, bids_dir, test_dir):
     cfg.pipeline_setup["working_directory"]["path"] = os.path.join(test_dir, "work")
     cfg.pipeline_setup["log_directory"]["path"] = os.path.join(test_dir, "logs")
 
-    wf = initialize_nipype_wf(cfg, sub_data_dct)
+    wf = initialize_nipype_wf(
+        cfg, sub_data_dct["subject_id"], sub_data_dct["unique_id"]
+    )
 
     wf, rpool = initiate_rpool(wf, cfg, sub_data_dct)
 

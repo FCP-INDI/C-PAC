@@ -344,6 +344,13 @@ def register_img_list(
     return node_list
 
 
+@Function.sig_imports(
+    [
+        "from multiprocessing.pool import Pool",
+        "from typing import Literal, Optional",
+        "from nipype.pipeline import engine as pe",
+    ]
+)
 def template_creation_flirt(
     input_brain_list: list[str],
     input_skull_list: list[str],
@@ -615,7 +622,7 @@ def subject_specific_template(
         "from collections import Counter",
         "from multiprocessing.dummy import Pool as ThreadPool",
         "from nipype.interfaces.fsl import ConvertXFM",
-        "from CPAC.longitudinal_pipeline.longitudinal_preproc import ("
+        "from CPAC.longitudinal.preproc import ("
         "   create_temporary_template,"
         "   register_img_list,"
         "   template_convergence"

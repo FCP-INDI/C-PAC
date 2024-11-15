@@ -340,10 +340,9 @@ def anat_longitudinal_wf(
         "desc-brain_T1w": [],
         "desc-head_T1w": [],
     }
-    for i, session in enumerate(sub_list):
+    for session in sub_list:
         # Loop over the sessions to create the input for the longitudinal algorithm
         unique_id: str = session["unique_id"]
-        unique_id: str = str(session.get("unique_id", i))
         session_id_list.append(unique_id)
 
         try:
@@ -365,8 +364,9 @@ def anat_longitudinal_wf(
 
         workflow: pe.Workflow = initialize_nipype_wf(
             config,
-            session,
-            name=f"anat_longitudinal_pre-preproc_{unique_id}",
+            subject_id,
+            unique_id,
+            name="anat_longitudinal_pre-preproc",
         )
         rpool: ResourcePool
         workflow, rpool = initiate_rpool(workflow, config, session)
@@ -388,8 +388,7 @@ def anat_longitudinal_wf(
 
     wf = initialize_nipype_wf(
         config,
-        sub_list[0],
-        # just grab the first one for the name
+        subject_id,
         name="template_node_brain",
     )
 
@@ -407,12 +406,14 @@ def anat_longitudinal_wf(
     template_node.inputs.set(
         avg_method=config.longitudinal_template_generation["average_method"],
         dof=config.longitudinal_template_generation["dof"],
-        interp=config.longitudinal_template_generation["interp"],
-        cost=config.longitudinal_template_generation["cost"],
+        interp=config.longitudinal_template_generation["legacy-specific"]["interp"],
+        cost=config.longitudinal_template_generation["legacy-specific"]["cost"],
         convergence_threshold=config.longitudinal_template_generation[
-            "convergence_threshold"
+            "legacy-specific"
+        ]["convergence_threshold"],
+        thread_pool=config.longitudinal_template_generation["legacy-specific"][
+            "thread_pool"
         ],
-        thread_pool=config.longitudinal_template_generation["thread_pool"],
         unique_id_list=list(session_wfs.keys()),
     )
 
@@ -467,7 +468,7 @@ def anat_longitudinal_wf(
     )
 
     pipeline_blocks = [mask_longitudinal_T1w_brain]
-
+    # breakpoint()
     pipeline_blocks = build_T1w_registration_stack(
         rpool, config, pipeline_blocks, space="longitudinal"
     )
@@ -508,7 +509,7 @@ def anat_longitudinal_wf(
         except KeyError:
             input_creds_path = None
 
-        wf = initialize_nipype_wf(config, sub_list[0])
+        wf = initialize_nipype_wf(config, subject_id, unique_id)
 
         wf, rpool = initiate_rpool(wf, config, session, rpool=rpool)
 
@@ -549,7 +550,7 @@ def anat_longitudinal_wf(
         )
 
         rpool.set_data(
-            "from-T1w_to-longitudinal_mode-image_" "desc-linear_xfm",
+            "from-T1w_to-longitudinal_mode-image_desc-linear_xfm",
             select_sess,
             "warp_path",
             {},
@@ -585,7 +586,7 @@ def anat_longitudinal_wf(
         except KeyError:
             input_creds_path = None
 
-        wf = initialize_nipype_wf(config, sub_list[0])
+        wf = initialize_nipype_wf(config, subject_id, unique_id)
 
         wf, rpool = initiate_rpool(wf, config, session)
 
