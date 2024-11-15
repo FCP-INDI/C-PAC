@@ -1229,7 +1229,11 @@ class ResourcePool:
                     unlabelled.remove(key)
             # del all_forks
             for pipe_idx in self.rpool[resource]:
-                pipe_x = self.get_pipe_number(pipe_idx)
+                try:
+                    pipe_x = self.get_pipe_number(pipe_idx)
+                except ValueError:
+                    # already gone
+                    continue
                 json_info = self.rpool[resource][pipe_idx]["json"]
                 out_dct = self.rpool[resource][pipe_idx]["out"]
 
@@ -2623,7 +2627,14 @@ def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
     return wf, rpool
 
 
-def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
+def initiate_rpool(
+    wf: pe.Workflow,
+    cfg: Configuration,
+    data_paths=None,
+    part_id=None,
+    *,
+    rpool: Optional[ResourcePool] = None,
+):
     """
     Initialize a new ResourcePool.
 
@@ -2662,7 +2673,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
         unique_id = part_id
         creds_path = None
 
-    rpool = ResourcePool(name=unique_id, cfg=cfg)
+    rpool = ResourcePool(rpool=rpool.rpool if rpool else None, name=unique_id, cfg=cfg)
 
     if data_paths:
         # ingress outdir

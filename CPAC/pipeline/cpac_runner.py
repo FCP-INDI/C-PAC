@@ -236,7 +236,7 @@ def run_cpac_on_cluster(config_file, subject_list_file, cluster_files_dir):
         f.write(pid)
 
 
-def run_T1w_longitudinal(sublist, cfg):
+def run_T1w_longitudinal(sublist, cfg: Configuration, dry_run: bool = False):
     subject_id_dict = {}
 
     for sub in sublist:
@@ -249,7 +249,7 @@ def run_T1w_longitudinal(sublist, cfg):
     # sessions for each participant as value
     for subject_id, sub_list in subject_id_dict.items():
         if len(sub_list) > 1:
-            anat_longitudinal_wf(subject_id, sub_list, cfg)
+            anat_longitudinal_wf(subject_id, sub_list, cfg, dry_run=dry_run)
         elif len(sub_list) == 1:
             warnings.warn(
                 "\n\nThere is only one anatomical session "
@@ -495,7 +495,7 @@ def run(
             hasattr(c, "longitudinal_template_generation")
             and c.longitudinal_template_generation["run"]
         ):
-            run_T1w_longitudinal(sublist, c)
+            run_T1w_longitudinal(sublist, c, dry_run=test_config)
             # TODO functional longitudinal pipeline
 
         """

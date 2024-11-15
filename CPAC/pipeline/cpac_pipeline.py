@@ -25,6 +25,7 @@ import shutil
 import sys
 import time
 from time import strftime
+from typing import Literal, Optional
 
 import yaml
 import nipype
@@ -130,7 +131,7 @@ from CPAC.nuisance.nuisance import (
 # pylint: disable=wrong-import-order
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import check_outputs
-from CPAC.pipeline.engine import initiate_rpool, NodeBlock
+from CPAC.pipeline.engine import initiate_rpool, NodeBlock, ResourcePool
 from CPAC.pipeline.nipype_pipeline_engine.plugins import (
     LegacyMultiProcPlugin,
     MultiProcPlugin,
@@ -162,7 +163,6 @@ from CPAC.registration.registration import (
     warp_deriv_mask_to_EPItemplate,
     warp_deriv_mask_to_T1template,
     warp_sbref_to_T1template,
-    warp_T1mask_to_template,
     warp_timeseries_to_EPItemplate,
     warp_timeseries_to_T1template,
     warp_timeseries_to_T1template_abcd,
@@ -170,7 +170,7 @@ from CPAC.registration.registration import (
     warp_timeseries_to_T1template_deriv,
     warp_tissuemask_to_EPItemplate,
     warp_tissuemask_to_T1template,
-    warp_wholeheadT1_to_template,
+    warp_to_template,
 )
 from CPAC.reho.reho import reho, reho_space_template
 from CPAC.sca.sca import dual_regression, multiple_regression, SCA_AVG
@@ -1061,25 +1061,30 @@ def build_anat_preproc_stack(rpool, cfg, pipeline_blocks=None):
     return pipeline_blocks
 
 
-def build_T1w_registration_stack(rpool, cfg, pipeline_blocks=None):
+def build_T1w_registration_stack(
+    rpool: ResourcePool,
+    cfg: Configuration,
+    pipeline_blocks: Optional[list] = None,
+    space: Literal["longitudinal", "T1w"] = "T1w",
+):
     """Build the T1w registration pipeline blocks."""
     if not pipeline_blocks:
         pipeline_blocks = []
 
     reg_blocks = []
-    if not rpool.check_rpool("from-T1w_to-template_mode-image_xfm"):
+    if not rpool.check_rpool(f"from-{space}_to-template_mode-image_xfm"):
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
             overwrite_transform_anat_to_template,
-            warp_wholeheadT1_to_template,
-            warp_T1mask_to_template,
+            warp_to_template("wholehead", space),
+            warp_to_template("mask", space),
         ]
 
     if not rpool.check_rpool("desc-restore-brain_T1w"):
         reg_blocks.append(correct_restore_brain_intensity_abcd)
 
     if cfg.voxel_mirrored_homotopic_connectivity["run"]:
-        if not rpool.check_rpool("from-T1w_to-symtemplate_mode-image_xfm"):
+        if not rpool.check_rpool(f"from-{space}_to-symtemplate_mode-image_xfm"):
             reg_blocks.append(
                 [
                     register_symmetric_ANTs_anat_to_template,

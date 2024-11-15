@@ -18,6 +18,7 @@
 
 import os
 import subprocess
+from typing import overload
 
 import numpy as np
 from voluptuous import RequiredFieldInvalid
@@ -808,3 +809,18 @@ def run_c4d(input_name, output_name):
     os.system(cmd)
 
     return output1, output2, output3
+
+
+@overload
+def prepend_space(resource: list[str], space: str) -> list[str]: ...
+@overload
+def prepend_space(resource: str, space: str) -> str: ...
+def prepend_space(resource: str | list[str], space: str) -> str | list[str]:
+    """Given a resource or list of resources, return same but with updated space."""
+    if isinstance(resource, list):
+        return [prepend_space(_, space) for _ in resource]
+    if "space" not in resource:
+        return f"space-{space}_{resource}"
+    pre, post = resource.split("space-")
+    _old_space, post = post.split("_", 1)
+    return f"space-{space}_".join([pre, post])

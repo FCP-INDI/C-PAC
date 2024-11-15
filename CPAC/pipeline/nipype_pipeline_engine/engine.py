@@ -8,6 +8,7 @@
 #     * Applies a random seed
 #     * Supports overriding memory estimates via a log file and a buffer
 #     * Adds quotation marks around strings in dotfiles
+#     * Adds methods for cross-graph connections
 
 # ORIGINAL WORK'S ATTRIBUTION NOTICE:
 #     Copyright (c) 2009-2016, Nipype developers
@@ -50,16 +51,18 @@ See https://nipype.readthedocs.io/en/latest/api/generated/nipype.pipeline.engine
 for Nipype's documentation.
 """  # pylint: disable=line-too-long
 
+from collections.abc import Mapping
 from copy import deepcopy
 from inspect import Parameter, Signature, signature
 import os
 import re
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar, Optional, TYPE_CHECKING
 
 from numpy import prod
 from traits.trait_base import Undefined
 from traits.trait_handlers import TraitListObject
 from nibabel import load
+from nipype.interfaces.base.support import InterfaceResult
 from nipype.interfaces.utility import Function
 from nipype.pipeline import engine as pe
 from nipype.pipeline.engine.utils import (
@@ -75,6 +78,9 @@ from nipype.utils.filemanip import fname_presuffix
 from nipype.utils.functions import getsource
 
 from CPAC.utils.monitoring import getLogger, WFLOGGER
+
+if TYPE_CHECKING:
+    pass
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
@@ -527,6 +533,25 @@ class Workflow(pe.Workflow):
         self._nodes_cache = set()
         self._nested_workflows_cache = set()
 
+    def copy_input_connections(self, node1: pe.Node, node2: pe.Node) -> None:
+        """Copy input connections from ``node1`` to ``node2``."""
+        new_connections: list[tuple[pe.Node, str, pe.Node, str]] = []
+        for connection in self._graph.edges:
+            _out: pe.Node
+            _in: pe.Node
+            _out, _in = connection
+            if _in == node1:
+                details = self._graph.get_edge_data(*connection)
+                if "connect" in details:
+                    for connect in details["connect"]:
+                        new_connections.append((_out, connect[0], node2, connect[1]))
+        for connection in new_connections:
+            try:
+                self.connect(*connection)
+            except Exception:
+                # connection already exists
+                continue
+
     def _configure_exec_nodes(self, graph):
         """Ensure that each node knows where to get inputs from."""
         for node in graph.nodes():
@@ -564,6 +589,20 @@ class Workflow(pe.Workflow):
                                     )
                                 except (FileNotFoundError, KeyError, TypeError):
                                     self._handle_just_in_time_exception(node)
+
+    def _connect_node_or_path(
+        self,
+        node: pe.Node,
+        strats_dct: Mapping[str, list[tuple[pe.Node, str] | str]],
+        key: str,
+        index: int,
+    ) -> None:
+        """Set input appropriately for either a Node or a path string."""
+        _input: str = f"in{index + 1}"
+        if isinstance(strats_dct[key][index], str):
+            setattr(node.inputs, _input, strats_dct[key][index])
+        else:
+            self.connect(*strats_dct[key][index], node, _input)
 
     def _get_dot(
         self, prefix=None, hierarchy=None, colored=False, simple_form=True, level=0
@@ -677,6 +716,22 @@ class Workflow(pe.Workflow):
                     )
                     WFLOGGER.debug("cross connection: %s", dotlist[-1])
         return ("\n" + prefix).join(dotlist)
+
+    def get_output_path(self, node: pe.Node, out: str) -> str:
+        """Get an output path from an already-run Node."""
+        try:
+            _run_node: pe.Node = next(
+                iter(
+                    _
+                    for _ in self.run(updatehash=True).nodes
+                    if _.fullname == node.fullname
+                )
+            )
+        except IndexError as index_error:
+            msg = f"Could not find {node.fullname} in {self}'s run Nodes."
+            raise LookupError(msg) from index_error
+        _res: InterfaceResult = _run_node.run()
+        return getattr(_res.outputs, out)
 
     def _handle_just_in_time_exception(self, node):
         # pylint: disable=protected-access
