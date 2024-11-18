@@ -32,7 +32,7 @@ class NetCorr(NipypeNetCorr):  # noqa: D101
         #     and this function has been changed.
 
         # CHANGES:
-        #     * Includes changes from https://github.com/nipy/nipype/pull/3697 prior to all commits between https://github.com/nipy/nipype/tree/1.8.6 and that PR being perged.
+        #     * Includes changes from https://github.com/nipy/nipype/pull/3697 prior to all commits between https://github.com/nipy/nipype/tree/1.8.6 and that PR being merged and released.
 
         # ORIGINAL WORK'S ATTRIBUTION NOTICE:
         #    Copyright (c) 2009-2016, Nipype developers
