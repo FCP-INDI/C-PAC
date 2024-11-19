@@ -590,17 +590,17 @@ class Workflow(pe.Workflow):
                                 except (FileNotFoundError, KeyError, TypeError):
                                     self._handle_just_in_time_exception(node)
 
-    def _connect_node_or_path(
+    def _connect_node_or_path_for_merge(
         self,
         node: pe.Node,
         strats_dct: Mapping[str, Sequence[tuple[pe.Node, str] | str]],
         key: str,
         index: int,
     ) -> None:
-        """Set input appropriately for either a Node or a path string."""
+        """Set input to either a Node or a path string for cross-graph Merge Nodes."""
         _input: str = f"in{index + 1}"
         if isinstance(strats_dct[key][index], str):
-            setattr(node.inputs, _input, strats_dct[key][index])
+            node.set_input(_input, strats_dct[key][index])
         else:
             self.connect(*strats_dct[key][index], node, _input)
 

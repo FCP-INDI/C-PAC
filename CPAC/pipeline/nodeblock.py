@@ -60,9 +60,9 @@ class NodeBlockFunction:
         """
         self.option_val: Optional[str | list[str]] = option_val
         """Indicates values for which this NodeBlock should be active."""
-        self.inputs: Optional[list[str | list | tuple]] = inputs
+        self.inputs: list[str | list | tuple] = inputs or []
         """ResourcePool keys indicating resources needed for the NodeBlock's functionality."""
-        self.outputs: Optional[list[str] | dict[str, Any]] = outputs
+        self.outputs: list[str] | dict[str, Any] = outputs or []
         """
         ResourcePool keys indicating resources generated or updated by the NodeBlock, optionally including metadata
         for the outputs' respective sidecars.

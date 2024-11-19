@@ -71,7 +71,9 @@ from CPAC.utils.utils import (
 
 
 class ResourcePool:
-    def __init__(self, rpool=None, name=None, cfg=None, pipe_list=None):
+    def __init__(
+        self, rpool=None, name: Optional[str] = None, cfg=None, pipe_list=None
+    ):
         if not rpool:
             self.rpool = {}
         else:
@@ -82,7 +84,7 @@ class ResourcePool:
         else:
             self.pipe_list = pipe_list
 
-        self.name = name
+        self.name = name or ""
         self.info = {}
 
         if cfg:
@@ -146,6 +148,29 @@ class ResourcePool:
             return f"ResourcePool({self.name}): {list(self.rpool)}"
         return f"ResourcePool: {list(self.rpool)}"
 
+    def _set_id_parts(self) -> None:
+        """Set part_id and ses_id."""
+        unique_id = self.name
+        setattr(self, "_part_id", unique_id.split("_")[0])
+        ses_id = unique_id.split("_")[1]
+        if "ses-" not in ses_id:
+            ses_id = f"ses-{ses_id}"
+        setattr(self, "_ses_id", ses_id)
+
+    @property
+    def part_id(self) -> str:
+        """Access participant ID."""
+        if not hasattr(self, "_part_id"):
+            self._set_id_parts()
+        return getattr(self, "_part_id")
+
+    @property
+    def ses_id(self) -> str:
+        """Access session ID."""
+        if not hasattr(self, "_part_id"):
+            self._set_id_parts()
+        return getattr(self, "_ses_id")
+
     def append_name(self, name):
         self.name.append(name)
 
@@ -194,7 +219,9 @@ class ResourcePool:
                         pass
         return
 
-    def get_name(self):
+    def get_name(self) -> str:
+        if not hasattr(self, "_part_id"):
+            self._set_id_parts()
         return self.name
 
     def check_rpool(self, resource):
@@ -1127,22 +1154,17 @@ class ResourcePool:
                 # TODO: other stuff like acq- etc.
 
             for pipe_idx in self.rpool[resource]:
-                unique_id = self.get_name()
-                part_id = unique_id.split("_")[0]
-                ses_id = unique_id.split("_")[1]
-
-                if "ses-" not in ses_id:
-                    ses_id = f"ses-{ses_id}"
-
                 out_dir = cfg.pipeline_setup["output_directory"]["path"]
                 pipe_name = cfg.pipeline_setup["pipeline_name"]
-                container = os.path.join(f"pipeline_{pipe_name}", part_id, ses_id)
-                filename = f"{unique_id}_{res_in_filename(self.cfg, resource)}"
+                container = os.path.join(
+                    f"pipeline_{pipe_name}", self.part_id, self.ses_id
+                )
+                filename = f"{self.get_name()}_{res_in_filename(self.cfg, resource)}"
 
                 out_path = os.path.join(out_dir, container, subdir, filename)
 
                 out_dct = {
-                    "unique_id": unique_id,
+                    "unique_id": self.get_name(),
                     "out_dir": out_dir,
                     "container": container,
                     "subdir": subdir,
@@ -1368,8 +1390,6 @@ class ResourcePool:
                 except OSError as os_error:
                     WFLOGGER.warning(os_error)
                     continue
-                except AttributeError:
-                    breakpoint()
 
                 write_json_imports = ["import os", "import json"]
                 write_json = pe.Node(
@@ -2636,7 +2656,7 @@ def initiate_rpool(
     part_id=None,
     *,
     rpool: Optional[ResourcePool] = None,
-):
+) -> tuple[pe.Workflow, ResourcePool]:
     """
     Initialize a new ResourcePool.
 
@@ -2708,7 +2728,7 @@ def initiate_rpool(
 
     # output files with 4 different scans
 
-    return (wf, rpool)
+    return wf, rpool
 
 
 def run_node_blocks(blocks, data_paths, cfg=None):

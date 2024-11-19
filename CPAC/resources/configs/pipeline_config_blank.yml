@@ -1524,8 +1524,8 @@ longitudinal_template_generation:
   average_method: median
 
   # Degree of freedom for FLIRT in the template creation
-  # Options: 12 (affine), 7 (global rescale), or 6 (rigid body)
-  # Additional option if using "C-PAC legacy": 9 (traditional)
+  # Options: 12 (affine) or 6 (rigid body)
+  # Additional options if using "C-PAC legacy": 9 (traditional), 7 (global rescale)
   dof: 12
 
   # Maximum iterations

@@ -1455,7 +1455,7 @@ def schema(config_dict):
         if lgt["using"] == "mri_robust_template":
             check_unimplemented(
                 lgt,
-                [("average_method", "std"), ("dof", 9), ("max_iter", -1)],
+                [("average_method", "std"), ("dof", 9), ("dof", 7), ("max_iter", -1)],
                 "longitudinal `mri_robust_template`",
             )
         if lgt["using"] == "C-PAC legacy":
