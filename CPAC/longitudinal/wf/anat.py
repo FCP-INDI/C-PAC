@@ -17,7 +17,6 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Longitudinal workflows for anatomical data."""
 
-import os
 from typing import cast, Optional
 
 from nipype import config as nipype_config
@@ -26,7 +25,7 @@ from nipype.interfaces.utility import Merge
 
 from CPAC.longitudinal.preproc import subject_specific_template
 from CPAC.longitudinal.robust_template import mri_robust_template
-from CPAC.longitudinal.wf.utils import select_session_node
+from CPAC.longitudinal.wf.utils import check_creds_path, select_session_node
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.cpac_pipeline import (
     build_anat_preproc_stack,
@@ -322,23 +321,7 @@ def anat_longitudinal_wf(
         # Loop over the sessions to create the input for the longitudinal algorithm
         unique_id: str = session["unique_id"]
         session_id_list.append(unique_id)
-
-        try:
-            creds_path = session["creds_path"]
-            if creds_path and "none" not in creds_path.lower():
-                if os.path.exists(creds_path):
-                    input_creds_path = os.path.abspath(creds_path)
-                else:
-                    err_msg = (
-                        'Credentials path: "%s" for subject "%s" '
-                        'session "%s" was not found. Check this path '
-                        "and try again." % (creds_path, subject_id, unique_id)
-                    )
-                    raise Exception(err_msg)
-            else:
-                input_creds_path = None
-        except KeyError:
-            input_creds_path = None
+        input_creds_path = check_creds_path(session.get("creds_path"), subject_id)
 
         workflow: pe.Workflow = initialize_nipype_wf(
             config,
@@ -376,18 +359,15 @@ def anat_longitudinal_wf(
     merge_brains = pe.Node(Merge(num_sessions), name="merge_brains")
     merge_skulls = pe.Node(Merge(num_sessions), name="merge_skulls")
     wf.add_nodes([merge_brains, merge_skulls])
+    for i in list(range(0, num_sessions)):
+        wf._connect_node_or_path_for_merge(
+            merge_brains, strats_dct, "desc-brain_T1w", i
+        )
+        wf._connect_node_or_path_for_merge(merge_skulls, strats_dct, "desc-head_T1w", i)
 
     long_id = f"longitudinal_{subject_id}_strat-desc-brain_T1w"
 
     wf, rpool = initiate_rpool(wf, config, part_id=long_id)
-
-    pipeline_blocks = [mask_longitudinal_T1w_brain]
-
-    pipeline_blocks = build_T1w_registration_stack(
-        rpool, config, pipeline_blocks, space="longitudinal"
-    )
-
-    pipeline_blocks = build_segmentation_stack(rpool, config, pipeline_blocks)
 
     match config["longitudinal_template_generation", "using"]:
         case "C-PAC legacy":
@@ -423,15 +403,6 @@ def anat_longitudinal_wf(
 
             wf.connect(merge_brains, "out", brain_template_node, "input_brain_list")
             wf.connect(merge_skulls, "out", wholehead_template_node, "input_skull_list")
-
-            wf = connect_pipeline(wf, config, rpool, pipeline_blocks)
-
-            excl = [
-                "space-longitudinal_desc-brain_T1w",
-                "space-longitudinal_desc-reorient_T1w",
-                "space-longitudinal_desc-brain_mask",
-            ]
-            rpool.gather_pipes(wf, config, add_excl=excl)
 
         case "mri_robust_template":
             brain_output = head_output = "out_file"
@@ -473,11 +444,22 @@ def anat_longitudinal_wf(
                 wholehead_template_node.name,
             )
 
-    for i in list(range(0, num_sessions)):
-        wf._connect_node_or_path_for_merge(
-            merge_brains, strats_dct, "desc-brain_T1w", i
-        )
-        wf._connect_node_or_path_for_merge(merge_skulls, strats_dct, "desc-head_T1w", i)
+    pipeline_blocks = [mask_longitudinal_T1w_brain]
+    pipeline_blocks = build_T1w_registration_stack(
+        rpool, config, pipeline_blocks, space="longitudinal"
+    )
+    pipeline_blocks = build_segmentation_stack(rpool, config, pipeline_blocks)
+
+    rpool.gather_pipes(
+        wf,
+        config,
+        add_excl=[
+            "space-longitudinal_desc-brain_T1w",
+            "space-longitudinal_desc-reorient_T1w",
+            "space-longitudinal_desc-brain_mask",
+        ],
+    )
+    wf = connect_pipeline(wf, config, rpool, pipeline_blocks)
 
     if not dry_run:
         wf.run()
@@ -486,27 +468,11 @@ def anat_longitudinal_wf(
     config.pipeline_setup["pipeline_name"] = orig_pipe_name
     for session in sub_list:
         unique_id = session["unique_id"]
-
-        try:
-            creds_path = session["creds_path"]
-            if creds_path and "none" not in creds_path.lower():
-                if os.path.exists(creds_path):
-                    input_creds_path = os.path.abspath(creds_path)
-                else:
-                    err_msg = (
-                        'Credentials path: "%s" for subject "%s" '
-                        'session "%s" was not found. Check this path '
-                        "and try again." % (creds_path, subject_id, unique_id)
-                    )
-                    raise Exception(err_msg)
-            else:
-                input_creds_path = None
-        except KeyError:
-            input_creds_path = None
+        input_creds_path = check_creds_path(session.get("creds_path"), subject_id)
 
         wf = initialize_nipype_wf(config, subject_id, unique_id)
 
-        wf, rpool = initiate_rpool(wf, config, session, rpool=rpool)
+        wf, rpool = initiate_rpool(wf, config, session)
 
         config.pipeline_setup["pipeline_name"] = f"longitudinal_{orig_pipe_name}"
         if "derivatives_dir" in session:
@@ -534,16 +500,14 @@ def anat_longitudinal_wf(
                 wf.connect(brain_template_node, "warp_list", select_sess, "warps")
 
             case "mri_robust_template":
-                wf.connect(
-                    brain_template_node, "mapmov_outputs", select_sess, "output_brains"
-                )
+                wf.connect(brain_template_node, "mapmov", select_sess, "output_brains")
                 wf.connect(
                     brain_template_node, "transform_outputs", select_sess, "warps"
                 )
                 head_select_sess = select_session_node(unique_id, "wholehead")
                 wf.connect(
                     wholehead_template_node,
-                    "mapmov_outputs",
+                    "mapmov",
                     head_select_sess,
                     "output_brains",
                 )
@@ -589,7 +553,6 @@ def anat_longitudinal_wf(
 
         config.pipeline_setup["pipeline_name"] = orig_pipe_name
         excl = ["space-template_desc-brain_T1w", "space-T1w_desc-brain_mask"]
-
         rpool.gather_pipes(wf, config, add_excl=excl)
         if not dry_run:
             wf.run()
@@ -597,27 +560,11 @@ def anat_longitudinal_wf(
     # begin single-session stuff again
     for session in sub_list:
         unique_id = session["unique_id"]
-
-        try:
-            creds_path = session["creds_path"]
-            if creds_path and "none" not in creds_path.lower():
-                if os.path.exists(creds_path):
-                    input_creds_path = os.path.abspath(creds_path)
-                else:
-                    err_msg = (
-                        'Credentials path: "%s" for subject "%s" '
-                        'session "%s" was not found. Check this path '
-                        "and try again." % (creds_path, subject_id, unique_id)
-                    )
-                    raise Exception(err_msg)
-            else:
-                input_creds_path = None
-        except KeyError:
-            input_creds_path = None
+        input_creds_path = check_creds_path(session.get("creds_path"), subject_id)
 
         wf = initialize_nipype_wf(config, subject_id, unique_id)
 
-        wf, rpool = initiate_rpool(wf, config, session, rpool=rpool)
+        wf, rpool = initiate_rpool(wf, config, session)
 
         pipeline_blocks = [
             warp_longitudinal_T1w_to_template,

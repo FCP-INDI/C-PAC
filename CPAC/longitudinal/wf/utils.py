@@ -17,10 +17,25 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Utilities for longitudinal workflows."""
 
+from pathlib import Path
 from typing import Optional
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.interfaces.function import Function
+
+
+def check_creds_path(creds_path: Optional[str], subject_id: str) -> Optional[str]:
+    """Check credentials path."""
+    if creds_path and "none" not in creds_path.lower():
+        _creds_path = Path(creds_path)
+        if _creds_path.exists():
+            return str(_creds_path.absolute())
+        err_msg = (
+            'Credentials path: "%s" for subject "%s" was not '
+            "found. Check this path and try again." % (creds_path, subject_id)
+        )
+        raise FileNotFoundError(err_msg)
+    return None
 
 
 def select_session(

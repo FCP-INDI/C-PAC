@@ -49,7 +49,7 @@ class RobustTemplateInputSpec(longitudinal.RobustTemplateInputSpec):  # noqa: D1
 
 
 class RobustTemplateOutputSpec(longitudinal.RobustTemplateOutputSpec):  # noqa: D101
-    mapmov_outputs = OutputMultiPath(
+    mapmov = OutputMultiPath(
         File(exists=True),
         desc="each input mapped and resampled to longitudinal template",
     )

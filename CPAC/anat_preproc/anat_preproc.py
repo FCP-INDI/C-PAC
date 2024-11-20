@@ -34,7 +34,7 @@ from CPAC.anat_preproc.utils import (
     wb_command,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.nodeblock import nodeblock, NODEBLOCK_RETURN
 from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 
@@ -1447,7 +1447,7 @@ def mask_T2(wf_name="mask_T2"):
     inputs=["T1w"],
     outputs=["desc-preproc_T1w", "desc-reorient_T1w", "desc-head_T1w"],
 )
-def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
+def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None) -> NODEBLOCK_RETURN:
     anat_deoblique = pe.Node(interface=afni.Refit(), name=f"anat_deoblique_{pipe_num}")
     anat_deoblique.inputs.deoblique = True
 
