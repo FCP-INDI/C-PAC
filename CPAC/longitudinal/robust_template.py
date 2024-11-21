@@ -28,6 +28,7 @@ from nipype.interfaces.base import (
     traits,
 )
 from nipype.interfaces.freesurfer import longitudinal
+from nipype.interfaces.freesurfer.utils import LTAConvert
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.configuration import Configuration
@@ -61,7 +62,8 @@ class RobustTemplate(longitudinal.RobustTemplate):  # noqa: D101
     #     and this class has been changed.
 
     # CHANGES:
-    #     * Added handling for `affind`, `mapmov` and `maxit`
+    #     * Added handling for `affine`, `mapmov` and `maxit`.
+    #     * Renamed transform outputs.
 
     # ORIGINAL WORK'S ATTRIBUTION NOTICE:
     #    Copyright (c) 2009-2016, Nipype developers
@@ -99,7 +101,7 @@ class RobustTemplate(longitudinal.RobustTemplate):  # noqa: D101
         n_files = len(self.inputs.in_files)
         fmt = "{}{:02d}.{}" if n_files > 9 else "{}{:d}.{}"  # noqa: PLR2004
         for key, prefix, ext in [
-            ("transform_outputs", "tp", "lta"),
+            ("transform_outputs", "space-longitudinal", "lta"),
             ("scaled_intensity_outputs", "is", "txt"),
             ("mapmov", "space-longitudinal", "nii.gz"),
         ]:
@@ -111,8 +113,14 @@ class RobustTemplate(longitudinal.RobustTemplate):  # noqa: D101
         return outputs
 
 
-def mri_robust_template(name: str, cfg: Configuration) -> pe.Node:
-    """Return a Node to run `mri_robust_template` with common options."""
+def mri_robust_template(
+    name: str, cfg: Configuration, num_sessions: int
+) -> pe.Workflow:
+    """Return a subworkflow to run `mri_robust_template` with common options.
+
+    Converts transform files to FSL format.
+    """
+    wf = pe.Workflow(name=name)
     node = pe.Node(
         RobustTemplate(
             affine=cfg["longitudinal_template_generation", "dof"] == 12,  # noqa: PLR2004
@@ -122,7 +130,7 @@ def mri_robust_template(name: str, cfg: Configuration) -> pe.Node:
             out_file=f"{name}.nii.gz",
             transform_outputs=True,
         ),
-        name=name,
+        name="mri_robust_template",
     )
     max_iter = cast(
         int | Literal["default"], cfg["longitudinal_template_generation", "max_iter"]
@@ -130,4 +138,12 @@ def mri_robust_template(name: str, cfg: Configuration) -> pe.Node:
     if isinstance(max_iter, int):
         node.set_input("maxit", max_iter)
 
-    return node
+    convert = pe.MapNode(
+        LTAConvert(), name="convert-to-FSL", iterfield=["in_lta", "out_fsl"]
+    )
+    wf.connect(node, "transform_outputs", convert, "in_lta")
+    convert.set_input(
+        "out_fsl", [f"space-longitudinal{i}.mat" for i in range(num_sessions)]
+    )
+
+    return wf

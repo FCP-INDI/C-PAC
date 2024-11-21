@@ -56,7 +56,7 @@ from copy import deepcopy
 from inspect import Parameter, Signature, signature
 import os
 import re
-from typing import Any, ClassVar, Optional, TYPE_CHECKING
+from typing import Any, cast, ClassVar, Optional, TYPE_CHECKING
 
 from numpy import prod
 from traits.trait_base import Undefined
@@ -719,19 +719,38 @@ class Workflow(pe.Workflow):
 
     def get_output(self, node: pe.Node, out: str) -> Any:
         """Get an output path from an already-run Node."""
+        result_nodes = cast(list[pe.Node], self.run(updatehash=True).nodes)
+        orig_wd = os.getcwd()
+        output = Undefined
         try:
+            # look for exact match
             _run_node: pe.Node = next(
-                iter(
-                    _
-                    for _ in self.run(updatehash=True).nodes
-                    if _.fullname == node.fullname
-                )
+                iter(_ for _ in result_nodes if _.fullname == node.fullname)
             )
-        except IndexError as index_error:
-            msg = f"Could not find {node.fullname} in {self}'s run Nodes."
-            raise LookupError(msg) from index_error
-        _res: InterfaceResult = _run_node.run()
-        return getattr(_res.outputs, out)
+        except StopIteration as stop_interation:
+            # look for match in subgraph
+            try:
+                _run_node: pe.Node = next(
+                    iter(
+                        _
+                        for _ in result_nodes
+                        if node.fullname
+                        and _.fullname
+                        and _.fullname.endswith(node.fullname)
+                    )
+                )
+            except StopIteration:
+                msg = f"Could not find {node.fullname} in {self}'s run Nodes."
+                raise LookupError(msg) from stop_interation
+        try:
+            os.chdir(_run_node.output_dir())
+            _res: InterfaceResult = _run_node.run()
+            output = getattr(_res.outputs, out)
+            if output is Undefined:
+                output = _run_node.interface._list_outputs().get(out, Undefined)
+        finally:
+            os.chdir(orig_wd)
+            return output
 
     def _handle_just_in_time_exception(self, node):
         # pylint: disable=protected-access

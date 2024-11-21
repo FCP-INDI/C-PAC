@@ -18,7 +18,7 @@
 """Utilities for longitudinal workflows."""
 
 from pathlib import Path
-from typing import Optional
+from typing import cast, Optional
 
 from nipype.interfaces.utility import IdentityInterface
 
@@ -43,8 +43,8 @@ def check_creds_path(creds_path: Optional[str], subject_id: str) -> Optional[str
 def cross_graph_connections(
     wf1: pe.Workflow,
     wf2: pe.Workflow,
-    node1: pe.Node,
-    node2: pe.Node,
+    node1: pe.Node | pe.Workflow,
+    node2: pe.Node | pe.Workflow,
     output_name: str,
     input_name: str,
     dry_run: bool,
@@ -71,6 +71,9 @@ def cross_graph_connections(
     input_name
         The input name from ``node2``
     """
+    if isinstance(node1, pe.Workflow):
+        sub_node_name, output_name = output_name.rsplit(".", 1)
+        node1 = cast(pe.Node, node1.get_node(sub_node_name))
     if dry_run:
         wf2.connect(node1, output_name, node2, input_name)
     else:
@@ -79,17 +82,23 @@ def cross_graph_connections(
 
 def select_session(
     session: str, output_brains: list[str], warps: list[str]
-) -> tuple[Optional[str], Optional[str]]:
+) -> tuple[str, str]:
     """Select output brain image and warp for given session."""
-    brain_path = None
-    warp_path = None
-    for brain_path in output_brains:
-        if f"{session}_" in brain_path:
-            break
-    for warp_path in warps:
-        if f"{session}_" in warp_path:
-            break
-    return brain_path, warp_path
+    try:
+        return next(
+            iter(brain_path for brain_path in output_brains if session in brain_path)
+        ), next(iter(warp_path for warp_path in warps if session in warp_path))
+    except StopIteration as stop_iteration:
+        brain_paths_found = [
+            brain_path for brain_path in output_brains if session in brain_path
+        ]
+        warps_found = [warp_path for warp_path in warps if session in warp_path]
+        msg = ""
+        if not brain_paths_found:
+            msg += f"{session} not found in {output_brains}.\n"
+        if not warps_found:
+            msg += f"{session} not found in {warps}.\n"
+        raise FileNotFoundError(msg) from stop_iteration
 
 
 def select_session_node(unique_id: str, suffix: str = "") -> pe.Node:
@@ -111,7 +120,7 @@ def select_session_node(unique_id: str, suffix: str = "") -> pe.Node:
         ),
         name=f"longitudinal_select_FSL_{unique_id}{suffix}",
     )
-    select_sess.inputs.session = unique_id
+    select_sess.set_input("session", f"{unique_id}_")
     return select_sess
 
 

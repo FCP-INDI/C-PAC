@@ -133,7 +133,6 @@ def warp_longitudinal_T1w_to_template(
         "from-longitudinal_to-template_mode-image_xfm"
     )
     reg_tool = check_prov_for_regtool(xfm_prov)
-
     num_cpus = cfg.pipeline_setup["system_config"]["max_cores_per_participant"]
 
     num_ants_cores = cfg.pipeline_setup["system_config"]["num_ants_threads"]
@@ -410,15 +409,22 @@ def anat_longitudinal_wf(
             wf.connect(merge_skulls, "out", wholehead_template_node, "input_skull_list")
 
         case "mri_robust_template":
-            brain_output = head_output = "out_file"
+            brain_output = head_output = "mri_robust_template.out_file"
             brain_template_node = mri_robust_template(
-                f"mri_robust_template_brain_{subject_id}", config
+                f"mri_robust_template_brain_{subject_id}", config, len(sub_list)
             )
             wholehead_template_node = mri_robust_template(
-                f"mri_robust_template_head_{subject_id}", config
+                f"mri_robust_template_head_{subject_id}", config, len(sub_list)
             )
-            wf.connect(merge_brains, "out", brain_template_node, "in_files")
-            wf.connect(merge_brains, "out", wholehead_template_node, "in_files")
+            wf.connect(
+                merge_brains, "out", brain_template_node, "mri_robust_template.in_files"
+            )
+            wf.connect(
+                merge_brains,
+                "out",
+                wholehead_template_node,
+                "mri_robust_template.in_files",
+            )
 
         case _:
             msg = ": ".join(
@@ -471,8 +477,10 @@ def anat_longitudinal_wf(
     # now, just write out a copy of the above to each session
     config.pipeline_setup["pipeline_name"] = orig_pipe_name
     longitudinal_rpool = rpool
-    cpr = cross_pool_resources(f"longitudinal_{subject_id}")
-    for session in sub_list:
+    cpr = cross_pool_resources(
+        f"fsl_longitudinal_{subject_id}"
+    )  # "fsl" for check_prov_for_regtool
+    for i, session in enumerate(sub_list):
         unique_id = session["unique_id"]
         input_creds_path = check_creds_path(session.get("creds_path"), subject_id)
 
@@ -496,6 +504,7 @@ def anat_longitudinal_wf(
 
         match config["longitudinal_template_generation", "using"]:
             case "C-PAC legacy":
+                assert isinstance(brain_template_node, pe.Node)
                 for input_name, output_name in [
                     ("output_brains", "output_brain_list"),
                     ("warps", "warp_list"),
@@ -511,10 +520,15 @@ def anat_longitudinal_wf(
                     )
 
             case "mri_robust_template":
-                head_select_sess = select_session_node(unique_id, "wholehead")
+                assert isinstance(brain_template_node, pe.Workflow)
+                assert isinstance(wholehead_template_node, pe.Workflow)
+                index = i + 1
+                head_select_sess = select_session_node(unique_id, "-wholehead")
+                select_sess.set_input("session", f"space-longitudinal{index}")
+                head_select_sess.set_input("session", f"space-longitudinal{index}")
                 for input_name, output_name in [
-                    ("output_brains", "mapmov"),
-                    ("warps", "transform_outputs"),
+                    ("output_brains", "mri_robust_template.mapmov"),
+                    ("warps", "convert-to-FSL_.out_fsl"),
                 ]:
                     cross_graph_connections(
                         wf,

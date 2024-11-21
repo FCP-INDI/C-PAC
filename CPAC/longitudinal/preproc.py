@@ -344,11 +344,20 @@ def register_img_list(
     return node_list
 
 
+def check_convergence(mat_list, mat_type, convergence_threshold) -> bool:
+    """Test if every transformation matrix has reached the convergence threshold."""
+    convergence_list = [
+        template_convergence(mat, mat_type, convergence_threshold) for mat in mat_list
+    ]
+    return all(convergence_list)
+
+
 @Function.sig_imports(
     [
         "from multiprocessing.pool import Pool",
         "from typing import Literal, Optional",
         "from nipype.pipeline import engine as pe",
+        "from CPAC.longitudinal.preproc import check_convergence",
     ]
 )
 def template_creation_flirt(
@@ -469,6 +478,8 @@ def template_creation_flirt(
             warp_list,
         )
 
+    output_brain_list = list(input_brain_list)
+    output_skull_list = list(input_skull_list)
     # Chris: I added this part because it is mentioned in the paper but I actually never used it
     # You could run a first register_img_list() with a selected image as starting point and
     # give the output to this function
@@ -477,18 +488,11 @@ def template_creation_flirt(
             output_brain_list = [node.inputs.out_file for node in init_reg]
             mat_list = [node.inputs.out_matrix_file for node in init_reg]
             warp_list = mat_list
-            # test if every transformation matrix has reached the convergence
-            convergence_list = [
-                template_convergence(mat, mat_type, convergence_threshold)
-                for mat in mat_list
-            ]
-            converged = all(convergence_list)
+            converged = check_convergence(mat_list, mat_type, convergence_threshold)
         else:
             msg = "init_reg must be a list of FLIRT nipype nodes files"
             raise ValueError(msg)
     else:
-        output_brain_list = input_brain_list
-        output_skull_list = input_skull_list
         converged = False
 
     temporary_brain_template = os.path.join(
@@ -564,13 +568,7 @@ def template_creation_flirt(
             warp_list[index] = warp_list_filenames[index]
 
         output_brain_list = [node.inputs.out_file for node in reg_list_node]
-
-        # test if every transformation matrix has reached the convergence
-        convergence_list = [
-            template_convergence(mat, mat_type, convergence_threshold)
-            for mat in mat_list
-        ]
-        converged = all(convergence_list)
+        converged = check_convergence(mat_list, mat_type, convergence_threshold)
 
     if isinstance(thread_pool, int):
         pool.close()
