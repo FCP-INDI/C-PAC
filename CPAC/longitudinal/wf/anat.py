@@ -25,7 +25,12 @@ from nipype.interfaces.utility import Merge
 
 from CPAC.longitudinal.preproc import subject_specific_template
 from CPAC.longitudinal.robust_template import mri_robust_template
-from CPAC.longitudinal.wf.utils import check_creds_path, select_session_node
+from CPAC.longitudinal.wf.utils import (
+    check_creds_path,
+    cross_graph_connections,
+    cross_pool_resources,
+    select_session_node,
+)
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.cpac_pipeline import (
     build_anat_preproc_stack,
@@ -345,7 +350,7 @@ def anat_longitudinal_wf(
             for key in strats_dct.keys():  # get the outputs from run-nodes
                 for index, data in enumerate(list(strats_dct[key])):
                     if isinstance(data, tuple):
-                        strats_dct[key][index] = workflow.get_output_path(*data)
+                        strats_dct[key][index] = workflow.get_output(*data)
 
     wf = initialize_nipype_wf(
         config,
@@ -460,24 +465,24 @@ def anat_longitudinal_wf(
         ],
     )
     wf = connect_pipeline(wf, config, rpool, pipeline_blocks)
-
     if not dry_run:
         wf.run()
 
     # now, just write out a copy of the above to each session
     config.pipeline_setup["pipeline_name"] = orig_pipe_name
+    longitudinal_rpool = rpool
+    cpr = cross_pool_resources(f"longitudinal_{subject_id}")
     for session in sub_list:
         unique_id = session["unique_id"]
         input_creds_path = check_creds_path(session.get("creds_path"), subject_id)
 
-        wf = initialize_nipype_wf(config, subject_id, unique_id)
+        ses_wf = initialize_nipype_wf(config, subject_id, unique_id)
 
-        wf, rpool = initiate_rpool(wf, config, session)
-
+        ses_wf, rpool = initiate_rpool(ses_wf, config, session)
         config.pipeline_setup["pipeline_name"] = f"longitudinal_{orig_pipe_name}"
         if "derivatives_dir" in session:
-            rpool = ingress_output_dir(
-                wf,
+            ses_wf, rpool = ingress_output_dir(
+                ses_wf,
                 config,
                 rpool,
                 long_id,
@@ -491,32 +496,45 @@ def anat_longitudinal_wf(
 
         match config["longitudinal_template_generation", "using"]:
             case "C-PAC legacy":
-                wf.connect(
-                    brain_template_node,
-                    "output_brain_list",
-                    select_sess,
-                    "output_brains",
-                )
-                wf.connect(brain_template_node, "warp_list", select_sess, "warps")
+                for input_name, output_name in [
+                    ("output_brains", "output_brain_list"),
+                    ("warps", "warp_list"),
+                ]:
+                    cross_graph_connections(
+                        wf,
+                        ses_wf,
+                        brain_template_node,
+                        select_sess,
+                        output_name,
+                        input_name,
+                        dry_run,
+                    )
 
             case "mri_robust_template":
-                wf.connect(brain_template_node, "mapmov", select_sess, "output_brains")
-                wf.connect(
-                    brain_template_node, "transform_outputs", select_sess, "warps"
-                )
                 head_select_sess = select_session_node(unique_id, "wholehead")
-                wf.connect(
-                    wholehead_template_node,
-                    "mapmov",
-                    head_select_sess,
-                    "output_brains",
-                )
-                wf.connect(
-                    wholehead_template_node,
-                    "transform_outputs",
-                    head_select_sess,
-                    "warps",
-                )
+                for input_name, output_name in [
+                    ("output_brains", "mapmov"),
+                    ("warps", "transform_outputs"),
+                ]:
+                    cross_graph_connections(
+                        wf,
+                        ses_wf,
+                        brain_template_node,
+                        select_sess,
+                        output_name,
+                        input_name,
+                        dry_run,
+                    )
+                    cross_graph_connections(
+                        wf,
+                        ses_wf,
+                        wholehead_template_node,
+                        head_select_sess,
+                        output_name,
+                        input_name,
+                        dry_run,
+                    )
+
                 rpool.set_data(
                     "space-longitudinal_desc-head_T1w",
                     head_select_sess,
@@ -553,29 +571,25 @@ def anat_longitudinal_wf(
 
         config.pipeline_setup["pipeline_name"] = orig_pipe_name
         excl = ["space-template_desc-brain_T1w", "space-T1w_desc-brain_mask"]
-        rpool.gather_pipes(wf, config, add_excl=excl)
+        rpool.gather_pipes(ses_wf, config, add_excl=excl)
+        cross_pool_keys = ["from-longitudinal_to-template_mode-image_xfm"]
+        for key in cross_pool_keys:
+            node, out = longitudinal_rpool.get_data(key)
+            cross_graph_connections(wf, ses_wf, node, cpr, out, key, dry_run)
+            rpool.set_data(key, cpr, key, {}, "", cpr.name)
         if not dry_run:
-            wf.run()
-
-    # begin single-session stuff again
-    for session in sub_list:
-        unique_id = session["unique_id"]
-        input_creds_path = check_creds_path(session.get("creds_path"), subject_id)
-
-        wf = initialize_nipype_wf(config, subject_id, unique_id)
-
-        wf, rpool = initiate_rpool(wf, config, session)
+            ses_wf.run()
 
         pipeline_blocks = [
             warp_longitudinal_T1w_to_template,
             warp_longitudinal_seg_to_T1w,
         ]
 
-        wf = connect_pipeline(wf, config, rpool, pipeline_blocks)
+        ses_wf = connect_pipeline(ses_wf, config, rpool, pipeline_blocks)
 
-        rpool.gather_pipes(wf, config)
+        rpool.gather_pipes(ses_wf, config)
 
         # this is going to run multiple times!
         # once for every strategy!
         if not dry_run:
-            wf.run()
+            ses_wf.run()

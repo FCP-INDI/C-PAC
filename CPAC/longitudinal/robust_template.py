@@ -113,18 +113,21 @@ class RobustTemplate(longitudinal.RobustTemplate):  # noqa: D101
 
 def mri_robust_template(name: str, cfg: Configuration) -> pe.Node:
     """Return a Node to run `mri_robust_template` with common options."""
-    node = pe.Node(RobustTemplate(), name=name)
-    node.set_input("mapmov", True)
-    node.set_input("transform_outputs", True)
-    node.set_input(
-        "average_metric", cfg["longitudinal_template_generation", "average_method"]
+    node = pe.Node(
+        RobustTemplate(
+            affine=cfg["longitudinal_template_generation", "dof"] == 12,  # noqa: PLR2004
+            average_metric=cfg["longitudinal_template_generation", "average_method"],
+            auto_detect_sensitivity=True,
+            mapmov=True,
+            out_file=f"{name}.nii.gz",
+            transform_outputs=True,
+        ),
+        name=name,
     )
-    node.set_input("affine", cfg["longitudinal_template_generation", "dof"] == 12)  # noqa: PLR2004
     max_iter = cast(
         int | Literal["default"], cfg["longitudinal_template_generation", "max_iter"]
     )
     if isinstance(max_iter, int):
         node.set_input("maxit", max_iter)
-    node.set_input("auto_detect_sensitivity", True)
 
     return node

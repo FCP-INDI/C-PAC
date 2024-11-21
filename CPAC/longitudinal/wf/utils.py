@@ -20,6 +20,8 @@
 from pathlib import Path
 from typing import Optional
 
+from nipype.interfaces.utility import IdentityInterface
+
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.interfaces.function import Function
 
@@ -36,6 +38,43 @@ def check_creds_path(creds_path: Optional[str], subject_id: str) -> Optional[str
         )
         raise FileNotFoundError(err_msg)
     return None
+
+
+def cross_graph_connections(
+    wf1: pe.Workflow,
+    wf2: pe.Workflow,
+    node1: pe.Node,
+    node2: pe.Node,
+    output_name: str,
+    input_name: str,
+    dry_run: bool,
+) -> None:
+    """Make cross-graph connections appropriate to dry-run status.
+
+    Parameters
+    ----------
+    wf1
+        The graph that runs first
+
+    wf2
+        The graph that runs second
+
+    node1
+        The node from ``wf1``
+
+    node2
+        The node from ``wf2``
+
+    output_name
+        The output name from ``node1``
+
+    input_name
+        The input name from ``node2``
+    """
+    if dry_run:
+        wf2.connect(node1, output_name, node2, input_name)
+    else:
+        node2.set_input(input_name, wf1.get_output(node1, output_name))
 
 
 def select_session(
@@ -74,3 +113,11 @@ def select_session_node(unique_id: str, suffix: str = "") -> pe.Node:
     )
     select_sess.inputs.session = unique_id
     return select_sess
+
+
+def cross_pool_resources(name: str) -> pe.Node:
+    """Return an IdentityInterface for cross-pool resources."""
+    return pe.Node(
+        IdentityInterface(fields=["from-longitudinal_to-template_mode-image_xfm"]),
+        name=name,
+    )

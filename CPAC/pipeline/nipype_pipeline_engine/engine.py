@@ -717,7 +717,7 @@ class Workflow(pe.Workflow):
                     WFLOGGER.debug("cross connection: %s", dotlist[-1])
         return ("\n" + prefix).join(dotlist)
 
-    def get_output_path(self, node: pe.Node, out: str) -> str:
+    def get_output(self, node: pe.Node, out: str) -> Any:
         """Get an output path from an already-run Node."""
         try:
             _run_node: pe.Node = next(

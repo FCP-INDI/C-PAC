@@ -519,7 +519,6 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     #      triggered by 'segments' boolean input (-g or --segments)
     #  'probability_maps' output is a list of individual probability maps
     #      triggered by 'probability_maps' boolean input (-p)
-
     segment = pe.Node(
         interface=fsl.FAST(),
         name=f"segment_{pipe_num}",
