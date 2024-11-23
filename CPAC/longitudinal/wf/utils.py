@@ -18,8 +18,9 @@
 """Utilities for longitudinal workflows."""
 
 from pathlib import Path
-from typing import cast, Optional
+from typing import Any, cast, Optional
 
+from networkx.classes.digraph import DiGraph
 from nipype.interfaces.utility import IdentityInterface
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -40,21 +41,27 @@ def check_creds_path(creds_path: Optional[str], subject_id: str) -> Optional[str
     return None
 
 
+@Function.sig_imports(
+    [
+        "from networkx.classes.digraph import DiGraph",
+        "from CPAC.pipeline import nipype_pipeline_engine as pe",
+        "from CPAC.longitudinal.wf.utils import get_output_from_graph",
+    ]
+)
 def cross_graph_connections(
-    wf1: pe.Workflow,
+    wf1: DiGraph | pe.Workflow,
     wf2: pe.Workflow,
     node1: pe.Node | pe.Workflow,
     node2: pe.Node | pe.Workflow,
     output_name: str,
     input_name: str,
-    dry_run: bool,
 ) -> None:
     """Make cross-graph connections appropriate to dry-run status.
 
     Parameters
     ----------
     wf1
-        The graph that runs first
+        The results of the graph that already ran
 
     wf2
         The graph that runs second
@@ -71,13 +78,15 @@ def cross_graph_connections(
     input_name
         The input name from ``node2``
     """
-    if isinstance(node1, pe.Workflow):
-        sub_node_name, output_name = output_name.rsplit(".", 1)
-        node1 = cast(pe.Node, node1.get_node(sub_node_name))
-    if dry_run:
+    if isinstance(wf1, pe.Workflow):  # dry run
+        if isinstance(node1, pe.Workflow):
+            sub_node_name, output_name = output_name.rsplit(".", 1)
+            node1 = cast(pe.Node, node1.get_node(sub_node_name))
         wf2.connect(node1, output_name, node2, input_name)
     else:
-        node2.set_input(input_name, wf1.get_output(node1, output_name))
+        setattr(
+            node2.inputs, input_name, get_output_from_graph(wf1, node1, output_name)
+        )
 
 
 def select_session(
@@ -130,3 +139,29 @@ def cross_pool_resources(name: str) -> pe.Node:
         IdentityInterface(fields=["from-longitudinal_to-template_mode-image_xfm"]),
         name=name,
     )
+
+
+def get_output_from_graph(
+    graph: DiGraph, node: pe.Node | pe.Workflow, output_name: str
+) -> Any:
+    """Get an output from a graph that has been run."""
+    nodename = str(node.fullname)
+    if isinstance(node, pe.Workflow):
+        sub_node_name, output_name = output_name.rsplit(".", 1)
+        nodename = f"{nodename}.{sub_node_name}"
+    try:
+        output = getattr(
+            next(
+                iter(
+                    _node
+                    for _node in graph
+                    if _node.fullname.endswith(nodename)
+                    or _node.fullname.endswith(f"{nodename}_")
+                )
+            ).result.outputs,
+            output_name,
+        )
+    except StopIteration as stop_iteration:
+        msg = f"{nodename} not found in completed workflow."
+        raise FileNotFoundError(msg) from stop_iteration
+    return output

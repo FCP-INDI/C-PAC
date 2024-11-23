@@ -28,6 +28,7 @@ from nipype.interfaces.base import (
     traits,
 )
 from nipype.interfaces.freesurfer import longitudinal
+from nipype.interfaces.freesurfer.preprocess import MRIConvert
 from nipype.interfaces.freesurfer.utils import LTAConvert
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -51,7 +52,7 @@ class RobustTemplateInputSpec(longitudinal.RobustTemplateInputSpec):  # noqa: D1
 
 class RobustTemplateOutputSpec(longitudinal.RobustTemplateOutputSpec):  # noqa: D101
     mapmov = OutputMultiPath(
-        File(exists=True),
+        File(),
         desc="each input mapped and resampled to longitudinal template",
     )
 
@@ -127,7 +128,7 @@ def mri_robust_template(
             average_metric=cfg["longitudinal_template_generation", "average_method"],
             auto_detect_sensitivity=True,
             mapmov=True,
-            out_file=f"{name}.nii.gz",
+            out_file=f"{name}.mgz",
             transform_outputs=True,
         ),
         name="mri_robust_template",
@@ -138,12 +139,23 @@ def mri_robust_template(
     if isinstance(max_iter, int):
         node.set_input("maxit", max_iter)
 
+    nifti_template = pe.Node(MRIConvert(out_type="niigz"), name="NIfTI-template")
+    wf.connect(node, "out_file", nifti_template, "in_file")
+
+    nifti_outputs = pe.MapNode(
+        MRIConvert(), name="NIfTI-mapmov", iterfield=["in_file", "out_file"]
+    )
+    wf.connect(node, "mapmov", nifti_outputs, "in_file")
+    nifti_outputs.set_input(
+        "out_file", [f"space-longitudinal{i + 1}.nii.gz" for i in range(num_sessions)]
+    )
+
     convert = pe.MapNode(
         LTAConvert(), name="convert-to-FSL", iterfield=["in_lta", "out_fsl"]
     )
     wf.connect(node, "transform_outputs", convert, "in_lta")
     convert.set_input(
-        "out_fsl", [f"space-longitudinal{i}.mat" for i in range(num_sessions)]
+        "out_fsl", [f"space-longitudinal{i + 1}.mat" for i in range(num_sessions)]
     )
 
     return wf

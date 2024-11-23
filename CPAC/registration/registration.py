@@ -2338,15 +2338,15 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, fsl, "inputspec.reference_mask")
 
     if "space-longitudinal" in brain:
-        for key in outputs.keys():
+        for key in list(outputs.keys()):
             if "from-T1w" in key:
                 new_key = key.replace("from-T1w", "from-longitudinal")
                 outputs[new_key] = outputs[key]
-                del outputs[key]
+                # del outputs[key]
             if "to-T1w" in key:
                 new_key = key.replace("to-T1w", "to-longitudinal")
                 outputs[new_key] = outputs[key]
-                del outputs[key]
+                # del outputs[key]
 
     return (wf, outputs)
 
@@ -2429,7 +2429,7 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=N
     wf.connect(node, out, fsl, "inputspec.reference_mask")
 
     if "space-longitudinal" in brain:
-        for key in outputs.keys():
+        for key in list(outputs.keys()):
             if "from-T1w" in key:
                 new_key = key.replace("from-T1w", "from-longitudinal")
                 outputs[new_key] = outputs[key]

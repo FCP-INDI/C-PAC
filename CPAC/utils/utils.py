@@ -159,6 +159,7 @@ def create_id_string(
     fwhm=None,
     subdir=None,
     extension=None,
+    subject_level: bool = False,
 ):
     """Create the unique key-value identifier string for BIDS-Derivatives file names.
 
@@ -190,12 +191,15 @@ def create_id_string(
     ses_id = unique_id.split("_")[1]
     if "sub-" not in part_id:
         part_id = f"sub-{part_id}"
-    if "ses-" not in ses_id:
-        ses_id = f"ses-{ses_id}"
-    if scan_id:
-        out_filename = f"{part_id}_{ses_id}_task-{scan_id}_{resource}"
+    if subject_level:
+        out_filename = f"{part_id}_{resource}"
     else:
-        out_filename = f"{part_id}_{ses_id}_{resource}"
+        if "ses-" not in ses_id:
+            ses_id = f"ses-{ses_id}"
+        if scan_id:
+            out_filename = f"{part_id}_{ses_id}_task-{scan_id}_{resource}"
+        else:
+            out_filename = f"{part_id}_{ses_id}_{resource}"
 
     template_tag = template_desc.split(" -")[0] if template_desc else "*"
     for prefix in ["space-", "from-", "to-"]:
