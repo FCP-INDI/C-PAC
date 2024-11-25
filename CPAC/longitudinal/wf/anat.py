@@ -106,7 +106,12 @@ def mask_longitudinal_T1w_brain(
     node, out = strat_pool.get_data("space-longitudinal_desc-brain_T1w")
     wf.connect(node, out, brain_mask, "in_file")
 
-    outputs = {"space-longitudinal_desc-brain_mask": (brain_mask, "out_file")}
+    outputs = {
+        "space-longitudinal_desc-brain_mask": (
+            brain_mask,
+            "out_file",
+        )
+    }
 
     return (wf, outputs)
 
@@ -115,16 +120,14 @@ def mask_longitudinal_T1w_brain(
     name="warp_longitudinal_T1w_to_template",
     config=["longitudinal_template_generation"],
     switch=["run"],
-    option_key="using",
-    option_val="C-PAC legacy",
     inputs=[
         (
-            "space-longitudinal_desc-brain_T1w",
+            "longitudinal-template_space-longitudinal_desc-brain_T1w",
             "from-longitudinal_to-template_mode-image_xfm",
         ),
         "T1w-brain-template",
     ],
-    outputs=["space-template_desc-brain_T1w"],
+    outputs=["longitudinal-template_space-template_desc-brain_T1w"],
 )
 def warp_longitudinal_T1w_to_template(
     wf, cfg, strat_pool, pipe_num, opt=None
@@ -139,7 +142,7 @@ def warp_longitudinal_T1w_to_template(
     num_ants_cores = cfg.pipeline_setup["system_config"]["num_ants_threads"]
 
     apply_xfm = apply_transform(
-        f"warp_longitudinal_to_T1template_{pipe_num}",
+        f"warp_longitudinal_to_template_{pipe_num}",
         reg_tool,
         time_series=False,
         num_cpus=num_cpus,
@@ -155,7 +158,9 @@ def warp_longitudinal_T1w_to_template(
             "anatomical_registration"
         ]["registration"]["FSL-FNIRT"]["interpolation"]
 
-    node, out = strat_pool.get_data("space-longitudinal_desc-brain_T1w")
+    node, out = strat_pool.get_data(
+        "longitudinal-template_space-longitudinal_desc-brain_T1w"
+    )
     wf.connect(node, out, apply_xfm, "inputspec.input_image")
 
     node, out = strat_pool.get_data("T1w-brain-template")
@@ -164,9 +169,14 @@ def warp_longitudinal_T1w_to_template(
     node, out = strat_pool.get_data("from-longitudinal_to-template_mode-image_xfm")
     wf.connect(node, out, apply_xfm, "inputspec.transform")
 
-    outputs = {"space-template_desc-brain_T1w": (apply_xfm, "outputspec.output_image")}
+    outputs = {
+        "longitudinal-template_space-template_desc-brain_T1w": (
+            apply_xfm,
+            "outputspec.output_image",
+        )
+    }
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 @nodeblock(
@@ -213,7 +223,7 @@ def warp_longitudinal_seg_to_T1w(
     pipe_num: int,
     opt: Optional[str] = None,
 ) -> NODEBLOCK_RETURN:
-    """Transform anatomical images from longitudinal space template space."""
+    """Transform anatomical segmentation from longitudinal template to T1w space."""
     outputs = {}
     if strat_pool.check_rpool("from-longitudinal_to-T1w_mode-image_desc-linear_xfm"):
         xfm_prov = strat_pool.get_cpac_provenance(
@@ -229,7 +239,7 @@ def warp_longitudinal_seg_to_T1w(
         )
         reg_tool = check_prov_for_regtool(xfm_prov)
         # create inverse xfm if we don't have it
-        invt = pe.Node(interface=fsl.ConvertXFM(), name="convert_xfm")
+        invt = pe.Node(interface=fsl.ConvertXFM(), name=f"convert_xfm_{pipe_num}")
         invt.inputs.invert_xfm = True
         wf.connect(
             *strat_pool.get_data("from-T1w_to-longitudinal_mode-image_desc-linear_xfm"),
@@ -246,7 +256,9 @@ def warp_longitudinal_seg_to_T1w(
     )
     wf.connect(*xfm, warp, "postmat")
     wf.connect(
-        *strat_pool.get_data("space-longitudinal_desc-brain_T1w"), warp, "reference"
+        *strat_pool.get_data("space-longitudinal_desc-brain_T1w"),
+        warp,
+        "reference",
     )
     outputs["from-longitudinal_to-T1w_mode-image_desc-linear_warp"] = warp, "out_file"
 
@@ -369,8 +381,6 @@ def anat_longitudinal_wf(
         name="template_node_brain",
     )
 
-    config.pipeline_setup["pipeline_name"] = f"longitudinal_{orig_pipe_name}"
-
     num_sessions = len(strats_dct["desc-brain_T1w"])
     merge_brains = pe.Node(Merge(num_sessions), name="merge_brains")
     merge_skulls = pe.Node(Merge(num_sessions), name="merge_skulls")
@@ -381,9 +391,9 @@ def anat_longitudinal_wf(
         )
         wf._connect_node_or_path_for_merge(merge_skulls, strats_dct, "desc-head_T1w", i)
 
-    long_id = f"longitudinal_{subject_id}_strat-desc-brain_T1w"
+    long_id = f"{subject_id}_desc-brain_T1w"
 
-    wf, rpool = initiate_rpool(wf, config, part_id=long_id)
+    wf, rpool = initiate_rpool(wf, config, part_id=subject_id)
 
     match config["longitudinal_template_generation", "using"]:
         case "C-PAC legacy":
@@ -447,9 +457,9 @@ def anat_longitudinal_wf(
             )
             raise ValueError(msg)
 
-    for suffix in ["", "-template"]:
+    for prefix in ["", "longitudinal-template_"]:
         rpool.set_data(
-            f"space-longitudinal_desc-brain_T1w{suffix}",
+            f"{prefix}space-longitudinal_desc-brain_T1w",
             brain_template_node,
             brain_output,
             {},
@@ -459,7 +469,7 @@ def anat_longitudinal_wf(
 
         for desc in ["head", "reorient"]:
             rpool.set_data(
-                f"space-longitudinal_desc-{desc}_T1w{suffix}",
+                f"{prefix}space-longitudinal_desc-{desc}_T1w",
                 wholehead_template_node,
                 head_output,
                 {},
@@ -471,15 +481,17 @@ def anat_longitudinal_wf(
     pipeline_blocks = build_T1w_registration_stack(
         rpool, config, pipeline_blocks, space="longitudinal"
     )
-    pipeline_blocks = build_segmentation_stack(rpool, config, pipeline_blocks)
+
+    pipeline_blocks += [warp_longitudinal_T1w_to_template]
 
     rpool.gather_pipes(
         wf,
         config,
         add_excl=[
-            "space-longitudinal_desc-brain_T1w",
-            "space-longitudinal_desc-reorient_T1w",
-            "space-longitudinal_desc-brain_mask",
+            "longitudinal-template_space-longitudinal_desc-brain_T1w",
+            "longitudinal-template_space-longitudinal_desc-head_T1w",
+            "longitudinal-template_space-longitudinal_desc-reorient_T1w",
+            "longitudinal-template_space-longitudinal_desc-brain_mask",
         ],
     )
     wf = connect_pipeline(wf, config, rpool, pipeline_blocks)
@@ -498,7 +510,7 @@ def anat_longitudinal_wf(
         ses_wf = initialize_nipype_wf(config, subject_id, unique_id)
 
         ses_wf, rpool = initiate_rpool(ses_wf, config, session)
-        config.pipeline_setup["pipeline_name"] = f"longitudinal_{orig_pipe_name}"
+
         if "derivatives_dir" in session:
             ses_wf, rpool = ingress_output_dir(
                 ses_wf,
@@ -580,14 +592,6 @@ def anat_longitudinal_wf(
                     "",
                     head_select_sess.name,
                 )
-                rpool.set_data(
-                    "from-T1w_to-longitudinal_mode-image_desc-linear_xfm",
-                    head_select_sess,
-                    "warp_path",
-                    {},
-                    "",
-                    head_select_sess.name,
-                )
 
         rpool.set_data(
             "space-longitudinal_desc-brain_T1w",
@@ -609,7 +613,11 @@ def anat_longitudinal_wf(
         config.pipeline_setup["pipeline_name"] = orig_pipe_name
         excl = ["space-template_desc-brain_T1w", "space-T1w_desc-brain_mask"]
         rpool.gather_pipes(ses_wf, config, add_excl=excl)
-        cross_pool_keys = ["from-longitudinal_to-template_mode-image_xfm"]
+        cross_pool_keys = [
+            "from-longitudinal_to-template_mode-image_xfm",
+            "space-longitudinal_desc-brain_T1w",
+            "space-longitudinal_desc-reorient_T1w",
+        ]
         for key in cross_pool_keys:
             node, out = longitudinal_rpool.get_data(key)
             try:
@@ -626,13 +634,9 @@ def anat_longitudinal_wf(
                 "",
                 f"fsl_longitudinal_{subject_id}",  # "fsl" for check_prov_for_regtool
             )
-        if not dry_run:
-            ses_wf.run()
 
-        pipeline_blocks = [
-            warp_longitudinal_T1w_to_template,
-            warp_longitudinal_seg_to_T1w,
-        ]
+        pipeline_blocks += [warp_longitudinal_seg_to_T1w]
+        pipeline_blocks = build_segmentation_stack(rpool, config, pipeline_blocks)
 
         ses_wf = connect_pipeline(ses_wf, config, rpool, pipeline_blocks)
 

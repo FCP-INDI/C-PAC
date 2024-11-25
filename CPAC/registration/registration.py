@@ -2264,8 +2264,14 @@ def bold_to_T1template_xfm_connector(
     option_val=["FSL", "FSL-linear"],
     inputs=[
         (
-            ["desc-preproc_T1w", "space-longitudinal_desc-reorient_T1w"],
-            ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
+            [
+                "desc-preproc_T1w",
+                "space-longitudinal_desc-reorient_T1w",
+            ],
+            [
+                "desc-brain_T1w",
+                "space-longitudinal_desc-brain_T1w",
+            ],
         ),
         "T1w-template",
         "T1w-brain-template",
@@ -2306,7 +2312,8 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     ]["registration"]["FSL-FNIRT"]["fnirt_config"]
 
     connect, brain = strat_pool.get_data(
-        ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"], report_fetched=True
+        ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
+        report_fetched=True,
     )
     node, out = connect
     wf.connect(node, out, fsl, "inputspec.input_brain")
@@ -2330,7 +2337,10 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         wf.connect(node, out, fsl, "inputspec.reference_head")
 
     node, out = strat_pool.get_data(
-        ["desc-preproc_T1w", "space-longitudinal_desc-reorient_T1w"]
+        [
+            "desc-preproc_T1w",
+            "space-longitudinal_desc-reorient_T1w",
+        ]
     )
     wf.connect(node, out, fsl, "inputspec.input_head")
 
@@ -2348,7 +2358,7 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                 outputs[new_key] = outputs[key]
                 # del outputs[key]
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 @nodeblock(
@@ -2359,8 +2369,14 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     option_val=["FSL", "FSL-linear"],
     inputs=[
         (
-            ["desc-preproc_T1w", "space-longitudinal_desc-reorient_T1w"],
-            ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
+            [
+                "desc-preproc_T1w",
+                "space-longitudinal_desc-reorient_T1w",
+            ],
+            [
+                "desc-brain_T1w",
+                "space-longitudinal_desc-brain_T1w",
+            ],
         ),
         "T1w-template-symmetric",
         "T1w-brain-template-symmetric",
@@ -2409,7 +2425,8 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=N
     ]["registration"]["FSL-FNIRT"]["fnirt_config"]
 
     connect, brain = strat_pool.get_data(
-        ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"], report_fetched=True
+        ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
+        report_fetched=True,
     )
     node, out = connect
     wf.connect(node, out, fsl, "inputspec.input_brain")
@@ -2418,7 +2435,10 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=N
     wf.connect(node, out, fsl, "inputspec.reference_brain")
 
     node, out = strat_pool.get_data(
-        ["desc-preproc_T1w", "space-longitudinal_desc-reorient_T1w"]
+        [
+            "desc-preproc_T1w",
+            "space-longitudinal_desc-reorient_T1w",
+        ]
     )
     wf.connect(node, out, fsl, "inputspec.input_head")
 
@@ -2508,7 +2528,10 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     option_val="ANTS",
     inputs=[
         (
-            ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"],
+            [
+                "desc-preproc_T1w",
+                "space-longitudinal_desc-brain_T1w",
+            ],
             [
                 "space-T1w_desc-brain_mask",
                 "space-longitudinal_desc-brain_mask",
@@ -2616,7 +2639,8 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     ]["registration"]["ANTs"]["interpolation"]
 
     connect, brain = strat_pool.get_data(
-        ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"], report_fetched=True
+        ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"],
+        report_fetched=True,
     )
     node, out = connect
     wf.connect(node, out, ants_rc, "inputspec.input_brain")
@@ -2669,7 +2693,7 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                     )
                     outputs[new_key] = outputs[key]
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 @nodeblock(
@@ -2680,8 +2704,14 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     option_val="ANTS",
     inputs=[
         (
-            ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"],
-            ["space-T1w_desc-brain_mask", "space-longitudinal_desc-brain_mask"],
+            [
+                "desc-preproc_T1w",
+                "space-longitudinal_desc-brain_T1w",
+            ],
+            [
+                "space-T1w_desc-brain_mask",
+                "space-longitudinal_desc-brain_mask",
+            ],
             [
                 "desc-head_T1w",
                 "desc-preproc_T1w",
@@ -2754,7 +2784,8 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=
     ]["registration"]["ANTs"]["interpolation"]
 
     connect, brain = strat_pool.get_data(
-        ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"], report_fetched=True
+        ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"],
+        report_fetched=True,
     )
     node, out = connect
     wf.connect(node, out, ants, "inputspec.input_brain")
@@ -2763,7 +2794,11 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=
     wf.connect(node, out, ants, "inputspec.reference_brain")
 
     node, out = strat_pool.get_data(
-        ["desc-head_T1w", "desc-preproc_T1w", "space-longitudinal_desc-reorient_T1w"]
+        [
+            "desc-head_T1w",
+            "desc-preproc_T1w",
+            "space-longitudinal_desc-reorient_T1w",
+        ]
     )
     wf.connect(node, out, ants, "inputspec.input_head")
 
@@ -2771,7 +2806,10 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=
     wf.connect(node, out, ants, "inputspec.reference_head")
 
     node, out = strat_pool.get_data(
-        ["space-T1w_desc-brain_mask", "space-longitudinal_desc-brain_mask"]
+        [
+            "space-T1w_desc-brain_mask",
+            "space-longitudinal_desc-brain_mask",
+        ]
     )
     wf.connect(node, out, ants, "inputspec.input_mask")
 
@@ -2885,7 +2923,10 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     inputs=[
         (
             "desc-restore-brain_T1w",
-            ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"],
+            [
+                "desc-preproc_T1w",
+                "space-longitudinal_desc-brain_T1w",
+            ],
             ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
             ["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
             "space-T1w_desc-brain_mask",

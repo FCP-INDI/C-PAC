@@ -178,6 +178,9 @@ def create_id_string(
 
     from CPAC.utils.bids_utils import combine_multiple_entity_instances, res_in_filename
 
+    if "longitudinal-template" in resource:
+        resource = resource.replace("longitudinal-template", "").replace("__", "")
+
     if atlas_id:
         if "_desc-" in atlas_id:
             atlas, desc = atlas_id.split("_desc-")
@@ -187,19 +190,23 @@ def create_id_string(
                 atlas_id = atlas_id.replace("_desc-", "")
         resource = f"atlas-{atlas_id}_{resource}"
 
-    part_id = unique_id.split("_")[0]
-    ses_id = unique_id.split("_")[1]
-    if "sub-" not in part_id:
-        part_id = f"sub-{part_id}"
-    if subject_level:
-        out_filename = f"{part_id}_{resource}"
-    else:
+    id_parts = []
+    if "_" in unique_id:
+        part_id, ses_id = unique_id.split("_", 1)
         if "ses-" not in ses_id:
             ses_id = f"ses-{ses_id}"
-        if scan_id:
-            out_filename = f"{part_id}_{ses_id}_task-{scan_id}_{resource}"
-        else:
-            out_filename = f"{part_id}_{ses_id}_{resource}"
+        id_parts.append(ses_id)
+    else:
+        part_id = unique_id
+    if "sub-" not in part_id:
+        part_id = f"sub-{part_id}"
+    id_parts.insert(0, part_id)
+    if scan_id:
+        if "task-" not in scan_id:
+            scan_id = f"task-{scan_id}"
+        id_parts.append(scan_id)
+    id_parts.append(resource)
+    out_filename = "_".join(id_parts)
 
     template_tag = template_desc.split(" -")[0] if template_desc else "*"
     for prefix in ["space-", "from-", "to-"]:

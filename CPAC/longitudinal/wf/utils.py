@@ -21,7 +21,6 @@ from pathlib import Path
 from typing import Any, cast, Optional
 
 from networkx.classes.digraph import DiGraph
-from nipype.interfaces.utility import IdentityInterface
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.interfaces.function import Function
@@ -131,14 +130,6 @@ def select_session_node(unique_id: str, suffix: str = "") -> pe.Node:
     )
     select_sess.set_input("session", f"{unique_id}_")
     return select_sess
-
-
-def cross_pool_resources(name: str) -> pe.Node:
-    """Return an IdentityInterface for cross-pool resources."""
-    return pe.Node(
-        IdentityInterface(fields=["from-longitudinal_to-template_mode-image_xfm"]),
-        name=name,
-    )
 
 
 def get_output_from_graph(

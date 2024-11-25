@@ -152,6 +152,9 @@ class ResourcePool:
         """Set part_id and ses_id."""
         unique_id = self.name
         setattr(self, "_part_id", unique_id.split("_")[0])
+        if "_" not in unique_id:
+            setattr(self, "_ses_id", None)
+            return
         ses_id = unique_id.split("_")[1]
         if "ses-" not in ses_id:
             ses_id = f"ses-{ses_id}"
@@ -1156,9 +1159,15 @@ class ResourcePool:
             for pipe_idx in self.rpool[resource]:
                 out_dir = cfg.pipeline_setup["output_directory"]["path"]
                 pipe_name = cfg.pipeline_setup["pipeline_name"]
-                container = os.path.join(
-                    f"pipeline_{pipe_name}", self.part_id, self.ses_id
-                )
+                if self.ses_id:
+                    container = os.path.join(
+                        f"pipeline_{pipe_name}", self.part_id, self.ses_id
+                    )
+                else:
+                    container = os.path.join(f"pipeline_{pipe_name}", self.part_id)
+                resource_name = self.get_name()
+                if resource_name.startswith("longitudinal-template_"):
+                    resource_name = resource_name[22:]
                 filename = f"{self.get_name()}_{res_in_filename(self.cfg, resource)}"
 
                 out_path = os.path.join(out_dir, container, subdir, filename)
