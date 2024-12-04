@@ -1168,7 +1168,7 @@ class ResourcePool:
                 resource_name = self.get_name()
                 if resource_name.startswith("longitudinal-template_"):
                     resource_name = resource_name[22:]
-                filename = f"{self.get_name()}_{res_in_filename(self.cfg, resource)}"
+                filename = f"{resource_name}_{res_in_filename(self.cfg, resource)}"
 
                 out_path = os.path.join(out_dir, container, subdir, filename)
 
@@ -1184,7 +1184,6 @@ class ResourcePool:
 
                 # TODO: have to link the pipe_idx's here. and call up 'desc-preproc_T1w' from a Sources in a json and replace. here.
                 # TODO: can do the pipeline_description.json variants here too!
-
         for resource in self.rpool.keys():
             if resource not in Outputs.any:
                 continue
@@ -1321,7 +1320,7 @@ class ResourcePool:
                         output_names=["out_filename"],
                         function=create_id_string,
                     ),
-                    name=f"id_string_{resource_idx}_{pipe_x}",
+                    name=f"id_string_{unique_id}_{resource_idx}_{pipe_x}",
                 )
                 id_string.inputs.cfg = self.cfg
                 id_string.inputs.unique_id = unique_id
@@ -1375,7 +1374,9 @@ class ResourcePool:
                                     )
                                 )
                             )
-                nii_name = pe.Node(Rename(), name=f"nii_{resource_idx}_{pipe_x}")
+                nii_name = pe.Node(
+                    Rename(), name=f"nii_{unique_id}_{resource_idx}_{pipe_x}"
+                )
                 nii_name.inputs.keep_ext = True
 
                 if resource in Outputs.ciftis:
@@ -1390,7 +1391,6 @@ class ResourcePool:
 
                 else:
                     nii_name.inputs.keep_ext = True
-
                 wf.connect(id_string, "out_filename", nii_name, "format_string")
 
                 node, out = self.rpool[resource][pipe_idx]["data"]

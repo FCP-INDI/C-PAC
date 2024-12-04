@@ -21,8 +21,10 @@ from pathlib import Path
 from typing import Any, cast, Optional
 
 from networkx.classes.digraph import DiGraph
+from nipype.interfaces.utility import IdentityInterface
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.utils import get_edges_with_node
 from CPAC.utils.interfaces.function import Function
 
 
@@ -48,6 +50,7 @@ def check_creds_path(creds_path: Optional[str], subject_id: str) -> Optional[str
     ]
 )
 def cross_graph_connections(
+    wf: pe.Workflow,
     wf1: DiGraph | pe.Workflow,
     wf2: pe.Workflow,
     node1: pe.Node | pe.Workflow,
@@ -59,6 +62,9 @@ def cross_graph_connections(
 
     Parameters
     ----------
+    wf
+        The graph that already ran
+
     wf1
         The results of the graph that already ran
 
@@ -84,7 +90,7 @@ def cross_graph_connections(
         wf2.connect(node1, output_name, node2, input_name)
     else:
         setattr(
-            node2.inputs, input_name, get_output_from_graph(wf1, node1, output_name)
+            node2.inputs, input_name, get_output_from_graph(wf, wf1, node1, output_name)
         )
 
 
@@ -132,14 +138,47 @@ def select_session_node(unique_id: str, suffix: str = "") -> pe.Node:
     return select_sess
 
 
+def cross_graph_identity(
+    wf: pe.Workflow, graph: DiGraph, node: pe.Node | pe.Workflow, output_name: str
+) -> pe.Node:
+    """Sever connection to ``node_1``'s workflow while maintaining value."""
+    identity_interface = pe.Node(
+        IdentityInterface([output_name]),
+        name="_".join(
+            [str(getattr(node, "fullname", getattr(node, "name", ""))), output_name]
+        ).replace(".", "_"),
+    )
+    identity_interface.set_input(
+        output_name, get_output_from_graph(wf, graph, node, output_name)
+    )
+    return identity_interface
+
+
 def get_output_from_graph(
-    graph: DiGraph, node: pe.Node | pe.Workflow, output_name: str
+    wf: pe.Workflow, graph: DiGraph, node: pe.Node | pe.Workflow, output_name: str
 ) -> Any:
     """Get an output from a graph that has been run."""
     nodename = str(node.fullname)
     if isinstance(node, pe.Workflow):
         sub_node_name, output_name = output_name.rsplit(".", 1)
         nodename = f"{nodename}.{sub_node_name}"
+        edges = get_edges_with_node(node, output_name)
+        for edge in reversed(edges):
+            try:
+                return get_output_from_graph(
+                    wf,
+                    graph,
+                    edge[0],
+                    next(
+                        iter(
+                            connection
+                            for connection in edge[2]["connect"]
+                            if connection[1] == output_name
+                        )
+                    )[0],
+                )
+            except StopIteration:
+                continue
     try:
         output = getattr(
             next(

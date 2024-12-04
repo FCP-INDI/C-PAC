@@ -16,13 +16,17 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """C-PAC pipeline engine utilities."""
 
+from collections.abc import Sequence
 from itertools import chain
 import os
 import subprocess
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
+
+if TYPE_CHECKING:
+    from CPAC.pipeline.nipype_pipeline_engine import Node, Workflow
 
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
@@ -241,3 +245,14 @@ def _update_resource_idx(resource_idx, out_dct, key, value):
         resource_idx = insert_entity(resource_idx, key, value)
         out_dct["filename"] = insert_entity(out_dct["filename"], key, value)
     return resource_idx, out_dct
+
+
+def get_edges_with_node(
+    wf: "Workflow", parameter: str
+) -> Sequence[tuple["Node", "Node", dict[str, list[tuple[str, str]]]]]:
+    """Get all edges containing a given parameter."""
+    return [
+        edge
+        for edge in wf._graph.edges(data=True)
+        if any(parameter in _ for _ in edge[2].get("connect"))
+    ]

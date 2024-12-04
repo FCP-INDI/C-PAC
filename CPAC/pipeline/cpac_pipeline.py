@@ -1073,6 +1073,14 @@ def build_T1w_registration_stack(
     space: Literal["longitudinal", "T1w"] = "T1w",
 ):
     """Build the T1w registration pipeline blocks."""
+    if space == "longitudinal":
+        for using in cfg[
+            "registration_workflows", "anatomical_registration", "registration", "using"
+        ]:
+            if using.lower() != "fsl":
+                msg = f"{using} anatomical registration not yet implemented for longitudinal workflows."
+                raise NotImplementedError(msg)
+
     if not pipeline_blocks:
         pipeline_blocks = []
 

@@ -501,7 +501,7 @@ def create_seg_preproc_antsJointLabel_method(wf_name="seg_preproc_templated_base
             ],
             [
                 "space-T1w_desc-brain_mask",
-                "space-longitudinal_desc-brain_mask",
+                "longitudinal-template_space-longitudinal_desc-brain_mask",
             ],
             [
                 "from-template_to-T1w_mode-image_desc-linear_xfm",
@@ -583,8 +583,9 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
 
     if use_priors:
         xfm = "from-template_to-T1w_mode-image_desc-linear_xfm"
-        # if "space-longitudinal" in resource:
-        #     xfm = "from-template_to-longitudinal_mode-image_desc-linear_xfm"
+        if "space-longitudinal" in resource:
+            xfm = "from-template_to-longitudinal_mode-image_desc-linear_xfm"
+
         xfm_prov = strat_pool.get_cpac_provenance(xfm)
         reg_tool = check_prov_for_regtool(xfm_prov)
     else:
@@ -653,7 +654,7 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data(
         [
             "space-T1w_desc-brain_mask",
-            "space-longitudinal_desc-brain_mask",
+            "longitudinal-template_space-longitudinal_desc-brain_mask",
         ]
     )
     wf.connect(node, out, process_csf, "inputspec.brain_mask")

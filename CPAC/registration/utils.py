@@ -819,8 +819,9 @@ def prepend_space(resource: str | list[str], space: str) -> str | list[str]:
     """Given a resource or list of resources, return same but with updated space."""
     if isinstance(resource, list):
         return [prepend_space(_, space) for _ in resource]
+    prefix = "longitudinal-template_" if space == "longitudinal" else ""
     if "space" not in resource:
-        return f"space-{space}_{resource}"
+        return f"{prefix}space-{space}_{resource}"
     pre, post = resource.split("space-")
     _old_space, post = post.split("_", 1)
-    return f"space-{space}_".join([pre, post])
+    return f"{prefix}space-{space}_".join([pre, post])
