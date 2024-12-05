@@ -1124,13 +1124,20 @@ class ResourcePool:
             excl += Outputs.debugging
 
         for resource in self.rpool.keys():
-            if resource not in Outputs.any:
+            output_resource: str = (
+                resource[22:]
+                if resource.startswith("longitudinal-template_")
+                else resource
+            )
+
+            if output_resource not in Outputs.any:
                 continue
 
             if resource in excl:
                 continue
 
             drop = False
+
             for substring_list in substring_excl:
                 bool_list = []
                 for substring in substring_list:
@@ -1159,7 +1166,13 @@ class ResourcePool:
             for pipe_idx in self.rpool[resource]:
                 out_dir = cfg.pipeline_setup["output_directory"]["path"]
                 pipe_name = cfg.pipeline_setup["pipeline_name"]
-                if self.ses_id:
+                longitudinal_xfm = any(
+                    [
+                        "from-template_to-longitudinal" in resource,
+                        "from-longitudinal_to-template" in resource,
+                    ]
+                )
+                if self.ses_id and not longitudinal_xfm:
                     container = os.path.join(
                         f"pipeline_{pipe_name}", self.part_id, self.ses_id
                     )
@@ -1173,7 +1186,7 @@ class ResourcePool:
                 out_path = os.path.join(out_dir, container, subdir, filename)
 
                 out_dct = {
-                    "unique_id": self.get_name(),
+                    "unique_id": self.part_id if longitudinal_xfm else self.get_name(),
                     "out_dir": out_dir,
                     "container": container,
                     "subdir": subdir,

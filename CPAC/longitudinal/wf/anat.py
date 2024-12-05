@@ -130,7 +130,7 @@ def mask_longitudinal_T1w_brain(
         ),
         "T1w-brain-template",
     ],
-    outputs=["longitudinal-template_space-template_desc-brain_T1w"],
+    outputs=["space-template_desc-brain_T1w"],
 )
 def warp_longitudinal_T1w_to_template(
     wf, cfg, strat_pool, pipe_num, opt=None
@@ -173,7 +173,7 @@ def warp_longitudinal_T1w_to_template(
     wf.connect(node, out, apply_xfm, "inputspec.transform")
 
     outputs = {
-        "longitudinal-template_space-template_desc-brain_T1w": (
+        "space-template_desc-brain_T1w": (
             apply_xfm,
             "outputspec.output_image",
         )
@@ -483,8 +483,6 @@ def anat_longitudinal_wf(
         rpool, config, pipeline_blocks, space="longitudinal"
     )
 
-    pipeline_blocks += [warp_longitudinal_T1w_to_template]
-
     cross_pool_keys = [
         "from-longitudinal_to-template_mode-image_xfm",
         "from-template_to-longitudinal_mode-image_desc-linear_xfm",
@@ -493,11 +491,7 @@ def anat_longitudinal_wf(
         "longitudinal-template_space-longitudinal_desc-head_T1w",
         "longitudinal-template_space-longitudinal_desc-reorient_T1w",
     ]
-    rpool.gather_pipes(
-        wf,
-        config,
-        add_excl=cross_pool_keys,
-    )
+    rpool.gather_pipes(wf, config)
     wf = connect_pipeline(wf, config, rpool, pipeline_blocks)
 
     wf_graph: DiGraph | pe.Workflow = (
@@ -648,8 +642,11 @@ def anat_longitudinal_wf(
                 f"fsl_longitudinal_{subject_id}",  # "fsl" for check_prov_for_regtool
             )
 
-        pipeline_blocks = [warp_longitudinal_seg_to_T1w]
-        pipeline_blocks = build_segmentation_stack(rpool, config, pipeline_blocks)
+        pipeline_blocks = build_segmentation_stack(
+            rpool,
+            config,
+            [warp_longitudinal_T1w_to_template, warp_longitudinal_seg_to_T1w],
+        )
 
         ses_wf = connect_pipeline(ses_wf, config, rpool, pipeline_blocks)
         rpool.gather_pipes(ses_wf, config)
