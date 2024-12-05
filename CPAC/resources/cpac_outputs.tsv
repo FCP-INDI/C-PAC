@@ -79,7 +79,6 @@ space-bold_label-WM_mask	mask	functional	func	NIfTI
 space-longitudinal_desc-brain_T1w	T1w	longitudinal T1w	anat	NIfTI					
 space-longitudinal_desc-head_T1w	T1w	longitudinal T1w	anat	NIfTI					
 space-longitudinal_desc-brain_mask	mask	longitudinal T1w	anat	NIfTI					
-space-longitudinal_desc-brain_mask	mask	longitudinal T1w	anat	NIfTI					
 space-longitudinal_label-CSF_desc-preproc_mask	mask	longitudinal T1w	anat	NIfTI					
 space-longitudinal_label-CSF_mask	mask	longitudinal T1w	anat	NIfTI					
 space-longitudinal_label-GM_desc-preproc_mask	mask	longitudinal T1w	anat	NIfTI					
@@ -163,7 +162,6 @@ space-symtemplate_desc-brain_T1w	T1w	symmetric template	anat	NIfTI				Yes
 desc-brain_T1w	T1w	T1w	anat	NIfTI				Yes	
 desc-head_T1w	T1w	T1w	anat	NIfTI					
 desc-preproc_T1w	T1w	T1w	anat	NIfTI					
-space-longitudinal_desc-brain_T1w	T1w	longitudinal T1w	anat	NIfTI					
 desc-reorient_T1w	T1w	T1w	anat	NIfTI				Yes	
 desc-restore_T1w	T1w	T1w	anat	NIfTI					
 desc-restore-brain_T1w	T1w	T1w	anat	NIfTI					
@@ -264,7 +262,6 @@ hemi-L_space-native_veryinflated	surface_derived		func	GIFTI surf
 hemi-R_space-native_veryinflated	surface_derived		func	GIFTI surf					
 hemi-L_space-fsLR_den-164k_midthickness	surface_derived		func	GIFTI surf					
 hemi-R_space-fsLR_den-164k_midthickness	surface_derived		func	GIFTI surf					
-hemi-L_space-fsLR_den-32k_midthickness	surface_derived		func	GIFTI surf					
 hemi-L_space-fsLR_den-32k_midthickness	surface_derived		func	GIFTI surf					
 hemi-L_space-native_midthickness	surface_derived		func	GIFTI surf					
 hemi-R_space-native_midthickness	surface_derived		func	GIFTI surf					
