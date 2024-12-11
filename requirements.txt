@@ -30,8 +30,8 @@ pybids==0.15.6
 PyPEER @ git+https://git@github.com/ChildMindInstitute/PyPEER.git@6965d2b2bea0fef824e885fec33a8e0e6bd50a97
 python-dateutil==2.8.2
 PyYAML==6.0
-requests==2.31.0
-scikit-learn==1.2.2
+requests==2.32.0
+scikit-learn==1.5.0
 scipy==1.11.1
 sdcflows==2.4.0
 semver==3.0.1
@@ -40,12 +40,12 @@ voluptuous==0.13.1
 # the below are pinned specifically to match what the FSL installer installs
 botocore==1.31.4
 charset-normalizer==3.1.0
-cryptography==42.0.3
+cryptography==43.0.1
 h5py==3.8.0
 importlib-metadata==6.8.0
 lxml==4.9.2
 pip==23.3
-setuptools==68.0.0
+setuptools==70.0.0
 urllib3==1.26.18
 wheel==0.40.0
-zipp==3.16.0
+zipp==3.19.1

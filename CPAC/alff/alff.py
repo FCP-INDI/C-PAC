@@ -1,18 +1,36 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2012-2024  C-PAC Developers
 
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 import os
-from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+
 from nipype.interfaces.afni import preprocess
 import nipype.interfaces.utility as util
+
 from CPAC.alff.utils import get_opt_string
-from CPAC.utils.utils import check_prov_for_regtool
+from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.registration.registration import apply_transform
+from CPAC.utils.interfaces import Function
+from CPAC.utils.utils import check_prov_for_regtool
 
 
-def create_alff(wf_name='alff_workflow'):
+def create_alff(wf_name="alff_workflow"):
     """
-    Calculate Amplitude of low frequency oscillations (ALFF) and fractional ALFF maps
+    Calculate Amplitude of low frequency oscillations (ALFF) and fractional ALFF maps.
 
     Parameters
     ----------
@@ -26,7 +44,7 @@ def create_alff(wf_name='alff_workflow'):
 
     Notes
     -----
-    `Source <https://github.com/FCP-INDI/C-PAC/blob/master/CPAC/alff/alff.py>`_
+    `Source <https://github.com/FCP-INDI/C-PAC/blob/main/CPAC/alff/alff.py>`_
 
     Workflow Inputs::
 
@@ -139,12 +157,10 @@ def create_alff(wf_name='alff_workflow'):
 
     References
     ----------
-
     .. [1] Zou, Q.-H., Zhu, C.-Z., Yang, Y., Zuo, X.-N., Long, X.-Y., Cao, Q.-J., Wang, Y.-F., et al. (2008). An improved approach to detection of amplitude of low-frequency fluctuation (ALFF) for resting-state fMRI: fractional ALFF. Journal of neuroscience methods, 172(1), 137-41. doi:10.10
 
     Examples
     --------
-
     >>> alff_w = create_alff()
     >>> alff_w.inputs.hp_input.hp = [0.01]
     >>> alff_w.inputs.lp_input.lp = [0.1]
@@ -154,90 +170,89 @@ def create_alff(wf_name='alff_workflow'):
     >>> alff_w.inputs.inputspec.rest_mask= '/home/data/subject/func/rest_mask.nii.gz'
     >>> alff_w.run() # doctest: +SKIP
     """
-
     wf = pe.Workflow(name=wf_name)
-    input_node = pe.Node(util.IdentityInterface(fields=['rest_res',
-                                                        'rest_mask']),
-                         name='inputspec')
+    input_node = pe.Node(
+        util.IdentityInterface(fields=["rest_res", "rest_mask"]), name="inputspec"
+    )
 
-    input_node_hp = pe.Node(util.IdentityInterface(fields=['hp']),
-                            name='hp_input')
+    input_node_hp = pe.Node(util.IdentityInterface(fields=["hp"]), name="hp_input")
 
-    input_node_lp = pe.Node(util.IdentityInterface(fields=['lp']),
-                            name='lp_input')
+    input_node_lp = pe.Node(util.IdentityInterface(fields=["lp"]), name="lp_input")
 
-    output_node = pe.Node(util.IdentityInterface(fields=['alff_img',
-                                                         'falff_img']),
-                          name='outputspec')
+    output_node = pe.Node(
+        util.IdentityInterface(fields=["alff_img", "falff_img"]), name="outputspec"
+    )
 
     # filtering
-    bandpass = pe.Node(interface=preprocess.Bandpass(),
-                       name='bandpass_filtering')
-    bandpass.inputs.outputtype = 'NIFTI_GZ'
-    bandpass.inputs.out_file = os.path.join(os.path.curdir,
-                                            'residual_filtered.nii.gz')
+    bandpass = pe.Node(interface=preprocess.Bandpass(), name="bandpass_filtering")
+    bandpass.inputs.outputtype = "NIFTI_GZ"
+    bandpass.inputs.out_file = os.path.join(os.path.curdir, "residual_filtered.nii.gz")
 
-    wf.connect(input_node_hp, 'hp', bandpass, 'highpass')
-    wf.connect(input_node_lp, 'lp', bandpass, 'lowpass')
-    wf.connect(input_node, 'rest_res', bandpass, 'in_file')
+    wf.connect(input_node_hp, "hp", bandpass, "highpass")
+    wf.connect(input_node_lp, "lp", bandpass, "lowpass")
+    wf.connect(input_node, "rest_res", bandpass, "in_file")
 
-    get_option_string = pe.Node(util.Function(input_names=['mask'],
-                                              output_names=['option_string'],
-                                              function=get_opt_string),
-                                name='get_option_string')
+    get_option_string = pe.Node(
+        Function(
+            input_names=["mask"],
+            output_names=["option_string"],
+            function=get_opt_string,
+        ),
+        name="get_option_string",
+    )
 
-    wf.connect(input_node, 'rest_mask', get_option_string, 'mask')
+    wf.connect(input_node, "rest_mask", get_option_string, "mask")
 
     # standard deviation over frequency
     try:
         from nipype.interfaces.afni import utils as afni_utils
-        stddev_filtered = pe.Node(interface=afni_utils.TStat(),
-                                  name='stddev_filtered')
+
+        stddev_filtered = pe.Node(interface=afni_utils.TStat(), name="stddev_filtered")
     except ImportError:
-        stddev_filtered = pe.Node(interface=preprocess.TStat(),
-                                  name='stddev_filtered')
+        stddev_filtered = pe.Node(interface=preprocess.TStat(), name="stddev_filtered")
 
-    stddev_filtered.inputs.outputtype = 'NIFTI_GZ'
-    stddev_filtered.inputs.out_file = os.path.join(os.path.curdir,
-                                                   'alff.nii.gz')
+    stddev_filtered.inputs.outputtype = "NIFTI_GZ"
+    stddev_filtered.inputs.out_file = os.path.join(os.path.curdir, "alff.nii.gz")
 
-    wf.connect(bandpass, 'out_file', stddev_filtered, 'in_file')
-    wf.connect(get_option_string, 'option_string', stddev_filtered, 'options')
+    wf.connect(bandpass, "out_file", stddev_filtered, "in_file")
+    wf.connect(get_option_string, "option_string", stddev_filtered, "options")
 
-    wf.connect(stddev_filtered, 'out_file', output_node, 'alff_img')
+    wf.connect(stddev_filtered, "out_file", output_node, "alff_img")
 
     # standard deviation of the unfiltered nuisance corrected image
     try:
-        stddev_unfiltered = pe.Node(interface=afni_utils.TStat(),
-                                    name='stddev_unfiltered')
+        stddev_unfiltered = pe.Node(
+            interface=afni_utils.TStat(), name="stddev_unfiltered"
+        )
     except UnboundLocalError:
-        stddev_unfiltered = pe.Node(interface=preprocess.TStat(),
-                                    name='stddev_unfiltered')
+        stddev_unfiltered = pe.Node(
+            interface=preprocess.TStat(), name="stddev_unfiltered"
+        )
 
-    stddev_unfiltered.inputs.outputtype = 'NIFTI_GZ'
-    stddev_unfiltered.inputs.out_file = os.path.join(os.path.curdir,
-                                                     'residual_3dT.nii.gz')
+    stddev_unfiltered.inputs.outputtype = "NIFTI_GZ"
+    stddev_unfiltered.inputs.out_file = os.path.join(
+        os.path.curdir, "residual_3dT.nii.gz"
+    )
 
-    wf.connect(input_node, 'rest_res', stddev_unfiltered, 'in_file')
-    wf.connect(get_option_string, 'option_string', stddev_unfiltered,
-               'options')
+    wf.connect(input_node, "rest_res", stddev_unfiltered, "in_file")
+    wf.connect(get_option_string, "option_string", stddev_unfiltered, "options")
 
     # falff calculations
     try:
-        falff = pe.Node(interface=afni_utils.Calc(), name='falff')
+        falff = pe.Node(interface=afni_utils.Calc(), name="falff")
     except UnboundLocalError:
-        falff = pe.Node(interface=preprocess.Calc(), name='falff')
+        falff = pe.Node(interface=preprocess.Calc(), name="falff")
 
-    falff.inputs.args = '-float'
-    falff.inputs.expr = '(1.0*bool(a))*((1.0*b)/(1.0*c))'
-    falff.inputs.outputtype = 'NIFTI_GZ'
-    falff.inputs.out_file = os.path.join(os.path.curdir, 'falff.nii.gz')
+    falff.inputs.args = "-float"
+    falff.inputs.expr = "(1.0*bool(a))*((1.0*b)/(1.0*c))"
+    falff.inputs.outputtype = "NIFTI_GZ"
+    falff.inputs.out_file = os.path.join(os.path.curdir, "falff.nii.gz")
 
-    wf.connect(input_node, 'rest_mask', falff, 'in_file_a')
-    wf.connect(stddev_filtered, 'out_file', falff, 'in_file_b')
-    wf.connect(stddev_unfiltered, 'out_file', falff, 'in_file_c')
+    wf.connect(input_node, "rest_mask", falff, "in_file_a")
+    wf.connect(stddev_filtered, "out_file", falff, "in_file_b")
+    wf.connect(stddev_unfiltered, "out_file", falff, "in_file_c")
 
-    wf.connect(falff, 'out_file', output_node, 'falff_img')
+    wf.connect(falff, "out_file", output_node, "falff_img")
 
     return wf
 
@@ -255,26 +270,22 @@ def create_alff(wf_name='alff_workflow'):
     outputs=["alff", "falff"],
 )
 def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
+    alff = create_alff(f"alff_falff_{pipe_num}")
 
-    alff = create_alff(f'alff_falff_{pipe_num}')
+    alff.inputs.hp_input.hp = cfg.amplitude_low_frequency_fluctuation["highpass_cutoff"]
+    alff.inputs.lp_input.lp = cfg.amplitude_low_frequency_fluctuation["lowpass_cutoff"]
+    alff.get_node("hp_input").iterables = ("hp", alff.inputs.hp_input.hp)
+    alff.get_node("lp_input").iterables = ("lp", alff.inputs.lp_input.lp)
 
-    alff.inputs.hp_input.hp = \
-        cfg.amplitude_low_frequency_fluctuation['highpass_cutoff']
-    alff.inputs.lp_input.lp = \
-        cfg.amplitude_low_frequency_fluctuation['lowpass_cutoff']
-    alff.get_node('hp_input').iterables = ('hp', alff.inputs.hp_input.hp)
-    alff.get_node('lp_input').iterables = ('lp', alff.inputs.lp_input.lp)
+    node, out = strat_pool.get_data(["desc-denoisedNofilt_bold", "desc-preproc_bold"])
+    wf.connect(node, out, alff, "inputspec.rest_res")
 
-    node, out = strat_pool.get_data(["desc-denoisedNofilt_bold",
-                                     "desc-preproc_bold"])
-    wf.connect(node, out, alff, 'inputspec.rest_res')
-
-    node, out = strat_pool.get_data('space-bold_desc-brain_mask')
-    wf.connect(node, out, alff, 'inputspec.rest_mask')
+    node, out = strat_pool.get_data("space-bold_desc-brain_mask")
+    wf.connect(node, out, alff, "inputspec.rest_mask")
 
     outputs = {
-        'alff': (alff, 'outputspec.alff_img'),
-        'falff': (alff, 'outputspec.falff_img')
+        "alff": (alff, "outputspec.alff_img"),
+        "falff": (alff, "outputspec.falff_img"),
     }
 
     return (wf, outputs)
@@ -289,77 +300,94 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
             [
                 "space-template_res-derivative_desc-denoisedNofilt_bold",
                 "space-template_res-derivative_desc-preproc_bold",
-                "space-template_desc-preproc_bold"
+                "space-template_desc-preproc_bold",
             ],
             [
                 "space-template_res-derivative_desc-bold_mask",
-                "space-template_desc-bold_mask"
+                "space-template_desc-bold_mask",
             ],
-            "desc-denoisedNofilt_bold", 
+            "desc-denoisedNofilt_bold",
             "from-bold_to-template_mode-image_xfm",
             "T1w-brain-template-deriv",
         )
     ],
-    outputs=["space-template_alff", "space-template_falff", 
-             "space-template_res-derivative_desc-denoisedNofilt_bold"],
+    outputs=[
+        "space-template_alff",
+        "space-template_falff",
+        "space-template_res-derivative_desc-denoisedNofilt_bold",
+    ],
 )
 def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
-
-    outputs = {}    
+    outputs = {}
     if strat_pool.check_rpool("desc-denoisedNofilt_bold"):
         xfm_prov = strat_pool.get_cpac_provenance(
-            'from-bold_to-template_mode-image_xfm')
+            "from-bold_to-template_mode-image_xfm"
+        )
         reg_tool = check_prov_for_regtool(xfm_prov)
 
-        num_cpus = cfg.pipeline_setup['system_config'][
-            'max_cores_per_participant']
+        num_cpus = cfg.pipeline_setup["system_config"]["max_cores_per_participant"]
 
-        num_ants_cores = cfg.pipeline_setup['system_config']['num_ants_threads']
+        num_ants_cores = cfg.pipeline_setup["system_config"]["num_ants_threads"]
 
-        apply_xfm = apply_transform(f'warp_denoisedNofilt_to_T1template_{pipe_num}', reg_tool,
-                                    time_series=True, num_cpus=num_cpus,
-                                    num_ants_cores=num_ants_cores)
+        apply_xfm = apply_transform(
+            f"warp_denoisedNofilt_to_T1template_{pipe_num}",
+            reg_tool,
+            time_series=True,
+            num_cpus=num_cpus,
+            num_ants_cores=num_ants_cores,
+        )
 
-        if reg_tool == 'ants':
+        if reg_tool == "ants":
             apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
-                'functional_registration']['func_registration_to_template'][
-                'ANTs_pipelines']['interpolation']
-        elif reg_tool == 'fsl':
+                "functional_registration"
+            ]["func_registration_to_template"]["ANTs_pipelines"]["interpolation"]
+        elif reg_tool == "fsl":
             apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
-                'functional_registration']['func_registration_to_template'][
-                'FNIRT_pipelines']['interpolation']
+                "functional_registration"
+            ]["func_registration_to_template"]["FNIRT_pipelines"]["interpolation"]
 
         node, out = strat_pool.get_data("desc-denoisedNofilt_bold")
-        wf.connect(node, out, apply_xfm, 'inputspec.input_image')
+        wf.connect(node, out, apply_xfm, "inputspec.input_image")
 
         node, out = strat_pool.get_data("T1w-brain-template-deriv")
-        wf.connect(node, out, apply_xfm, 'inputspec.reference')
+        wf.connect(node, out, apply_xfm, "inputspec.reference")
 
         node, out = strat_pool.get_data("from-bold_to-template_mode-image_xfm")
-        wf.connect(node, out, apply_xfm, 'inputspec.transform')
+        wf.connect(node, out, apply_xfm, "inputspec.transform")
 
         outputs = {
-            f'space-template_res-derivative_desc-denoisedNofilt_bold': (apply_xfm, 'outputspec.output_image')
+            "space-template_res-derivative_desc-denoisedNofilt_bold": (
+                apply_xfm,
+                "outputspec.output_image",
+            )
         }
-    alff = create_alff(f'alff_falff_{pipe_num}')
+    alff = create_alff(f"alff_falff_{pipe_num}")
 
-    alff.inputs.hp_input.hp = \
-        cfg.amplitude_low_frequency_fluctuation['highpass_cutoff']
-    alff.inputs.lp_input.lp = \
-        cfg.amplitude_low_frequency_fluctuation['lowpass_cutoff']
-    alff.get_node('hp_input').iterables = ('hp', alff.inputs.hp_input.hp)
-    alff.get_node('lp_input').iterables = ('lp', alff.inputs.lp_input.lp)
-    node, out = strat_pool.get_data(["space-template_res-derivative_desc-denoisedNofilt_bold",
-                                     "space-template_res-derivative_desc-preproc_bold",
-                                     "space-template_desc-preproc_bold"])
-    wf.connect(node, out, alff, 'inputspec.rest_res')
-    node, out = strat_pool.get_data(["space-template_res-derivative_desc-bold_mask",
-                                     "space-template_desc-bold_mask"])
-    wf.connect(node, out, alff, 'inputspec.rest_mask')
-    
-    outputs.update({
-        'space-template_alff': (alff, 'outputspec.alff_img'),
-        'space-template_falff': (alff, 'outputspec.falff_img')
-    })
+    alff.inputs.hp_input.hp = cfg.amplitude_low_frequency_fluctuation["highpass_cutoff"]
+    alff.inputs.lp_input.lp = cfg.amplitude_low_frequency_fluctuation["lowpass_cutoff"]
+    alff.get_node("hp_input").iterables = ("hp", alff.inputs.hp_input.hp)
+    alff.get_node("lp_input").iterables = ("lp", alff.inputs.lp_input.lp)
+    node, out = strat_pool.get_data(
+        [
+            "space-template_res-derivative_desc-denoisedNofilt_bold",
+            "space-template_res-derivative_desc-preproc_bold",
+            "space-template_desc-preproc_bold",
+        ]
+    )
+    wf.connect(node, out, alff, "inputspec.rest_res")
+    node, out = strat_pool.get_data(
+        [
+            "space-template_res-derivative_desc-bold_mask",
+            "space-template_desc-bold_mask",
+        ]
+    )
+    wf.connect(node, out, alff, "inputspec.rest_mask")
+
+    outputs.update(
+        {
+            "space-template_alff": (alff, "outputspec.alff_img"),
+            "space-template_falff": (alff, "outputspec.falff_img"),
+        }
+    )
 
     return (wf, outputs)

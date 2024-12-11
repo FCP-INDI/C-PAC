@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 1.8.7.dev1
+# Version 1.8.8.dev1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -11,6 +11,9 @@ pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac-blank-template
+
+  # Desired orientation for the output data. "RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"
+  desired_orientation: RPI
   output_directory:
 
     # Quality control outputs
@@ -352,7 +355,8 @@ anatomical_preproc:
       monkey: Off
 
     FSL-BET:
-      # Swich "On" to crop out neck regions before generating the mask (default: Off).    
+
+      # Switch "On" to crop out neck regions before generating the mask (default: Off).
       Robustfov: Off
 
       # Set the threshold value controling the brain vs non-brain voxels, default is 0.5

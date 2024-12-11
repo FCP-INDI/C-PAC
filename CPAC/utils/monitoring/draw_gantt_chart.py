@@ -39,25 +39,24 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-'''Module to draw an html gantt chart from logfile produced by
+"""Module to draw an html gantt chart from logfile produced by
 ``CPAC.utils.monitoring.log_nodes_cb()``.
 
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.utils.draw_gantt_chart.html
-'''  # noqa: E501
-import random
+"""
 
 from collections import OrderedDict
 from datetime import datetime
+import random
 from warnings import warn
 
-from nipype.utils.draw_gantt_chart import draw_lines, draw_resource_bar, \
-                                          log_to_dict
+from nipype.utils.draw_gantt_chart import draw_lines, draw_resource_bar, log_to_dict
 
 
 def create_event_dict(start_time, nodes_list):
     """
     Function to generate a dictionary of event (start/finish) nodes
-    from the nodes list
+    from the nodes list.
 
     Parameters
     ----------
@@ -72,7 +71,6 @@ def create_event_dict(start_time, nodes_list):
         a dictionary where the key is the timedelta from the start of
         the pipeline execution to the value node it accompanies
     """
-
     # Import packages
     import copy
 
@@ -100,8 +98,7 @@ def create_event_dict(start_time, nodes_list):
 
         # Populate dictionary
         if events.get(start_delta):
-            err_msg = "Event logged twice or events started at exact same " \
-                      "time!"
+            err_msg = "Event logged twice or events started at exact same time!"
             warn(str(KeyError(err_msg)), category=Warning)
         events[start_delta] = start_node
         events[finish_delta] = finish_node
@@ -113,7 +110,7 @@ def create_event_dict(start_time, nodes_list):
 def calculate_resource_timeseries(events, resource):
     """
     Given as event dictionary, calculate the resources used
-    as a timeseries
+    as a timeseries.
 
     Parameters
     ----------
@@ -159,17 +156,15 @@ def calculate_resource_timeseries(events, resource):
     time_series = pd.Series(data=list(res.values()), index=list(res.keys()))
     # Downsample where there is only value-diff
     ts_diff = time_series.diff()
-    time_series = time_series[ts_diff != 0]
+    return time_series[ts_diff != 0]
 
     # Return the new time series
-    return time_series
 
 
-def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes,
-               colors):
+def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes, colors):
     """
     Function to return the html-string of the node drawings for the
-    gantt chart
+    gantt chart.
 
     Parameters
     ----------
@@ -204,8 +199,7 @@ def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes,
     space_between_minutes = space_between_minutes / scale
     end_times = [
         datetime(
-            start.year, start.month, start.day, start.hour, start.minute,
-            start.second
+            start.year, start.month, start.day, start.hour, start.minute, start.second
         )
         for core in range(cores)
     ]
@@ -220,8 +214,7 @@ def draw_nodes(start, nodes_list, cores, minute_scale, space_between_minutes,
             (node_start - start).total_seconds() / 60
         ) * scale * space_between_minutes + 220
         # Scale duration
-        scale_duration = (node["duration"] / 60) * scale \
-            * space_between_minutes
+        scale_duration = (node["duration"] / 60) * scale * space_between_minutes
         if scale_duration < 5:
             scale_duration = 5
         scale_duration -= 2
@@ -325,8 +318,7 @@ def generate_gantt_chart(
     #     plugin_args={'n_procs':8, 'memory':12, 'status_callback': log_nodes_cb})
 
     # generate_gantt_chart('callback.log', 8)
-    """  # noqa: E501
-
+    """
     # add the html header
     html_string = """<!DOCTYPE html>
     <head>
@@ -383,7 +375,7 @@ def generate_gantt_chart(
     <body>
         <div id="content">
             <div style="display:inline-block;">
-    """  # noqa: E501
+    """
 
     close_header = """
     </div>
@@ -392,7 +384,7 @@ def generate_gantt_chart(
         <p><span><div class="label" style="background-color:#03969D;"></div> Actual Resource</span></p>
         <p><span><div class="label" style="background-color:#f00;"></div> Failed Node</span></p>
     </div>
-    """  # noqa: E501
+    """
 
     # Read in json-log to get list of node dicts
     nodes_list = log_to_dict(logfile)
@@ -422,15 +414,12 @@ def generate_gantt_chart(
 
     # Summary strings of workflow at top
     html_string += (
-        "<p>Start: " + start_node["start"].strftime("%Y-%m-%d %H:%M:%S")
-        + "</p>"
+        "<p>Start: " + start_node["start"].strftime("%Y-%m-%d %H:%M:%S") + "</p>"
     )
     html_string += (
-        "<p>Finish: " + last_node["finish"].strftime("%Y-%m-%d %H:%M:%S")
-        + "</p>"
+        "<p>Finish: " + last_node["finish"].strftime("%Y-%m-%d %H:%M:%S") + "</p>"
     )
-    html_string += "<p>Duration: " + "{0:.2f}".format(duration / 60) \
-                   + " minutes</p>"
+    html_string += "<p>Duration: " + f"{duration / 60:.2f}" + " minutes</p>"
     html_string += "<p>Nodes: " + str(len(nodes_list)) + "</p>"
     html_string += "<p>Cores: " + str(cores) + "</p>"
     html_string += close_header
@@ -448,8 +437,7 @@ def generate_gantt_chart(
     )
 
     # Get memory timeseries
-    estimated_mem_ts = calculate_resource_timeseries(
-        events, "estimated_memory_gb")
+    estimated_mem_ts = calculate_resource_timeseries(events, "estimated_memory_gb")
     runtime_mem_ts = calculate_resource_timeseries(events, "runtime_memory_gb")
     # Plot gantt chart
     resource_offset = 120 + 30 * cores
@@ -475,10 +463,8 @@ def generate_gantt_chart(
     )
 
     # Get threads timeseries
-    estimated_threads_ts = calculate_resource_timeseries(
-        events, "estimated_threads")
-    runtime_threads_ts = calculate_resource_timeseries(
-        events, "runtime_threads")
+    estimated_threads_ts = calculate_resource_timeseries(events, "estimated_threads")
+    runtime_threads_ts = calculate_resource_timeseries(events, "runtime_threads")
     # Plot gantt chart
     html_string += draw_resource_bar(
         start_node["start"],
@@ -512,7 +498,7 @@ def generate_gantt_chart(
 
 
 def resource_overusage_report(cblog):
-    '''Function to parse through a callback log for memory and/or
+    """Function to parse through a callback log for memory and/or
     thread usage above estimates / limits.
 
     Parameters
@@ -525,34 +511,47 @@ def resource_overusage_report(cblog):
     text_report: str
 
     excessive: dict
-    '''
+    """
     cb_dict_list = log_to_dict(cblog)
-    excessive = {node['id']: [
-        node['runtime_memory_gb']if node.get('runtime_memory_gb', 0)
-        > node.get('estimated_memory_gb', 1) else None,
-        node['estimated_memory_gb'] if node.get('runtime_memory_gb', 0)
-        > node.get('estimated_memory_gb', 1) else None,
-        node['runtime_threads'] - 1 if node.get('runtime_threads', 0) - 1
-        > node.get('num_threads', 1) else None,
-        node['num_threads'] if node.get('runtime_threads', 0) - 1
-        > node.get('num_threads', 1) else None
-    ] for node in [node for node in cb_dict_list if (
-        node.get('runtime_memory_gb', 0) > node.get('estimated_memory_gb', 1)
-        # or node.get('runtime_threads', 0) - 1 > node.get('num_threads', 1)
-    )]}
-    text_report = ''
+    excessive = {
+        node["id"]: [
+            node["runtime_memory_gb"]
+            if node.get("runtime_memory_gb", 0) > node.get("estimated_memory_gb", 1)
+            else None,
+            node["estimated_memory_gb"]
+            if node.get("runtime_memory_gb", 0) > node.get("estimated_memory_gb", 1)
+            else None,
+            node["runtime_threads"] - 1
+            if node.get("runtime_threads", 0) - 1 > node.get("num_threads", 1)
+            else None,
+            node["num_threads"]
+            if node.get("runtime_threads", 0) - 1 > node.get("num_threads", 1)
+            else None,
+        ]
+        for node in [
+            node
+            for node in cb_dict_list
+            if (
+                node.get("runtime_memory_gb", 0) > node.get("estimated_memory_gb", 1)
+                # or node.get('runtime_threads', 0) - 1 > node.get('num_threads', 1)
+            )
+        ]
+    }
+    text_report = ""
     if excessive:
-        text_report += 'The following nodes used excessive resources:\n'
-        dotted_line = '-' * (len(text_report) - 1) + '\n'
+        text_report += "The following nodes used excessive resources:\n"
+        dotted_line = "-" * (len(text_report) - 1) + "\n"
         text_report += dotted_line
         for node in excessive:
-            node_id = '\n  .'.join(node.split('.'))
-            text_report += f'\n{node_id}\n'
+            node_id = "\n  .".join(node.split("."))
+            text_report += f"\n{node_id}\n"
             if excessive[node][0]:
-                text_report += '      **memory_gb**\n' \
-                               '        runtime > estimated\n' \
-                               f'        {excessive[node][0]} ' \
-                               f'> {excessive[node][1]}\n'
+                text_report += (
+                    "      **memory_gb**\n"
+                    "        runtime > estimated\n"
+                    f"        {excessive[node][0]} "
+                    f"> {excessive[node][1]}\n"
+                )
             # JC: I'm not convinced 'runtime_threads' and 'threads' are
             # comparable in nipype ~1.5.1
             # if excessive[node][2]:
@@ -564,7 +563,7 @@ def resource_overusage_report(cblog):
 
 
 def resource_report(callback_log, num_cores, logger=None):
-    '''Function to attempt to warn any excessive resource usage and
+    """Function to attempt to warn any excessive resource usage and
     generate an interactive HTML chart.
 
     Parameters
@@ -579,17 +578,17 @@ def resource_report(callback_log, num_cores, logger=None):
     Returns
     -------
     None
-    '''
-    e_msg = ''
+    """
+    e_msg = ""
     try:
         txt_report = resource_overusage_report(callback_log)[0]
         if txt_report:
-            with open(callback_log + '.resource_overusage.txt',
-                      'w') as resource_overusage_file:
+            with open(
+                callback_log + ".resource_overusage.txt", "w"
+            ) as resource_overusage_file:
                 resource_overusage_file.write(txt_report)
     except Exception as exception:  # pylint: disable=broad-except
-        e_msg += f'Excessive usage report failed for {callback_log} ' \
-                 f'({str(exception)})\n'
+        e_msg += f"Excessive usage report failed for {callback_log} ({exception!s})\n"
     generate_gantt_chart(callback_log, num_cores)
     if e_msg:
         if logger is not None:
@@ -599,7 +598,7 @@ def resource_report(callback_log, num_cores, logger=None):
 
 
 def _timing(nodes_list):
-    """Covert timestamps from strings to datetimes
+    """Covert timestamps from strings to datetimes.
 
     Parameters
     ----------
@@ -625,8 +624,11 @@ def _timing(nodes_list):
     True
     """
     try:
-        return [_timing_timestamp(node) for node in nodes_list if
-                "start" in node and "finish" in node]
+        return [
+            _timing_timestamp(node)
+            for node in nodes_list
+            if "start" in node and "finish" in node
+        ]
     except ValueError:
         # Drop any problematic nodes
         new_node_list = []
@@ -640,7 +642,7 @@ def _timing(nodes_list):
 
 
 def _timing_timestamp(node):
-    """Convert timestamps in a node from string to datetime
+    """Convert timestamps in a node from string to datetime.
 
     Parameters
     ----------
@@ -651,8 +653,15 @@ def _timing_timestamp(node):
     dict
     """
     if node is None or node.items() is None:
-        raise ProcessLookupError('No logged nodes have timing information.')
-    return {k: (datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%f") if '.' in v else
-                datetime.fromisoformat(v)) if (k in {"start", "finish"} and
-                                               isinstance(v, str)) else
-            v for k, v in node.items()}
+        msg = "No logged nodes have timing information."
+        raise ProcessLookupError(msg)
+    return {
+        k: (
+            datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%f")
+            if "." in v
+            else datetime.fromisoformat(v)
+        )
+        if (k in {"start", "finish"} and isinstance(v, str))
+        else v
+        for k, v in node.items()
+    }

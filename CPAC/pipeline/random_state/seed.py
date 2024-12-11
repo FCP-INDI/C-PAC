@@ -14,8 +14,8 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-'''Functions to set, check, and log random seed'''
-import os
+"""Functions to set, check, and log random seed."""
+
 import random
 
 import numpy as np
@@ -28,11 +28,11 @@ from nipype.interfaces.fsl.utils import ImageMaths
 from CPAC.utils.interfaces.ants import AI
 from CPAC.utils.monitoring.custom_logging import getLogger, set_up_logger
 
-_seed = {'seed': None}
+_seed = {"seed": None}
 
 
 def random_random_seed():
-    '''Returns a random postive integer up to 2147483647
+    """Returns a random postive integer up to 2147483647.
 
     Parameters
     ----------
@@ -46,12 +46,12 @@ def random_random_seed():
     --------
     >>> 0 < random_random_seed() <= np.iinfo(np.int32).max
     True
-    '''
+    """
     return random.randint(1, np.iinfo(np.int32).max)
 
 
 def random_seed():
-    '''Function to access current random seed
+    """Function to access current random seed.
 
     Parameters
     ----------
@@ -60,14 +60,14 @@ def random_seed():
     Returns
     -------
     seed : int or None
-    '''
-    if _seed['seed'] == 'random':
-        _seed['seed'] = random_random_seed()
-    return _seed['seed']
+    """
+    if _seed["seed"] == "random":
+        _seed["seed"] = random_random_seed()
+    return _seed["seed"]
 
 
 def random_seed_flags():
-    '''Function to return dictionary of flags with current random seed.
+    """Function to return dictionary of flags with current random seed.
 
     Parameters
     ----------
@@ -105,20 +105,21 @@ def random_seed_flags():
     >>> all([isinstance(random_seed_flags()[key], dict) for key in [
     ...     'functions', 'interfaces']])
     True
-    '''
+    """
     from CPAC.registration.utils import hardcoded_reg
+
     seed = random_seed()
     if seed is None:
-        return {'functions': {}, 'interfaces': {}}
+        return {"functions": {}, "interfaces": {}}
     return {
-        'functions': {
+        "functions": {
             # function: lambda function to apply to function source
             hardcoded_reg: lambda fn_string: fn_string.replace(
                 'regcmd = ["antsRegistration"]',
-                f'regcmd = ["antsRegistration", "--random-seed", \"{seed}\"]'
+                f'regcmd = ["antsRegistration", "--random-seed", "{seed}"]',
             )
         },
-        'interfaces': {
+        "interfaces": {
             # interface: [flags to apply]
             # OR
             # interface: ([flags to apply], [flags to remove])
@@ -129,31 +130,33 @@ def random_seed_flags():
             #       constant seed number," so for Atropos nodes, the built-in
             #       Atropos constant seed is used if a seed is specified for
             #       C-PAC
-            AI: _reusable_flags()['ANTs'],
-            Registration: _reusable_flags()['ANTs'],
-            Atropos: (['--use-random-seed 0'],
-                      [flag for one in ['', ' 1'] for flag in
-                      [f'--use-random-seed{one}', f'-r{one}']]),
+            AI: _reusable_flags()["ANTs"],
+            Registration: _reusable_flags()["ANTs"],
+            Atropos: (
+                ["--use-random-seed 0"],
+                [
+                    flag
+                    for one in ["", " 1"]
+                    for flag in [f"--use-random-seed{one}", f"-r{one}"]
+                ],
+            ),
             # FreeSurfer
-            ReconAll: ['-norandomness', f'-rng-seed {seed}'],
-            ApplyVolTransform: [f'--seed {seed}'],
+            ReconAll: ["-norandomness", f"-rng-seed {seed}"],
+            ApplyVolTransform: [f"--seed {seed}"],
             # FSL
-            ImageMaths: _reusable_flags()['FSL'],
-            MathsCommand: _reusable_flags()['FSL']
-        }
+            ImageMaths: _reusable_flags()["FSL"],
+            MathsCommand: _reusable_flags()["FSL"],
+        },
     }
 
 
 def _reusable_flags():
     seed = random_seed()
-    return {
-        'ANTs': [f'--random-seed {seed}'],
-        'FSL': [f'-seed {seed}']
-    }
+    return {"ANTs": [f"--random-seed {seed}"], "FSL": [f"-seed {seed}"]}
 
 
 def set_up_random_state(seed):
-    '''Set global random seed
+    """Set global random seed.
 
     Parameters
     ----------
@@ -177,28 +180,31 @@ def set_up_random_state(seed):
     ValueError: Valid random seeds are positive integers up to 2147483647, "random", or None, not 0
     >>> set_up_random_state(None)
 
-    '''  # noqa: E501  # pylint: disable=line-too-long
+    """  # pylint: disable=line-too-long
     if seed is not None:
-        if seed == 'random':
+        if seed == "random":
             seed = random_random_seed()
         else:
             try:
                 seed = int(seed)
                 assert 0 < seed <= np.iinfo(np.int32).max
-            except(ValueError, TypeError, AssertionError):
-                raise ValueError('Valid random seeds are positive integers up to '
-                                    f'2147483647, "random", or None, not {seed}')
-    
-    _seed['seed'] = seed
+            except (ValueError, TypeError, AssertionError):
+                msg = (
+                    "Valid random seeds are positive integers up to "
+                    f'2147483647, "random", or None, not {seed}'
+                )
+                raise ValueError(msg)
+
+    _seed["seed"] = seed
     return random_seed()
 
 
 def set_up_random_state_logger(log_dir):
-    '''Prepare C-PAC for logging random seed use.
+    """Prepare C-PAC for logging random seed use.
 
     Parameters
     ----------
     log_dir : str
-    '''
-    set_up_logger('random', level='info', log_dir=log_dir, mock=True)
-    getLogger('random').info('seed: %s', random_seed())
+    """
+    set_up_logger("random", level="info", log_dir=log_dir, mock=True)
+    getLogger("random").info("seed: %s", random_seed())

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (C) 2022  C-PAC Developers
+# Copyright (C) 2022-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -9,4 +9,4 @@
 
 # You should have received a copy of the GNU Lesser General Public License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
-/code/run.py "$@"
+/code/CPAC/_entrypoints/run.py "$@"

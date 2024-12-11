@@ -48,9 +48,12 @@ GitHub Actions will push [`release-${TAG}` and its variants](https://hub.docker.
 
 We currently have one main and 3 variant images:
 
+* `lite`: same dependency versions as main image without FreeSurfer (smaller image)
+
+### Last updated in v1.8.7
+
 * `ABCD-HCP`: dependency versions matched to [ABCD-HCP BIDS fMRI Pipeline](https://github.com/DCAN-Labs/abcd-hcp-pipeline/releases/tag/v0.1.1) versions
 * `fMRIPrep-LTS`: dependency versions matched to [fMRIPrep Long-term support](https://reproducibility.stanford.edu/fmriprep-lts/) versions
-* `lite`: same dependency versions as main image without FreeSurfer (smaller image)
 
 To save time building Docker images, our continuous integration is set up to build and [store staging images](https://github.com/FCP-INDI?tab=packages&repo_name=C-PAC) independent of changes to C-PAC itself. Images are rebuilt when their Dockerfile changes on a Git branch.
 

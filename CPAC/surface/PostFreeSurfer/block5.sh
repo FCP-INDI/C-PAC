@@ -123,7 +123,7 @@ for Hemisphere in L R ; do
 		hemisphere="r"
 		Structure="CORTEX_RIGHT"
 	fi
-	
+
 cd ${StudyFolder}
 
 STRINGII=""
