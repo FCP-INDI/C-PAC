@@ -1,4 +1,4 @@
-FROM ghcr.io/fcp-indi/c-pac/stage-base:fmriprep-lts-v1.8.7.post1.dev3.dev3.dev3
+FROM ghcr.io/fcp-indi/c-pac/stage-base:fmriprep-lts-v1.8.7.post1.dev3
 LABEL org.opencontainers.image.description "Full C-PAC image with software dependencies version-matched to [fMRIPrep LTS](https://reproducibility.stanford.edu/fmriprep-lts#long-term-support-lts)"
 LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
 USER root
