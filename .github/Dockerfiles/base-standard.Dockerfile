@@ -25,6 +25,10 @@ USER root
 # Installing FreeSurfer
 RUN apt-get update \
     && apt-get install --no-install-recommends -y bc \
+    && if [ ! -e /lib/x86_64-linux-gnu/libcrypt.so.2 ]; then \
+    # until we upgrade to Python >=3.11
+      ln -s /lib/x86_64-linux-gnu/libcrypt.so.1 /lib/x86_64-linux-gnu/libcrypt.so.2; \
+    fi \
     && yes | mamba install tcsh \
     && yes | mamba clean --all \
     && cp -l `which tcsh` /bin/tcsh \
