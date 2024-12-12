@@ -17,7 +17,9 @@
 """C-PAC pipeline engine utilities"""
 from typing import Union
 from itertools import chain
+
 from nipype import logging
+
 from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
 
