@@ -534,19 +534,21 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data('bold')
     wf.connect(node, out, func_deoblique, 'in_file')
 
-    func_reorient = pe.Node(interface=afni_utils.Resample(),
-                            name=f'func_reorient_{pipe_num}',
-                            mem_gb=0,
-                            mem_x=(0.0115, 'in_file', 't'))
+    func_reorient = pe.Node(
+        interface=afni_utils.Resample(),
+        name=f"func_reorient_{pipe_num}",
+        mem_gb=0,
+        mem_x=(0.0115, "in_file", "t"),
+    )
 
-    func_reorient.inputs.orientation = 'RPI'
-    func_reorient.inputs.outputtype = 'NIFTI_GZ'
+    func_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
+    func_reorient.inputs.outputtype = "NIFTI_GZ"
 
-    wf.connect(func_deoblique, 'out_file', func_reorient, 'in_file')
+    wf.connect(func_deoblique, "out_file", func_reorient, "in_file")
 
     outputs = {
-        'desc-preproc_bold': (func_reorient, 'out_file'),
-        'desc-reorient_bold': (func_reorient, 'out_file')
+        "desc-preproc_bold": (func_reorient, "out_file"),
+        "desc-reorient_bold": (func_reorient, "out_file"),
     }
 
     return (wf, outputs)
@@ -1129,8 +1131,8 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
                             mem_gb=0,
                             mem_x=(0.0115, 'in_file', 't'))
 
-    func_reorient.inputs.orientation = 'RPI'
-    func_reorient.inputs.outputtype = 'NIFTI_GZ'
+    func_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
+    func_reorient.inputs.outputtype = "NIFTI_GZ"
 
     wf.connect(func_deoblique, 'out_file',
                func_reorient, 'in_file')

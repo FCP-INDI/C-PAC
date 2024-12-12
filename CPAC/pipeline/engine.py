@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2023  C-PAC Developers
+# Copyright (C) 2021-2024  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -25,18 +25,22 @@ import re
 from typing import Any, Optional, Union
 import warnings
 
-
 from CPAC.pipeline import \
     nipype_pipeline_engine as pe  # pylint: disable=ungrouped-imports
 from nipype import config, logging  # pylint: disable=wrong-import-order
 from CPAC.pipeline.nodeblock import NodeBlockFunction  # pylint: disable=ungrouped-imports
+from nipype.interfaces import afni
 from nipype.interfaces.utility import \
     Rename  # pylint: disable=wrong-import-order
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
-from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set
+from CPAC.pipeline.utils import (
+    MOVEMENT_FILTER_KEYS,
+    name_fork,
+    source_set,
+)
 from CPAC.registration.registration import transform_derivative
 from CPAC.utils.bids_utils import res_in_filename
 from CPAC.utils.datasource import (
@@ -58,7 +62,6 @@ from CPAC.utils.utils import check_prov_for_regtool, \
 from CPAC.resources.templates.lookup_table import lookup_identifier
 
 logger = getLogger('nipype.workflow')
-
 
 class ResourcePool:
     def __init__(self, rpool=None, name=None, cfg=None, pipe_list=None):
@@ -1713,7 +1716,6 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
-
     if 'anat' not in data_paths:
         print('No anatomical data present.')
         return rpool
@@ -1737,8 +1739,7 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
             dl_dir=cfg.pipeline_setup['working_directory']['path'],
             img_type='anat'
         )
-        rpool.set_data('T1w', anat_flow, 'outputspec.anat', {},
-                    "", "anat_ingress")
+        rpool.set_data("T1w", anat_flow, "outputspec.anat", {}, "", "anat_ingress")
     
     if 'T2w' in data_paths['anat']: 
         anat_flow_T2 = create_anat_datasource(f'anat_T2w_gather_{part_id}_{ses_id}')
@@ -1749,8 +1750,7 @@ def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
             dl_dir=cfg.pipeline_setup['working_directory']['path'],
             img_type='anat'
         )
-        rpool.set_data('T2w', anat_flow_T2, 'outputspec.anat', {},
-                    "", "anat_ingress")
+        rpool.set_data("T2w", anat_flow_T2, "outputspec.anat", {}, "", "anat_ingress")
 
     if cfg.surface_analysis['freesurfer']['ingress_reconall']:
         rpool = ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
@@ -1792,8 +1792,14 @@ def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id,
         data=fs_path,
         creds_path=data_paths['creds_path'],
         dl_dir=cfg.pipeline_setup['working_directory']['path'])
-    rpool.set_data("freesurfer-subject-dir", fs_ingress, 'outputspec.data',
-                    {}, "", "freesurfer_config_ingress")
+    rpool.set_data(
+        "freesurfer-subject-dir",
+        fs_ingress,
+        "outputspec.data",
+        {},
+        "",
+        "freesurfer_config_ingress",
+    )
 
     recon_outs = {
         'pipeline-fs_raw-average': 'mri/rawavg.mgz',
@@ -2159,17 +2165,17 @@ def strip_template(data_label, dir_path, filename):
     return data_label, json
 
 
-def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
+def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
     # ingress config file paths
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
 
-    import pkg_resources as p
     import pandas as pd
-    import ast
+    import pkg_resources as p
 
     template_csv = p.resource_filename('CPAC', 'resources/cpac_templates.csv')
     template_df = pd.read_csv(template_csv, keep_default_na=False)
-    
+    desired_orientation = cfg.pipeline_setup["desired_orientation"]
+
     for row in template_df.itertuples():
     
         key = row.Key
@@ -2210,42 +2216,57 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
             resolution = cfg.get_nested(cfg, res_keys)
             json_info['Resolution'] = resolution
 
-            resampled_template = pe.Node(Function(input_names=['resolution',
-                                                               'template',
-                                                               'template_name',
-                                                               'tag'],
+            resampled_template = pe.Node(Function(input_names=["orientation",
+                                                               "resolution",
+                                                               "template",
+                                                               "template_name",
+                                                               "tag"],
                                                   output_names=['resampled_template'],
                                                   function=resolve_resolution,
                                                   as_module=True),
                                          name='resampled_' + key)
-
+            resampled_template.inputs.orientation = desired_orientation
             resampled_template.inputs.resolution = resolution
             resampled_template.inputs.template = val
             resampled_template.inputs.template_name = key
             resampled_template.inputs.tag = tag
             
-            # the set_data below is set up a little differently, because we are
-            # injecting and also over-writing already-existing entries
-            #   other alternative would have been to ingress into the
-            #   resampled_template node from the already existing entries, but we
-            #   didn't do that here
-            rpool.set_data(key,
-                           resampled_template,
-                           'resampled_template',
-                           json_info, "",
-                           "template_resample") #, inject=True)   # pipe_idx (after the blank json {}) should be the previous strat that you want deleted! because you're not connecting this the regular way, you have to do it manually
+            node = resampled_template
+            output = "resampled_template"
+            node_name = "template_resample"
 
-        else:
-            if val:
-                config_ingress = create_general_datasource(f'gather_{key}')
-                config_ingress.inputs.inputnode.set(
-                    unique_id=unique_id,
-                    data=val,
-                    creds_path=creds_path,
-                    dl_dir=cfg.pipeline_setup['working_directory']['path']
+        elif val:
+            config_ingress = create_general_datasource(f'gather_{key}')
+            config_ingress.inputs.inputnode.set(
+                unique_id=unique_id,
+                data=val,
+                creds_path=creds_path,
+                dl_dir=cfg.pipeline_setup['working_directory']['path']
+            )
+            node = config_ingress
+            output = "outputspec.data"
+            node_name = f"{key}_config_ingress"
+
+            if val.endswith(".nii" or ".nii.gz"):
+                check_reorient = pe.Node(
+                    interface=afni.Resample(),
+                    name=f"reorient_{key}",
                 )
-                rpool.set_data(key, config_ingress, 'outputspec.data',
-                               json_info, "", f"{key}_config_ingress")
+                check_reorient.inputs.orientation = desired_orientation
+                check_reorient.inputs.outputtype = "NIFTI_GZ"
+                wf.connect(node, output, check_reorient, "in_file")
+                node = check_reorient
+                output = "out_file"
+                node_name = f"{key}_reorient"
+        rpool.set_data(
+            key,
+            node,
+            output,
+            json_info,
+            "",
+            node_name,
+        )
+
     # templates, resampling from config
     '''
     template_keys = [
@@ -2332,7 +2353,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
         cfg.set_nested(cfg, key, node)
     '''
 
-    return rpool
+    return wf, rpool
 
 
 def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
@@ -2392,10 +2413,9 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
                                         part_id, ses_id)
 
     # grab any file paths from the pipeline config YAML
-    rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
+    wf, rpool = ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path)
 
     # output files with 4 different scans
-
     return (wf, rpool)
 
 

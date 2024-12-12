@@ -16,19 +16,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.8.7.post1.dev3] - unreleased
 
+### Added
+
+- `desired_orientation` key in participant-level pipeline config under `pipeline_setup`.
+- Required positional parameter "wf" in input and output of `ingress_pipeconfig_paths` function, where a node to reorient templates is added to the `wf`.
+- Required positional parameter "orientation" to `resolve_resolution`.
+- Optional positional argument "cfg" to `create_lesion_preproc`.
+
 ### Changed
 
 - Disabled variant image builds.
+- Made orientation configurable (was hard-coded as "RPI").
 
-### Fixed
+### Removed
 
-- Supplied missing `subject_id` for longitudinal workflow logger and make that field optional for the logger.
+- Variant image recipes.
+  - `ABCD-HCP`
+  - `fMRIPrep-LTS`
+- Typehinting support for Python < 3.10.
 
 ## [1.8.7] - 2024-05-03
 
 ### Added
 
-- `Robustfov` feature in `FSL-BET` to crop images ensuring removal of neck regions that may appear in the skull-stripped images. 
+- `Robustfov` feature in `FSL-BET` to crop images ensuring removal of neck regions that may appear in the skull-stripped images.
 - Ability to throttle nodes, estimating all available memory when threading.
 - Ability to configure FreeSurfer ingress from the command line.
 
@@ -255,7 +266,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - In a given pipeline configuration, segmentation probability maps and binary tissue masks are warped to template space, and those warped masks are included in the output directory
   - if `registration_workflows['functional_registration']['EPI_registration']['run segmentation']` is `On` and `segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']` includes `EPI_Template`
-  
+
     and/or
   - if `registration_workflows['anatomical_registration']['run']` is `On` and `segmentation['tissue_segmentation']['Template_Based']['template_for_segmentation']` includes `T1_Template`
 - Renamed connectivity matrices from `*_connectome.tsv` to `*_correlations.tsv`
