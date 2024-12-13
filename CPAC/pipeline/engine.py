@@ -36,11 +36,7 @@ from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import z_score_standardize, \
     fisher_z_score_standardize
 from CPAC.pipeline.check_outputs import ExpectedOutputs
-from CPAC.pipeline.utils import (
-    MOVEMENT_FILTER_KEYS,
-    name_fork,
-    source_set,
-)
+from CPAC.pipeline.utils import MOVEMENT_FILTER_KEYS, name_fork, source_set, validate_outputs
 from CPAC.registration.registration import transform_derivative
 from CPAC.utils.bids_utils import res_in_filename
 from CPAC.utils.datasource import (
@@ -62,6 +58,7 @@ from CPAC.utils.utils import check_prov_for_regtool, \
 from CPAC.resources.templates.lookup_table import lookup_identifier
 
 logger = getLogger('nipype.workflow')
+
 
 class ResourcePool:
     def __init__(self, rpool=None, name=None, cfg=None, pipe_list=None):
@@ -1235,6 +1232,7 @@ class ResourcePool:
                 write_json.inputs.json_data = json_info
 
                 wf.connect(id_string, 'out_filename', write_json, 'filename')
+
                 ds = pe.Node(DataSink(), name=f'sinker_{resource_idx}_'
                                               f'{pipe_x}')
                 ds.inputs.parameterization = False
@@ -1251,8 +1249,33 @@ class ResourcePool:
                     self.cfg, unique_id, resource_idx,
                     template_desc=id_string.inputs.template_desc,
                     atlas_id=atlas_id, subdir=out_dct['subdir']))
-                wf.connect(nii_name, 'out_file',
-                           ds, f'{out_dct["subdir"]}.@data')
+                if resource.endswith("_bold"):
+                    # Node to validate TR (and other scan parameters)
+                    validate_bold_header = pe.Node(
+                        Function(
+                            input_names=["input_bold", "RawSource_bold"],
+                            output_names=["output_bold"],
+                            function=validate_outputs,
+                            imports=[
+                                "from CPAC.pipeline.utils import find_pixdim4, update_pixdim4"
+                            ],
+                        ),
+                        name=f"validate_bold_header_{resource_idx}_{pipe_x}",
+                    )
+                    raw_source, raw_out = self.get_data("bold")
+                    wf.connect([
+                                (nii_name, validate_bold_header, [
+                                    (out, "input_bold")
+                                ]),
+                                (raw_source, validate_bold_header, [
+                                    (raw_out, "RawSource_bold")
+                                ]),
+                                (validate_bold_header, ds, [
+                                    ("output_bold", f'{out_dct["subdir"]}.@data')
+                                ])
+                            ])
+                else:
+                    wf.connect(nii_name, "out_file", ds, f'{out_dct["subdir"]}.@data')
                 wf.connect(write_json, 'json_file',
                            ds, f'{out_dct["subdir"]}.@json')
         outputs_logger.info(expected_outputs)
@@ -1716,6 +1739,7 @@ def wrap_block(node_blocks, interface, wf, cfg, strat_pool, pipe_num, opt):
 
 def ingress_raw_anat_data(wf, rpool, cfg, data_paths, unique_id, part_id,
                           ses_id):
+
     if 'anat' not in data_paths:
         print('No anatomical data present.')
         return rpool
@@ -2169,8 +2193,8 @@ def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
     # ingress config file paths
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
 
-    import pandas as pd
     import pkg_resources as p
+    import pandas as pd
 
     template_csv = p.resource_filename('CPAC', 'resources/cpac_templates.csv')
     template_df = pd.read_csv(template_csv, keep_default_na=False)
