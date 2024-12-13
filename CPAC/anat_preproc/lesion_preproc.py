@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from nipype.interfaces import afni
+from nipype.interfaces import afni, utility as util
 from CPAC.pipeline import nipype_pipeline_engine as pe
-import nipype.interfaces.utility as util
 
 
 def inverse_lesion(lesion_path):
@@ -40,9 +39,9 @@ def inverse_lesion(lesion_path):
         return lesion_out
 
 
-def create_lesion_preproc(wf_name='lesion_preproc'):
-    """
-    The main purpose of this workflow is to process lesions masks.
+def create_lesion_preproc(cfg=None, wf_name="lesion_preproc"):
+    """Process lesions masks.
+
     Lesion mask file is deobliqued and reoriented in the same way as the T1 in
     the anat_preproc function.
 
@@ -116,8 +115,10 @@ def create_lesion_preproc(wf_name='lesion_preproc'):
                               mem_gb=0,
                               mem_x=(0.0115, 'in_file', 't'))
 
-    lesion_reorient.inputs.orientation = 'RPI'
-    lesion_reorient.inputs.outputtype = 'NIFTI_GZ'
+    lesion_reorient.inputs.orientation = (
+        cfg.pipeline_setup["desired_orientation"] if cfg else "RPI"
+    )
+    lesion_reorient.inputs.outputtype = "NIFTI_GZ"
 
     preproc.connect(
         lesion_deoblique, 'out_file', lesion_reorient,

@@ -21,16 +21,16 @@ from CPAC.pipeline import ALL_PIPELINE_CONFIGS
 from CPAC.pipeline.engine import ingress_pipeconfig_paths, ResourcePool
 from CPAC.utils.configuration import Preconfiguration
 from CPAC.utils.datasource import get_highest_local_res
+import nipype.pipeline.engine as pe
 
 
 @pytest.mark.parametrize('pipeline', ALL_PIPELINE_CONFIGS)
 def test_packaged_path_exists(pipeline):
-    """
-    Check that all local templates are included in image at at
-    least one resolution
-    """
-    rpool = ingress_pipeconfig_paths(Preconfiguration(pipeline),
-                                     ResourcePool(), 'pytest')
+    """Check that all local templates are included in image at least one resolution."""
+    wf = pe.Workflow(name="test")
+    wf, rpool = ingress_pipeconfig_paths(
+        wf, Preconfiguration(pipeline), ResourcePool(), "pytest"
+    )
     for resource in rpool.rpool.values():
         node = list(resource.values())[0].get('data')[0]
         if hasattr(node.inputs, 'template'
