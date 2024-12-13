@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disabled variant image builds.
 - Made orientation configurable (was hard-coded as "RPI").
 
+### Fixed
+
+- Restored `bids-validator` functionality.
+
 ### Removed
 
 - Variant image recipes.

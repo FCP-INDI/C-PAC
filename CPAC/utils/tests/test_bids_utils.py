@@ -1,5 +1,7 @@
 """Tests for bids_utils"""
 import os
+from subprocess import run
+
 import pytest
 import yaml
 from CPAC.utils.bids_utils import bids_gen_cpac_sublist, \
@@ -45,7 +47,12 @@ def create_sample_bids_structure(root_dir):
             ])), 'w')
 
 
-@pytest.mark.parametrize('only_one_anat', [True, False])
+def test_bids_validator() -> None:
+    """Test subprocess call to `bids-validator`."""
+    run(["bids-validator", "--version"], check=True)
+
+
+@pytest.mark.parametrize("only_one_anat", [True, False])
 def test_create_cpac_data_config_only_one_anat(tmp_path, only_one_anat):
     """Function to test 'only_one_anat' parameter of
     'create_cpac_data_config' function"""
