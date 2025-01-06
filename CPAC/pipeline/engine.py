@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2024  C-PAC Developers
+# Copyright (C) 2021-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -17,6 +17,7 @@
 import ast
 import copy
 import hashlib
+from importlib.resources import files
 from itertools import chain
 import json
 import os
@@ -24,6 +25,7 @@ import re
 from typing import Optional
 import warnings
 
+import pandas as pd
 from nipype import config, logging
 from nipype.interfaces import afni
 from nipype.interfaces.utility import Rename
@@ -2408,15 +2410,17 @@ def strip_template(data_label, dir_path, filename):
     return data_label, json
 
 
+def template_dataframe() -> pd.DataFrame:
+    """Return the template dataframe."""
+    template_csv = files("CPAC").joinpath("resources/cpac_templates.csv")
+    return pd.read_csv(str(template_csv), keep_default_na=False)
+
+
 def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
     # ingress config file paths
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
 
-    import pandas as pd
-    import pkg_resources as p
-
-    template_csv = p.resource_filename("CPAC", "resources/cpac_templates.csv")
-    template_df = pd.read_csv(template_csv, keep_default_na=False)
+    template_df = template_dataframe()
     desired_orientation = cfg.pipeline_setup["desired_orientation"]
 
     for row in template_df.itertuples():
