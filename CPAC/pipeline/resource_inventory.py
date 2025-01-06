@@ -17,6 +17,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Inspect inputs and outputs for NodeBlockFunctions."""
 
+from argparse import ArgumentParser, Namespace
 import ast
 from dataclasses import dataclass, field
 import importlib
@@ -24,6 +25,7 @@ from importlib.resources import files
 import inspect
 from itertools import chain
 import os
+from pathlib import Path
 from typing import Any, cast, Iterable
 
 import yaml
@@ -181,6 +183,22 @@ class ResourceIO:
         }
 
 
+def cli_parser() -> Namespace:
+    """Parse command line argument."""
+    parser = ArgumentParser(
+        description="Inventory resources for C-PAC NodeBlockFunctions."
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        nargs="?",
+        help="The output file to write the inventory to.",
+        type=Path,
+        default=Path("resource_inventory.yaml"),
+    )
+    return parser.parse_args()
+
+
 def _flatten_io(io: list[Iterable]) -> list[str]:
     """Given a list of strings or iterables thereof, flatten the list to all strings."""
     if all(isinstance(resource, str) for resource in io):
@@ -292,8 +310,10 @@ def dump_inventory_to_yaml(inventory: dict[str, ResourceIO]) -> str:
 
 
 def main() -> None:
-    """Print the NodeBlock IO to the console."""
-    UTLOGGER.info(dump_inventory_to_yaml(resource_inventory("CPAC")))  # noqa: T201
+    """Save the NodeBlock inventory to a file."""
+    args = cli_parser()
+    with args.output.open("w") as file:
+        file.write(dump_inventory_to_yaml(resource_inventory("CPAC")))
 
 
 if __name__ == "__main__":
