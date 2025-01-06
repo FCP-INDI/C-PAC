@@ -87,7 +87,7 @@ def main(**extra_args):
         entry_points={
             "console_scripts": [
                 "cpac = CPAC.__main__:main",
-                "C-PAC_nb_io = CPAC.pipeline.nb_io:main",
+                "resource_inventory = CPAC.pipeline.resource_inventory:main",
             ]
         },
         package_data={
