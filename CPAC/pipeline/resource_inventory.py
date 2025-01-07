@@ -17,7 +17,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Inspect inputs and outputs for NodeBlockFunctions."""
 
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace
 import ast
 from dataclasses import dataclass, field
 import importlib
@@ -186,7 +186,8 @@ class ResourceIO:
 def cli_parser() -> Namespace:
     """Parse command line argument."""
     parser = ArgumentParser(
-        description="Inventory resources for C-PAC NodeBlockFunctions."
+        description="Inventory resources for C-PAC NodeBlockFunctions.",
+        formatter_class=ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "-o",
