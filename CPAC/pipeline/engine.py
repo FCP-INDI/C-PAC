@@ -420,10 +420,12 @@ class ResourcePool:
             if report_fetched:
                 return (None, None)
             return None
+        from CPAC.pipeline.resource_inventory import where_to_find
+
         msg = (
             "\n\n[!] C-PAC says: None of the listed resources are in "
-            f"the resource pool:\n\n  {resource}\n\nOptions:\n- You "
-            "can enable a node block earlier in the pipeline which "
+            f"the resource pool:\n\n  {where_to_find(resource)}\n\nOptions:\n"
+            "- You can enable a node block earlier in the pipeline which "
             "produces these resources. Check the 'outputs:' field in "
             "a node block's documentation.\n- You can directly "
             "provide this required data by pulling it from another "
@@ -458,7 +460,9 @@ class ResourcePool:
         try:
             self.rpool[new_name] = self.rpool[resource]
         except KeyError:
-            msg = f"[!] {resource} not in the resource pool."
+            from CPAC.pipeline.resource_inventory import where_to_find
+
+            msg = f"[!] Not in the resource pool:\n{where_to_find(resource)}"
             raise Exception(msg)
 
     def update_resource(self, resource, new_name):
@@ -630,11 +634,13 @@ class ResourcePool:
             total_pool.append(sub_pool)
 
         if not total_pool:
+            from CPAC.pipeline.resource_inventory import where_to_find
+
             raise LookupError(
                 "\n\n[!] C-PAC says: None of the listed "
                 "resources in the node block being connected "
                 "exist in the resource pool.\n\nResources:\n"
-                "%s\n\n" % resource_list
+                "%s\n\n" % where_to_find(resource_list)
             )
 
         # TODO: right now total_pool is:
