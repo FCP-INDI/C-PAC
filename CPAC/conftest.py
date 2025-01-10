@@ -27,7 +27,7 @@ import pytest
 def bids_examples(tmp_path_factory: TempPathFactory) -> Path:
     """Get the BIDS examples dataset."""
     example_dir = tmp_path_factory.mktemp("bids-examples")
-    if not example_dir.exists():
+    if not example_dir.exists() or not any(example_dir.iterdir()):
         Repo.clone_from(
             "https://github.com/bids-standard/bids-examples.git", str(example_dir)
         )

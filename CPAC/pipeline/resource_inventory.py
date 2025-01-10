@@ -649,7 +649,7 @@ def where_to_find(resources: list[str] | str) -> str:
     inventory = resource_inventory("CPAC")
     output = ""
     for resource in resources:
-        output += f"'{resource}' is output from:\n"
+        output += f"'{resource}' can be output from:\n"
         if resource in inventory:
             for source in inventory[resource].output_from:
                 output += f"  {source}\n"
