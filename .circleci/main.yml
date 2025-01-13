@@ -48,7 +48,7 @@ commands:
             sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 78BD65473CB3BD13
             curl -L https://packagecloud.io/circleci/trusty/gpgkey | sudo apt-key add -
             sudo apt-get update
-            sudo apt-get install git -y
+            sudo apt-get install git openssh-client -y
             git config --global user.email "CMI_CPAC_Support@childmind.org"
             git config --global user.name "Theodore (machine user) @ CircleCI"
   create-docker-test-container:
@@ -64,11 +64,6 @@ commands:
             mkdir -p ~/project/test-results
             docker pull ${DOCKER_TAG}
             docker run -v /etc/passwd:/etc/passwd --user=$(id -u):c-pac -dit -P -e COVERAGE_FILE=<< parameters.coverage-file >> -v /home/circleci/project/test-results:/code/test-results -v /home/circleci:/home/circleci -v /home/circleci/project/CPAC/resources/configs/test_configs:/test_configs -v $PWD:/code -v $PWD/dev/circleci_data:$PWD/dev/circleci_data --workdir=/home/circleci/project --entrypoint=/bin/bash --name docker_test ${DOCKER_TAG}
-  get-sample-bids-data:
-    steps:
-      - run:
-          name: Getting Sample BIDS Data
-          command: git clone https://github.com/bids-standard/bids-examples.git
   get-singularity:
     parameters:
       version:
@@ -231,7 +226,6 @@ jobs:
       - set-up-variant:
           variant: "<< parameters.variant >>"
       - set-python-version
-      - get-sample-bids-data
       - run-pytest-docker
       - store_test_results:
           path: test-results
