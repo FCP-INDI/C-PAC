@@ -94,8 +94,9 @@ class ResourceSourceList:
     def __add__(self, other: "str | list[str] | ResourceSourceList") -> list[str]:
         """Add a list of sources to the list."""
         if isinstance(other, str):
-            if not other:
-                other = "(dummy node)"
+            if not other or other == "created_before_this_test":
+                # dummy node in a testing function, no need to include in inventory
+                return list(self)
             other = [other]
         new_set = {*self.sources, *other}
         return sorted(new_set, key=str.casefold)
