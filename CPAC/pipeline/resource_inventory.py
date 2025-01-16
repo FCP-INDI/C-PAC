@@ -251,8 +251,14 @@ class DirectlySetResources(ast.NodeVisitor):
 
     def assign_resource(self, resource: str, value: str) -> None:
         """Assign a value to a resource."""
-        target = self.dynamic_resources if r".*" in value else self.resources
+        if isinstance(resource, ast.AST):
+            resource = self.parse_ast(resource)
         resource = str(resource)
+        target = (
+            self.dynamic_resources
+            if r".*" in value or r".*" in resource
+            else self.resources
+        )
         if resource not in target:
             target[resource] = ResourceSourceList()
         target[resource] += value
@@ -295,8 +301,8 @@ class DirectlySetResources(ast.NodeVisitor):
             context = MultipleContext(context)
         return context
 
-    @staticmethod
-    def handle_multiple_contexts(contexts: list[str | list[str]]) -> list[str]:
+    # @staticmethod
+    def handle_multiple_contexts(self, contexts: list[str | list[str]]) -> list[str]:
         """Parse multiple contexts."""
         if isinstance(contexts, list):
             return MultipleContext(
@@ -339,12 +345,18 @@ class DirectlySetResources(ast.NodeVisitor):
                 self.parse_ast(key): self.parse_ast(value)
                 for key, value in dict(zip(node.keys, node.values)).items()
             }
-        for attr in ["values", "elts"]:
-            if hasattr(node, attr):
-                return [self.parse_ast(subnode) for subnode in getattr(node, attr)]
-        for attr in ["value", "id"]:
-            if hasattr(node, attr):
-                return self.parse_ast(getattr(node, attr))
+        if not isinstance(node, ast.Call):
+            for attr in ["values", "elts", "args"]:
+                if hasattr(node, attr):
+                    iterable = getattr(node, attr)
+                    if isinstance(iterable, Iterable):
+                        return [
+                            self.parse_ast(subnode) for subnode in getattr(node, attr)
+                        ]
+                    return self.parse_ast(iterable)
+            for attr in ["value", "id", "arg"]:
+                if hasattr(node, attr):
+                    return self.parse_ast(getattr(node, attr))
         return r".*"  # wildcard for regex matching
 
     def visit_Assign(self, node: ast.Assign) -> None:
@@ -395,6 +407,12 @@ class DirectlySetResources(ast.NodeVisitor):
                 self.context = target[0], list(context.keys())
         else:
             self.context = target, self.parse_ast(node.iter)
+        self.generic_visit(node)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        """Visit a function definition."""
+        for arg in self.parse_ast(node):
+            self.context = arg, ".*"
         self.generic_visit(node)
 
 
