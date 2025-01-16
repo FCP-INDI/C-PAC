@@ -353,7 +353,6 @@ class DirectlySetResources(ast.NodeVisitor):
         for target in node.targets:
             resource = self.parse_ast(target)
             self.context = resource, value
-            # self.assign_resource(str(self.parse_ast(target)), value)
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
@@ -365,8 +364,12 @@ class DirectlySetResources(ast.NodeVisitor):
             elif hasattr(node.args[0], "id"):
                 resource = self.lookup_context(getattr(node.args[0], "id"))
                 if isinstance(resource, MultipleContext):
-                    for resource_context in resource:
-                        self.assign_resource(resource_context, value)
+                    if len(resource) == len(value):
+                        for k, v in zip(resource, value):
+                            self.assign_resource(k, v)
+                    else:
+                        for resource_context in resource:
+                            self.assign_resource(resource_context, value)
                     self.generic_visit(node)
                     return
             elif isinstance(node.args[0], ast.JoinedStr):
