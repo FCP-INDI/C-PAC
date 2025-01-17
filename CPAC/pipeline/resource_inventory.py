@@ -19,6 +19,7 @@
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace
 import ast
+from collections.abc import Hashable
 from dataclasses import dataclass, field
 import importlib
 from importlib.resources import files
@@ -26,6 +27,7 @@ import inspect
 from itertools import chain, product
 import os
 from pathlib import Path
+import re
 from typing import Any, cast, Iterable, Optional
 from unittest.mock import patch
 
@@ -34,8 +36,29 @@ import yaml
 
 from CPAC.pipeline.engine import template_dataframe
 from CPAC.pipeline.nodeblock import NodeBlockFunction
+from CPAC.pipeline.schema import latest_schema
 from CPAC.utils.monitoring import UTLOGGER
 from CPAC.utils.outputs import Outputs
+
+ONE_OFFS: dict[str, list[str]] = {
+    r".*desc-preproc_bold": ["func_ingress"],
+    r".*-sm.*": [
+        f"spatial_smoothing_{smooth_opt}"
+        for smooth_opt in latest_schema.schema["post_processing"]["spatial_smoothing"][
+            "smoothing_method"
+        ][0].container
+    ],
+    r".*-zstd.*": [f"{fisher}zscore_standardize" for fisher in ["", "fisher_"]],
+}
+"""A few out-of-nodeblock generated resources.
+
+Easier to note these manually than to code up the AST rules."""
+
+SKIPS: list[str] = [
+    "CPAC.unet.__init__",
+    "CPAC.unet._torch",
+]
+"""No nodeblock functions in these modules that dynamically install `torch`."""
 
 
 def import_nodeblock_functions(
@@ -238,6 +261,47 @@ def _flatten_io(io: list[Iterable]) -> list[str]:
 class MultipleContext(list):
     """Subclass of list to store multilpe contexts."""
 
+    def __init__(self, /, *args, **kwargs) -> None:
+        """Initialize MultipleContext."""
+        super().__init__(*args, **kwargs)
+        data = self._unique(self)
+        self.clear()
+        self.extend(data)
+
+    def __hash__(self) -> int:
+        """Hash a MultipleContext instance."""
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        """Return a stringified MultipleContext instance."""
+        if len(self) == 1:
+            return str(self[0])
+        return super().__str__()
+
+    def append(self, item: Any) -> None:
+        """Append if not already included."""
+        if item not in self:
+            super().append(item)
+
+    def extend(self, iterable: Iterable) -> None:
+        """Extend MultipleContext."""
+        for item in iterable:
+            self.append(item)
+
+    @staticmethod
+    def _unique(iterable: Iterable) -> list:
+        """Dedupe."""
+        try:
+            seen = set()
+            return [x for x in iterable if not (x in seen or seen.add(x))]
+        except TypeError:
+            seen = set()
+            return [
+                x
+                for x in (MultipleContext(item) for item in iterable)
+                if not (x in seen or seen.add(x))
+            ]
+
 
 class DirectlySetResources(ast.NodeVisitor):
     """Class to track resources set directly, rather than through NodeBlocks."""
@@ -246,15 +310,22 @@ class DirectlySetResources(ast.NodeVisitor):
         """Initialize the visitor."""
         super().__init__()
         self._context: dict[str, Any] = {}
-        self.dynamic_resources: dict[str, ResourceSourceList] = {}
+        self.dynamic_resources: dict[str, ResourceSourceList] = {
+            resource: ResourceSourceList(sources)
+            for resource, sources in ONE_OFFS.items()
+        }
         self._history: dict[str, list[Any]] = {}
         self.resources: dict[str, ResourceSourceList] = {}
 
-    def assign_resource(self, resource: str, value: str) -> None:
+    def assign_resource(self, resource: str, value: str | MultipleContext) -> None:
         """Assign a value to a resource."""
         if isinstance(resource, ast.AST):
             resource = self.parse_ast(resource)
         resource = str(resource)
+        if isinstance(value, MultipleContext):
+            for subvalue in value:
+                self.assign_resource(resource, subvalue)
+            return
         target = (
             self.dynamic_resources
             if r".*" in value or r".*" in resource
@@ -279,31 +350,36 @@ class DirectlySetResources(ast.NodeVisitor):
         else:
             self._context[key] = _value
             if key not in self._history:
-                self._history[key] = []
+                self._history[key] = [".*"]
             self._history[key].append(_value)
 
-    def lookup_context(self, variable: str) -> str | MultipleContext:
+    def lookup_context(
+        self, variable: str, return_type: Optional[type] = None
+    ) -> str | MultipleContext:
         """Plug in variable."""
+        if variable in self.context:
+            if self.context[variable] == variable or (
+                return_type and not isinstance(self.context[variable], return_type)
+            ):
+                history = list(self._history[variable])
+                while history and history[-1] == variable:
+                    history.pop()
+                if history:
+                    context = history[-1]
+                    while (
+                        return_type
+                        and len(history)
+                        and not isinstance(context, return_type)
+                    ):
+                        context = history.pop()
+                    if return_type and not isinstance(context, return_type):
+                        return ".*"
+                    return context
+            return self.context[variable]
+        return ".*"
 
-        def lookup() -> str | list[str]:
-            """Look up context."""
-            if variable in self.context:
-                if self.context[variable] == variable:
-                    history = list(self._history[variable])
-                    while history and history[-1] == variable:
-                        history.pop()
-                    if history:
-                        return history[-1]
-                return self.context[variable]
-            return ".*"
-
-        context = lookup()
-        if isinstance(context, list):
-            context = MultipleContext(context)
-        return context
-
-    # @staticmethod
-    def handle_multiple_contexts(self, contexts: list[str | list[str]]) -> list[str]:
+    @staticmethod
+    def handle_multiple_contexts(contexts: list[str | list[str]]) -> list[str]:
         """Parse multiple contexts."""
         if isinstance(contexts, list):
             return MultipleContext(
@@ -322,9 +398,7 @@ class DirectlySetResources(ast.NodeVisitor):
     def parse_ast(self, node: Any) -> Any:
         """Parse AST."""
         if not isinstance(node, ast.AST):
-            if isinstance(node, str):
-                return node
-            if not isinstance(node, Iterable):
+            if isinstance(node, str) or not isinstance(node, Iterable):
                 return str(node)
             if isinstance(node, ast.Dict):
                 return {
@@ -343,7 +417,9 @@ class DirectlySetResources(ast.NodeVisitor):
             return "".join(str(item) for item in node_values)
         if isinstance(node, ast.Dict):
             return {
-                self.parse_ast(key): self.parse_ast(value)
+                self.parse_ast(key)
+                if isinstance(self.parse_ast(key), Hashable)
+                else ".*": self.parse_ast(value)
                 for key, value in dict(zip(node.keys, node.values)).items()
             }
         if not isinstance(node, ast.Call):
@@ -358,11 +434,22 @@ class DirectlySetResources(ast.NodeVisitor):
             for attr in ["value", "id", "arg"]:
                 if hasattr(node, attr):
                     return self.parse_ast(getattr(node, attr))
+        elif (
+            hasattr(node, "func")
+            and getattr(node.func, "attr", None) in ["items", "keys", "values"]
+            and getattr(getattr(node.func, "value", None), "id", None) in self.context
+        ):
+            context = self.lookup_context(node.func.value.id, return_type=dict)
+            if isinstance(context, dict):
+                return MultipleContext(getattr(context, node.func.attr)())
         return r".*"  # wildcard for regex matching
 
     def visit_Assign(self, node: ast.Assign) -> None:
         """Visit an assignment."""
         value = self.parse_ast(node.value)
+        if value == "row" and getattr(node.value, "attr", None):
+            # hack for template dataframe
+            value = MultipleContext(getattr(template_dataframe(), node.value.attr))
         for target in node.targets:
             resource = self.parse_ast(target)
             self.context = resource, value
@@ -372,6 +459,9 @@ class DirectlySetResources(ast.NodeVisitor):
         """Visit a function call."""
         if isinstance(node.func, ast.Attribute) and node.func.attr == "set_data":
             value = self.parse_ast(node.args[5])
+            if isinstance(node.args[5], ast.Name):
+                if isinstance(value, str):
+                    value = self.lookup_context(value)
             if hasattr(node.args[0], "value"):
                 resource: str = getattr(node.args[0], "value")
             elif hasattr(node.args[0], "id"):
@@ -395,29 +485,52 @@ class DirectlySetResources(ast.NodeVisitor):
 
     def visit_For(self, node: ast.For) -> None:
         """Vist for loop."""
-        # This is probably too specific,
-        # will need to be updated if we add more out-of-nodeblock settings.
         target = self.parse_ast(node.target)
         if (
             hasattr(node.iter, "func")
             and hasattr(node.iter.func, "value")
             and hasattr(node.iter.func.value, "id")
         ):
-            context = self.context.get(self.parse_ast(node.iter.func.value.id), ".*")
-            if isinstance(target, list) and isinstance(context, dict):
-                self.context = target[0], list(context.keys())
+            context = self.parse_ast(node.iter)
+            if not context:
+                context = r".*"
+            if isinstance(target, list):
+                target_len = len(target)
+                if isinstance(context, dict):
+                    self.context = target[0], MultipleContext(context.keys())
+                if isinstance(context, list) and all(
+                    (isinstance(item, tuple) and len(item) == target_len)
+                    for item in context
+                ):
+                    for index, item in enumerate(target):
+                        self.context = (
+                            item,
+                            MultipleContext(
+                                subcontext[index] for subcontext in context
+                            ),
+                        )
+        elif hasattr(node.iter, "value") and (
+            getattr(node.iter.value, "id", None) == "self"
+            or getattr(node.iter, "attr", False)
+        ):
+            self.context = target, ".*"
         else:
             self.context = target, self.parse_ast(node.iter)
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         """Visit a function definition."""
+        if node.name == "set_data":
+            # skip the method definition
+            return
         for arg in self.parse_ast(node):
             self.context = arg, ".*"
         self.generic_visit(node)
 
 
-def find_directly_set_resources(package_name: str) -> dict[str, ResourceSourceList]:
+def find_directly_set_resources(
+    package_name: str,
+) -> tuple[dict[str, ResourceSourceList], dict[str, ResourceSourceList]]:
     """Find all resources set explicitly via :pyy:method:`~CPAC.pipeline.engine.ResourcePool.set_data`.
 
     Parameters
@@ -429,6 +542,9 @@ def find_directly_set_resources(package_name: str) -> dict[str, ResourceSourceLi
     -------
     dict
         A dictionary containing the name of the resource and the name of the functions that set it.
+
+    dict
+        A dictionary containing regex strings for special cases
     """
     resources: dict[str, ResourceSourceList] = {}
     dynamic_resources: dict[str, ResourceSourceList] = {}
@@ -450,12 +566,7 @@ def find_directly_set_resources(package_name: str) -> dict[str, ResourceSourceLi
                         dynamic_resources[resource] += directly_set.dynamic_resources[
                             resource
                         ]
-    # for dynamic_key, dynamic_value in dynamic_resources.items():
-    #     dynamic_resource = re.compile(dynamic_key)
-    #     for resource in resources.keys():
-    #         if dynamic_resource.search(resource):
-    #             resources[resource] += dynamic_value
-    return resources
+    return resources, dynamic_resources
 
 
 def resource_inventory(package: str = "CPAC") -> dict[str, ResourceIO]:
@@ -464,11 +575,7 @@ def resource_inventory(package: str = "CPAC") -> dict[str, ResourceIO]:
     # Node block function inputs and outputs
     for nbf in import_nodeblock_functions(
         package,
-        [
-            # No nodeblock functions in these modules that dynamically isntall torch
-            "CPAC.unet.__init__",
-            "CPAC.unet._torch",
-        ],
+        exclude=SKIPS,
     ):
         nbf_name = f"{nbf.__module__}.{nbf.__qualname__}"
         if hasattr(nbf, "inputs"):
@@ -498,7 +605,8 @@ def resource_inventory(package: str = "CPAC") -> dict[str, ResourceIO]:
         else:
             resources[row.Key].output_from += output_from
     # Hard-coded resources
-    for resource, functions in find_directly_set_resources(package).items():
+    direct, dynamic = find_directly_set_resources(package)
+    for resource, functions in direct.items():
         if resource not in resources:
             resources[resource] = ResourceIO(resource, output_from=functions)
         else:
@@ -511,6 +619,18 @@ def resource_inventory(package: str = "CPAC") -> dict[str, ResourceIO]:
             )
         else:
             resources[row.Resource].output_to += row["Sub-Directory"]
+    # Special cases
+    for dynamic_key, dynamic_value in dynamic.items():
+        if dynamic_key != r".*":
+            dynamic_resource = re.compile(dynamic_key)
+            for resource in resources.keys():
+                if dynamic_resource.search(resource):
+                    resources[resource].output_from += dynamic_value
+    if "interface" in resources:
+        # this is a loop in setting up nodeblocks
+        # https://github.com/FCP-INDI/C-PAC/blob/61ad414447023daf0e401a81c92267b09c64ed94/CPAC/pipeline/engine.py#L1453-L1464
+        # it's already handled in the NodeBlock resources
+        del resources["interface"]
     return dict(sorted(resources.items(), key=lambda item: item[0].casefold()))
 
 

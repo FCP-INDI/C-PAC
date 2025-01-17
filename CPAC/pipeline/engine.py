@@ -1009,6 +1009,19 @@ class ResourcePool:
             for label_con_tpl in post_labels:
                 label = label_con_tpl[0]
                 connection = (label_con_tpl[1], label_con_tpl[2])
+                if "desc-" not in label:
+                    if "space-template" in label:
+                        new_label = label.replace(
+                            "space-template", "space-template_desc-zstd"
+                        )
+                    else:
+                        new_label = f"desc-zstd_{label}"
+                else:
+                    for tag in label.split("_"):
+                        if "desc-" in tag:
+                            newtag = f"{tag}-zstd"
+                            new_label = label.replace(tag, newtag)
+                            break
                 if label in Outputs.to_zstd:
                     zstd = z_score_standardize(f"{label}_zstd_{pipe_x}", input_type)
 
@@ -1016,20 +1029,6 @@ class ResourcePool:
 
                     node, out = self.get_data(mask, pipe_idx=mask_idx)
                     wf.connect(node, out, zstd, "inputspec.mask")
-
-                    if "desc-" not in label:
-                        if "space-template" in label:
-                            new_label = label.replace(
-                                "space-template", "space-template_desc-zstd"
-                            )
-                        else:
-                            new_label = f"desc-zstd_{label}"
-                    else:
-                        for tag in label.split("_"):
-                            if "desc-" in tag:
-                                newtag = f"{tag}-zstd"
-                                new_label = label.replace(tag, newtag)
-                                break
 
                     post_labels.append((new_label, zstd, "outputspec.out_file"))
 
