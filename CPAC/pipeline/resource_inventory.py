@@ -652,9 +652,9 @@ def where_to_find(resources: list[str] | str) -> str:
         output += f"'{resource}' can be output from:\n"
         if resource in inventory:
             for source in inventory[resource].output_from:
-                output += f"  {source}\n"
+                output += f"    {source}\n"
         else:
-            output += "  !! Nowhere !!\n"
+            output += "    !! Nowhere !!\n"
         output += "\n"
     return output.rstrip()
 
