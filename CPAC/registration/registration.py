@@ -1657,7 +1657,11 @@ def FSL_registration_connector(
             }
             outputs.update(added_outputs)
 
-    return (wf, outputs)
+    return wf, {
+        output: value
+        for output, value in outputs.items()
+        if not output.endswith("_longitudinal")
+    }
 
 
 def ANTs_registration_connector(
@@ -2258,8 +2262,8 @@ def bold_to_T1template_xfm_connector(
 
 def _register_FSL_anat_to_template(
     wf: pe.Workflow,
-    cfg: Configuration,
-    strat_pool: ResourcePool,
+    cfg: "Configuration",
+    strat_pool: "ResourcePool",
     pipe_num: int,
     opt: str,
     symmetric: bool,
@@ -2267,27 +2271,27 @@ def _register_FSL_anat_to_template(
     """Register T1w to symmetric template with FSL."""
     symmetric_str = "_symmetric_" if symmetric else ""
     template_str = "template-symmetric" if symmetric else "template"
-    fsl, outputs = FSL_registration_connector(
-        f"register_{opt}_anat_to_template_{symmetric_str}_{pipe_num}",
-        cfg,
-        orig="T1w",
-        opt=opt,
-        symmetric=symmetric,
-    )
-
-    fsl.inputs.inputspec.interpolation = cfg.registration_workflows[
-        "anatomical_registration"
-    ]["registration"]["FSL-FNIRT"]["interpolation"]
-
-    fsl.inputs.inputspec.fnirt_config = cfg.registration_workflows[
-        "anatomical_registration"
-    ]["registration"]["FSL-FNIRT"]["fnirt_config"]
-
     connect, brain = strat_pool.get_data(
-        ["desc-brain_T1w", "longitudinal-template_space-longitudinal_desc-brain_T1w"],
+        ["longitudinal-template_space-longitudinal_desc-brain_T1w", "desc-brain_T1w"],
         report_fetched=True,
     )
     node, out = connect
+    orig = "longitudinal" if "space-longitudinal" in str(brain) else "T1w"
+    fsl, outputs = (
+        FSL_registration_connector(  # TODO: split out longitudinal from single-session
+            f"register_{opt}_anat_to_template_{symmetric_str}_{pipe_num}",
+            cfg,
+            orig=orig,
+            opt=opt,
+            symmetric=symmetric,
+        )
+    )
+    fsl.inputs.inputspec.interpolation = cfg.registration_workflows[
+        "anatomical_registration"
+    ]["registration"]["FSL-FNIRT"]["interpolation"]
+    fsl.inputs.inputspec.fnirt_config = cfg.registration_workflows[
+        "anatomical_registration"
+    ]["registration"]["FSL-FNIRT"]["fnirt_config"]
     wf.connect(node, out, fsl, "inputspec.input_brain")
 
     if (
@@ -2309,10 +2313,11 @@ def _register_FSL_anat_to_template(
         wf.connect(node, out, fsl, "inputspec.reference_head")
 
     node, out = strat_pool.get_data(
-        [
-            "desc-preproc_T1w",
-            "longitudinal-template_space-longitudinal_desc-reorient_T1w",
+        "desc-preproc_T1w"
+        if orig == "T1w"
+        else [
             "longitudinal-template_space-longitudinal_desc-head_T1w",
+            "longitudinal-template_space-longitudinal_desc-reorient_T1w",
         ]
     )
     wf.connect(node, out, fsl, "inputspec.input_head")
@@ -2321,17 +2326,6 @@ def _register_FSL_anat_to_template(
         "dilated-symmetric-brain-mask" if symmetric else "template-ref-mask"
     )
     wf.connect(node, out, fsl, "inputspec.reference_mask")
-
-    if "space-longitudinal" in brain:
-        for key in list(outputs.keys()):
-            if "from-T1w" in key:
-                new_key = key.replace("from-T1w", "from-longitudinal")
-                outputs[new_key] = outputs[key]
-                del outputs[key]
-            if "to-T1w" in key:
-                new_key = key.replace("to-T1w", "to-longitudinal")
-                outputs[new_key] = outputs[key]
-                del outputs[key]
 
     return wf, outputs
 
@@ -2345,13 +2339,13 @@ def _register_FSL_anat_to_template(
     inputs=[
         (
             [
-                "desc-preproc_T1w",
-                "longitudinal-template_space-longitudinal_desc-reorient_T1w",
                 "longitudinal-template_space-longitudinal_desc-head_T1w",
+                "longitudinal-template_space-longitudinal_desc-reorient_T1w",
+                "desc-preproc_T1w",
             ],
             [
-                "desc-brain_T1w",
                 "longitudinal-template_space-longitudinal_desc-brain_T1w",
+                "desc-brain_T1w",
             ],
         ),
         "T1w-template",
@@ -2380,8 +2374,8 @@ def _register_FSL_anat_to_template(
 )
 def register_FSL_anat_to_template(
     wf: pe.Workflow,
-    cfg: Configuration,
-    strat_pool: ResourcePool,
+    cfg: "Configuration",
+    strat_pool: "ResourcePool",
     pipe_num: int,
     opt: str = "",
 ) -> NODEBLOCK_RETURN:
@@ -2400,13 +2394,13 @@ def register_FSL_anat_to_template(
     inputs=[
         (
             [
-                "desc-preproc_T1w",
-                "longitudinal-template_space-longitudinal_desc-reorient_T1w",
                 "longitudinal-template_space-longitudinal_desc-head_T1w",
+                "longitudinal-template_space-longitudinal_desc-reorient_T1w",
+                "desc-preproc_T1w",
             ],
             [
-                "desc-brain_T1w",
                 "longitudinal-template_space-longitudinal_desc-brain_T1w",
+                "desc-brain_T1w",
             ],
         ),
         "T1w-template-symmetric",
@@ -2439,8 +2433,8 @@ def register_FSL_anat_to_template(
 )
 def register_symmetric_FSL_anat_to_template(
     wf: pe.Workflow,
-    cfg: Configuration,
-    strat_pool: ResourcePool,
+    cfg: "Configuration",
+    strat_pool: "ResourcePool",
     pipe_num: int,
     opt: str = "",
 ) -> NODEBLOCK_RETURN:
