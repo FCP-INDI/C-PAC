@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved `pygraphviz` from requirements to `graphviz` optional dependencies group.
 - Automatically tag untagged `subject_id` and `unique_id` as `!!str` when loading data config files.
 - Made orientation configurable (was hard-coded as "RPI").
+- Moved `ref_mask_res_2` and `T1w_template_res-2` fields from registration into surface under `abcd_prefreesurfer_prep`.
 
 ### Fixed
 

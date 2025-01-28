@@ -31,6 +31,12 @@ surface_analysis:
   # Run freesurfer_abcd_preproc to obtain preprocessed T1w for reconall
   abcd_prefreesurfer_prep:
     run: On
+        
+    # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+    ref_mask_res-2: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_2mm_brain_mask_dil.nii.gz
+    
+    # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+    T1w_template_res-2: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_2mm.nii.gz
 
 anatomical_preproc:
   run: On
@@ -72,13 +78,6 @@ anatomical_preproc:
 registration_workflows:
   anatomical_registration:
     registration:
-      FSL-FNIRT:
-
-        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_2mm_brain_mask_dil.nii.gz
-
-        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_2mm.nii.gz
 
       # option parameters
       ANTs:
