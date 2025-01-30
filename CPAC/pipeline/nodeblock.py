@@ -16,7 +16,12 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Class and decorator for NodeBlock functions."""
 
-from typing import Any, Callable, Optional
+from collections.abc import Mapping
+from typing import Any, Callable, Optional, TypeAlias
+
+from nipype.pipeline import engine as pe
+
+NODEBLOCK_RETURN: TypeAlias = tuple[pe.Workflow, Mapping[str, tuple[pe.Node, str]]]
 
 
 class NodeBlockFunction:
@@ -55,9 +60,9 @@ class NodeBlockFunction:
         """
         self.option_val: Optional[str | list[str]] = option_val
         """Indicates values for which this NodeBlock should be active."""
-        self.inputs: Optional[list[str | list | tuple]] = inputs
+        self.inputs: list[str | list | tuple] = inputs or []
         """ResourcePool keys indicating resources needed for the NodeBlock's functionality."""
-        self.outputs: Optional[list[str] | dict[str, Any]] = outputs
+        self.outputs: list[str] | dict[str, Any] = outputs or []
         """
         ResourcePool keys indicating resources generated or updated by the NodeBlock, optionally including metadata
         for the outputs' respective sidecars.
@@ -77,9 +82,11 @@ class NodeBlockFunction:
             ]
         ).rstrip()
 
-    # all node block functions have this signature
-    def __call__(self, wf, cfg, strat_pool, pipe_num, opt=None):
+    def __call__(self, wf, cfg, strat_pool, pipe_num, opt=None) -> NODEBLOCK_RETURN:
         """
+        Call a NodeBlockFunction.
+
+        All node block functions have this signature.
 
         Parameters
         ----------
