@@ -332,6 +332,7 @@ def anat_longitudinal_wf(
             convergence_threshold=config.longitudinal_template_generation[
                 "convergence_threshold"
             ],
+            max_iter=config.longitudinal_template_generation["max_iter"],
             thread_pool=config.longitudinal_template_generation["thread_pool"],
             unique_id_list=list(session_wfs.keys()),
         )

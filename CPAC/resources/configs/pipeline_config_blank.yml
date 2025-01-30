@@ -14,7 +14,6 @@ pipeline_setup:
 
   # Desired orientation for the output data. "RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"
   desired_orientation: RPI
-
   output_directory:
 
     # Quality control outputs
@@ -1538,6 +1537,12 @@ longitudinal_template_generation:
   # Threshold of transformation distance to consider that the loop converged
   # (-1 means numpy.finfo(np.float64).eps and is the default)
   convergence_threshold: -1
+
+  # Maximum iterations
+  # Stop after this many iterations, even if still above convergence_threshold
+  # "default" means 5 for 2 sessions, 6 for more than 2 sessions
+  # -1 means loop forever until reaching convergence threshold
+  max_iter: default
 
 # OUTPUTS AND DERIVATIVES
 # -----------------------

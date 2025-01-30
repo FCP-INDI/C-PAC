@@ -13,6 +13,9 @@ pipeline_setup:
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac-default-pipeline
 
+  # Desired orientation for the output data. "RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"
+  desired_orientation: RPI
+
   output_directory:
 
     # Directory where C-PAC should write out processed data, logs, and crash reports.
@@ -272,6 +275,11 @@ longitudinal_template_generation:
   # (-1 means numpy.finfo(np.float64).eps and is the default)
   convergence_threshold: -1
 
+  # Maximum iterations
+  # Stop after this many iterations, even if still above convergence_threshold
+  # "default" means 5 for 2 sessions, 6 for more than 2 sessions
+  # -1 means loop forever until reaching convergence threshold
+  max_iter: default
 
 anatomical_preproc:
 

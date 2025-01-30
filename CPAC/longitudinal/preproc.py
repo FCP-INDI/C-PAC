@@ -348,6 +348,14 @@ def register_img_list(
     return node_list
 
 
+def check_convergence(mat_list, mat_type, convergence_threshold) -> bool:
+    """Test if every transformation matrix has reached the convergence threshold."""
+    convergence_list = [
+        template_convergence(mat, mat_type, convergence_threshold) for mat in mat_list
+    ]
+    return all(convergence_list)
+
+
 @Function.sig_imports(
     [
         "from multiprocessing.pool import Pool",
@@ -368,6 +376,7 @@ def template_creation_flirt(  # noqa: PLR0913
     ] = "corratio",
     mat_type: Literal["matrix", "ITK"] = "matrix",
     convergence_threshold: float | np.float64 = -1,
+    max_iter: int | Literal["default"] = 5,
     thread_pool: int | Pool = 2,
     unique_id_list: Optional[list[str]] = None,
 ) -> tuple[str, str, list[str], list[str], list[str]]:
@@ -375,45 +384,50 @@ def template_creation_flirt(  # noqa: PLR0913
 
     Parameters
     ----------
-    input_brain_list : list of str
+    input_brain_list
         list of brain images paths
-    input_skull_list : list of str
+    input_skull_list
         list of skull images paths
-    init_reg : list of Node
+    init_reg
         (default None so no initial registration performed)
         the output of the function register_img_list with another reference
         Reuter et al. 2012 (NeuroImage) section "Improved template estimation"
         doi:10.1016/j.neuroimage.2012.02.084 uses a ramdomly
         selected image from the input dataset
-    avg_method : str
+    avg_method
         function names from numpy library such as 'median', 'mean', 'std' ...
-    dof : integer (int of long)
+    dof
         number of transform degrees of freedom (FLIRT) (12 by default)
-    interp : str
-        ('trilinear' (default) or 'nearestneighbour' or 'sinc' or 'spline')
+    interp
         final interpolation method used in reslicing
-    cost : str
-        ('mutualinfo' or 'corratio' (default) or 'normcorr' or 'normmi' or
-         'leastsq' or 'labeldiff' or 'bbr')
+    cost
         cost function
-    mat_type : str
-        'matrix'(default), 'ITK'
+    mat_type
         The type of matrix used to represent the transformations
-    convergence_threshold : float
-        (numpy.finfo(np.float64).eps (default)) threshold for the convergence
+    convergence_threshold
+        threshold for the convergence
         The threshold is how different from no transformation is the
         transformation matrix.
-    thread_pool : int or multiprocessing.dummy.Pool
-        (default 2) number of threads. You can also provide a Pool so the
+    max_iter
+        Maximum number of iterations if transformation does not converge
+    thread_pool
+        number of threads. You can also provide a Pool so the
         node will be added to it to be run.
-    unique_id_list : list of str
+    unique_id_list
         list of unique IDs in data config
 
     Returns
     -------
-    template : str
-        path to the final template
-
+    brain_template
+        path to the final brain template
+    skull_template
+        path to the final whole-head template
+    output_brain_list
+        list of
+    output_skull_list
+        list of
+    warp_list
+        list of
     """
     # DEBUG to skip the longitudinal template generation which takes a lot of time.
     # return 'CECI_EST_UN_TEST'
@@ -508,7 +522,12 @@ def template_creation_flirt(  # noqa: PLR0913
     and the loop stops when this temporary template is close enough (with a transformation
     distance smaller than the threshold) to all the images of the precedent iteration.
     """
-    while not converged:
+    if max_iter == "default":
+        # match default from https://surfer.nmr.mgh.harvard.edu/fswiki/mri_robust_template
+        max_iter = 5 if len(input_brain_list) == len(input_skull_list) == 2 else 6  # noqa: PLR2004
+    iteration = 0
+    while not converged and (max_iter == -1 or iteration < max_iter):
+        iteration += 1
         temporary_brain_template, temporary_skull_template = create_temporary_template(
             input_brain_list=output_brain_list,
             input_skull_list=output_skull_list,
@@ -640,6 +659,7 @@ def subject_specific_template(
                     "cost",
                     "mat_type",
                     "convergence_threshold",
+                    "max_iter",
                     "thread_pool",
                     "unique_id_list",
                 ],

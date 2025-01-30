@@ -850,6 +850,9 @@ latest_schema = Schema(
             "run": bool1_1,
             "average_method": In({"median", "mean", "std"}),
             "dof": In({12, 9, 7, 6}),
+            "max_iter": Any(
+                All(Number, Range(min=0, min_included=False)), In([-1, "default"])
+            ),
             "interp": In({"trilinear", "nearestneighbour", "sinc", "spline"}),
             "cost": In(
                 {
@@ -863,7 +866,9 @@ latest_schema = Schema(
                 }
             ),
             "thread_pool": int,
-            "convergence_threshold": Number,
+            "convergence_threshold": Any(
+                All(Number, Range(min=0, max=1, min_included=False)), -1
+            ),
         },
         "functional_preproc": {
             "run": bool1_1,
