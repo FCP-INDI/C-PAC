@@ -19,7 +19,9 @@
 
 from collections import Counter
 from multiprocessing.dummy import Pool as ThreadPool
+from multiprocessing.pool import Pool
 import os
+from typing import Literal, Optional
 
 import numpy as np
 import nibabel as nib
@@ -346,19 +348,29 @@ def register_img_list(
     return node_list
 
 
-def template_creation_flirt(
-    input_brain_list,
-    input_skull_list,
-    init_reg=None,
-    avg_method="median",
-    dof=12,
-    interp="trilinear",
-    cost="corratio",
-    mat_type="matrix",
-    convergence_threshold=-1,
-    thread_pool=2,
-    unique_id_list=None,
-):
+@Function.sig_imports(
+    [
+        "from multiprocessing.pool import Pool",
+        "from typing import Literal, Optional",
+        "from nipype.pipeline import engine as pe",
+        "from CPAC.longitudinal.preproc import check_convergence",
+    ]
+)
+def template_creation_flirt(  # noqa: PLR0913
+    input_brain_list: list[str],
+    input_skull_list: list[str],
+    init_reg: Optional[list[pe.Node]] = None,
+    avg_method: Literal["median", "mean", "std"] = "median",
+    dof: Literal[12, 9, 7, 6] = 12,
+    interp: Literal["trilinear", "nearestneighbour", "sinc", "spline"] = "trilinear",
+    cost: Literal[
+        "corratio", "mutualinfo", "normmi", "normcorr", "leastsq", "labeldiff", "bbr"
+    ] = "corratio",
+    mat_type: Literal["matrix", "ITK"] = "matrix",
+    convergence_threshold: float | np.float64 = -1,
+    thread_pool: int | Pool = 2,
+    unique_id_list: Optional[list[str]] = None,
+) -> tuple[str, str, list[str], list[str], list[str]]:
     """Create a temporary template from a list of images.
 
     Parameters
@@ -609,7 +621,7 @@ def subject_specific_template(
         "from collections import Counter",
         "from multiprocessing.dummy import Pool as ThreadPool",
         "from nipype.interfaces.fsl import ConvertXFM",
-        "from CPAC.longitudinal_pipeline.longitudinal_preproc import ("
+        "from CPAC.longitudinal.preproc import ("
         "   create_temporary_template,"
         "   register_img_list,"
         "   template_convergence"
