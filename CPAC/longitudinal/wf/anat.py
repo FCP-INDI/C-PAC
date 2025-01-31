@@ -427,7 +427,7 @@ def anat_longitudinal_wf(
                 sub_list[i],
             )
 
-            wf, rpool = initiate_rpool(wf, config, sub_list[i])
+            wf, rpool = initiate_rpool(workflow, config, sub_list[i])
             long_id = f"sub-longitudinal_ses-{subject_id}"
             config.pipeline_setup["pipeline_name"] = f"longitudinal_{orig_pipe_name}"
             long_id = long_id.replace("ses-sub-", "ses-sub")
