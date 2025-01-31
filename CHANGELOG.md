@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restored `bids-validator` functionality.
 - Fixed empty `shell` variable in cluster run scripts.
 - A bug in which bandpass filters always assumed 1D regressor files have exactly 5 header rows.
+- Removed an erroneous connection to AFNI 3dTProject in nuisance denoising that would unnecessarily send a spike regressor as a censor. This would sometimes cause TRs to unnecessarily be dropped from the timeseries as if scrubbing were being performed.
 
 ### Removed
 
