@@ -318,7 +318,6 @@ jobs:
     uses: ./.github/workflows/build_C-PAC.yml
     with:
       variant: lite
-
   smoke-tests-participant:
     name: Run participant-level smoke tests
     needs:

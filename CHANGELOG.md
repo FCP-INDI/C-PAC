@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved `pygraphviz` from requirements to `graphviz` optional dependencies group.
 - Automatically tag untagged `subject_id` and `unique_id` as `!!str` when loading data config files.
 - Made orientation configurable (was hard-coded as "RPI").
+- Disabled variant image builds.
 
 ### Fixed
 
@@ -37,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restored `bids-validator` functionality.
 - Fixed empty `shell` variable in cluster run scripts.
 - A bug in which bandpass filters always assumed 1D regressor files have exactly 5 header rows.
+- Supplied missing `subject_id` for longitudinal workflow logger and make that field optional for the logger.
 
 ### Removed
 
