@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ABCD-HCP`
   - `fMRIPrep-LTS`
 - Typehinting support for Python < 3.10.
+- Extra outputs listed in the `freesurfer_abcd_preproc`.
 
 ## [1.8.7] - 2024-05-03
 
