@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -521,16 +521,7 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("bold")
     wf.connect(node, out, func_deoblique, "in_file")
 
-    func_reorient = pe.Node(
-        interface=afni_utils.Resample(),
-        name=f"func_reorient_{pipe_num}",
-        mem_gb=0,
-        mem_x=(0.0115, "in_file", "t"),
-    )
-
-    func_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
-    func_reorient.inputs.outputtype = "NIFTI_GZ"
-
+    func_reorient = cfg.orientation_node(f"func_reorient_{pipe_num}")
     wf.connect(func_deoblique, "out_file", func_reorient, "in_file")
 
     outputs = {
@@ -1283,16 +1274,7 @@ def bold_mask_anatomical_refined(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("bold")
     wf.connect(node, out, func_deoblique, "in_file")
 
-    func_reorient = pe.Node(
-        interface=afni_utils.Resample(),
-        name=f"raw_func_reorient_{pipe_num}",
-        mem_gb=0,
-        mem_x=(0.0115, "in_file", "t"),
-    )
-
-    func_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
-    func_reorient.inputs.outputtype = "NIFTI_GZ"
-
+    func_reorient = cfg.orientation_node(f"raw_func_reorient_{pipe_num}")
     wf.connect(func_deoblique, "out_file", func_reorient, "in_file")
 
     wf.connect(func_reorient, "out_file", init_bold_mask, "inputspec.func")

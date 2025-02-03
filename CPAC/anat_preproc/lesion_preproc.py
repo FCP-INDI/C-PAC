@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2019-2023  C-PAC Developers
+# Copyright (C) 2019-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -20,6 +20,7 @@ import nipype.interfaces.utility as util
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.interfaces import Function
+from CPAC.utils.nifti_utils import orientation_node
 
 
 def inverse_lesion(lesion_path):
@@ -126,18 +127,10 @@ def create_lesion_preproc(cfg=None, wf_name="lesion_preproc"):
     preproc.connect(lesion_deoblique, "out_file", outputnode, "refit")
 
     # Anatomical reorientation
-    lesion_reorient = pe.Node(
-        interface=afni.Resample(),
-        name="lesion_reorient",
-        mem_gb=0,
-        mem_x=(0.0115, "in_file", "t"),
+    node_name = "lesion_reorient"
+    lesion_reorient = (
+        cfg.orientation_node(node_name) if cfg else orientation_node(node_name, "RPI")
     )
-
-    lesion_reorient.inputs.orientation = (
-        cfg.pipeline_setup["desired_orientation"] if cfg else "RPI"
-    )
-    lesion_reorient.inputs.outputtype = "NIFTI_GZ"
-
     preproc.connect(lesion_deoblique, "out_file", lesion_reorient, "in_file")
     preproc.connect(lesion_reorient, "out_file", outputnode, "reorient")
 

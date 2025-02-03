@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2024  C-PAC Developers
+# Copyright (C) 2022-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -18,13 +18,14 @@
 
 import os
 import re
-from typing import Any, Optional
+from typing import Any, cast, Literal, Optional
 from warnings import warn
 
 from click import BadParameter
 import pkg_resources as p
 import yaml
 
+from CPAC.pipeline.nipype_pipeline_engine import Node
 from .diff import dct_diff
 
 CONFIG_KEY_TYPE = str | list[str]
@@ -638,6 +639,16 @@ class Configuration:
                 ]
             )
         )
+
+    def orientation_node(self, name: str) -> Node:
+        """Return a node configured to resample an input with AFNI 3dresample."""
+        from CPAC.utils.nifti_utils import orientation_node
+
+        orientation = cast(
+            Literal["RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"],
+            self["pipeline_setup", "desired_orientation"],
+        )
+        return orientation_node(name=name, orientation=orientation)
 
 
 def check_pname(p_name: str, pipe_config: Configuration) -> str:
