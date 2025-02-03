@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2024  C-PAC Developers
+# Copyright (C) 2024-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -142,11 +142,13 @@ def mri_robust_template(
     nifti_template = pe.Node(MRIConvert(out_type="niigz"), name="NIfTI-template")
     wf.connect(node, "out_file", nifti_template, "in_file")
 
-    nifti_outputs = pe.MapNode(
-        MRIConvert(), name="NIfTI-mapmov", iterfield=["in_file", "out_file"]
-    )
+    nifti_outputs = pe.MapNode(MRIConvert(), name="NIfTI-mapmov", iterfield=["in_file"])
     wf.connect(node, "mapmov", nifti_outputs, "in_file")
-    nifti_outputs.set_input(
+    reorient_outputs = cfg.orientation_node(
+        "reorient_longitudinal_template", pe.MapNode
+    )
+    wf.connect(nifti_outputs, "out_file", reorient_outputs, "in_file")
+    reorient_outputs.set_input(
         "out_file", [f"space-longitudinal{i + 1}.nii.gz" for i in range(num_sessions)]
     )
 

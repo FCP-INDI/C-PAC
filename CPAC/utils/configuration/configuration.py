@@ -18,14 +18,14 @@
 
 import os
 import re
-from typing import Any, cast, Literal, Optional
+from typing import Any, cast, Literal, Optional, overload
 from warnings import warn
 
 from click import BadParameter
 import pkg_resources as p
 import yaml
 
-from CPAC.pipeline.nipype_pipeline_engine import Node
+from CPAC.pipeline.nipype_pipeline_engine import MapNode, Node
 from .diff import dct_diff
 
 CONFIG_KEY_TYPE = str | list[str]
@@ -640,7 +640,13 @@ class Configuration:
             )
         )
 
-    def orientation_node(self, name: str) -> Node:
+    @overload
+    def orientation_node(self, name: str, node_type: type[MapNode]) -> MapNode: ...
+    @overload
+    def orientation_node(self, name: str, node_type: type[Node]) -> Node: ...
+    def orientation_node(
+        self, name: str, node_type: type[Node | MapNode] = Node
+    ) -> Node | MapNode:
         """Return a node configured to resample an input with AFNI 3dresample."""
         from CPAC.utils.nifti_utils import orientation_node
 
@@ -648,7 +654,7 @@ class Configuration:
             Literal["RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"],
             self["pipeline_setup", "desired_orientation"],
         )
-        return orientation_node(name=name, orientation=orientation)
+        return orientation_node(name=name, orientation=orientation, node_type=node_type)
 
 
 def check_pname(p_name: str, pipe_config: Configuration) -> str:

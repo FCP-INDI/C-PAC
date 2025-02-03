@@ -17,7 +17,7 @@
 """Utlities for NIfTI images."""
 
 import os
-from typing import Literal
+from typing import Literal, overload
 
 import numpy as np
 import nibabel as nib
@@ -99,17 +99,33 @@ def inverse_nifti_values(image):
     return nib.nifti1.Nifti1Image(out_data, img.affine)
 
 
+@overload
 def orientation_node(
     name: str,
     orientation: Literal["RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"],
-) -> pe.Node:
+    node_type: type[pe.MapNode],
+) -> pe.MapNode: ...
+@overload
+def orientation_node(
+    name: str,
+    orientation: Literal["RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"],
+    node_type: type[pe.Node],
+) -> pe.Node: ...
+def orientation_node(
+    name: str,
+    orientation: Literal["RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"],
+    node_type: type[pe.Node | pe.MapNode] = pe.Node,
+) -> pe.Node | pe.MapNode:
     """Return a node configured to resample an input with AFNI 3dresample."""
-    return pe.Node(
-        interface=afni_utils.Resample(
+    kwargs = {
+        "interface": afni_utils.Resample(
             orientation=orientation,
             outputtype="NIFTI_GZ",
         ),
-        name=name,
-        mem_gb=0,
-        mem_x=(0.0115, "in_file", "t"),
-    )
+        "name": name,
+        "mem_gb": 0,
+        "mem_x": (0.0115, "in_file", "t"),
+    }
+    if node_type == pe.MapNode:
+        kwargs["iterfield"] = ["in_file", "out_file"]
+    return node_type(**kwargs)
