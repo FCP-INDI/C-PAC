@@ -724,6 +724,8 @@ registration_workflows:
           #Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
           func_reg_input_volume: 0
 
+          mask_sbref: true
+
       boundary_based_registration:
 
         # this is a fork point

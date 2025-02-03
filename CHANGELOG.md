@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Required positional parameter "wf" in input and output of `ingress_pipeconfig_paths` function, where a node to reorient templates is added to the `wf`.
 - Required positional parameter "orientation" to `resolve_resolution`.
 - Optional positional argument "cfg" to `create_lesion_preproc`.
+- New switch `mask_sbref` under `Selected Functional Volume` in functional registration.
+- New resource `desc-head_bold` as non skull-stripped bold from nodeblock `bold_masking`.
 
 ### Changed
 
@@ -35,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Moved `FSL-AFNI subworkflow` from inside a `bold_mask_fsl_afni` nodeblock into a separate function.
   - Renamed `desc-ref_bold` created in this workflow to `desc-unifized_bold`.
   - `coregistration_prep_fmriprep` nodeblock now checks if `desc-unifized_bold` exists in the Resource Pool, if not it runs the `FSL-AFNI subworkflow` to create it.
+- Input `desc-brain_bold` to `desc-preproc_bold` for `sbref` generation nodeblock `coregistration_prep_vol`.
 
 ### Fixed
 

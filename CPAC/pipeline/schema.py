@@ -741,7 +741,10 @@ latest_schema = Schema(
                             )
                         ],
                         "Mean Functional": {"n4_correct_func": bool1_1},
-                        "Selected Functional Volume": {"func_reg_input_volume": int},
+                        "Selected Functional Volume": {
+                            "func_reg_input_volume": int,
+                            "mask_sbref": bool1_1,
+                        },
                     },
                     "boundary_based_registration": {
                         "run": forkable,

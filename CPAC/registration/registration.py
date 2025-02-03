@@ -3134,7 +3134,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         "input",
     ],
     option_val="Selected_Functional_Volume",
-    inputs=[("desc-brain_bold", ["desc-motion_bold", "bold"], "sbref")],
+    inputs=[("desc-preproc_bold", ["desc-head_bold", "bold"], "sbref")],
     outputs=["sbref"],
 )
 def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -3152,15 +3152,32 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
     if not cfg.registration_workflows["functional_registration"]["coregistration"][
         "func_input_prep"
     ]["reg_with_skull"]:
-        node, out = strat_pool.get_data("desc-brain_bold")
+        node, out = strat_pool.get_data("desc-preproc_bold")
     else:
         # TODO check which file is functional_skull_leaf
         # TODO add a function to choose brain or skull?
-        node, out = strat_pool.get_data(["desc-motion_bold", "bold"])
+        node, out = strat_pool.get_data(["desc-head_bold", "bold"])
 
     wf.connect(node, out, get_func_volume, "in_file_a")
 
-    coreg_input = (get_func_volume, "out_file")
+    if cfg.registration_workflows["functional_registration"]["coregistration"][
+        "func_input_prep"
+    ]["Selected Functional Volume"]["mask_sbref"] and strat_pool.check_rpool(
+        "space-bold_desc-brain_mask"
+    ):
+        mask_sbref = pe.Node(interface=afni.Calc(), name=f"mask_sbref_{pipe_num}")
+
+        mask_sbref.inputs.expr = "a*b"
+        mask_sbref.inputs.outputtype = "NIFTI_GZ"
+
+        wf.connect(get_func_volume, "out_file", mask_sbref, "in_file_a")
+        node, out = strat_pool.get_data("space-bold_desc-brain_mask")
+        wf.connect(node, out, mask_sbref, "in_file_b")
+
+        coreg_input = (mask_sbref, "out_file")
+
+    else:
+        coreg_input = (get_func_volume, "out_file")
 
     outputs = {"sbref": coreg_input}
 
