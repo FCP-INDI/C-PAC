@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -73,7 +73,7 @@ def get_last_prov_entry(prov):
     return prov[-1]
 
 
-def check_prov_for_regtool(prov):
+def check_prov_for_regtool(prov) -> Optional[Literal["ants", "fsl"]]:
     """Check provenance for registration tool."""
     last_entry = get_last_prov_entry(prov)
     last_node = last_entry.split(":")[1]
@@ -98,22 +98,6 @@ def check_prov_for_regtool(prov):
             if "FSL" in node_name:
                 return "fsl"
             return None
-    return None
-
-
-def check_prov_for_motion_tool(prov):
-    """Check provenance for motion correction tool."""
-    last_entry = get_last_prov_entry(prov)
-    last_node = last_entry.split(":")[1]
-    if "3dvolreg" in last_node.lower():
-        return "3dvolreg"
-    if "mcflirt" in last_node.lower():
-        return "mcflirt"
-    # check entire prov
-    if "3dvolreg" in str(prov):
-        return "3dvolreg"
-    if "mcflirt" in str(prov):
-        return "mcflirt"
     return None
 
 

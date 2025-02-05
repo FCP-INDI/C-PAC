@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2024  C-PAC Developers
+# Copyright (C) 2021-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -21,7 +21,7 @@ from itertools import chain
 import json
 import os
 import re
-from typing import Optional
+from typing import Literal, Optional
 import warnings
 
 from nipype import config, logging
@@ -529,6 +529,28 @@ class ResourcePool:
                     continue
         json_data = self.get_json(resource, strat)
         return json_data["CpacProvenance"]
+
+    def motion_tool(
+        self, resource, strat=None
+    ) -> Optional[Literal["3dvolreg", "mcflirt"]]:
+        """Check provenance for motion correction tool."""
+        prov = self.get_cpac_provenance(resource, strat)
+        last_entry = get_last_prov_entry(prov)
+        last_node = last_entry.split(":")[1]
+        if "3dvolreg" in last_node.lower():
+            return "3dvolreg"
+        if "mcflirt" in last_node.lower():
+            return "mcflirt"
+        # check entire prov
+        if "3dvolreg" in str(prov):
+            return "3dvolreg"
+        if "mcflirt" in str(prov):
+            return "mcflirt"
+        return None
+
+    def reg_tool(self, resource, strat=None) -> Optional[Literal["ants", "fsl"]]:
+        """Check provenance for registration tool."""
+        return check_prov_for_regtool(self.get_cpac_provenance(resource, strat))
 
     @staticmethod
     def generate_prov_string(prov):

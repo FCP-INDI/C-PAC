@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2020-2024  C-PAC Developers
+# Copyright (C) 2020-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -45,7 +45,6 @@ from CPAC.pipeline.engine import ingress_output_dir, initiate_rpool, ResourcePoo
 from CPAC.pipeline.nodeblock import nodeblock, NODEBLOCK_RETURN
 from CPAC.registration.registration import apply_transform
 from CPAC.utils.configuration import Configuration
-from CPAC.utils.utils import check_prov_for_regtool
 
 
 @nodeblock(
@@ -136,10 +135,7 @@ def warp_longitudinal_T1w_to_template(
     wf, cfg, strat_pool, pipe_num, opt=None
 ) -> NODEBLOCK_RETURN:
     """Transform longitudinal T1w images to template space."""
-    xfm_prov = strat_pool.get_cpac_provenance(
-        "from-longitudinal_to-template_mode-image_xfm"
-    )
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-longitudinal_to-template_mode-image_xfm")
     num_cpus = cfg.pipeline_setup["system_config"]["max_cores_per_participant"]
 
     num_ants_cores = cfg.pipeline_setup["system_config"]["num_ants_threads"]
@@ -229,18 +225,16 @@ def warp_longitudinal_seg_to_T1w(
     """Transform anatomical segmentation from longitudinal template to T1w space."""
     outputs = {}
     if strat_pool.check_rpool("from-longitudinal_to-T1w_mode-image_desc-linear_xfm"):
-        xfm_prov = strat_pool.get_cpac_provenance(
+        reg_tool = strat_pool.reg_tool(
             "from-longitudinal_to-T1w_mode-image_desc-linear_xfm"
         )
-        reg_tool = check_prov_for_regtool(xfm_prov)
         xfm: tuple[pe.Node, str] = strat_pool.get_data(
             "from-longitudinal_to-T1w_mode-image_desc-linear_xfm"
         )
     else:
-        xfm_prov = strat_pool.get_cpac_provenance(
+        reg_tool = strat_pool.reg_tool(
             "from-T1w_to-longitudinal_mode-image_desc-linear_xfm"
         )
-        reg_tool = check_prov_for_regtool(xfm_prov)
         # create inverse xfm if we don't have it
         invt = pe.Node(interface=fsl.ConvertXFM(), name=f"convert_xfm_{pipe_num}")
         invt.inputs.invert_xfm = True

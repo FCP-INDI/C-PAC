@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -42,7 +42,6 @@ from CPAC.registration.utils import (
 )
 from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
-from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
 
 if TYPE_CHECKING:
     from CPAC.pipeline.engine import ResourcePool
@@ -2955,9 +2954,7 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Overwrite ANTs transforms with FSL transforms."""
-    xfm_prov = strat_pool.get_cpac_provenance("from-T1w_to-template_mode-image_xfm")
-
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-T1w_to-template_mode-image_xfm")
 
     if opt.lower() == "fsl" and reg_tool.lower() == "ants":
         # Apply head-to-head transforms on brain using ABCD-style registration
@@ -3554,8 +3551,7 @@ def create_func_to_T1template_xfm(wf, cfg, strat_pool, pipe_num, opt=None):
 
     Condense the BOLD-to-T1 coregistration transform and the T1-to-template transform into one transform matrix.
     """
-    xfm_prov = strat_pool.get_cpac_provenance("from-T1w_to-template_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-T1w_to-template_mode-image_xfm")
 
     xfm, outputs = bold_to_T1template_xfm_connector(
         f"create_func_to_T1wtemplate_xfm_{pipe_num}", cfg, reg_tool, symmetric=False
@@ -3633,8 +3629,7 @@ def create_func_to_T1template_symmetric_xfm(wf, cfg, strat_pool, pipe_num, opt=N
     Condense the BOLD-to-T1 coregistration transform and the T1-to-symmetric-template
     transform into one transform matrix.
     """
-    xfm_prov = strat_pool.get_cpac_provenance("from-T1w_to-symtemplate_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-T1w_to-symtemplate_mode-image_xfm")
 
     xfm, outputs = bold_to_T1template_xfm_connector(
         f"create_func_to_T1wsymtemplate_xfm_{pipe_num}",
@@ -3839,8 +3834,7 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, opt=
 )
 def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, opt=None):
     """Apply blip to timeseries."""
-    xfm_prov = strat_pool.get_cpac_provenance("from-bold_to-template_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-bold_to-template_mode-image_xfm")
 
     outputs = {"desc-preproc_bold": strat_pool.get_data("desc-preproc_bold")}
     if strat_pool.check_rpool("ants-blip-warp"):
@@ -3959,10 +3953,7 @@ def warp_to_template(
         opt: Optional[str] = None,
     ) -> NODEBLOCK_RETURN:
         """Transform a resource to template space."""
-        xfm_prov = strat_pool.get_cpac_provenance(
-            f"from-{space_from}_to-template_mode-image_xfm"
-        )
-        reg_tool = check_prov_for_regtool(xfm_prov)
+        reg_tool = strat_pool.reg_tool(f"from-{space_from}_to-template_mode-image_xfm")
 
         num_cpus = cfg.pipeline_setup["system_config"]["max_cores_per_participant"]
 
@@ -4032,8 +4023,7 @@ def warp_to_template(
 )
 def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Warp timeseries to T1 template."""
-    xfm_prov = strat_pool.get_cpac_provenance("from-bold_to-template_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-bold_to-template_mode-image_xfm")
 
     num_cpus = cfg.pipeline_setup["system_config"]["max_cores_per_participant"]
 
@@ -4095,8 +4085,7 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def warp_timeseries_to_T1template_deriv(wf, cfg, strat_pool, pipe_num, opt=None):
     """Warp timeseries to T1 template at derivative resolution."""
-    xfm_prov = strat_pool.get_cpac_provenance("from-bold_to-template_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-bold_to-template_mode-image_xfm")
 
     num_cpus = cfg.pipeline_setup["system_config"]["max_cores_per_participant"]
 
@@ -4868,8 +4857,7 @@ def single_step_resample_timeseries_to_T1template(
     # OF THE POSSIBILITY OF SUCH DAMAGE.
 
     # Modifications copyright (C) 2021 - 2024  C-PAC Developers
-    xfm_prov = strat_pool.get_cpac_provenance("from-T1w_to-template_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-T1w_to-template_mode-image_xfm")
 
     bbr2itk = pe.Node(
         Function(
@@ -4927,9 +4915,7 @@ def single_step_resample_timeseries_to_T1template(
     wf.connect(node, out, motionxfm2itk, "source_file")
 
     node, out = strat_pool.get_data("coordinate-transformation")
-    motion_correct_tool = check_prov_for_motion_tool(
-        strat_pool.get_cpac_provenance("coordinate-transformation")
-    )
+    motion_correct_tool = strat_pool.motion_correct_tool("coordinate-transformation")
     if motion_correct_tool == "mcflirt":
         wf.connect(node, out, motionxfm2itk, "transform_file")
     elif motion_correct_tool == "3dvolreg":
@@ -5521,8 +5507,7 @@ def warp_resource_to_template(
     if template_space == "":
         template_space = "T1w"
     # determine tool used for registration
-    xfm_prov = strat_pool.get_cpac_provenance(xfm)
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool(xfm)
     # set 'resource'
     if strat_pool.check_rpool(input_resource):
         resource, input_resource = strat_pool.get_data(
