@@ -29,8 +29,7 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock, NODEBLOCK_RETURN, NodeBlockFunction
 from CPAC.registration.utils import (
     change_itk_transform_type,
-    check_transforms,
-    generate_inverse_transform_flags,
+    compose_ants_warp,
     hardcoded_reg,
     interpolation_string,
     one_d_to_mat,
@@ -1709,30 +1708,22 @@ def ANTs_registration_connector(
     ants_reg_anat_mni.inputs.inputspec.ants_para = params
 
     wf.connect(inputNode, "interpolation", ants_reg_anat_mni, "inputspec.interp")
-
     # calculating the transform with the skullstripped is
     # reported to be better, but it requires very high
     # quality skullstripping. If skullstripping is imprecise
     # registration with skull is preferred
-
     wf.connect(inputNode, "input_brain", ants_reg_anat_mni, "inputspec.moving_brain")
-
     wf.connect(
         inputNode, "reference_brain", ants_reg_anat_mni, "inputspec.reference_brain"
     )
-
     wf.connect(inputNode, "input_head", ants_reg_anat_mni, "inputspec.moving_skull")
-
     wf.connect(
         inputNode, "reference_head", ants_reg_anat_mni, "inputspec.reference_skull"
     )
-
     wf.connect(inputNode, "input_mask", ants_reg_anat_mni, "inputspec.moving_mask")
-
     wf.connect(
         inputNode, "reference_mask", ants_reg_anat_mni, "inputspec.reference_mask"
     )
-
     ants_reg_anat_mni.inputs.inputspec.fixed_image_mask = None
 
     if orig == "T1w":
@@ -1750,307 +1741,91 @@ def ANTs_registration_connector(
             )
 
     # combine the linear xfm's into one - makes it easier downstream
-    write_composite_linear_xfm = pe.Node(
-        interface=ants.ApplyTransforms(),
-        name=f"write_composite_linear{symm}_xfm",
-        mem_gb=1.155,
-        mem_x=(1708448960473801 / 1208925819614629174706176, "input_image"),
-    )
-    write_composite_linear_xfm.inputs.print_out_composite_warp_file = True
-    write_composite_linear_xfm.inputs.output_image = (
-        f"from-{orig}_to-{sym}{tmpl}template_mode-image_desc-linear_xfm.nii.gz"
-    )
-
-    wf.connect(inputNode, "input_brain", write_composite_linear_xfm, "input_image")
-
-    wf.connect(
-        inputNode, "reference_brain", write_composite_linear_xfm, "reference_image"
-    )
-
-    wf.connect(inputNode, "interpolation", write_composite_linear_xfm, "interpolation")
-
-    write_composite_linear_xfm.inputs.input_image_type = 0
-    write_composite_linear_xfm.inputs.dimension = 3
-
-    collect_transforms = pe.Node(
-        util.Merge(3),
-        name=f"collect_transforms{symm}",
-        mem_gb=0.8,
-        mem_x=(263474863123069 / 37778931862957161709568, "in1"),
+    write_composite_linear_xfm = compose_ants_warp(
+        wf=wf,
+        name=f"linear{symm}_xfm",
+        input_node=inputNode,
+        warp_from="input_brain",
+        warp_to="reference_brain",
+        inputs=[
+            (
+                ants_reg_anat_mni,
+                [
+                    "outputspec.ants_affine_xfm",
+                    "outputspec.ants_rigid_xfm",
+                    "outputspec.ants_initial_xfm",
+                ],
+            )
+        ],
+        regtool="ants",
     )
 
-    wf.connect(
-        ants_reg_anat_mni, "outputspec.ants_affine_xfm", collect_transforms, "in1"
-    )
-
-    wf.connect(
-        ants_reg_anat_mni, "outputspec.ants_rigid_xfm", collect_transforms, "in2"
-    )
-
-    wf.connect(
-        ants_reg_anat_mni, "outputspec.ants_initial_xfm", collect_transforms, "in3"
-    )
-
-    # check transform list to exclude Nonetype (missing) init/rig/affine
-    check_transform = pe.Node(
-        Function(
-            input_names=["transform_list"],
-            output_names=["checked_transform_list", "list_length"],
-            function=check_transforms,
-        ),
-        name="check_transforms",
-        mem_gb=6,
-    )
-
-    wf.connect(collect_transforms, "out", check_transform, "transform_list")
-
-    wf.connect(
-        check_transform,
-        "checked_transform_list",
-        write_composite_linear_xfm,
-        "transforms",
-    )
-
-    # combine the linear xfm's into one - makes it easier downstream
-    write_composite_invlinear_xfm = pe.Node(
-        interface=ants.ApplyTransforms(),
-        name=f"write_composite_invlinear{symm}_xfm",
+    # combine the inverse linear xfm's into one - makes it easier downstream
+    write_composite_invlinear_xfm = compose_ants_warp(
+        wf=wf,
+        name=f"invlinear{symm}_xfm",
+        input_node=inputNode,
+        warp_from="reference_brain",
+        warp_to="input_brain",
+        inputs=[
+            (
+                ants_reg_anat_mni,
+                [
+                    "outputspec.ants_initial_xfm",
+                    "outputspec.ants_rigid_xfm",
+                    "outputspec.ants_affine_xfm",
+                ],
+            )
+        ],
+        regtool="ants",
+        inv=True,
         mem_gb=1.05,
         mem_x=(1367826948979337 / 151115727451828646838272, "input_image"),
     )
-    write_composite_invlinear_xfm.inputs.print_out_composite_warp_file = True
-    write_composite_invlinear_xfm.inputs.output_image = (
-        f"from-{sym}{tmpl}template_to-{orig}_mode-image_desc-linear_xfm.nii.gz"
-    )
 
-    wf.connect(
-        inputNode, "reference_brain", write_composite_invlinear_xfm, "input_image"
-    )
-
-    wf.connect(
-        inputNode, "input_brain", write_composite_invlinear_xfm, "reference_image"
-    )
-
-    wf.connect(
-        inputNode, "interpolation", write_composite_invlinear_xfm, "interpolation"
-    )
-
-    write_composite_invlinear_xfm.inputs.input_image_type = 0
-    write_composite_invlinear_xfm.inputs.dimension = 3
-
-    collect_inv_transforms = pe.Node(
-        util.Merge(3), name=f"collect_inv_transforms{symm}"
-    )
-
-    wf.connect(
-        ants_reg_anat_mni, "outputspec.ants_initial_xfm", collect_inv_transforms, "in1"
-    )
-
-    wf.connect(
-        ants_reg_anat_mni, "outputspec.ants_rigid_xfm", collect_inv_transforms, "in2"
-    )
-
-    wf.connect(
-        ants_reg_anat_mni, "outputspec.ants_affine_xfm", collect_inv_transforms, "in3"
-    )
-
-    # check transform list to exclude Nonetype (missing) init/rig/affine
-    check_invlinear_transform = pe.Node(
-        Function(
-            input_names=["transform_list"],
-            output_names=["checked_transform_list", "list_length"],
-            function=check_transforms,
-        ),
-        name="check_inv_transforms",
-    )
-
-    wf.connect(
-        collect_inv_transforms, "out", check_invlinear_transform, "transform_list"
-    )
-
-    wf.connect(
-        check_invlinear_transform,
-        "checked_transform_list",
-        write_composite_invlinear_xfm,
-        "transforms",
-    )
-
-    # generate inverse transform flags, which depends on the
-    # number of transforms
-    inverse_transform_flags = pe.Node(
-        Function(
-            input_names=["transform_list"],
-            output_names=["inverse_transform_flags"],
-            function=generate_inverse_transform_flags,
-        ),
-        name="inverse_transform_flags",
-    )
-
-    wf.connect(
-        check_invlinear_transform,
-        "checked_transform_list",
-        inverse_transform_flags,
-        "transform_list",
-    )
-
-    wf.connect(
-        inverse_transform_flags,
-        "inverse_transform_flags",
-        write_composite_invlinear_xfm,
-        "invert_transform_flags",
+    # combine ALL xfm's into one - makes it easier downstream
+    write_composite_xfm = compose_ants_warp(
+        wf=wf,
+        name=f"{symm}xfm",
+        input_node=inputNode,
+        warp_from="input_brain",
+        warp_to="reference_brain",
+        inputs=[
+            (
+                ants_reg_anat_mni,
+                [
+                    "outputspec.warp_field",
+                    "outputspec.ants_affine_xfm",
+                    "outputspec.ants_rigid_xfm",
+                    "outputspec.ants_initial_xfm",
+                ],
+            )
+        ],
+        regtool="ants",
     )
 
     # combine ALL xfm's into one - makes it easier downstream
-    write_composite_xfm = pe.Node(
-        interface=ants.ApplyTransforms(), name=f"write_composite_{symm}xfm", mem_gb=1.5
-    )
-    write_composite_xfm.inputs.print_out_composite_warp_file = True
-    write_composite_xfm.inputs.output_image = (
-        f"from-{orig}_to-{sym}{tmpl}template_mode-image_xfm.nii.gz"
-    )
-
-    wf.connect(inputNode, "input_brain", write_composite_xfm, "input_image")
-
-    wf.connect(inputNode, "reference_brain", write_composite_xfm, "reference_image")
-
-    wf.connect(inputNode, "interpolation", write_composite_xfm, "interpolation")
-
-    write_composite_xfm.inputs.input_image_type = 0
-    write_composite_xfm.inputs.dimension = 3
-
-    collect_all_transforms = pe.Node(
-        util.Merge(4), name=f"collect_all_transforms{symm}"
-    )
-
-    wf.connect(
-        ants_reg_anat_mni, "outputspec.warp_field", collect_all_transforms, "in1"
-    )
-
-    wf.connect(
-        ants_reg_anat_mni, "outputspec.ants_affine_xfm", collect_all_transforms, "in2"
-    )
-
-    wf.connect(
-        ants_reg_anat_mni, "outputspec.ants_rigid_xfm", collect_all_transforms, "in3"
-    )
-
-    wf.connect(
-        ants_reg_anat_mni, "outputspec.ants_initial_xfm", collect_all_transforms, "in4"
-    )
-
-    # check transform list to exclude Nonetype (missing) init/rig/affine
-    check_all_transform = pe.Node(
-        Function(
-            input_names=["transform_list"],
-            output_names=["checked_transform_list", "list_length"],
-            function=check_transforms,
-        ),
-        name="check_all_transforms",
-    )
-
-    wf.connect(collect_all_transforms, "out", check_all_transform, "transform_list")
-
-    wf.connect(
-        check_all_transform, "checked_transform_list", write_composite_xfm, "transforms"
-    )
-
-    # combine ALL xfm's into one - makes it easier downstream
-    write_composite_inv_xfm = pe.Node(
-        interface=ants.ApplyTransforms(),
-        name=f"write_composite_inv_{symm}xfm",
+    write_composite_inv_xfm = compose_ants_warp(
+        wf=wf,
+        name=f"inv_{symm}xfm",
+        input_node=inputNode,
+        warp_from="reference_brain",
+        warp_to="input_brain",
+        inputs=[
+            (
+                ants_reg_anat_mni,
+                [
+                    "outputspec.ants_initial_xfm",
+                    "outputspec.ants_rigid_xfm",
+                    "outputspec.ants_affine_xfm",
+                    "outputspec.inverse_warp_field",
+                ],
+            )
+        ],
+        regtool="ants",
+        inv=True,
         mem_gb=0.3,
         mem_x=(6278549929741219 / 604462909807314587353088, "input_image"),
-    )
-    write_composite_inv_xfm.inputs.print_out_composite_warp_file = True
-    write_composite_inv_xfm.inputs.output_image = (
-        f"from-{sym}{tmpl}template_to-{orig}_mode-image_xfm.nii.gz"
-    )
-
-    wf.connect(inputNode, "reference_brain", write_composite_inv_xfm, "input_image")
-
-    wf.connect(inputNode, "input_brain", write_composite_inv_xfm, "reference_image")
-
-    wf.connect(inputNode, "interpolation", write_composite_inv_xfm, "interpolation")
-
-    write_composite_inv_xfm.inputs.input_image_type = 0
-    write_composite_inv_xfm.inputs.dimension = 3
-
-    collect_all_inv_transforms = pe.Node(
-        util.Merge(4), name=f"collect_all_inv_transforms{symm}"
-    )
-
-    wf.connect(
-        ants_reg_anat_mni,
-        "outputspec.ants_initial_xfm",
-        collect_all_inv_transforms,
-        "in1",
-    )
-
-    wf.connect(
-        ants_reg_anat_mni,
-        "outputspec.ants_rigid_xfm",
-        collect_all_inv_transforms,
-        "in2",
-    )
-
-    wf.connect(
-        ants_reg_anat_mni,
-        "outputspec.ants_affine_xfm",
-        collect_all_inv_transforms,
-        "in3",
-    )
-
-    wf.connect(
-        ants_reg_anat_mni,
-        "outputspec.inverse_warp_field",
-        collect_all_inv_transforms,
-        "in4",
-    )
-
-    # check transform list to exclude Nonetype (missing) init/rig/affine
-    check_all_inv_transform = pe.Node(
-        Function(
-            input_names=["transform_list"],
-            output_names=["checked_transform_list", "list_length"],
-            function=check_transforms,
-        ),
-        name="check_all_inv_transforms",
-    )
-
-    wf.connect(
-        collect_all_inv_transforms, "out", check_all_inv_transform, "transform_list"
-    )
-
-    wf.connect(
-        check_all_inv_transform,
-        "checked_transform_list",
-        write_composite_inv_xfm,
-        "transforms",
-    )
-
-    # generate inverse transform flags, which depends on the
-    # number of transforms
-    inverse_all_transform_flags = pe.Node(
-        Function(
-            input_names=["transform_list"],
-            output_names=["inverse_transform_flags"],
-            function=generate_inverse_transform_flags,
-        ),
-        name="inverse_all_transform_flags",
-    )
-
-    wf.connect(
-        check_all_inv_transform,
-        "checked_transform_list",
-        inverse_all_transform_flags,
-        "transform_list",
-    )
-
-    wf.connect(
-        inverse_all_transform_flags,
-        "inverse_transform_flags",
-        write_composite_inv_xfm,
-        "invert_transform_flags",
     )
 
     outputs = {
@@ -2084,7 +1859,7 @@ def ANTs_registration_connector(
         ),
     }
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 def bold_to_T1template_xfm_connector(

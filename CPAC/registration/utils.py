@@ -1,4 +1,4 @@
-# Copyright (C) 2014-2024  C-PAC Developers
+# Copyright (C) 2014-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -22,6 +22,12 @@ from typing import overload
 
 import numpy as np
 from voluptuous import RequiredFieldInvalid
+from nipype.interfaces.ants import ApplyTransforms as AntsApplyTransforms
+from nipype.interfaces.utility import Merge
+from nipype.pipeline.engine import Node as NipypeNode, Workflow
+
+from CPAC.pipeline.nipype_pipeline_engine import Node
+from CPAC.utils.interfaces import Function
 
 
 def single_ants_xfm_to_list(transform):
@@ -825,3 +831,111 @@ def prepend_space(resource: str | list[str], space: str) -> str | list[str]:
     pre, post = resource.split("space-")
     _old_space, post = post.split("_", 1)
     return f"{prefix}space-{space}_".join([pre, post])
+
+
+def collect_xfms(
+    wf: Workflow,
+    name: str,
+    node_inputs: list[tuple[Node | Workflow, list[str]]],
+    *,
+    mem_gb: float = 0.8,
+    mem_x: tuple[float, str] = (263474863123069 / 37778931862957161709568, "in1"),
+) -> Node:
+    """Collect transforms to compose into one."""
+    if len(node_inputs) == 1:
+        input_node, inputs = node_inputs
+    else:
+        msg = "Combining transforms from multiple nodes not yet implemented."
+        raise NotImplementedError(msg)
+    numinputs = len(inputs)
+    node = Node(interface=Merge(numinputs), name=name, mem_gb=mem_gb, mem_x=mem_x)
+    # check transform list to exclude Nonetype (missing) init/rig/affine
+    check_transform = Node(
+        Function(
+            input_names=["transform_list"],
+            output_names=["checked_transform_list", "list_length"],
+            function=check_transforms,
+        ),
+        name="check_transforms",
+        mem_gb=6,
+    )
+    wf.connect(
+        [
+            (
+                input_node,
+                node,
+                [(node_input, f"in{i + 1}") for i, node_input in enumerate(inputs)],
+            ),
+            (node, check_transform, [("out", "transform_list")]),
+        ]
+    )
+    return node
+
+
+def compose_ants_warp(  # noqa: PLR0913
+    wf: Workflow,
+    name: str,
+    input_node: NipypeNode | Workflow,
+    warp_from: str,
+    warp_to: str,
+    inputs: list[tuple[Node | Workflow, list[str]]],
+    inv: bool = False,
+    *,
+    dimension: int = 3,
+    input_image_type: int = 0,
+    mem_gb: float = 1.155,
+    mem_x: tuple[float, str] = (
+        1708448960473801 / 1208925819614629174706176,
+        "input_image",
+    ),
+) -> Node:
+    """Create a Node to combine xfms."""
+    node = Node(
+        interface=AntsApplyTransforms(
+            dimension=dimension,
+            input_image_type=input_image_type,
+            print_out_composite_warp_file=True,
+        ),
+        name=f"write_composite_{name}",
+        mem_gb=mem_gb,
+        mem_x=mem_x,
+    )
+    wf.connect(
+        [
+            (
+                input_node,
+                node,
+                [
+                    (warp_from, "input_image"),
+                    (warp_to, "reference_image"),
+                    ("interpolation", "interpolation"),
+                ],
+            )
+        ]
+    )
+    collect_transforms = collect_xfms(wf, f"collect_{name}", inputs)
+    wf.connect(collect_transforms, "checked_transform_list", node, "transforms")
+    if inv:
+        # generate inverse transform flags, which depends on the
+        # number of transforms
+        inverse_transform_flags = Node(
+            Function(
+                input_names=["transform_list"],
+                output_names=["inverse_transform_flags"],
+                function=generate_inverse_transform_flags,
+            ),
+            name="inverse_transform_flags",
+        )
+        wf.connect(
+            collect_transforms,
+            "checked_transform_list",
+            inverse_transform_flags,
+            "transform_list",
+        )
+        wf.connect(
+            inverse_transform_flags,
+            "inverse_transform_flags",
+            node,
+            "invert_transform_flags",
+        )
+    return node
