@@ -44,6 +44,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ABCD-HCP`
   - `fMRIPrep-LTS`
 - Typehinting support for Python < 3.10.
+- Resource `space-template_desc-T1w_mask`
+  - as output from FNIRT registration.
+  - as inputs from Nodeblocks requesting it and, replaced with `space-template_desc-brain_mask`.
+  - from outputs tsv.
+
 
 ## [1.8.7] - 2024-05-03
 
