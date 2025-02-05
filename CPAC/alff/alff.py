@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -25,7 +25,6 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.registration.registration import apply_transform
 from CPAC.utils.interfaces import Function
-from CPAC.utils.utils import check_prov_for_regtool
 
 
 def create_alff(wf_name="alff_workflow"):
@@ -320,10 +319,7 @@ def alff_falff(wf, cfg, strat_pool, pipe_num, opt=None):
 def alff_falff_space_template(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {}
     if strat_pool.check_rpool("desc-denoisedNofilt_bold"):
-        xfm_prov = strat_pool.get_cpac_provenance(
-            "from-bold_to-template_mode-image_xfm"
-        )
-        reg_tool = check_prov_for_regtool(xfm_prov)
+        reg_tool = strat_pool.reg_tool("from-bold_to-template_mode-image_xfm")
 
         num_cpus = cfg.pipeline_setup["system_config"]["max_cores_per_participant"]
 

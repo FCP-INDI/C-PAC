@@ -36,7 +36,6 @@ from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.interfaces.function import Function
-from CPAC.utils.utils import check_prov_for_motion_tool
 
 if TYPE_CHECKING:
     from CPAC.pipeline.engine import ResourcePool
@@ -73,8 +72,7 @@ if TYPE_CHECKING:
 )
 def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     """Calculate motion statistics for motion parameters."""
-    motion_prov = strat_pool.get_cpac_provenance("desc-movementParameters_motion")
-    motion_correct_tool = check_prov_for_motion_tool(motion_prov)
+    motion_correct_tool = strat_pool.motion_tool("desc-movementParameters_motion")
     coordinate_transformation = [
         "filtered-coordinate-transformation",
         "coordinate-transformation",

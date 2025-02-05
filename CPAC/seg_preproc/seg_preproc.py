@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -35,7 +35,6 @@ from CPAC.seg_preproc.utils import (
 from CPAC.utils.interfaces.function.seg_preproc import (
     pick_tissue_from_labels_file_interface,
 )
-from CPAC.utils.utils import check_prov_for_regtool
 
 
 def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
@@ -536,7 +535,6 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     #      triggered by 'segments' boolean input (-g or --segments)
     #  'probability_maps' output is a list of individual probability maps
     #      triggered by 'probability_maps' boolean input (-p)
-
     segment = pe.Node(
         interface=fsl.FAST(),
         name=f"segment_{pipe_num}",
@@ -596,10 +594,8 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
         xfm = "from-template_to-T1w_mode-image_desc-linear_xfm"
         if "space-longitudinal" in resource:
             xfm = "from-template_to-longitudinal_mode-image_desc-linear_xfm"
-        xfm_prov = strat_pool.get_cpac_provenance(xfm)
-        reg_tool = check_prov_for_regtool(xfm_prov)
+        reg_tool = strat_pool.reg_tool(xfm)
     else:
-        xfm_prov = None
         reg_tool = None
         xfm = None
 
@@ -752,10 +748,7 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["label-CSF_mask", "label-GM_mask", "label-WM_mask"],
 )
 def tissue_seg_T1_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance(
-        "from-template_to-T1w_mode-image_desc-linear_xfm"
-    )
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-template_to-T1w_mode-image_desc-linear_xfm")
     use_ants = reg_tool == "ants"
 
     csf_template2t1 = tissue_mask_template_to_t1(f"CSF_{pipe_num}", use_ants)
@@ -806,10 +799,9 @@ def tissue_seg_T1_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
 )
 def tissue_seg_EPI_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance(
+    reg_tool = strat_pool.reg_tool(
         "from-EPItemplate_to-bold_mode-image_desc-linear_xfm"
     )
-    reg_tool = check_prov_for_regtool(xfm_prov)
     use_ants = reg_tool == "ants"
 
     csf_template2t1 = tissue_mask_template_to_t1("CSF", use_ants)
