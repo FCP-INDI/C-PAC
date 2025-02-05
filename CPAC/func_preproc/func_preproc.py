@@ -1478,7 +1478,7 @@ def bold_mask_anatomical_based(wf, cfg, strat_pool, pipe_num, opt=None):
         "desc-preproc_bold",
         "T1w-template-funcreg",
         "space-template_desc-preproc_T1w",
-        "space-template_desc-T1w_mask",
+        "space-template_desc-brain_mask",
     ],
     outputs=[
         "space-template_res-bold_desc-brain_T1w",
@@ -1519,7 +1519,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
         "anatomical_registration"
     ]["registration"]["FSL-FNIRT"]["identity_matrix"]
 
-    node, out = strat_pool.get_data("space-template_desc-T1w_mask")
+    node, out = strat_pool.get_data("space-template_desc-brain_mask")
     wf.connect(node, out, anat_brain_mask_to_func_res, "in_file")
 
     wf.connect(
