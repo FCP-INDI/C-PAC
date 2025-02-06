@@ -124,6 +124,9 @@ jobs:
         participant:
           - 032102 032106 032164 032167 032130 032128 2215 2312 032191 032195
     steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '>=3.7 <3.12'
       - name: Get C-PAC
         run: |
           if [[ "${{ matrix.variant }}" != "" ]]
@@ -183,6 +186,9 @@ jobs:
         variant:
           - ''
     steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '>=3.7 <3.12'
       - name: Get C-PAC
         run: |
           if [[ "${{ matrix.variant }}" != "" ]]
