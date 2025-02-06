@@ -23,7 +23,7 @@ jobs:
           fi
 
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Clone reg-suite
         run: |
           git clone https://github.com/amygutierrez/reg-suite.git
@@ -34,7 +34,7 @@ jobs:
           echo "Running full regression test"
           echo "୧(๑•̀ヮ•́)૭ LET'S GO! ٩(^ᗜ^ )و "
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: logs
