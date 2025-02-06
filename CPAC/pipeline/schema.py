@@ -712,8 +712,6 @@ latest_schema = Schema(
                         "interpolation": In({"trilinear", "sinc", "spline"}),
                         "identity_matrix": Maybe(str),
                         "ref_mask": Maybe(str),
-                        "ref_mask_res-2": Maybe(str),
-                        "T1w_template_res-2": Maybe(str),
                     },
                 },
                 "overwrite_transform": {
@@ -816,6 +814,8 @@ latest_schema = Schema(
         "surface_analysis": {
             "abcd_prefreesurfer_prep": {
                 "run": bool1_1,
+                "ref_mask_res-2": Maybe(str),
+                "T1w_template_res-2": Maybe(str),
             },
             "freesurfer": {
                 "run_reconall": bool1_1,

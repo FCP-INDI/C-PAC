@@ -57,7 +57,7 @@ jobs:
           ssh-keyscan -H -t rsa "${{ env.SSH_HOST }}" > ~/.ssh/known_hosts
 
       - name: Initiate check
-        uses: guibranco/github-status-action-v2@v1.1.7
+        uses: guibranco/github-status-action-v2@v1.1.13
         with:
           authToken: ${{ secrets.GITHUB_TOKEN }}
           context: Launch lite regression test
@@ -65,7 +65,7 @@ jobs:
           state: pending
 
       - name: Connect and Run Regression Test Lite
-        uses: appleboy/ssh-action@v1.0.0
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
