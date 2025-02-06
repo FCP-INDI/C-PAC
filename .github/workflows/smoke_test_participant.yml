@@ -124,9 +124,6 @@ jobs:
         participant:
           - 032102 032106 032164 032167 032130 032128 2215 2312 032191 032195
     steps:
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '>=3.7 <3.12'
       - name: Get C-PAC
         run: |
           if [[ "${{ matrix.variant }}" != "" ]]
@@ -154,7 +151,7 @@ jobs:
           wget -O- http://neuro.debian.net/lists/jammy.us-tn.libre | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
           sudo apt-key adv --recv-keys --keyserver hkps://keyserver.ubuntu.com 0xA5D32F012649A5A9
           sudo apt-get update
-          sudo apt-get install datalad git-annex-standalone
+          sudo apt-get install datalad git-annex
           pip install datalad-osf
       - name: Get NHP test data
         run: |
@@ -186,9 +183,6 @@ jobs:
         variant:
           - ''
     steps:
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '>=3.7 <3.12'
       - name: Get C-PAC
         run: |
           if [[ "${{ matrix.variant }}" != "" ]]
@@ -216,7 +210,7 @@ jobs:
           wget -O- http://neuro.debian.net/lists/jammy.us-tn.libre | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
           sudo apt-key adv --recv-keys --keyserver hkps://keyserver.ubuntu.com 0xA5D32F012649A5A9
           sudo apt-get update
-          sudo apt-get install datalad git-annex-standalone
+          sudo apt-get install datalad git-annex
           pip install datalad-osf
       - name: Get rodent test data
         run: |
