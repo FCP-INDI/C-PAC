@@ -104,7 +104,7 @@ jobs:
             --participant_label ${{ matrix.participant }} \
             --preconfig ${{ matrix.preconfig }} \
             --n_cpus 2
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
           name: expectedOutputs human ${{ matrix.preconfig }} ${{ matrix.variant }} ${{ matrix.participant }}
@@ -168,7 +168,7 @@ jobs:
             --preconfig ${{ matrix.preconfig }} \
             --participant_label ${{ matrix.participant }} \
             --n_cpus 2
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
           name: expectedOutputs nhp ${{ matrix.preconfig }} ${{ matrix.variant }} ${{ matrix.participant }}
@@ -226,7 +226,7 @@ jobs:
             /test-data /outputs test_config \
             --preconfig rodent \
             --n_cpus 2
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
           name: expectedOutputs rodent ${{ matrix.variant }}
