@@ -1,10 +1,20 @@
 version: 2
 updates:
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directory: /
     # Check for updates once a week
     schedule:
-      interval: "weekly"
+      interval: weekly
     groups:
       all-actions:
         patterns: [ "*" ]
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      production dependencies:
+        dependency-type: production
+      development dependencies:
+        dependency-type: development
+    target-branch: develop
