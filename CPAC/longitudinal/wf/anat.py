@@ -43,7 +43,7 @@ from CPAC.pipeline.cpac_pipeline import (
 )
 from CPAC.pipeline.engine import ingress_output_dir, initiate_rpool, ResourcePool
 from CPAC.pipeline.nodeblock import nodeblock, NODEBLOCK_RETURN
-from CPAC.registration.registration import apply_transform
+from CPAC.registration.utils import apply_transform
 from CPAC.utils.configuration import Configuration
 
 
@@ -560,7 +560,6 @@ def anat_longitudinal_wf(
                 head_select_sess.set_input("session", f"space-longitudinal{index}")
                 for input_name, output_name in [
                     ("output_brains", "NIfTI-mapmov_.out_file"),
-                    ("warps", "convert-to-FSL_.out_fsl"),
                 ]:
                     cross_graph_connections(
                         wf,
@@ -598,21 +597,13 @@ def anat_longitudinal_wf(
             "",
             select_sess.name,
         )
-        rpool.set_data(
-            "from-T1w_to-longitudinal_mode-image_desc-linear_xfm",
-            select_sess,
-            "warp_path",
-            {},
-            "",
-            select_sess.name,
-        )
 
         config.pipeline_setup["pipeline_name"] = orig_pipe_name
         excl = [
-            "from-T1w_to-longitudinal_mode-image_desc-linear_xfm",
-            "space-longitudinal_desc-brain_T1w",
-            "space-longitudinal_desc-head_T1w",
-            "space-template_desc-brain_T1w",
+            # "from-T1w_to-longitudinal_mode-image_desc-linear_xfm",
+            # "space-longitudinal_desc-brain_T1w",
+            # "space-longitudinal_desc-head_T1w",
+            # "space-template_desc-brain_T1w",
             "space-T1w_desc-brain_mask",
         ]
         rpool.gather_pipes(ses_wf, config, add_excl=excl)

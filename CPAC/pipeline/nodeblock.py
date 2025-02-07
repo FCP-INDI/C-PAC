@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2024  C-PAC Developers
+# Copyright (C) 2023-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -16,12 +16,11 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Class and decorator for NodeBlock functions."""
 
-from collections.abc import Mapping
 from typing import Any, Callable, Optional, TypeAlias
 
 from nipype.pipeline import engine as pe
 
-NODEBLOCK_RETURN: TypeAlias = tuple[pe.Workflow, Mapping[str, tuple[pe.Node, str]]]
+NODEBLOCK_RETURN: TypeAlias = tuple[pe.Workflow, dict[str, tuple[pe.Node, str]]]
 
 
 class NodeBlockFunction:

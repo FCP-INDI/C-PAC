@@ -20,8 +20,11 @@ from nipype.interfaces.utility import Function
 from CPAC.anat_preproc.utils import mri_convert
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
-from CPAC.registration.registration import apply_transform
-from CPAC.registration.utils import check_transforms, generate_inverse_transform_flags
+from CPAC.registration.utils import (
+    apply_transform,
+    check_transforms,
+    generate_inverse_transform_flags,
+)
 from CPAC.seg_preproc.utils import (
     check_if_file_is_empty,
     hardcoded_antsJointLabelFusion,

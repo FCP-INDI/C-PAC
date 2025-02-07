@@ -23,7 +23,7 @@ import nipype.interfaces.utility as util
 from CPAC.alff.utils import get_opt_string
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
-from CPAC.registration.registration import apply_transform
+from CPAC.registration.utils import apply_transform
 from CPAC.utils.interfaces import Function
 
 

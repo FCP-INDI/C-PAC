@@ -22,12 +22,238 @@ from typing import overload
 
 import numpy as np
 from voluptuous import RequiredFieldInvalid
+from nipype.interfaces.afni.utils import TCat
 from nipype.interfaces.ants import ApplyTransforms as AntsApplyTransforms
-from nipype.interfaces.utility import Merge
+from nipype.interfaces.fsl import ApplyWarp
+from nipype.interfaces.utility import IdentityInterface, Merge
 from nipype.pipeline.engine import Node as NipypeNode, Workflow
 
-from CPAC.pipeline.nipype_pipeline_engine import Node
+from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
+from CPAC.pipeline.nipype_pipeline_engine import MapNode, Node
 from CPAC.utils.interfaces import Function
+
+
+def apply_transform(
+    wf_name: str,
+    reg_tool: str,
+    time_series: bool = False,
+    multi_input: bool = False,
+    num_cpus: int = 1,
+    num_ants_cores: int = 1,
+):
+    """Apply transform."""
+    if not reg_tool:
+        msg = (
+            "\n[!] Developer info: the 'reg_tool' parameter sent to the"
+            f" 'apply_transform' node for '{wf_name}' is empty.\n"
+        )
+        raise RequiredFieldInvalid(msg)
+
+    wf = Workflow(name=wf_name)
+
+    inputNode = Node(
+        IdentityInterface(
+            fields=["input_image", "reference", "transform", "interpolation"]
+        ),
+        name="inputspec",
+    )
+
+    outputNode = Node(IdentityInterface(fields=["output_image"]), name="outputspec")
+
+    if int(num_cpus) > 1 and time_series:
+        # parallelize time series warp application
+        # we need the node to be a MapNode to feed in the list of functional
+        # time series chunks
+        multi_input = True
+
+    if reg_tool == "ants":
+        if multi_input:
+            apply_warp = MapNode(
+                interface=AntsApplyTransforms(),
+                name=f"apply_warp_{wf_name}",
+                iterfield=["input_image"],
+                mem_gb=0.7,
+                mem_x=(1708448960473801 / 151115727451828646838272, "input_image"),
+            )
+        else:
+            apply_warp = Node(
+                interface=AntsApplyTransforms(),
+                name=f"apply_warp_{wf_name}",
+                mem_gb=0.7,
+                mem_x=(1708448960473801 / 151115727451828646838272, "input_image"),
+            )
+
+        apply_warp.inputs.dimension = 3
+        apply_warp.interface.num_threads = int(num_ants_cores)
+
+        if time_series:
+            apply_warp.inputs.input_image_type = 3
+
+        wf.connect(inputNode, "reference", apply_warp, "reference_image")
+
+        interp_string = Node(
+            Function(
+                input_names=["interpolation", "reg_tool"],
+                output_names=["interpolation"],
+                function=interpolation_string,
+            ),
+            name="interp_string",
+            mem_gb=2.5,
+        )
+        interp_string.inputs.reg_tool = reg_tool
+
+        wf.connect(inputNode, "interpolation", interp_string, "interpolation")
+        wf.connect(interp_string, "interpolation", apply_warp, "interpolation")
+
+        ants_xfm_list = Node(
+            Function(
+                input_names=["transform"],
+                output_names=["transform_list"],
+                function=single_ants_xfm_to_list,
+            ),
+            name="single_ants_xfm_to_list",
+            mem_gb=2.5,
+        )
+
+        wf.connect(inputNode, "transform", ants_xfm_list, "transform")
+        wf.connect(ants_xfm_list, "transform_list", apply_warp, "transforms")
+
+        # parallelize the apply warp, if multiple CPUs, and it's a time
+        # series!
+        if int(num_cpus) > 1 and time_series:
+            chunk_imports = ["import nibabel as nib"]
+            chunk = Node(
+                Function(
+                    input_names=["func_file", "n_chunks", "chunk_size"],
+                    output_names=["TR_ranges"],
+                    function=chunk_ts,
+                    imports=chunk_imports,
+                ),
+                name=f"chunk_{wf_name}",
+                mem_gb=2.5,
+            )
+
+            # chunk.inputs.n_chunks = int(num_cpus)
+
+            # 10-TR sized chunks
+            chunk.inputs.chunk_size = 10
+
+            wf.connect(inputNode, "input_image", chunk, "func_file")
+
+            split_imports = ["import os", "import subprocess"]
+            split = Node(
+                Function(
+                    input_names=["func_file", "tr_ranges"],
+                    output_names=["split_funcs"],
+                    function=split_ts_chunks,
+                    imports=split_imports,
+                ),
+                name=f"split_{wf_name}",
+                mem_gb=2.5,
+            )
+
+            wf.connect(inputNode, "input_image", split, "func_file")
+            wf.connect(chunk, "TR_ranges", split, "tr_ranges")
+
+            wf.connect(split, "split_funcs", apply_warp, "input_image")
+
+            func_concat = Node(
+                interface=TCat(), name=f"func_concat_{wf_name}", mem_gb=2.5
+            )
+            func_concat.inputs.outputtype = "NIFTI_GZ"
+
+            wf.connect(apply_warp, "output_image", func_concat, "in_files")
+
+            wf.connect(func_concat, "out_file", outputNode, "output_image")
+
+        else:
+            wf.connect(inputNode, "input_image", apply_warp, "input_image")
+            wf.connect(apply_warp, "output_image", outputNode, "output_image")
+
+    elif reg_tool == "fsl":
+        if multi_input:
+            apply_warp = MapNode(
+                interface=ApplyWarp(),
+                name="fsl_apply_warp",
+                iterfield=["in_file"],
+                mem_gb=2.5,
+            )
+        else:
+            apply_warp = Node(interface=ApplyWarp(), name="fsl_apply_warp", mem_gb=2.5)
+
+        interp_string = Node(
+            Function(
+                input_names=["interpolation", "reg_tool"],
+                output_names=["interpolation"],
+                function=interpolation_string,
+            ),
+            name="interp_string",
+            mem_gb=2.5,
+        )
+        interp_string.inputs.reg_tool = reg_tool
+
+        wf.connect(inputNode, "interpolation", interp_string, "interpolation")
+        wf.connect(interp_string, "interpolation", apply_warp, "interp")
+
+        # mni to t1
+        wf.connect(inputNode, "reference", apply_warp, "ref_file")
+
+        # NOTE: C-PAC now converts all FSL xfm's to .nii, so even if the
+        #       inputNode 'transform' is a linear xfm, it's a .nii and must
+        #       go in as a warpfield file
+        wf.connect(inputNode, "transform", apply_warp, "field_file")
+
+        # parallelize the apply warp, if multiple CPUs, and it's a time
+        # series!
+        if int(num_cpus) > 1 and time_series:
+            chunk_imports = ["import nibabel as nib"]
+            chunk = Node(
+                Function(
+                    input_names=["func_file", "n_chunks", "chunk_size"],
+                    output_names=["TR_ranges"],
+                    function=chunk_ts,
+                    imports=chunk_imports,
+                ),
+                name=f"chunk_{wf_name}",
+                mem_gb=2.5,
+            )
+
+            # chunk.inputs.n_chunks = int(num_cpus)
+
+            # 10-TR sized chunks
+            chunk.inputs.chunk_size = 10
+
+            wf.connect(inputNode, "input_image", chunk, "func_file")
+
+            split_imports = ["import os", "import subprocess"]
+            split = Node(
+                Function(
+                    input_names=["func_file", "tr_ranges"],
+                    output_names=["split_funcs"],
+                    function=split_ts_chunks,
+                    imports=split_imports,
+                ),
+                name=f"split_{wf_name}",
+                mem_gb=2.5,
+            )
+
+            wf.connect(inputNode, "input_image", split, "func_file")
+            wf.connect(chunk, "TR_ranges", split, "tr_ranges")
+
+            wf.connect(split, "split_funcs", apply_warp, "in_file")
+
+            func_concat = Node(interface=TCat(), name=f"func_concat{wf_name}")
+            func_concat.inputs.outputtype = "NIFTI_GZ"
+
+            wf.connect(apply_warp, "out_file", func_concat, "in_files")
+
+            wf.connect(func_concat, "out_file", outputNode, "output_image")
+
+        else:
+            wf.connect(inputNode, "input_image", apply_warp, "in_file")
+            wf.connect(apply_warp, "out_file", outputNode, "output_image")
+
+    return wf
 
 
 def single_ants_xfm_to_list(transform):
@@ -841,7 +1067,6 @@ def collect_xfms(
     mem_gb: float = 0.8,
     mem_x: tuple[float, str] = (263474863123069 / 37778931862957161709568, "in1"),
 ) -> Node:
-    """Collect transforms to compose into one."""
     if len(node_inputs) == 1:
         input_node, inputs = node_inputs
     else:
@@ -939,3 +1164,22 @@ def compose_ants_warp(  # noqa: PLR0913
             "invert_transform_flags",
         )
     return node
+
+
+def xfm_outputs(spaces: dict[str, str]) -> dict[str, dict[str, str]]:
+    """Build dictionary for XFM output specs."""
+    transform_types = {
+        "": "Composite (affine + warp field)",
+        "_desc-linear": "Linear (affine)",
+        "_desc-nonlinear": "Nonlinear (warp field)",
+    }
+    return {
+        f"from-{origin}_to-{destination}_mode-image{transform_type}_xfm": {
+            "Description": f"{transform_type_desc} transform from {origin_desc} space to {destination_desc} space.",
+            "Template": destination_desc if destination != "T1w" else origin_desc,
+        }
+        for origin, origin_desc in spaces.items()
+        for destination, destination_desc in spaces.items()
+        for transform_type, transform_type_desc in transform_types.items()
+        if origin != destination
+    }
