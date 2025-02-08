@@ -18,7 +18,7 @@
 
 import os
 import subprocess
-from typing import overload
+from typing import Optional, overload
 
 import numpy as np
 from voluptuous import RequiredFieldInvalid
@@ -252,6 +252,59 @@ def apply_transform(
         else:
             wf.connect(inputNode, "input_image", apply_warp, "in_file")
             wf.connect(apply_warp, "out_file", outputNode, "output_image")
+
+    return wf
+
+
+def transform_derivative(
+    wf_name: str,
+    label: str,
+    reg_tool: Optional[str],
+    num_cpus: int,
+    num_ants_cores: int,
+    ants_interp: Optional[str] = None,
+    fsl_interp: Optional[str] = None,
+):
+    """Transform output derivatives to template space.
+
+    This function is designed for use with the NodeBlock connection engine.
+    """
+    wf = Workflow(name=wf_name)
+
+    inputnode = Node(
+        IdentityInterface(fields=["in_file", "reference", "transform"]),
+        name="inputspec",
+    )
+
+    multi_input = False
+    if "statmap" in label:
+        multi_input = True
+
+    stack = False
+    if "correlations" in label:
+        stack = True
+
+    apply_xfm = apply_transform(
+        f"warp_{label}_to_template",
+        reg_tool,
+        time_series=stack,
+        multi_input=multi_input,
+        num_cpus=num_cpus,
+        num_ants_cores=num_ants_cores,
+    )
+
+    if reg_tool == "ants":
+        apply_xfm.inputs.inputspec.interpolation = ants_interp
+    elif reg_tool == "fsl":
+        apply_xfm.inputs.inputspec.interpolation = fsl_interp
+
+    wf.connect(inputnode, "in_file", apply_xfm, "inputspec.input_image")
+    wf.connect(inputnode, "reference", apply_xfm, "inputspec.reference")
+    wf.connect(inputnode, "transform", apply_xfm, "inputspec.transform")
+
+    outputnode = Node(IdentityInterface(fields=["out_file"]), name="outputspec")
+
+    wf.connect(apply_xfm, "outputspec.output_image", outputnode, "out_file")
 
     return wf
 
@@ -1067,6 +1120,7 @@ def collect_xfms(
     mem_gb: float = 0.8,
     mem_x: tuple[float, str] = (263474863123069 / 37778931862957161709568, "in1"),
 ) -> Node:
+    """Create a node to collect transforms to compose into one."""
     if len(node_inputs) == 1:
         input_node, inputs = node_inputs
     else:

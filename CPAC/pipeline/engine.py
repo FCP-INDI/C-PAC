@@ -41,7 +41,7 @@ from CPAC.pipeline.utils import (
     name_fork,
     source_set,
 )
-from CPAC.registration.registration import transform_derivative
+from CPAC.registration.utils import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
 from CPAC.utils.bids_utils import res_in_filename
 from CPAC.utils.configuration import Configuration
@@ -899,7 +899,6 @@ class ResourcePool:
                     self.num_ants_cores,
                     ants_interp=self.ants_interp,
                     fsl_interp=self.fsl_interp,
-                    opt=None,
                 )
                 wf.connect(connection[0], connection[1], xfm, "inputspec.in_file")
 

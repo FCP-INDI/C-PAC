@@ -51,60 +51,6 @@ REGISTRATION_SPACE: TypeAlias = Literal[
 ]
 
 
-def transform_derivative(
-    wf_name,
-    label,
-    reg_tool,
-    num_cpus,
-    num_ants_cores,
-    ants_interp=None,
-    fsl_interp=None,
-    opt=None,
-):
-    """Transform output derivatives to template space.
-
-    This function is designed for use with the NodeBlock connection engine.
-    """
-    wf = pe.Workflow(name=wf_name)
-
-    inputnode = pe.Node(
-        util.IdentityInterface(fields=["in_file", "reference", "transform"]),
-        name="inputspec",
-    )
-
-    multi_input = False
-    if "statmap" in label:
-        multi_input = True
-
-    stack = False
-    if "correlations" in label:
-        stack = True
-
-    apply_xfm = apply_transform(
-        f"warp_{label}_to_template",
-        reg_tool,
-        time_series=stack,
-        multi_input=multi_input,
-        num_cpus=num_cpus,
-        num_ants_cores=num_ants_cores,
-    )
-
-    if reg_tool == "ants":
-        apply_xfm.inputs.inputspec.interpolation = ants_interp
-    elif reg_tool == "fsl":
-        apply_xfm.inputs.inputspec.interpolation = fsl_interp
-
-    wf.connect(inputnode, "in_file", apply_xfm, "inputspec.input_image")
-    wf.connect(inputnode, "reference", apply_xfm, "inputspec.reference")
-    wf.connect(inputnode, "transform", apply_xfm, "inputspec.transform")
-
-    outputnode = pe.Node(util.IdentityInterface(fields=["out_file"]), name="outputspec")
-
-    wf.connect(apply_xfm, "outputspec.output_image", outputnode, "out_file")
-
-    return wf
-
-
 def convert_pedir(pedir, convert="xyz_to_int"):
     """FSL Flirt requires pedir input encoded as an int."""
     if convert == "xyz_to_int":
