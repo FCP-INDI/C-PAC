@@ -1073,13 +1073,13 @@ def build_T1w_registration_stack(
     space: Literal["longitudinal", "T1w"] = "T1w",
 ):
     """Build the T1w registration pipeline blocks."""
-    if space == "longitudinal":
-        for using in cfg[
-            "registration_workflows", "anatomical_registration", "registration", "using"
-        ]:
-            if using.lower() != "fsl":
-                msg = f"{using} anatomical registration not yet implemented for longitudinal workflows."
-                raise NotImplementedError(msg)
+    # if space == "longitudinal":
+    #     for using in cfg[
+    #         "registration_workflows", "anatomical_registration", "registration", "using"
+    #     ]:
+    #         if using.lower() != "fsl":
+    #             msg = f"{using} anatomical registration not yet implemented for longitudinal workflows."
+    #             raise NotImplementedError(msg)
 
     if not pipeline_blocks:
         pipeline_blocks = []
@@ -1089,9 +1089,12 @@ def build_T1w_registration_stack(
         reg_blocks = [
             [register_ANTs_anat_to_template, register_FSL_anat_to_template],
             overwrite_transform_anat_to_template,
-            warp_to_template("wholehead", space),
-            warp_to_template("mask", space),
         ]
+        if space == "T1w":
+            reg_blocks += [
+                warp_to_template("wholehead", space),
+                warp_to_template("mask", space),
+            ]
 
     if not rpool.check_rpool("desc-restore-brain_T1w"):
         reg_blocks.append(correct_restore_brain_intensity_abcd)

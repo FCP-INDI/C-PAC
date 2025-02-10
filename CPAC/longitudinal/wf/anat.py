@@ -36,7 +36,6 @@ from CPAC.longitudinal.wf.utils import (
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.cpac_pipeline import (
     build_anat_preproc_stack,
-    build_segmentation_stack,
     build_T1w_registration_stack,
     connect_pipeline,
     initialize_nipype_wf,
@@ -245,19 +244,21 @@ def warp_longitudinal_seg_to_T1w(
         )
         xfm = (invt, "out_file")
         outputs["from-longitudinal_to-T1w_mode-image_desc-linear_xfm"] = xfm
-    if reg_tool != "fsl":
-        msg = f"`warp_longitudinal_seg_to_T1w` not yet implemented for {reg_tool}."
-        raise NotImplementedError(msg)
-    warp = pe.Node(
-        fsl.ConvertWarp(relwarp=True, out_relwarp=True), name=f"convert_warp_{pipe_num}"
-    )
-    wf.connect(*xfm, warp, "postmat")
-    wf.connect(
-        *strat_pool.get_data("space-longitudinal_desc-brain_T1w"),
-        warp,
-        "reference",
-    )
-    outputs["from-longitudinal_to-T1w_mode-image_desc-linear_warp"] = warp, "out_file"
+    if reg_tool == "fsl":
+        warp = pe.Node(
+            fsl.ConvertWarp(relwarp=True, out_relwarp=True),
+            name=f"convert_warp_{pipe_num}",
+        )
+        wf.connect(*xfm, warp, "postmat")
+        wf.connect(
+            *strat_pool.get_data("space-longitudinal_desc-brain_T1w"),
+            warp,
+            "reference",
+        )
+        outputs["from-longitudinal_to-T1w_mode-image_desc-linear_warp"] = (
+            warp,
+            "out_file",
+        )
 
     num_cpus = cfg.pipeline_setup["system_config"]["max_cores_per_participant"]
     num_ants_cores = cfg.pipeline_setup["system_config"]["num_ants_threads"]
@@ -478,8 +479,8 @@ def anat_longitudinal_wf(
     )
 
     cross_pool_keys = [
-        "from-longitudinal_to-template_mode-image_xfm",
-        "from-template_to-longitudinal_mode-image_desc-linear_xfm",
+        # "from-longitudinal_to-template_mode-image_xfm",
+        # "from-template_to-longitudinal_mode-image_desc-linear_xfm",
         "longitudinal-template_space-longitudinal_desc-brain_mask",
         "longitudinal-template_space-longitudinal_desc-brain_T1w",
         "longitudinal-template_space-longitudinal_desc-head_T1w",
@@ -537,19 +538,15 @@ def anat_longitudinal_wf(
                     "out",
                     "input_skull_list",
                 )
-                for input_name, output_name in [
-                    ("output_brains", "output_brain_list"),
-                    ("warps", "warp_list"),
-                ]:
-                    cross_graph_connections(
-                        wf,
-                        wf_graph,
-                        ses_wf,
-                        brain_template_node,
-                        select_sess,
-                        output_name,
-                        input_name,
-                    )
+                cross_graph_connections(
+                    wf,
+                    wf_graph,
+                    ses_wf,
+                    brain_template_node,
+                    select_sess,
+                    "output_brain_list",
+                    "outputs",
+                )
 
             case "mri_robust_template":
                 assert isinstance(brain_template_node, pe.Workflow)
@@ -558,32 +555,30 @@ def anat_longitudinal_wf(
                 head_select_sess = select_session_node(unique_id, "wholehead")
                 select_sess.set_input("session", f"space-longitudinal{index}")
                 head_select_sess.set_input("session", f"space-longitudinal{index}")
-                for input_name, output_name in [
-                    ("output_brains", "NIfTI-mapmov_.out_file"),
-                ]:
-                    cross_graph_connections(
-                        wf,
-                        wf_graph,
-                        ses_wf,
-                        brain_template_node,
-                        select_sess,
-                        output_name,
-                        input_name,
-                    )
-                    cross_graph_connections(
-                        wf,
-                        wf_graph,
-                        ses_wf,
-                        wholehead_template_node,
-                        head_select_sess,
-                        output_name,
-                        input_name,
-                    )
-
+                input_name = "outputs"
+                output_name = "NIfTI-mapmov_.out_file"
+                cross_graph_connections(
+                    wf,
+                    wf_graph,
+                    ses_wf,
+                    brain_template_node,
+                    select_sess,
+                    output_name,
+                    input_name,
+                )
+                cross_graph_connections(
+                    wf,
+                    wf_graph,
+                    ses_wf,
+                    wholehead_template_node,
+                    head_select_sess,
+                    output_name,
+                    input_name,
+                )
                 rpool.set_data(
                     "space-longitudinal_desc-head_T1w",
                     head_select_sess,
-                    "brain_path",
+                    "path",
                     {},
                     "",
                     head_select_sess.name,
@@ -592,7 +587,7 @@ def anat_longitudinal_wf(
         rpool.set_data(
             "space-longitudinal_desc-brain_T1w",
             select_sess,
-            "brain_path",
+            "path",
             {},
             "",
             select_sess.name,
@@ -601,10 +596,10 @@ def anat_longitudinal_wf(
         config.pipeline_setup["pipeline_name"] = orig_pipe_name
         excl = [
             # "from-T1w_to-longitudinal_mode-image_desc-linear_xfm",
-            # "space-longitudinal_desc-brain_T1w",
-            # "space-longitudinal_desc-head_T1w",
+            "space-longitudinal_desc-brain_T1w",
+            "space-longitudinal_desc-head_T1w",
             # "space-template_desc-brain_T1w",
-            "space-T1w_desc-brain_mask",
+            # "space-T1w_desc-brain_mask",
         ]
         rpool.gather_pipes(ses_wf, config, add_excl=excl)
         for key in cross_pool_keys:
@@ -624,14 +619,14 @@ def anat_longitudinal_wf(
                 out,
                 json_info,
                 "",
-                f"fsl_longitudinal_{subject_id}",  # "fsl" for check_prov_for_regtool
+                f"longitudinal_{subject_id}",
             )
 
-        pipeline_blocks = build_segmentation_stack(
-            rpool,
-            config,
-            [warp_longitudinal_T1w_to_template, warp_longitudinal_seg_to_T1w],
-        )
+        # pipeline_blocks = build_segmentation_stack(
+        #     rpool,
+        #     config,
+        #     [warp_longitudinal_T1w_to_template] # , warp_longitudinal_seg_to_T1w],
+        # )
 
         ses_wf = connect_pipeline(ses_wf, config, rpool, pipeline_blocks)
         rpool.gather_pipes(ses_wf, config)

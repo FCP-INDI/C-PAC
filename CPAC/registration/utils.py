@@ -1122,7 +1122,7 @@ def collect_xfms(
 ) -> Node:
     """Create a node to collect transforms to compose into one."""
     if len(node_inputs) == 1:
-        input_node, inputs = node_inputs
+        input_node, inputs = node_inputs[0]
     else:
         msg = "Combining transforms from multiple nodes not yet implemented."
         raise NotImplementedError(msg)
@@ -1135,7 +1135,7 @@ def collect_xfms(
             output_names=["checked_transform_list", "list_length"],
             function=check_transforms,
         ),
-        name="check_transforms",
+        name=f"check_transforms_{name}",
         mem_gb=6,
     )
     wf.connect(
@@ -1148,7 +1148,7 @@ def collect_xfms(
             (node, check_transform, [("out", "transform_list")]),
         ]
     )
-    return node
+    return check_transform
 
 
 def compose_ants_warp(  # noqa: PLR0913
@@ -1174,6 +1174,7 @@ def compose_ants_warp(  # noqa: PLR0913
             dimension=dimension,
             input_image_type=input_image_type,
             print_out_composite_warp_file=True,
+            output_image=f"{name}.nii.gz",
         ),
         name=f"write_composite_{name}",
         mem_gb=mem_gb,
@@ -1203,7 +1204,7 @@ def compose_ants_warp(  # noqa: PLR0913
                 output_names=["inverse_transform_flags"],
                 function=generate_inverse_transform_flags,
             ),
-            name="inverse_transform_flags",
+            name=f"inverse_transform_flags_{name}",
         )
         wf.connect(
             collect_transforms,

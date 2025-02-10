@@ -94,25 +94,13 @@ def cross_graph_connections(
         )
 
 
-def select_session(
-    session: str, output_brains: list[str], warps: list[str]
-) -> tuple[str, str]:
+def select_session(session: str, outputs: list[str]) -> str:
     """Select output brain image and warp for given session."""
     try:
-        return next(
-            iter(brain_path for brain_path in output_brains if session in brain_path)
-        ), next(iter(warp_path for warp_path in warps if session in warp_path))
+        return next(iter(path for path in outputs if session in path))
     except StopIteration as stop_iteration:
-        brain_paths_found = [
-            brain_path for brain_path in output_brains if session in brain_path
-        ]
-        warps_found = [warp_path for warp_path in warps if session in warp_path]
-        msg = ""
-        if not brain_paths_found:
-            msg += f"{session} not found in {output_brains}.\n"
-        if not warps_found:
-            msg += f"{session} not found in {warps}.\n"
-        raise FileNotFoundError(msg) from stop_iteration
+        msg = f"{session} not found in {outputs}.\n"
+        raise FileExistsError(msg) from stop_iteration
 
 
 def select_session_node(unique_id: str, suffix: str = "") -> pe.Node:
@@ -128,11 +116,11 @@ def select_session_node(unique_id: str, suffix: str = "") -> pe.Node:
         suffix = f"_{suffix.lstrip('_')}"
     select_sess = pe.Node(
         Function(
-            input_names=["session", "output_brains", "warps"],
-            output_names=["brain_path", "warp_path"],
+            input_names=["session", "outputs"],
+            output_names=["path"],
             function=select_session,
         ),
-        name=f"longitudinal_select_FSL_{unique_id}{suffix}",
+        name=f"longitudinalSelect{suffix.title()}_{unique_id}",
     )
     select_sess.set_input("session", f"{unique_id}_")
     return select_sess

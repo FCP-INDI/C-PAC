@@ -1445,17 +1445,19 @@ def ANTs_registration_connector(
     # registration with skull is preferred
     wf.connect(
         [
-            inputNode,
-            ants_reg_anat_mni,
-            [
-                ("interpolation", "inputspec.interp"),
-                ("input_brain", "inputspec.moving_brain"),
-                ("reference_brain", "inputspec.reference_brain"),
-                ("input_head", "inputspec.moving_skull"),
-                ("reference_head", "inputspec.reference_skull"),
-                ("input_mask", "inputspec.moving_mask"),
-                ("reference_mask", "inputspec.reference_mask"),
-            ],
+            (
+                inputNode,
+                ants_reg_anat_mni,
+                [
+                    ("interpolation", "inputspec.interp"),
+                    ("input_brain", "inputspec.moving_brain"),
+                    ("reference_brain", "inputspec.reference_brain"),
+                    ("input_head", "inputspec.moving_skull"),
+                    ("reference_head", "inputspec.reference_skull"),
+                    ("input_mask", "inputspec.moving_mask"),
+                    ("reference_mask", "inputspec.reference_mask"),
+                ],
+            )
         ]
     )
     ants_reg_anat_mni.inputs.inputspec.fixed_image_mask = None
@@ -1477,7 +1479,7 @@ def ANTs_registration_connector(
     # combine the linear xfm's into one - makes it easier downstream
     write_composite_linear_xfm = compose_ants_warp(
         wf=wf,
-        name=f"linear{symm}_xfm",
+        name=f"linear{sym}_xfm",
         input_node=inputNode,
         warp_from="input_brain",
         warp_to="reference_brain",
@@ -1496,7 +1498,7 @@ def ANTs_registration_connector(
     # combine the inverse linear xfm's into one - makes it easier downstream
     write_composite_invlinear_xfm = compose_ants_warp(
         wf=wf,
-        name=f"invlinear{symm}_xfm",
+        name=f"invlinear{sym}_xfm",
         input_node=inputNode,
         warp_from="reference_brain",
         warp_to="input_brain",
@@ -1518,7 +1520,7 @@ def ANTs_registration_connector(
     # combine ALL xfm's into one - makes it easier downstream
     write_composite_xfm = compose_ants_warp(
         wf=wf,
-        name=f"{symm}xfm",
+        name=f"{sym}_xfm",
         input_node=inputNode,
         warp_from="input_brain",
         warp_to="reference_brain",
@@ -1538,7 +1540,7 @@ def ANTs_registration_connector(
     # combine ALL xfm's into one - makes it easier downstream
     write_composite_inv_xfm = compose_ants_warp(
         wf=wf,
-        name=f"inv_{symm}xfm",
+        name=f"inv{sym}_xfm",
         input_node=inputNode,
         warp_from="reference_brain",
         warp_to="input_brain",
@@ -1559,7 +1561,7 @@ def ANTs_registration_connector(
     )
 
     outputs = {
-        f"space-{sym}{template}_desc-preproc_{orig}": (
+        f"space-{sym}{template}_desc-preproc_T1w": (
             ants_reg_anat_mni,
             "outputspec.normalized_output_brain",
         ),
@@ -2096,9 +2098,11 @@ def register_ANTs_anat_to_template(
     has_longitudinal = strat_pool.check_rpool(
         "longitudinal-template_space-longitudinal_desc-brain_T1w"
     )
+    is_longitudinal = False
     if has_longitudinal and not strat_pool.check_rpool("desc-preproc_T1w"):
         orig = "longitudinal"
         has_longitudinal = False
+        is_longitudinal = True
         input_brain = strat_pool.node_data(
             "longitudinal-template_space-longitudinal_desc-brain_T1w"
         )
@@ -2152,16 +2156,17 @@ def register_ANTs_anat_to_template(
             ]
         )
         brain_mask = strat_pool.node_data(
-            "longitudinal-template_space-longitudinal_desc-brain_mask"
-        )
-    else:
-        t1w_brain_template = strat_pool.node_data("T1w-brain-template")
-        t1w_template = strat_pool.node_data("T1w-template")
-        brain_mask = strat_pool.node_data(
             [
                 "space-T1w_desc-brain_mask",
                 "space-T1w_desc-acpcbrain_mask",
             ]
+        )
+    else:
+        t1w_brain_template = strat_pool.node_data("T1w-brain-template")
+        t1w_template = strat_pool.node_data("T1w-template")
+    if is_longitudinal:
+        brain_mask = strat_pool.node_data(
+            "longitudinal-template_space-longitudinal_desc-brain_mask"
         )
     ants_rc, outputs = ANTs_registration_connector(**_rc_params)
     ants_rc.inputs.inputspec.interpolation = cfg.registration_workflows[
