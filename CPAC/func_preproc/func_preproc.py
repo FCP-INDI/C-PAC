@@ -1188,6 +1188,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     #     * Removed ``if not pre_mask`` conditional block
     #     * Modified docstring to reflect local changes
     #     * Refactored some variables and connections and updated style to match C-PAC codebase
+    #     * Moved fsl-afni subworkflow into a separate function and added a function call in this nodeblock.
 
     # ORIGINAL WORK'S ATTRIBUTION NOTICE:
     #    Copyright (c) 2016, the CRN developers team.
@@ -1233,6 +1234,8 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     # Modifications copyright (C) 2021 - 2024  C-PAC Developers
 
     wf, outputs = fsl_afni_subworkflow(wf, cfg, strat_pool, pipe_num, opt)
+
+    # both masks are available, but they are the same in this nodeblock
     outputs["space-bold_desc-brain_mask"] = outputs["fMRIprep_brain_mask"]
 
     return (wf, outputs)
