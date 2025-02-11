@@ -24,6 +24,7 @@ from nipype.interfaces import afni, ants, c3, fsl, utility as util
 from nipype.interfaces.afni import utils as afni_utils
 
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
+from CPAC.error_handler.exceptions import NodeBlockError
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
@@ -42,7 +43,6 @@ from CPAC.registration.utils import (
 from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
-from CPAC.error_handler.exceptions import NodeBlockError
 
 
 def apply_transform(
@@ -3082,7 +3082,9 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
 
     else:
         outputs = {}
-        raise NodeBlockError("Invalid registration tool or option provided. Please make sure the registration tool is ANTs and the option is FSL.")
+        raise NodeBlockError(
+            "Invalid registration tool or option provided. Please make sure the registration tool is ANTs and the option is FSL."
+        )
 
     return (wf, outputs)
 

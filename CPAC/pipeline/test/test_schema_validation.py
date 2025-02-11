@@ -131,13 +131,8 @@ def test_overwrite_transform(registration_using):
     d = {
         "registration_workflows": {
             "anatomical_registration": {
-                "registration": {
-                    "using": registration_using
-                    },
-            "overwrite_transform": {
-                "run": "On",
-                "using": "FSL"
-                }           
+                "registration": {"using": registration_using},
+                "overwrite_transform": {"run": "On", "using": "FSL"},
             }
         }
     }
@@ -146,4 +141,6 @@ def test_overwrite_transform(registration_using):
     else:
         with pytest.raises(ExclusiveInvalid) as e:
             Configuration(d)
-        assert "Overwrite transform is found same as the registration method" in str(e.value)
+        assert "Overwrite transform is found same as the registration method" in str(
+            e.value
+        )

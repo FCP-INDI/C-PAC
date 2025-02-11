@@ -50,7 +50,6 @@ from voluptuous import (
 from CPAC.utils.datatypes import ItemFromList, ListFromItem
 from CPAC.utils.docs import DOCS_URL_PREFIX
 from CPAC.utils.utils import YAML_BOOLS
-from CPAC.error_handler.exceptions import SchemaError
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
 SCIENTIFIC_NOTATION_STR_REGEX = r"^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$"
@@ -1390,9 +1389,17 @@ def schema(config_dict):
             )
             raise ExclusiveInvalid(msg)
 
-        overwrite = partially_validated["registration_workflows"]["anatomical_registration"]["overwrite_transform"]
+        overwrite = partially_validated["registration_workflows"][
+            "anatomical_registration"
+        ]["overwrite_transform"]
 
-        if overwrite["run"] and overwrite["using"] in partially_validated["registration_workflows"]["anatomical_registration"]["registration"]["using"]:
+        if (
+            overwrite["run"]
+            and overwrite["using"]
+            in partially_validated["registration_workflows"]["anatomical_registration"][
+                "registration"
+            ]["using"]
+        ):
             raise ExclusiveInvalid(
                 "[!] Overwrite transform is found same as the anatomical registration method! "
                 "No need to overwrite transform with the same registration method."
