@@ -113,3 +113,37 @@ def test_pipeline_name():
     """Test that pipeline_name sucessfully sanitizes."""
     c = Configuration({"pipeline_setup": {"pipeline_name": ":va:lid    name"}})
     assert c["pipeline_setup", "pipeline_name"] == "valid_name"
+
+
+@pytest.mark.parametrize(
+    "registration_using",
+    [
+        list(combo)
+        for _ in [
+            list(combinations(["ANTS", "FSL", "FSL-linear"], i)) for i in range(1, 4)
+        ]
+        for combo in _
+    ],
+)
+def test_overwrite_transform(registration_using):
+    """Test that if overwrite transform method is already a registration method."""
+    # pylint: disable=invalid-name
+    d = {
+        "registration_workflows": {
+            "anatomical_registration": {
+                "registration": {
+                    "using": registration_using
+                    },
+            "overwrite_transform": {
+                "run": "On",
+                "using": "FSL"
+                }           
+            }
+        }
+    }
+    if "FSL" not in registration_using:
+        Configuration(d)  # validates without exception
+    else:
+        with pytest.raises(ExclusiveInvalid) as e:
+            Configuration(d)
+        assert "Overwrite transform is found same as the registration method" in str(e.value)

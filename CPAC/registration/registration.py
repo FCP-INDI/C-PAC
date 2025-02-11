@@ -42,6 +42,7 @@ from CPAC.registration.utils import (
 from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
+from CPAC.error_handler.exceptions import NodeBlockError
 
 
 def apply_transform(
@@ -3078,6 +3079,10 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
             "from-T1w_to-template_mode-image_xfm": (merge_xfms, "merged_file"),
             "from-template_to-T1w_mode-image_xfm": (merge_inv_xfms, "merged_file"),
         }
+
+    else:
+        outputs = {}
+        raise NodeBlockError("Invalid registration tool or option provided. Please make sure the registration tool is ANTs and the option is FSL.")
 
     return (wf, outputs)
 
