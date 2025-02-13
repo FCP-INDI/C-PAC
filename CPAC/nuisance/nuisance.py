@@ -1679,7 +1679,7 @@ def create_regressor_workflow(
                 ),
             ]
         )
-        
+
         nuisance_wf.connect(
             offending_timepoints_connector_wf,
             "outputspec.out_file",
