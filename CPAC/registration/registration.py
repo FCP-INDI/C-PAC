@@ -26,7 +26,10 @@ from nipype.interfaces.afni import utils as afni_utils
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock, NODEBLOCK_RETURN, NodeBlockFunction
-from CPAC.registration.longitudinal import t1w_to_longitudinal_to_template
+from CPAC.registration.longitudinal import (
+    get_common_reg_inputs,
+    t1w_to_longitudinal_to_template,
+)
 from CPAC.registration.utils import (
     apply_transform,
     change_itk_transform_type,
@@ -34,6 +37,7 @@ from CPAC.registration.utils import (
     hardcoded_reg,
     one_d_to_mat,
     prepend_space,
+    RegistrationTemplates,
     run_c3d,
     run_c4d,
     seperate_warps_list,
@@ -829,23 +833,24 @@ def create_bbregister_func_to_anat(
 
 
 def create_wf_calculate_ants_warp(
-    name="create_wf_calculate_ants_warp", num_threads=1, reg_ants_skull=1
-):
+    name: Optional[str] = "create_wf_calculate_ants_warp",
+    num_threads: int = 1,
+    reg_ants_skull: int = 1,
+) -> pe.Workflow:
     """Calculate the nonlinear ANTS registration transform.
 
     This workflow employs the antsRegistration tool:
 
     http://stnava.github.io/ANTs/
 
-
     Parameters
     ----------
-    name : string, optional
+    name
         Name of the workflow.
 
     Returns
     -------
-    calc_ants_warp_wf : nipype.pipeline.engine.Workflow
+    calc_ants_warp_wf
 
     Notes
     -----
@@ -1026,149 +1031,87 @@ def create_wf_calculate_ants_warp(
 
     calculate_ants_warp.interface.num_threads = num_threads
 
-    select_forward_initial = pe.Node(
-        Function(
-            input_names=["warp_list", "selection"],
-            output_names=["selected_warp"],
-            function=seperate_warps_list,
-        ),
-        name="select_forward_initial",
-    )
-
-    select_forward_initial.inputs.selection = "Initial"
-
-    select_forward_rigid = pe.Node(
-        Function(
-            input_names=["warp_list", "selection"],
-            output_names=["selected_warp"],
-            function=seperate_warps_list,
-        ),
-        name="select_forward_rigid",
-    )
-
-    select_forward_rigid.inputs.selection = "Rigid"
-
-    select_forward_affine = pe.Node(
-        Function(
-            input_names=["warp_list", "selection"],
-            output_names=["selected_warp"],
-            function=seperate_warps_list,
-        ),
-        name="select_forward_affine",
-    )
-
-    select_forward_affine.inputs.selection = "Affine"
-
-    select_forward_warp = pe.Node(
-        Function(
-            input_names=["warp_list", "selection"],
-            output_names=["selected_warp"],
-            function=seperate_warps_list,
-        ),
-        name="select_forward_warp",
-    )
-
-    select_forward_warp.inputs.selection = "Warp"
-
-    select_inverse_warp = pe.Node(
-        Function(
-            input_names=["warp_list", "selection"],
-            output_names=["selected_warp"],
-            function=seperate_warps_list,
-        ),
-        name="select_inverse_warp",
-    )
-
-    select_inverse_warp.inputs.selection = "Inverse"
+    select_forward = {}
+    for selection in ["Initial", "Rigid", "Affine", "Warp", "Inverse"]:
+        select_forward[selection] = pe.Node(
+            Function(
+                input_names=["warp_list", "selection"],
+                output_names=["selected_warp"],
+                function=seperate_warps_list,
+            ),
+            name=f"select_forward_{selection.lower()}",
+        )
+        select_forward[selection].inputs.selection = selection
 
     calc_ants_warp_wf.connect(
-        inputspec, "moving_brain", calculate_ants_warp, "moving_brain"
-    )
-
-    calc_ants_warp_wf.connect(
-        inputspec, "reference_brain", calculate_ants_warp, "reference_brain"
+        [
+            (
+                inputspec,
+                calculate_ants_warp,
+                [
+                    ("moving_brain", "moving_brain"),
+                    ("reference_brain", "reference_brain"),
+                    ("fixed_image_mask", "fixed_image_mask"),
+                    ("reference_mask", "reference_mask"),
+                    ("moving_mask", "moving_mask"),
+                    ("ants_para", "ants_para"),
+                    ("interp", "interp"),
+                ],
+            )
+        ]
     )
 
     if reg_ants_skull == 1:
         calculate_ants_warp.inputs.reg_with_skull = 1
-
         calc_ants_warp_wf.connect(
-            inputspec, "moving_skull", calculate_ants_warp, "moving_skull"
+            [
+                (
+                    inputspec,
+                    calculate_ants_warp,
+                    [
+                        ("moving_skull", "moving_skull"),
+                        (
+                            "reference_skull",
+                            "reference_skull",
+                        ),
+                    ],
+                )
+            ]
         )
-
-        calc_ants_warp_wf.connect(
-            inputspec, "reference_skull", calculate_ants_warp, "reference_skull"
-        )
-
     else:
         calc_ants_warp_wf.connect(
-            inputspec, "moving_brain", calculate_ants_warp, "moving_skull"
+            [
+                (
+                    inputspec,
+                    calculate_ants_warp,
+                    [
+                        ("moving_brain", "moving_skull"),
+                        ("reference_brain", "reference_skull"),
+                    ],
+                )
+            ]
         )
-
-        calc_ants_warp_wf.connect(
-            inputspec, "reference_brain", calculate_ants_warp, "reference_skull"
-        )
-
-    calc_ants_warp_wf.connect(
-        inputspec, "fixed_image_mask", calculate_ants_warp, "fixed_image_mask"
-    )
-
-    calc_ants_warp_wf.connect(
-        inputspec, "reference_mask", calculate_ants_warp, "reference_mask"
-    )
-
-    calc_ants_warp_wf.connect(
-        inputspec, "moving_mask", calculate_ants_warp, "moving_mask"
-    )
-
-    calc_ants_warp_wf.connect(inputspec, "ants_para", calculate_ants_warp, "ants_para")
-
-    calc_ants_warp_wf.connect(inputspec, "interp", calculate_ants_warp, "interp")
 
     # inter-workflow connections
-
-    calc_ants_warp_wf.connect(
-        calculate_ants_warp, "warp_list", select_forward_initial, "warp_list"
-    )
-
-    calc_ants_warp_wf.connect(
-        calculate_ants_warp, "warp_list", select_forward_rigid, "warp_list"
-    )
-
-    calc_ants_warp_wf.connect(
-        calculate_ants_warp, "warp_list", select_forward_affine, "warp_list"
-    )
-
-    calc_ants_warp_wf.connect(
-        calculate_ants_warp, "warp_list", select_forward_warp, "warp_list"
-    )
-
-    calc_ants_warp_wf.connect(
-        calculate_ants_warp, "warp_list", select_inverse_warp, "warp_list"
-    )
+    for select in select_forward.values():
+        calc_ants_warp_wf.connect(calculate_ants_warp, "warp_list", select, "warp_list")
 
     # connections to outputspec
-
     calc_ants_warp_wf.connect(
-        select_forward_initial, "selected_warp", outputspec, "ants_initial_xfm"
+        select_forward["Initial"], "selected_warp", outputspec, "ants_initial_xfm"
     )
-
     calc_ants_warp_wf.connect(
-        select_forward_rigid, "selected_warp", outputspec, "ants_rigid_xfm"
+        select_forward["Rigid"], "selected_warp", outputspec, "ants_rigid_xfm"
     )
-
     calc_ants_warp_wf.connect(
-        select_forward_affine, "selected_warp", outputspec, "ants_affine_xfm"
+        select_forward["Affine"], "selected_warp", outputspec, "ants_affine_xfm"
     )
-
     calc_ants_warp_wf.connect(
-        select_forward_warp, "selected_warp", outputspec, "warp_field"
+        select_forward["Warp"], "selected_warp", outputspec, "warp_field"
     )
-
     calc_ants_warp_wf.connect(
-        select_inverse_warp, "selected_warp", outputspec, "inverse_warp_field"
+        select_forward["Inverse"], "selected_warp", outputspec, "inverse_warp_field"
     )
-
     calc_ants_warp_wf.connect(
         calculate_ants_warp, "warped_image", outputspec, "normalized_output_brain"
     )
@@ -1404,6 +1347,13 @@ def ANTs_registration_connector(
             ]
         ),
         name="inputspec",
+        interpolation=cfg[
+            "registration_workflows",
+            "anatomical_registration",
+            "registration",
+            "ANTs",
+            "interpolation",
+        ],
     )
 
     sym = ""
@@ -2030,6 +1980,10 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
+def _gather_longitudinal_nodedata(strat_pool: "ResourcePool") -> tuple:
+    """Gather common NodeData for longitudinal registration."""
+
+
 @nodeblock(
     name="register_ANTs_anat_to_template",
     config=["registration_workflows", "anatomical_registration"],
@@ -2076,7 +2030,8 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                 "longitudinal": "longitudinal-T1w-template",
                 "template": "T1w-template",
                 "T1w": "native T1w",
-            }
+            },
+            template="template",
         ),
     },
 )
@@ -2090,53 +2045,25 @@ def register_ANTs_anat_to_template(
     """Register T1w to template with ANTs."""
     params = cast(
         list[dict[str, Any]],
-        cfg.registration_workflows["anatomical_registration"]["registration"]["ANTs"][
-            "T1_registration"
+        cfg[
+            "registration_workflows",
+            "anatomical_registration",
+            "registration",
+            "ANTs",
+            "T1_registration",
         ],
     )
-
-    has_longitudinal = strat_pool.check_rpool(
-        "longitudinal-template_space-longitudinal_desc-brain_T1w"
-    )
-    is_longitudinal = False
-    if has_longitudinal and not strat_pool.check_rpool("desc-preproc_T1w"):
-        orig = "longitudinal"
-        has_longitudinal = False
-        is_longitudinal = True
-        input_brain = strat_pool.node_data(
-            "longitudinal-template_space-longitudinal_desc-brain_T1w"
-        )
-        input_head = strat_pool.node_data(
-            [
-                "longitudinal-template_space-longitudinal_desc-head_T1w",
-                "longitudinal-template_space-longitudinal_desc-reorient_T1w",
-            ]
-        )
-        reference_mask = strat_pool.node_data(
-            "longitudinal-template_space-longitudinal_desc-brain_mask"
-        )
-        lesion_mask = None
-    else:
-        orig = "T1w"
-        input_brain = strat_pool.node_data("desc-preproc_T1w")
-        input_head = strat_pool.node_data(
-            [  # TODO: check the order of T1w
-                "desc-restore_T1w",
-                "desc-head_T1w",
-                "desc-preproc_T1w",
-            ]
-        )
-        reference_mask = (
-            strat_pool.node_data("T1w-brain-template-mask")
-            if strat_pool.check_rpool("T1w-brain-template-mask")
-            else None
-        )
-        lesion_mask = (
-            strat_pool.node_data("label-lesion_mask")
-            if strat_pool.check_rpool("label-lesion_mask")
-            else None
-        )
-
+    (
+        orig,
+        has_longitudinal,
+        input_brain,
+        input_head,
+        reference_mask,
+        lesion_mask,
+        t1w_brain_template,
+        t1w_template,
+        brain_mask,
+    ) = get_common_reg_inputs(strat_pool)
     _rc_params = {
         "wf_name": f"ANTS_T1_to_template_{pipe_num}",
         "cfg": cfg,
@@ -2146,32 +2073,7 @@ def register_ANTs_anat_to_template(
     if has_longitudinal:
         _rc_params["wf_name"] = f"ANTS_T1_to_longitudinal_{pipe_num}"
         _rc_params["template"] = "longitudinal"
-        t1w_brain_template = strat_pool.node_data(
-            "longitudinal-template_space-longitudinal_desc-brain_T1w"
-        )
-        t1w_template = strat_pool.node_data(
-            [
-                "longitudinal-template_space-longitudinal_desc-head_T1w",
-                "longitudinal-template_space-longitudinal_desc-reorient_T1w",
-            ]
-        )
-        brain_mask = strat_pool.node_data(
-            [
-                "space-T1w_desc-brain_mask",
-                "space-T1w_desc-acpcbrain_mask",
-            ]
-        )
-    else:
-        t1w_brain_template = strat_pool.node_data("T1w-brain-template")
-        t1w_template = strat_pool.node_data("T1w-template")
-    if is_longitudinal:
-        brain_mask = strat_pool.node_data(
-            "longitudinal-template_space-longitudinal_desc-brain_mask"
-        )
     ants_rc, outputs = ANTs_registration_connector(**_rc_params)
-    ants_rc.inputs.inputspec.interpolation = cfg.registration_workflows[
-        "anatomical_registration"
-    ]["registration"]["ANTs"]["interpolation"]
 
     wf.connect(input_brain.node, input_brain.out, ants_rc, "inputspec.input_brain")
     wf.connect(
@@ -2183,32 +2085,14 @@ def register_ANTs_anat_to_template(
     wf.connect(input_head.node, input_head.out, ants_rc, "inputspec.input_head")
     wf.connect(t1w_template.node, t1w_template.out, ants_rc, "inputspec.reference_head")
     wf.connect(brain_mask.node, brain_mask.out, ants_rc, "inputspec.input_mask")
-
     if reference_mask:
         wf.connect(
             reference_mask.node, reference_mask.out, ants_rc, "inputspec.reference_mask"
         )
     if lesion_mask:
         wf.connect(lesion_mask.node, lesion_mask.out, ants_rc, "inputspec.lesion_mask")
-
     if has_longitudinal:
-        outputs.update(
-            t1w_to_longitudinal_to_template["ants"](
-                wf,
-                strat_pool,
-                cast(
-                    str,
-                    cfg[
-                        "registration_workflows",
-                        "anatomical_registration",
-                        "registration",
-                        "ANTs",
-                        "interpolation",
-                    ],
-                ),
-            )
-        )
-
+        outputs.update(t1w_to_longitudinal_to_template["ants"](wf, strat_pool))
     return wf, outputs
 
 
@@ -2220,19 +2104,21 @@ def register_ANTs_anat_to_template(
     option_val="ANTS",
     inputs=[
         (
-            [
-                "desc-preproc_T1w",
-                "longitudinal-template_space-longitudinal_desc-brain_T1w",
-            ],
+            "desc-preproc_T1w",
+            "longitudinal-template_space-longitudinal_desc-brain_T1w",
             [
                 "space-T1w_desc-brain_mask",
-                "longitudinal-template_space-longitudinal_desc-brain_mask",
+                "space-T1w_desc-acpcbrain_mask",
             ],
+            "longitudinal-template_space-longitudinal_desc-brain_mask",
             [
+                "desc-restore_T1w",
                 "desc-head_T1w",
                 "desc-preproc_T1w",
-                "longitudinal-template_space-longitudinal_desc-reorient_T1w",
+            ],
+            [
                 "longitudinal-template_space-longitudinal_desc-head_T1w",
+                "longitudinal-template_space-longitudinal_desc-reorient_T1w",
             ],
         ),
         "T1w-template-symmetric",
@@ -2244,111 +2130,79 @@ def register_ANTs_anat_to_template(
         "space-symtemplate_desc-preproc_T1w": {
             "Template": "T1w-brain-template-symmetric"
         },
-        "from-T1w_to-symtemplate_mode-image_desc-linear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-symtemplate_to-T1w_mode-image_desc-linear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-T1w_to-symtemplate_mode-image_desc-nonlinear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-symtemplate_to-T1w_mode-image_desc-nonlinear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-T1w_to-symtemplate_mode-image_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-symtemplate_to-T1w_mode-image_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-longitudinal_to-symtemplate_mode-image_desc-linear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-symtemplate_to-longitudinal_mode-image_desc-linear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-longitudinal_to-symtemplate_mode-image_desc-nonlinear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-symtemplate_to-longitudinal_mode-image_desc-nonlinear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-longitudinal_to-symtemplate_mode-image_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-symtemplate_to-longitudinal_mode-image_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
+        **xfm_outputs(
+            spaces={
+                "longitudinal": "longitudinal-T1w-template",
+                "symtemplate": "T1w-template-symmetric",
+                "T1w": "native T1w",
+            },
+            template="symtemplate",
+        ),
     },
 )
-def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
+def register_symmetric_ANTs_anat_to_template(
+    wf: pe.Workflow,
+    cfg: "Configuration",
+    strat_pool: "ResourcePool",
+    pipe_num: int,
+    opt: Optional[str] = None,
+) -> NODEBLOCK_RETURN:
     """Register T1 to symmetric template with ANTs."""
-    params = cfg.registration_workflows["anatomical_registration"]["registration"][
-        "ANTs"
-    ]["T1_registration"]
-
-    ants, outputs = ANTs_registration_connector(
-        f"ANTS_T1_to_template_symmetric_{pipe_num}",
-        cfg,
-        params,
-        orig="T1w",
-        symmetric=True,
+    params = cast(
+        list[dict[str, Any]],
+        cfg[
+            "registration_workflows",
+            "anatomical_registration",
+            "registration",
+            "ANTs",
+            "T1_registration",
+        ],
     )
-
-    ants.inputs.inputspec.interpolation = cfg.registration_workflows[
-        "anatomical_registration"
-    ]["registration"]["ANTs"]["interpolation"]
-
-    connect, brain = strat_pool.get_data(
-        ["desc-preproc_T1w", "longitudinal-template_space-longitudinal_desc-brain_T1w"],
-        report_fetched=True,
+    (
+        orig,
+        has_longitudinal,
+        input_brain,
+        input_head,
+        reference_mask,
+        lesion_mask,
+        t1w_brain_template,
+        t1w_template,
+        brain_mask,
+    ) = get_common_reg_inputs(
+        strat_pool,
+        registration_templates=RegistrationTemplates(
+            reference_brain="T1w-brain-template-symmetric",
+            reference_head="T1w-template-symmetric",
+            reference_mask="dilated-symmetric-brain-mask",
+        ),
     )
-    node, out = connect
-    wf.connect(node, out, ants, "inputspec.input_brain")
-
-    node, out = strat_pool.get_data("T1w-brain-template-symmetric")
-    wf.connect(node, out, ants, "inputspec.reference_brain")
-
-    node, out = strat_pool.get_data(
-        [
-            "desc-head_T1w",
-            "desc-preproc_T1w",
-            "longitudinal-template_space-longitudinal_desc-reorient_T1w",
-            "longitudinal-template_space-longitudinal_head-reorient_T1w",
-        ]
-    )
-    wf.connect(node, out, ants, "inputspec.input_head")
-
-    node, out = strat_pool.get_data("T1w-template-symmetric")
-    wf.connect(node, out, ants, "inputspec.reference_head")
-
-    node, out = strat_pool.get_data(
-        [
-            "space-T1w_desc-brain_mask",
-            "longitudinal-template_space-longitudinal_desc-brain_mask",
-        ]
-    )
-    wf.connect(node, out, ants, "inputspec.input_mask")
-
-    node, out = strat_pool.get_data("dilated-symmetric-brain-mask")
-    wf.connect(node, out, ants, "inputspec.reference_mask")
-
-    if strat_pool.check_rpool("label-lesion_mask"):
-        node, out = strat_pool.get_data("label-lesion_mask")
-        wf.connect(node, out, ants, "inputspec.lesion_mask")
-
-    if "space-longitudinal" in brain:
-        for key in list(outputs.keys()):
-            if "from-T1w" in key:
-                new_key = key.replace("from-T1w", "from-longitudinal")
-                outputs[new_key] = outputs[key]
-
-            if "to-T1w" in key:
-                new_key = key.replace("to-T1w", "to-longitudinal")
-                outputs[new_key] = outputs[key]
-
-    return (wf, outputs)
+    _rc_params = {
+        "wf_name": f"ANTS_T1_to_template_symmetric_{pipe_num}",
+        "cfg": cfg,
+        "params": params,
+        "orig": orig,
+        "symmetric": True,
+    }
+    if has_longitudinal:
+        _rc_params["wf_name"] = f"ANTS_longitudinal_to_template_symmetric_{pipe_num}"
+        _rc_params["template"] = "longitudinal"
+    ants, outputs = ANTs_registration_connector(**_rc_params)
+    wf.connect(*input_brain, ants, "inputspec.input_brain")
+    wf.connect(*t1w_brain_template, ants, "inputspec.reference_brain")
+    wf.connect(*input_head, ants, "inputspec.input_head")
+    wf.connect(*t1w_template, ants, "inputspec.reference_head")
+    wf.connect(*brain_mask, ants, "inputspec.input_mask")
+    if reference_mask:
+        wf.connect(*reference_mask, ants, "inputspec.reference_mask")
+    if lesion_mask:
+        wf.connect(*lesion_mask, ants, "inputspec.lesion_mask")
+    if has_longitudinal:
+        outputs.update(
+            t1w_to_longitudinal_to_template["ants"](
+                wf, strat_pool, template="symtemplate"
+            )
+        )
+    return wf, outputs
 
 
 @nodeblock(

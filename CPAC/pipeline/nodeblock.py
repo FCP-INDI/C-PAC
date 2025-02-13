@@ -20,7 +20,9 @@ from typing import Any, Callable, Optional, TypeAlias
 
 from nipype.pipeline import engine as pe
 
-NODEBLOCK_RETURN: TypeAlias = tuple[pe.Workflow, dict[str, tuple[pe.Node, str]]]
+NODEBLOCK_RETURN: TypeAlias = tuple[
+    pe.Workflow, dict[str, tuple[pe.Node | pe.Workflow, str]]
+]
 
 
 class NodeBlockFunction:

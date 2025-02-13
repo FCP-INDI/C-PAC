@@ -428,7 +428,7 @@ def anat_longitudinal_wf(
             wf.connect(merge_skulls, "out", wholehead_template_node, "input_skull_list")
 
         case "mri_robust_template":
-            brain_output = head_output = "NIfTI-template.out_file"
+            brain_output = head_output = "reorient_longitudinal_template.out_file"
             brain_template_node = mri_robust_template(
                 f"mri_robust_template_brain_{subject_id}", config, len(sub_list)
             )
@@ -556,7 +556,7 @@ def anat_longitudinal_wf(
                 select_sess.set_input("session", f"space-longitudinal{index}")
                 head_select_sess.set_input("session", f"space-longitudinal{index}")
                 input_name = "outputs"
-                output_name = "NIfTI-mapmov_.out_file"
+                output_name = "reorient_longitudinal_session_.out_file"
                 cross_graph_connections(
                     wf,
                     wf_graph,

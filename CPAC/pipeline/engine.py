@@ -21,7 +21,8 @@ from itertools import chain
 import json
 import os
 import re
-from typing import Literal, Optional
+from types import NotImplementedType
+from typing import cast, Generator, Literal, Optional
 import warnings
 
 from nipype import config, logging
@@ -2851,10 +2852,25 @@ class NodeData:
 
     # pylint: disable=too-few-public-methods
     def __init__(self, strat_pool=None, resource=None, **kwargs):
+        """Initialize NodeData."""
         self.node = NotImplemented
         self.out = NotImplemented
         if strat_pool is not None and resource is not None:
-            self.node, self.out = strat_pool.get_data(resource, **kwargs)
+            self.node, self.out = cast(
+                tuple[pe.Node, str], strat_pool.get_data(resource, **kwargs)
+            )
 
-    def __repr__(self):  # noqa: D105
+    def __iter__(
+        self,
+    ) -> Generator[pe.Node | NotImplementedType, str | NotImplementedType, None]:
+        """Expand NodeData into node, data."""
+        yield self.node
+        yield self.out
+
+    def __repr__(self) -> str:
+        """Return reproducible string representation of NodeData."""
+        return f"NodeData({getattr(self.node, 'name', str(self.node))}, {self.out})"
+
+    def __str__(self) -> str:
+        """Return string representation of NodeData."""
         return f'{getattr(self.node, "name", str(self.node))} ({self.out})'

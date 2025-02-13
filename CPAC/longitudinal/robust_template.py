@@ -29,7 +29,6 @@ from nipype.interfaces.base import (
 )
 from nipype.interfaces.freesurfer import longitudinal
 from nipype.interfaces.freesurfer.preprocess import MRIConvert
-from nipype.interfaces.freesurfer.utils import LTAConvert
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.configuration import Configuration
@@ -141,23 +140,15 @@ def mri_robust_template(
 
     nifti_template = pe.Node(MRIConvert(out_type="niigz"), name="NIfTI-template")
     wf.connect(node, "out_file", nifti_template, "in_file")
+    reorient_template = cfg.orientation_node("reorient_longitudinal_template", pe.Node)
+    wf.connect(nifti_template, "out_file", reorient_template, "in_file")
 
     nifti_outputs = pe.MapNode(MRIConvert(), name="NIfTI-mapmov", iterfield=["in_file"])
     wf.connect(node, "mapmov", nifti_outputs, "in_file")
-    reorient_outputs = cfg.orientation_node(
-        "reorient_longitudinal_template", pe.MapNode
-    )
+    reorient_outputs = cfg.orientation_node("reorient_longitudinal_session", pe.MapNode)
     wf.connect(nifti_outputs, "out_file", reorient_outputs, "in_file")
     reorient_outputs.set_input(
         "out_file", [f"space-longitudinal{i + 1}.nii.gz" for i in range(num_sessions)]
-    )
-
-    convert = pe.MapNode(
-        LTAConvert(), name="convert-to-FSL", iterfield=["in_lta", "out_fsl"]
-    )
-    wf.connect(node, "transform_outputs", convert, "in_lta")
-    convert.set_input(
-        "out_fsl", [f"space-longitudinal{i + 1}.mat" for i in range(num_sessions)]
     )
 
     return wf

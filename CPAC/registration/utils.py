@@ -18,7 +18,7 @@
 
 import os
 import subprocess
-from typing import Optional, overload
+from typing import Literal, NamedTuple, Optional, overload, TYPE_CHECKING
 
 import numpy as np
 from voluptuous import RequiredFieldInvalid
@@ -31,6 +31,31 @@ from nipype.pipeline.engine import Node as NipypeNode, Workflow
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
 from CPAC.pipeline.nipype_pipeline_engine import MapNode, Node
 from CPAC.utils.interfaces import Function
+
+if TYPE_CHECKING:
+    from CPAC.pipeline.engine import NodeData
+
+
+class CommonRegistrationInputs(NamedTuple):
+    """Input nodes registration methods take in common."""
+
+    orig: Literal["longitudinal", "T1w"]
+    has_longitudinal: bool
+    input_brain: "NodeData"
+    input_head: "NodeData"
+    reference_mask: Optional["NodeData"]
+    lesion_mask: Optional["NodeData"]
+    t1w_brain_template: "NodeData"
+    t1w_template: "NodeData"
+    brain_mask: "NodeData"
+
+
+class RegistrationTemplates(NamedTuple):
+    """Keys for registration templates in strat pool."""
+
+    reference_brain: list[str] | str = "T1w-brain-template"
+    reference_head: list[str] | str = "T1w-template"
+    reference_mask: list[str] | str = "T1w-brain-template-mask"
 
 
 def apply_transform(
@@ -1221,7 +1246,7 @@ def compose_ants_warp(  # noqa: PLR0913
     return node
 
 
-def xfm_outputs(spaces: dict[str, str]) -> dict[str, dict[str, str]]:
+def xfm_outputs(spaces: dict[str, str], template: str) -> dict[str, dict[str, str]]:
     """Build dictionary for XFM output specs."""
     transform_types = {
         "": "Composite (affine + warp field)",
@@ -1231,7 +1256,9 @@ def xfm_outputs(spaces: dict[str, str]) -> dict[str, dict[str, str]]:
     return {
         f"from-{origin}_to-{destination}_mode-image{transform_type}_xfm": {
             "Description": f"{transform_type_desc} transform from {origin_desc} space to {destination_desc} space.",
-            "Template": destination_desc if destination != "T1w" else origin_desc,
+            "Template": spaces.get(
+                template, destination_desc if destination != "T1w" else origin_desc
+            ),
         }
         for origin, origin_desc in spaces.items()
         for destination, destination_desc in spaces.items()
