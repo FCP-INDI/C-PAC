@@ -1833,7 +1833,8 @@ def create_nuisance_regression_workflow(nuisance_selectors, name="nuisance_regre
     if nuisance_selectors.get("Censor"):
         if nuisance_selectors["Censor"]["method"] != "SpikeRegression":
             nuisance_regression.inputs.cenmode = (
-                "NTRP" if nuisance_selectors["Censor"]["method"] == "Interpolate"
+                "NTRP"
+                if nuisance_selectors["Censor"]["method"] == "Interpolate"
                 else nuisance_selectors["Censor"]["method"].upper()
             )
 
