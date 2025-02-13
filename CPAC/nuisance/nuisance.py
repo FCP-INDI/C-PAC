@@ -1679,12 +1679,13 @@ def create_regressor_workflow(
                 ),
             ]
         )
-    nuisance_wf.connect(
-        offending_timepoints_connector_wf,
-        "outputspec.out_file",
-        build_nuisance_regressors,
-        "censor_file_path",
-    )
+        
+        nuisance_wf.connect(
+            offending_timepoints_connector_wf,
+            "outputspec.out_file",
+            build_nuisance_regressors,
+            "censor_file_path",
+        )
 
     build_nuisance_regressors.inputs.selector = nuisance_selectors
 
