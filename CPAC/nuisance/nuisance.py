@@ -1825,15 +1825,11 @@ def create_nuisance_regression_workflow(nuisance_selectors, name="nuisance_regre
     nuisance_regression.inputs.norm = False
 
     if nuisance_selectors.get("Censor"):
-        if nuisance_selectors["Censor"]["method"] == "SpikeRegression":
-            nuisance_wf.connect(find_censors, "out_file", nuisance_regression, "censor")
-        else:
-            if nuisance_selectors["Censor"]["method"] == "Interpolate":
-                nuisance_regression.inputs.cenmode = "NTRP"
-            else:
-                nuisance_regression.inputs.cenmode = nuisance_selectors["Censor"][
-                    "method"
-                ].upper()
+        if nuisance_selectors["Censor"]["method"] != "SpikeRegression":
+            nuisance_regression.inputs.cenmode = (
+                "NTRP" if nuisance_selectors["Censor"]["method"] == "Interpolate"
+                else nuisance_selectors["Censor"]["method"].upper()
+            )
 
         nuisance_wf.connect(
             offending_timepoints_connector_wf,
