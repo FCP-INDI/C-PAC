@@ -34,6 +34,7 @@ from CPAC.image_utils.statistical_transforms import (
     fisher_z_score_standardize,
     z_score_standardize,
 )
+from CPAC.longitudinal.wf.utils import LONGITUDINAL_TEMPLATE_PATTERN
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.pipeline.nodeblock import NodeBlockFunction
@@ -1188,11 +1189,8 @@ class ResourcePool:
             for pipe_idx in self.rpool[resource]:
                 out_dir = cfg.pipeline_setup["output_directory"]["path"]
                 pipe_name = cfg.pipeline_setup["pipeline_name"]
-                longitudinal_xfm = any(
-                    [
-                        "from-template_to-longitudinal" in resource,
-                        "from-longitudinal_to-template" in resource,
-                    ]
+                longitudinal_xfm = bool(
+                    re.search(LONGITUDINAL_TEMPLATE_PATTERN, resource)
                 )
                 if self.ses_id and not longitudinal_xfm:
                     container = os.path.join(

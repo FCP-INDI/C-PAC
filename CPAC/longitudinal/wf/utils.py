@@ -27,6 +27,9 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.utils import get_edges_with_node
 from CPAC.utils.interfaces.function import Function
 
+_TEMPLATE_PATTERN = r"((sym)?template|longitudinal)"
+LONGITUDINAL_TEMPLATE_PATTERN = f"from-{_TEMPLATE_PATTERN}_to-{_TEMPLATE_PATTERN}"
+
 
 def check_creds_path(creds_path: Optional[str], subject_id: str) -> Optional[str]:
     """Check credentials path."""
