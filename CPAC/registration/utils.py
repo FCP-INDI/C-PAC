@@ -18,7 +18,7 @@
 
 import os
 import subprocess
-from typing import Literal, NamedTuple, Optional, overload, TYPE_CHECKING
+from typing import Literal, NamedTuple, Optional, overload, TYPE_CHECKING, TypeAlias
 
 import numpy as np
 from voluptuous import RequiredFieldInvalid
@@ -34,6 +34,10 @@ from CPAC.utils.interfaces import Function
 
 if TYPE_CHECKING:
     from CPAC.pipeline.engine import NodeData
+
+REGISTRATION_SPACE: TypeAlias = Literal[
+    "bold", "EPI", "T1", "T1w", "longitudinal", "template"
+]
 
 
 class CommonRegistrationInputs(NamedTuple):
@@ -1244,6 +1248,48 @@ def compose_ants_warp(  # noqa: PLR0913
             "invert_transform_flags",
         )
     return node
+
+
+def prep_reg_connector(
+    symmetric: bool, template: REGISTRATION_SPACE
+) -> tuple[
+    Literal["", "sym"],
+    Literal["", "_symmetric"],
+    Literal["", "EPI"],
+    REGISTRATION_SPACE,
+]:
+    """Return some formatted strings.
+
+    Returns
+    -------
+    sym
+        String to indicate if symmetric in resource names
+
+    symm
+        String to indicate if symmetric in node names
+
+    tmpl
+        String to indicate EPI template space in resource names
+
+    template
+        String to indicate template space in resource names
+    """
+    sym = ""
+    symm = ""
+    if symmetric:
+        sym = "sym"
+        symm = "_symmetric"
+
+    tmpl = ""
+    match template:
+        case "EPI":
+            tmpl = "EPI"
+            template = "template"
+        case "longitudinal":
+            template = template  # noqa: PLW0127
+        case _:
+            template = "template"
+    return sym, symm, tmpl, template
 
 
 def xfm_outputs(spaces: dict[str, str], template: str) -> dict[str, dict[str, str]]:
