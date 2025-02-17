@@ -2831,13 +2831,13 @@ class NodeData:
     --------
     >>> rp = ResourcePool()
     >>> rp.node_data(None)
-    NotImplemented (NotImplemented)
+    NodeData(NotImplemented, NotImplemented)
 
     >>> rp.set_data('test',
     ...             pe.Node(Function(input_names=[]), 'test'),
     ...             'b', [], 0, 'test')
     >>> rp.node_data('test')
-    test (b)
+    NodeData(test, b)
     >>> rp.node_data('test').out
     'b'
 

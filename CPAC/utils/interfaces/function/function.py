@@ -158,9 +158,9 @@ class Function(NipypeFunction):
 
     def __init__(
         self,
-        input_names: Optional[list[str] | str],
-        output_names: list[str] | str,
-        function: Callable,
+        input_names: Optional[list[str] | str] = None,
+        output_names: list[str] | str = "out",
+        function: Optional[Callable] = None,
         imports: Optional[list[str]] = None,
         as_module: bool = False,
         **inputs,
