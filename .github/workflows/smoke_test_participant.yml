@@ -145,7 +145,7 @@ jobs:
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
           cat $GITHUB_ENV
       - name: setup-conda
-        uses: s-weigand/setup-conda@v1.2.3
+        uses: conda-incubator/setup-miniconda@v3.1.1
       - name: Set up datalad-OSF
         run: |
           git config --global user.email "CMI_CPAC_Support@childmind.org"
@@ -203,7 +203,12 @@ jobs:
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
           cat $GITHUB_ENV
       - name: setup-conda
-        uses: s-weigand/setup-conda@v1.2.3
+        uses: conda-incubator/setup-miniconda@v3.1.1
+        with:
+          activate-environment: datalad-osf
+          channels: conda-forge
+          conda-remove-defaults: "true"
+          python-version: 3.12
       - name: Set up datalad-OSF
         run: |
           git config --global user.email "CMI_CPAC_Support@childmind.org"
