@@ -217,6 +217,8 @@ jobs:
           pip install datalad-osf
       - name: Get rodent test data
         run: |
+          export GIT_TRACE=1
+          export DATALAD_LOG_LEVEL=DEBUG
           datalad clone osf://uya3r test-data
       - name: Run rodent smoke test
         run: |
