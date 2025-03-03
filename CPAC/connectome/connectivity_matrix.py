@@ -171,7 +171,7 @@ def create_connectome_afni(name, method, pipe_num):
             imports=["import subprocess"],
             function=strip_afni_output_header,
         ),
-        name="netcorrStripHeader{method}_{pipe_num}",
+        name=f"netcorrStripHeader{method}_{pipe_num}",
     )
 
     name_output_node = pe.Node(
