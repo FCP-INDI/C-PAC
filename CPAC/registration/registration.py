@@ -3081,9 +3081,6 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
 
     else:
         outputs = {}
-        raise NodeBlockError(
-            "Invalid registration tool or option provided. Please make sure the registration tool is ANTs and the option is FSL."
-        )
 
     return (wf, outputs)
 
