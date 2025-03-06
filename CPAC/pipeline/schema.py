@@ -1395,7 +1395,7 @@ def schema(config_dict):
 
         if (
             overwrite["run"]
-            and overwrite["using"]
+            and "ANTS" not
             in partially_validated["registration_workflows"]["anatomical_registration"][
                 "registration"
             ]["using"]
