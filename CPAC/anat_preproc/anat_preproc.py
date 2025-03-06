@@ -2904,6 +2904,18 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         "pipeline-fs_brainmask",
         "pipeline-fs_wmparc",
         "pipeline-fs_T1",
+        *[
+            f"pipeline-fs_hemi-{hemi}_{entity}"
+            for hemi in ["L", "R"]
+            for entity in [
+                "desc-surface_curv",
+                *[
+                    f"desc-surfaceMesh_{_}"
+                    for _ in ["pial", "smoothwm", "sphere", "white"]
+                ],
+                *[f"desc-surfaceMap_{_}" for _ in ["sulc", "thickness", "volume"]],
+            ]
+        ],
         *freesurfer_abcd_preproc.outputs,
         # we're grabbing the postproc outputs and appending them to
         # the reconall outputs
