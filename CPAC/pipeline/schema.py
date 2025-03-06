@@ -1402,7 +1402,7 @@ def schema(config_dict):
         ):
             raise ExclusiveInvalid(
                 "[!] Overwrite transform is found same as the anatomical registration method! "
-                "No need to overwrite transform with the same registration method."
+                "No need to overwrite transform with the same registration method. Please turn it off or use a different registration method."
             )
     except KeyError:
         pass
