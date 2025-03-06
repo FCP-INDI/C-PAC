@@ -136,7 +136,7 @@ def test_overwrite_transform(registration_using):
             }
         }
     }
-    if "FSL" not in registration_using:
+    if "ANTS" in registration_using:
         Configuration(d)  # validates without exception
     else:
         with pytest.raises(ExclusiveInvalid) as e:
