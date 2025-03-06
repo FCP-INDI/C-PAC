@@ -95,9 +95,10 @@ jobs:
                 # If the package is not installed, install it
                 python3 -m pip install --user "https://github.com/${{ env.SLURM_TESTING_REPO }}/archive/${{ env.SLURM_TESTING_BRANCH }}.zip"
             fi
-            mkdir -p ./logs/${{ github.sha }}
+            _CPAC_SLURM_TESTING_WD="${{ env.SSH_WORK_DIR }}/automatic_tests/${{ inputs.test_mode }}/${{ github.sha }}"
+            mkdir -p "${_CPAC_SLURM_TESTING_WD}"
             sbatch cpac-slurm-status launch \
-              --wd="${{ env.SSH_WORK_DIR }}/logs/${{ github.sha }}" \
+              --wd="${_CPAC_SLURM_TESTING_WD}" \
               --comparison-path="${{ env.COMPARISON_PATH }}" \
               --dashboard-repo="${{ env.DASHBOARD_REPO}}" \
               --home-dir="${{ env.SSH_WORK_DIR }}" \
