@@ -1657,35 +1657,36 @@ def create_regressor_workflow(
     )
 
     if nuisance_selectors.get("Censor"):
-        offending_timepoints_connector_wf = offending_timepoints_connector(
-            nuisance_selectors
-        )
-        nuisance_wf.connect(
-            [
-                (
-                    inputspec,
-                    offending_timepoints_connector_wf,
-                    [("fd_j_file_path", "inputspec.fd_j_file_path")],
-                ),
-                (
-                    inputspec,
-                    offending_timepoints_connector_wf,
-                    [("fd_p_file_path", "inputspec.fd_p_file_path")],
-                ),
-                (
-                    inputspec,
-                    offending_timepoints_connector_wf,
-                    [("dvars_file_path", "inputspec.dvars_file_path")],
-                ),
-            ]
-        )
+        if nuisance_selectors["Censor"]["method"] == "SpikeRegression":
+            offending_timepoints_connector_wf = offending_timepoints_connector(
+                nuisance_selectors
+            )
+            nuisance_wf.connect(
+                [
+                    (
+                        inputspec,
+                        offending_timepoints_connector_wf,
+                        [("fd_j_file_path", "inputspec.fd_j_file_path")],
+                    ),
+                    (
+                        inputspec,
+                        offending_timepoints_connector_wf,
+                        [("fd_p_file_path", "inputspec.fd_p_file_path")],
+                    ),
+                    (
+                        inputspec,
+                        offending_timepoints_connector_wf,
+                        [("dvars_file_path", "inputspec.dvars_file_path")],
+                    ),
+                ]
+            )
 
-        nuisance_wf.connect(
-            offending_timepoints_connector_wf,
-            "outputspec.out_file",
-            build_nuisance_regressors,
-            "censor_file_path",
-        )
+            nuisance_wf.connect(
+                offending_timepoints_connector_wf,
+                "outputspec.out_file",
+                build_nuisance_regressors,
+                "censor_file_path",
+            )
 
     build_nuisance_regressors.inputs.selector = nuisance_selectors
 
@@ -1839,12 +1840,12 @@ def create_nuisance_regression_workflow(nuisance_selectors, name="nuisance_regre
                 else nuisance_selectors["Censor"]["method"].upper()
             )
 
-        nuisance_wf.connect(
-            offending_timepoints_connector_wf,
-            "outputspec.out_file",
-            nuisance_regression,
-            "censor",
-        )
+            nuisance_wf.connect(
+                offending_timepoints_connector_wf,
+                "outputspec.out_file",
+                nuisance_regression,
+                "censor",
+            )
 
     if nuisance_selectors.get("PolyOrt"):
         if not nuisance_selectors["PolyOrt"].get("degree"):
