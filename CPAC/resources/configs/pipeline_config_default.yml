@@ -13,6 +13,9 @@ pipeline_setup:
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac-default-pipeline
 
+  # Desired orientation for the output data. "RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"
+  desired_orientation: RPI
+
   output_directory:
 
     # Directory where C-PAC should write out processed data, logs, and crash reports.
@@ -196,6 +199,12 @@ surface_analysis:
   # Run freesurfer_abcd_preproc to obtain preprocessed T1w for reconall
   abcd_prefreesurfer_prep:
     run: Off
+
+    # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+    ref_mask_res-2: $FSLDIR/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
+
+    # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+    T1w_template_res-2: $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz
 
   # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
@@ -737,12 +746,6 @@ registration_workflows:
         # Identity matrix used during FSL-based resampling of anatomical-space data throughout the pipeline.
         # It is not necessary to change this path unless you intend to use a different template.
         identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
-
-        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2: $FSLDIR/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
-
-        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2: $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz
 
     overwrite_transform:
 

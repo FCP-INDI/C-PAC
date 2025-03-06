@@ -2764,24 +2764,6 @@ def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
         "desc-restore-brain_T1w",
         "desc-ABCDpreproc_T1w",
         "pipeline-fs_desc-fast_biasfield",
-        "pipeline-fs_hemi-L_desc-surface_curv",
-        "pipeline-fs_hemi-R_desc-surface_curv",
-        "pipeline-fs_hemi-L_desc-surfaceMesh_pial",
-        "pipeline-fs_hemi-R_desc-surfaceMesh_pial",
-        "pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm",
-        "pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm",
-        "pipeline-fs_hemi-L_desc-surfaceMesh_sphere",
-        "pipeline-fs_hemi-R_desc-surfaceMesh_sphere",
-        "pipeline-fs_hemi-L_desc-surfaceMap_sulc",
-        "pipeline-fs_hemi-R_desc-surfaceMap_sulc",
-        "pipeline-fs_hemi-L_desc-surfaceMap_thickness",
-        "pipeline-fs_hemi-R_desc-surfaceMap_thickness",
-        "pipeline-fs_hemi-L_desc-surfaceMap_volume",
-        "pipeline-fs_hemi-R_desc-surfaceMap_volume",
-        "pipeline-fs_hemi-L_desc-surfaceMesh_white",
-        "pipeline-fs_hemi-R_desc-surfaceMesh_white",
-        "pipeline-fs_wmparc",
-        "freesurfer-subject-dir",
     ],
 )
 def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -2922,6 +2904,18 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         "pipeline-fs_brainmask",
         "pipeline-fs_wmparc",
         "pipeline-fs_T1",
+        *[
+            f"pipeline-fs_hemi-{hemi}_{entity}"
+            for hemi in ["L", "R"]
+            for entity in [
+                "desc-surface_curv",
+                *[
+                    f"desc-surfaceMesh_{_}"
+                    for _ in ["pial", "smoothwm", "sphere", "white"]
+                ],
+                *[f"desc-surfaceMap_{_}" for _ in ["sulc", "thickness", "volume"]],
+            ]
+        ],
         *freesurfer_abcd_preproc.outputs,
         # we're grabbing the postproc outputs and appending them to
         # the reconall outputs

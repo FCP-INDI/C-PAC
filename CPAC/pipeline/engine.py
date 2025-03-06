@@ -1357,6 +1357,9 @@ class ResourcePool:
                 wf.connect(id_string, "out_filename", nii_name, "format_string")
 
                 node, out = self.rpool[resource][pipe_idx]["data"]
+                if not node:
+                    msg = f"Resource {resource} not found in resource pool."
+                    raise FileNotFoundError(msg)
                 try:
                     wf.connect(node, out, nii_name, "in_file")
                 except OSError as os_error:
