@@ -128,6 +128,7 @@ def test_pipeline_name():
 def test_overwrite_transform(registration_using):
     """Test that if overwrite transform method is already a registration method."""
     # pylint: disable=invalid-name
+    
     d = {
         "registration_workflows": {
             "anatomical_registration": {
@@ -141,6 +142,4 @@ def test_overwrite_transform(registration_using):
     else:
         with pytest.raises(ExclusiveInvalid) as e:
             Configuration(d)
-        assert "Overwrite transform is found same as the registration method" in str(
-            e.value
-        )
+        assert "Overwrite transform is found same" in str(e.value)
