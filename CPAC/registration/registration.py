@@ -3133,7 +3133,6 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
             "coregistration",
             "func_input_prep",
             "mask_sbref",
-            "run",
         ],
     ],
     inputs=["sbref", "space-bold_desc-brain_mask"],
