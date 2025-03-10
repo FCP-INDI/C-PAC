@@ -148,6 +148,7 @@ from CPAC.registration.registration import (
     coregistration_prep_vol,
     create_func_to_T1template_symmetric_xfm,
     create_func_to_T1template_xfm,
+    mask_sbref,
     overwrite_transform_anat_to_template,
     register_ANTs_anat_to_template,
     register_ANTs_EPI_to_template,
@@ -1287,6 +1288,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
                 coregistration_prep_vol,
                 coregistration_prep_mean,
                 coregistration_prep_fmriprep,
+                mask_sbref,
             ],
         ]
 
