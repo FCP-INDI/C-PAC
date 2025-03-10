@@ -3124,6 +3124,40 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
 
 
 @nodeblock(
+    name="mask_sbref",
+    switch=[
+        ["registration_workflows", "functional_registration", "coregistration", "run"],
+        [
+            "registration_workflows",
+            "functional_registration",
+            "coregistration",
+            "func_input_prep",
+            "mask_sbref",
+            "run",
+        ],
+    ],
+    inputs=["sbref", "space-bold_desc-brain_mask"],
+    outputs=["sbref"],
+)
+def mask_sbref(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Mask sbref with brain mask."""
+    mask_sbref = pe.Node(interface=afni.Calc(), name=f"mask_sbref_{pipe_num}")
+
+    mask_sbref.inputs.expr = "a*b"
+    mask_sbref.inputs.outputtype = "NIFTI_GZ"
+
+    node, out = strat_pool.get_data("sbref")
+    wf.connect(node, out, mask_sbref, "in_file_a")
+
+    node, out = strat_pool.get_data("space-bold_desc-brain_mask")
+    wf.connect(node, out, mask_sbref, "in_file_b")
+
+    outputs = {"sbref": (mask_sbref, "out_file")}
+
+    return (wf, outputs)
+
+
+@nodeblock(
     name="coregistration_prep_vol",
     switch=["functional_preproc", "run"],
     option_key=[
@@ -3160,24 +3194,7 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(node, out, get_func_volume, "in_file_a")
 
-    if cfg.registration_workflows["functional_registration"]["coregistration"][
-        "func_input_prep"
-    ]["Selected Functional Volume"]["mask_sbref"] and strat_pool.check_rpool(
-        "space-bold_desc-brain_mask"
-    ):
-        mask_sbref = pe.Node(interface=afni.Calc(), name=f"mask_sbref_{pipe_num}")
-
-        mask_sbref.inputs.expr = "a*b"
-        mask_sbref.inputs.outputtype = "NIFTI_GZ"
-
-        wf.connect(get_func_volume, "out_file", mask_sbref, "in_file_a")
-        node, out = strat_pool.get_data("space-bold_desc-brain_mask")
-        wf.connect(node, out, mask_sbref, "in_file_b")
-
-        coreg_input = (mask_sbref, "out_file")
-
-    else:
-        coreg_input = (get_func_volume, "out_file")
+    coreg_input = (get_func_volume, "out_file")
 
     outputs = {"sbref": coreg_input}
 
