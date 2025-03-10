@@ -725,7 +725,7 @@ registration_workflows:
           func_reg_input_volume: 0
 
         # Independent of the above `reg_with_skull` option
-        mask_sbref: On
+        mask_sbref: Off
 
       boundary_based_registration:
 
