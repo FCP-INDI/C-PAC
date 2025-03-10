@@ -97,7 +97,7 @@ jobs:
             fi
             _CPAC_SLURM_TESTING_WD="${{ env.SSH_WORK_DIR }}/automatic_tests/${{ inputs.test_mode }}/${{ github.sha }}"
             mkdir -p "${_CPAC_SLURM_TESTING_WD}"
-            sbatch cpac-slurm-status launch \
+            sbatch cpac-slurm-status ${{ inputs.test_mode }} launch \
               --wd="${_CPAC_SLURM_TESTING_WD}" \
               --comparison-path="${{ env.COMPARISON_PATH }}" \
               --dashboard-repo="${{ env.DASHBOARD_REPO}}" \
