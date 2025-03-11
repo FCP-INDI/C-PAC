@@ -142,4 +142,4 @@ def test_overwrite_transform(registration_using):
     else:
         with pytest.raises(ExclusiveInvalid) as e:
             Configuration(d)
-        assert "Overwrite transform is found same" in str(e.value)
+        assert "Overwrite transform method is the same" in str(e.value)
