@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatically tag untagged `subject_id` and `unique_id` as `!!str` when loading data config files.
 - Made orientation configurable (was hard-coded as "RPI").
 - Resource-not-found errors now include information about where to source those resources.
+- Moved `ref_mask_res_2` and `T1w_template_res-2` fields from registration into surface under `abcd_prefreesurfer_prep`.
 
 ### Fixed
 
@@ -46,6 +47,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ABCD-HCP`
   - `fMRIPrep-LTS`
 - Typehinting support for Python < 3.10.
+- Extra outputs listed in `freesurfer_abcd_preproc`.
+- Resource `space-template_desc-T1w_mask`
+  - as output from FNIRT registration.
+  - as inputs from Nodeblocks requesting it and, replaced with `space-template_desc-brain_mask`.
+  - from outputs tsv.
+
 
 ## [1.8.7] - 2024-05-03
 
