@@ -1,7 +1,7 @@
 name: Update NodeBlock documentation
 on:
   push:
-    branches: [main] # Adjust to your main branch name
+    branches: [main]
 
 jobs:
   update-nodeblock-docs:
@@ -24,7 +24,7 @@ jobs:
       - name: Generate documentation JSON
         run: |
           cd source-repo
-          python scripts/nodeblock_docs.py
+          python scripts/nodeblock_index.py
 
       # Check out the target repo where we want to commit the JSON file
       - name: Check out target repository
@@ -41,6 +41,6 @@ jobs:
           cd target-repo
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          git add nodeblock_docs.json
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update NodeBlock documentation [skip ci]"
+          git add nodeblock_index.json
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update NodeBlock documentation"
           git push
