@@ -24,7 +24,7 @@ jobs:
       - name: Generate documentation JSON
         run: |
           cd source-repo
-          python scripts/nodeblock_index.py
+          python scripts/nodeblock_docs.py
 
       # Check out the target repo where we want to commit the JSON file
       - name: Check out target repository
