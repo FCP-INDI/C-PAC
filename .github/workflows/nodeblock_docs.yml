@@ -34,6 +34,19 @@ jobs:
           path: target-repo
           token: ${{ secrets.CPAC_DOC_REPO_ACCESS }}
 
+      # Install cpac dependencies
+      - name: Install dependencies
+        run: |
+          cd source-repo
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Run the config extraction script
+      - name: Generate documentation JSON
+        run: |
+          cd source-repo
+          python scripts/config_extractor.py
+
       # Copy the JSON file to the target repo and commit it
       - name: Commit documentation to target repo
         run: |
@@ -44,3 +57,5 @@ jobs:
           git add nodeblock_index.json
           git diff --quiet && git diff --staged --quiet || git commit -m "Update NodeBlock documentation"
           git push
+
+
