@@ -9,19 +9,6 @@ import yaml
 from utils import cd, filesafe, multi_get
 
 
-def _download_cpac_repo(cpac_dir: pl.Path, checkout_sha: str) -> None:
-    """Downloads C-PAC configs from github and extracts them to the specified directory"""
-
-    print(f"Check out C-PAC ({checkout_sha}) from github...")
-    print("-------------------------------------------")
-    os.system(f"git clone https://github.com/FCP-INDI/C-PAC.git {cpac_dir}")
-    with cd(cpac_dir):
-        if os.system(f'git checkout "{checkout_sha}"') != 0:
-            print(f"Could not checkout {checkout_sha}")
-            exit(1)
-    print("-------------------------------------------")
-
-
 def fetch_and_expand_cpac_configs(
     cpac_dir: pl.Path,
     output_dir: pl.Path,
@@ -32,9 +19,6 @@ def fetch_and_expand_cpac_configs(
     Fetches C-PAC configs from github, fully expands them (FROM: parent),
     and then saves them to the specified directory.
     """
-    if not (cpac_dir / "CPAC").exists():
-        cpac_dir.mkdir(parents=True, exist_ok=True)
-        _download_cpac_repo(cpac_dir=cpac_dir, checkout_sha=checkout_sha)
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -99,10 +83,10 @@ def normalize_index_union(indices) -> list[list[str]]:
 if __name__ == "__main__":    
     import sys
 
-    sys.path.append("cpac_source")
+    sys.path.append(".")
 
-    CPAC_DIR = pl.Path("cpac_source")
-    CONFIG_DIR = pl.Path("configs")
+    CPAC_DIR = pl.Path(".")
+    CONFIG_DIR = pl.Path(".")
     CPAC_SHA = "dc41bf4f94da07dd78aeaf2fb894e11999f34748"
 
 
