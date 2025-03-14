@@ -517,18 +517,7 @@ def offending_timepoints_connector(
         name="outputspec",
     )
 
-    censor_methods = ["Kill", "Zero", "Interpolate", "SpikeRegression"]
-
     censor_selector = nuisance_selectors.get("Censor")
-    if censor_selector is None or censor_selector.get("method") not in censor_methods:
-        msg = (
-            "Improper censoring method specified ({0}), "
-            "should be one of {1}.".format(
-                censor_selector.get("method", None) if censor_selector else None,
-                censor_methods,
-            )
-        )
-        raise ValueError(msg)
 
     find_censors = pe.Node(
         Function(
