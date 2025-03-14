@@ -118,6 +118,9 @@ commands:
       - create-docker-test-container:
           coverage-file: .coverage.docker${VARIANT}
       - run:
+          name: Check Git URL Rewrite Config
+          command: git config --global --get-regexp url
+      - run:
           name: Running pytest in Docker image
           command: docker exec --user $(id -u) docker_test /bin/bash /code/dev/circleci_data/test_in_image.sh
   set-python-version:
