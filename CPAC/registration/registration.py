@@ -3224,15 +3224,29 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
         "FSL-AFNI-bold-ref",
         "FSL-AFNI-brain-mask",
         "FSL-AFNI-brain-probseg",
+        "desc-unifized_bold",
     ],
-    outputs=["sbref", "desc-unifized_bold", "fMRIprep_brain_mask"],
+    outputs=["sbref"],
 )
 def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
     """Generate fMRIPrep-style single-band reference for coregistration."""
-    if not strat_pool.check_rpool("desc-unifized_bold"):
-        wf, outputs = fsl_afni_subworkflow(wf, cfg, strat_pool, pipe_num)
+    outputs = {}
 
-    outputs["sbref"] = outputs["desc-unifized_bold"]
+    if not strat_pool.check_rpool("desc-unifized_bold"):
+        fsl_afni_wf = fsl_afni_subworkflow(cfg, pipe_num, opt)
+
+        for key in [
+            "FSL-AFNI-bold-ref",
+            "FSL-AFNI-brain-mask",
+            "FSL-AFNI-brain-probseg",
+            "motion-basefile",
+        ]:
+            node, out = strat_pool.get_data(key)
+            wf.connect(node, out, fsl_afni_wf, f"inputspec.{key}")
+
+        outputs["sbref"] = (fsl_afni_wf, "outputspec.desc-unifized_bold")
+    else:
+        outputs["sbref"] = strat_pool.get_data("desc-unifized_bold")
 
     return (wf, outputs)
 

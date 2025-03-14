@@ -501,7 +501,28 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     return stopidx, startidx
 
 
-def fsl_afni_subworkflow(wf, cfg, strat_pool, pipe_num, opt=None):
+def fsl_afni_subworkflow(cfg, pipe_num, opt=None):
+    wf = pe.Workflow(name=f"fsl_afni_subworkflow_{pipe_num}")
+
+    inputNode = pe.Node(
+        util.IdentityInterface(
+            fields=[
+                "FSL-AFNI-bold-ref",
+                "FSL-AFNI-brain-mask",
+                "FSL-AFNI-brain-probseg",
+                "motion-basefile",
+            ]
+        ),
+        name="inputspec",
+    )
+
+    outputNode = pe.Node(
+        util.IdentityInterface(
+            fields=["space-bold_desc-brain_mask", "desc-unifized_bold"]
+        ),
+        name="outputspec",
+    )
+
     # Initialize transforms with antsAI
     init_aff = pe.Node(
         AI(
@@ -515,11 +536,6 @@ def fsl_afni_subworkflow(wf, cfg, strat_pool, pipe_num, opt=None):
         name=f"init_aff_{pipe_num}",
         n_procs=cfg.pipeline_setup["system_config"]["num_OMP_threads"],
     )
-    node, out = strat_pool.get_data("FSL-AFNI-bold-ref")
-    wf.connect(node, out, init_aff, "fixed_image")
-
-    node, out = strat_pool.get_data("FSL-AFNI-brain-mask")
-    wf.connect(node, out, init_aff, "fixed_image_mask")
 
     init_aff.inputs.search_grid = (40, (0, 40, 40))
 
@@ -548,9 +564,6 @@ def fsl_afni_subworkflow(wf, cfg, strat_pool, pipe_num, opt=None):
         n_procs=cfg.pipeline_setup["system_config"]["num_OMP_threads"],
     )
 
-    node, out = strat_pool.get_data("FSL-AFNI-bold-ref")
-    wf.connect(node, out, norm, "fixed_image")
-
     map_brainmask = pe.Node(
         ants.ApplyTransforms(
             interpolation="BSpline",
@@ -558,10 +571,6 @@ def fsl_afni_subworkflow(wf, cfg, strat_pool, pipe_num, opt=None):
         ),
         name=f"map_brainmask_{pipe_num}",
     )
-
-    # Use the higher resolution and probseg for numerical stability in rounding
-    node, out = strat_pool.get_data("FSL-AFNI-brain-probseg")
-    wf.connect(node, out, map_brainmask, "input_image")
 
     binarize_mask = pe.Node(
         interface=fsl.maths.MathsCommand(), name=f"binarize_mask_{pipe_num}"
@@ -641,14 +650,17 @@ def fsl_afni_subworkflow(wf, cfg, strat_pool, pipe_num, opt=None):
     # Compute masked brain
     apply_mask = pe.Node(fsl.ApplyMask(), name=f"extract_ref_brain_bold_{pipe_num}")
 
-    node, out = strat_pool.get_data(["motion-basefile"])
-
     wf.connect(
         [
-            (node, init_aff, [(out, "moving_image")]),
-            (node, map_brainmask, [(out, "reference_image")]),
-            (node, norm, [(out, "moving_image")]),
+            (inputNode, init_aff, [("FSL-AFNI-bold-ref", "fixed_image")]),
+            (inputNode, init_aff, [("FSL-AFNI-brain-mask", "fixed_image_mask")]),
+            (inputNode, init_aff, [("motion-basefile", "moving_image")]),
             (init_aff, norm, [("output_transform", "initial_moving_transform")]),
+            (inputNode, norm, [("FSL-AFNI-bold-ref", "fixed_image")]),
+            (inputNode, norm, [("motion-basefile", "moving_image")]),
+            # Use the higher resolution and probseg for numerical stability in rounding
+            (inputNode, map_brainmask, [("FSL-AFNI-brain-probseg", "input_image")]),
+            (inputNode, map_brainmask, [("motion-basefile", "reference_image")]),
             (
                 norm,
                 map_brainmask,
@@ -661,9 +673,13 @@ def fsl_afni_subworkflow(wf, cfg, strat_pool, pipe_num, opt=None):
             (binarize_mask, pre_dilate, [("out_file", "in_file")]),
             (pre_dilate, print_header, [("out_file", "image")]),
             (print_header, set_direction, [("header", "direction")]),
-            (node, set_direction, [(out, "infile"), (out, "outfile")]),
+            (
+                inputNode,
+                set_direction,
+                [("motion-basefile", "infile"), ("motion-basefile", "outfile")],
+            ),
             (set_direction, n4_correct, [("outfile", "mask_image")]),
-            (node, n4_correct, [(out, "input_image")]),
+            (inputNode, n4_correct, [("motion-basefile", "input_image")]),
             (n4_correct, skullstrip_first_pass, [("output_image", "in_file")]),
             (skullstrip_first_pass, bet_dilate, [("mask_file", "in_file")]),
             (bet_dilate, bet_mask, [("out_file", "mask_file")]),
@@ -674,15 +690,12 @@ def fsl_afni_subworkflow(wf, cfg, strat_pool, pipe_num, opt=None):
             (skullstrip_second_pass, combine_masks, [("out_file", "operand_file")]),
             (unifize, apply_mask, [("out_file", "in_file")]),
             (combine_masks, apply_mask, [("out_file", "mask_file")]),
+            (combine_masks, outputNode, [("out_file", "space-bold_desc-brain_mask")]),
+            (apply_mask, outputNode, [("out_file", "desc-unifized_bold")]),
         ]
     )
 
-    outputs = {
-        "fMRIprep_brain_mask": (combine_masks, "out_file"),
-        "desc-unifized_bold": (apply_mask, "out_file"),
-    }
-
-    return (wf, outputs)
+    return wf
 
 
 @nodeblock(
@@ -1233,10 +1246,24 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # Modifications copyright (C) 2021 - 2024  C-PAC Developers
 
-    wf, outputs = fsl_afni_subworkflow(wf, cfg, strat_pool, pipe_num, opt)
+    fsl_afni_wf = fsl_afni_subworkflow(cfg, pipe_num, opt)
 
-    # both masks are available, but they are the same in this nodeblock
-    outputs["space-bold_desc-brain_mask"] = outputs["fMRIprep_brain_mask"]
+    for key in [
+        "FSL-AFNI-bold-ref",
+        "FSL-AFNI-brain-mask",
+        "FSL-AFNI-brain-probseg",
+        "motion-basefile",
+    ]:
+        node, out = strat_pool.get_data(key)
+        wf.connect(node, out, fsl_afni_wf, f"inputspec.{key}")
+
+    outputs = {
+        "desc-unifized_bold": (fsl_afni_wf, "outputspec.desc-unifized_bold"),
+        "space-bold_desc-brain_mask": (
+            fsl_afni_wf,
+            "outputspec.space-bold_desc-brain_mask",
+        ),
+    }
 
     return (wf, outputs)
 
