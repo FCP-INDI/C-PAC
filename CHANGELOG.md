@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Required positional parameter "wf" in input and output of `ingress_pipeconfig_paths` function, where a node to reorient templates is added to the `wf`.
 - Required positional parameter "orientation" to `resolve_resolution`.
 - Optional positional argument "cfg" to `create_lesion_preproc`.
-- New switch `mask_sbref` under `func_input_prep` in functional registration.
+- New switch `mask_sbref` under `func_input_prep` in functional registration and set to default `on`.
 - New resource `desc-head_bold` as non skull-stripped bold from nodeblock `bold_masking`.
 
 ### Changed
@@ -57,7 +57,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - as output from FNIRT registration.
   - as inputs from Nodeblocks requesting it and, replaced with `space-template_desc-brain_mask`.
   - from outputs tsv.
-
+- Inputs `[desc-motion_bold, bold]` from `coregistration_prep_vol` nodeblock.
+- `input` field from `coregistration` in blank and default config.
+- `reg_with_skull` swtich from `func_input_prep` in blank and default config.
 
 ## [1.8.7] - 2024-05-03
 

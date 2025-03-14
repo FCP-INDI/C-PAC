@@ -725,12 +725,10 @@ latest_schema = Schema(
                     "reference": In({"brain", "restore-brain"}),
                     "interpolation": In({"trilinear", "sinc", "spline"}),
                     "using": str,
-                    "input": str,
                     "cost": str,
                     "dof": int,
                     "arguments": Maybe(str),
                     "func_input_prep": {
-                        "reg_with_skull": bool1_1,
                         "input": [
                             In(
                                 {

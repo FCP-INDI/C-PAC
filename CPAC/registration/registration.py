@@ -3167,7 +3167,7 @@ def mask_sbref(wf, cfg, strat_pool, pipe_num, opt=None):
         "input",
     ],
     option_val="Selected_Functional_Volume",
-    inputs=[("desc-preproc_bold", ["desc-head_bold", "bold"], "sbref")],
+    inputs=[("desc-preproc_bold", "sbref")],
     outputs=["sbref"],
 )
 def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -3182,14 +3182,7 @@ def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
         outputtype="NIFTI_GZ",
     )
 
-    if not cfg.registration_workflows["functional_registration"]["coregistration"][
-        "func_input_prep"
-    ]["reg_with_skull"]:
-        node, out = strat_pool.get_data("desc-preproc_bold")
-    else:
-        # TODO check which file is functional_skull_leaf
-        # TODO add a function to choose brain or skull?
-        node, out = strat_pool.get_data(["desc-head_bold", "bold"])
+    node, out = strat_pool.get_data("desc-preproc_bold")
 
     wf.connect(node, out, get_func_volume, "in_file_a")
 

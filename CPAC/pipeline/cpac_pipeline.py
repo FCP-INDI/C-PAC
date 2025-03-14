@@ -1288,8 +1288,8 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
                 coregistration_prep_vol,
                 coregistration_prep_mean,
                 coregistration_prep_fmriprep,
-                mask_sbref,
             ],
+            mask_sbref,
         ]
 
         # Distortion/Susceptibility Correction
