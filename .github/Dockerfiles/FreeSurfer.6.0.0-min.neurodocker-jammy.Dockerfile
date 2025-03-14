@@ -32,7 +32,7 @@ RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 FROM scratch
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+LABEL org.opencontainers.image.description="NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 FreeSurfer 6.0.0-min stage"
-LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
 COPY --from=FreeSurfer6 /usr/lib/freesurfer/ /usr/lib/freesurfer/
