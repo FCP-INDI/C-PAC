@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -2572,7 +2572,7 @@ def brain_mask_acpc_niworkflows_ants_T2(wf, cfg, strat_pool, pipe_num, opt=None)
     config=["anatomical_preproc", "brain_extraction"],
     option_key="using",
     option_val="UNet",
-    inputs=["desc-preproc_T2w", "T1w-brain-template", "T1w-template", "unet_model"],
+    inputs=["desc-preproc_T2w", "T1w-brain-template", "T1w-template", "unet-model"],
     outputs=["space-T2w_desc-brain_mask"],
 )
 def brain_mask_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -2586,7 +2586,7 @@ def brain_mask_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     config=["anatomical_preproc", "brain_extraction"],
     option_key="using",
     option_val="UNet",
-    inputs=["desc-preproc_T2w", "T1w-brain-template", "T1w-template", "unet_model"],
+    inputs=["desc-preproc_T2w", "T1w-brain-template", "T1w-template", "unet-model"],
     outputs=["space-T2w_desc-acpcbrain_mask"],
 )
 def brain_mask_acpc_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -2764,24 +2764,6 @@ def brain_extraction_temp_T2(wf, cfg, strat_pool, pipe_num, opt=None):
         "desc-restore-brain_T1w",
         "desc-ABCDpreproc_T1w",
         "pipeline-fs_desc-fast_biasfield",
-        "pipeline-fs_hemi-L_desc-surface_curv",
-        "pipeline-fs_hemi-R_desc-surface_curv",
-        "pipeline-fs_hemi-L_desc-surfaceMesh_pial",
-        "pipeline-fs_hemi-R_desc-surfaceMesh_pial",
-        "pipeline-fs_hemi-L_desc-surfaceMesh_smoothwm",
-        "pipeline-fs_hemi-R_desc-surfaceMesh_smoothwm",
-        "pipeline-fs_hemi-L_desc-surfaceMesh_sphere",
-        "pipeline-fs_hemi-R_desc-surfaceMesh_sphere",
-        "pipeline-fs_hemi-L_desc-surfaceMap_sulc",
-        "pipeline-fs_hemi-R_desc-surfaceMap_sulc",
-        "pipeline-fs_hemi-L_desc-surfaceMap_thickness",
-        "pipeline-fs_hemi-R_desc-surfaceMap_thickness",
-        "pipeline-fs_hemi-L_desc-surfaceMap_volume",
-        "pipeline-fs_hemi-R_desc-surfaceMap_volume",
-        "pipeline-fs_hemi-L_desc-surfaceMesh_white",
-        "pipeline-fs_hemi-R_desc-surfaceMesh_white",
-        "pipeline-fs_wmparc",
-        "freesurfer-subject-dir",
     ],
 )
 def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -2922,6 +2904,18 @@ def freesurfer_abcd_preproc(wf, cfg, strat_pool, pipe_num, opt=None):
         "pipeline-fs_brainmask",
         "pipeline-fs_wmparc",
         "pipeline-fs_T1",
+        *[
+            f"pipeline-fs_hemi-{hemi}_{entity}"
+            for hemi in ["L", "R"]
+            for entity in [
+                "desc-surface_curv",
+                *[
+                    f"desc-surfaceMesh_{_}"
+                    for _ in ["pial", "smoothwm", "sphere", "white"]
+                ],
+                *[f"desc-surfaceMap_{_}" for _ in ["sulc", "thickness", "volume"]],
+            ]
+        ],
         *freesurfer_abcd_preproc.outputs,
         # we're grabbing the postproc outputs and appending them to
         # the reconall outputs

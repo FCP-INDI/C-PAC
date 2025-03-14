@@ -1510,7 +1510,7 @@ def anat_brain_mask_to_bold_res(wf_name, cfg, pipe_num):
     wf = pe.Workflow(name=f"{wf_name}_{pipe_num}")
     inputNode = pe.Node(
         util.IdentityInterface(
-            fields=["space-template_desc-T1w_mask", "space-template_desc-preproc_T1w"]
+            fields=["space-template_desc-brain_mask", "space-template_desc-preproc_T1w"]
         ),
         name="inputspec",
     )
@@ -1531,7 +1531,7 @@ def anat_brain_mask_to_bold_res(wf_name, cfg, pipe_num):
 
     wf.connect(
         inputNode,
-        "space-template_desc-T1w_mask",
+        "space-template_desc-brain_mask",
         anat_brain_mask_to_func_res,
         "in_file",
     )
@@ -1563,7 +1563,7 @@ def anat_brain_mask_to_bold_res(wf_name, cfg, pipe_num):
         "desc-preproc_bold",
         "T1w-template-funcreg",
         "space-template_desc-preproc_T1w",
-        "space-template_desc-T1w_mask",
+        "space-template_desc-brain_mask",
     ],
     outputs=[
         "space-template_res-bold_desc-brain_T1w",
@@ -1592,9 +1592,12 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
         wf_name="anat_brain_mask_to_bold_res", cfg=cfg, pipe_num=pipe_num
     )
 
-    node, out = strat_pool.get_data("space-template_desc-T1w_mask")
+    node, out = strat_pool.get_data("space-template_desc-brain_mask")
     wf.connect(
-        node, out, anat_brain_mask_to_func_res, "inputspec.space-template_desc-T1w_mask"
+        node,
+        out,
+        anat_brain_mask_to_func_res,
+        "inputspec.pace-template_desc-brain_mask",
     )
 
     wf.connect(
