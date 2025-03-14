@@ -1036,7 +1036,14 @@ latest_schema = Schema(
                             {
                                 "Name": Required(str),
                                 "Censor": {
-                                    "method": In(["Kill", "Zero", "Interpolate", "SpikeRegression"]), 
+                                    "method": In(
+                                        [
+                                            "Kill",
+                                            "Zero",
+                                            "Interpolate",
+                                            "SpikeRegression",
+                                        ]
+                                    ),
                                     "thresholds": [
                                         {
                                             "type": str,
