@@ -155,9 +155,9 @@ RUN apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/*
 
 FROM scratch
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+LABEL org.opencontainers.image.description="NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 AFNI ${AFNI_VERSION} (${VERSION_NAME}) stage"
-LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
 COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
 COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
 COPY --from=AFNI /lib64/ld* /lib64/
