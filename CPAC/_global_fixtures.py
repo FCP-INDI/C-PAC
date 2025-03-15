@@ -16,6 +16,19 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Global fixtures for C-PAC tests."""
 
-from CPAC._global_fixtures import bids_examples
+from pathlib import Path
 
-__all__ = ["bids_examples"]
+from _pytest.tmpdir import TempPathFactory
+from git import Repo
+import pytest
+
+
+@pytest.fixture(scope="session")
+def bids_examples(tmp_path_factory: TempPathFactory) -> Path:
+    """Get the BIDS examples dataset."""
+    example_dir = tmp_path_factory.mktemp("bids-examples")
+    if not example_dir.exists() or not any(example_dir.iterdir()):
+        Repo.clone_from(
+            "https://github.com/bids-standard/bids-examples.git", str(example_dir)
+        )
+    return example_dir

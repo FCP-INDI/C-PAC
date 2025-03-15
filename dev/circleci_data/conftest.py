@@ -16,4 +16,4 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Global fixtures for C-PAC tests."""
 
-from CPAC.conftest import *  # noqa: F403
+from CPAC._global_fixtures import *  # noqa: F403
