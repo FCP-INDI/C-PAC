@@ -94,8 +94,8 @@ def test_build_data_config(caplog, cli_runner, multiword_connector):
 def test_new_settings_template(bids_examples: Path, caplog, cli_runner):
     """Test CLI ``utils new-settings-template``."""
     caplog.set_level(INFO)
-    os.chdir(CPAC_DIR)
     assert bids_examples.exists()
+    os.chdir(bids_examples)
 
     result = cli_runner.invoke(
         CPAC_main_utils.commands[
