@@ -45,10 +45,6 @@ commands:
       - run:
           name: "Configuring git user"
           command: |
-            sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 78BD65473CB3BD13
-            curl -L https://packagecloud.io/circleci/trusty/gpgkey | sudo apt-key add -
-            sudo apt-get update
-            sudo apt-get install git openssh-client -y
             git config --global user.email "CMI_CPAC_Support@childmind.org"
             git config --global user.name "Theodore (machine user) @ CircleCI"
   create-docker-test-container:
@@ -117,9 +113,6 @@ commands:
     steps:
       - create-docker-test-container:
           coverage-file: .coverage.docker${VARIANT}
-      - run:
-          name: Check Git URL Rewrite Config
-          command: git config --global --get-regexp url
       - run:
           name: Running pytest in Docker image
           command: docker exec --user $(id -u) docker_test /bin/bash /code/dev/circleci_data/test_in_image.sh
