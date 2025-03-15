@@ -127,6 +127,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `wxpython`
 - `yamlordereddictloader`
 
+#### Removed CI dependency
+
+- `tj-actions/changed-files` ([CVE-2023-51664](https://www.stepsecurity.io/blog/harden-runner-detection-tj-actions-changed-files-action-is-compromised))
+
 ### Upgraded dependencies
 
 - `AFNI` 21.1.00 'Domitian' → 23.3.09 'Septimius Severus'
