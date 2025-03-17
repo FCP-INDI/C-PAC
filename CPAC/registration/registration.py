@@ -3074,6 +3074,9 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
             "from-template_to-T1w_mode-image_xfm": (merge_inv_xfms, "merged_file"),
         }
 
+    else:
+        outputs = {}
+
     return (wf, outputs)
 
 

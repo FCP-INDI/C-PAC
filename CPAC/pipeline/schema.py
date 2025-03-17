@@ -1388,6 +1388,22 @@ def schema(config_dict):
                 " Try turning one option off.\n "
             )
             raise ExclusiveInvalid(msg)
+
+        overwrite = partially_validated["registration_workflows"][
+            "anatomical_registration"
+        ]["overwrite_transform"]
+
+        if (
+            overwrite["run"]
+            and "ANTS"
+            not in partially_validated["registration_workflows"][
+                "anatomical_registration"
+            ]["registration"]["using"]
+        ):
+            raise ExclusiveInvalid(
+                "[!] Overwrite transform method is the same as the anatomical registration method! "
+                "No need to overwrite transform with the same registration method. Please turn it off or use a different registration method."
+            )
     except KeyError:
         pass
     try:
