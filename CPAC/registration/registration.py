@@ -24,6 +24,7 @@ from nipype.interfaces import afni, ants, c3, fsl, utility as util
 from nipype.interfaces.afni import utils as afni_utils
 
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
+from CPAC.func_preproc.func_preproc import fsl_afni_subworkflow
 from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
@@ -3176,14 +3177,34 @@ def coregistration_prep_mean(wf, cfg, strat_pool, pipe_num, opt=None):
         "input",
     ],
     option_val="fmriprep_reference",
-    inputs=["desc-ref_bold"],
+    inputs=[
+        ("motion-basefile", "desc-preproc_bold"),
+        "FSL-AFNI-bold-ref",
+        "FSL-AFNI-brain-mask",
+        "FSL-AFNI-brain-probseg",
+        "desc-unifized_bold",
+    ],
     outputs=["sbref"],
 )
 def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
     """Generate fMRIPrep-style single-band reference for coregistration."""
-    coreg_input = strat_pool.get_data("desc-ref_bold")
+    outputs = {}
 
-    outputs = {"sbref": coreg_input}
+    if not strat_pool.check_rpool("desc-unifized_bold"):
+        fsl_afni_wf = fsl_afni_subworkflow(cfg, pipe_num, opt)
+
+        for key in [
+            "FSL-AFNI-bold-ref",
+            "FSL-AFNI-brain-mask",
+            "FSL-AFNI-brain-probseg",
+            "motion-basefile",
+        ]:
+            node, out = strat_pool.get_data(key)
+            wf.connect(node, out, fsl_afni_wf, f"inputspec.{key}")
+
+        outputs["sbref"] = (fsl_afni_wf, "outputspec.desc-unifized_bold")
+    else:
+        outputs["sbref"] = strat_pool.get_data("desc-unifized_bold")
 
     return (wf, outputs)
 
