@@ -242,7 +242,7 @@ def cli_parser() -> Namespace:
     return parser.parse_args()
 
 
-def _flatten_io(io: list[Iterable]) -> list[str]:
+def _flatten_io(io: Iterable[Iterable]) -> list[str]:
     """Given a list of strings or iterables thereof, flatten the list to all strings."""
     if all(isinstance(resource, str) for resource in io):
         return cast(list[str], io)
@@ -577,7 +577,7 @@ def resource_inventory(package: str = "CPAC") -> dict[str, ResourceIO]:
         package,
         exclude=SKIPS,
     ):
-        nbf_name = f"{nbf.__module__}.{nbf.__qualname__}"
+        nbf_name = f"{nbf.name} ({nbf.__module__}.{nbf.__qualname__})"
         if hasattr(nbf, "inputs"):
             for nbf_input in _flatten_io(cast(list[Iterable], nbf.inputs)):
                 if nbf_input:
@@ -639,6 +639,24 @@ def dump_inventory_to_yaml(inventory: dict[str, ResourceIO]) -> str:
     return yaml.dump(
         {key: value.as_dict() for key, value in inventory.items()}, sort_keys=False
     )
+
+
+def where_to_find(resources: list[str] | str) -> str:
+    """Return a multiline string describing where each listed resource is output from."""
+    if isinstance(resources, str):
+        resources = [resources]
+    resources = _flatten_io(resources)
+    inventory = resource_inventory("CPAC")
+    output = ""
+    for resource in resources:
+        output += f"'{resource}' can be output from:\n"
+        if resource in inventory:
+            for source in inventory[resource].output_from:
+                output += f"    {source}\n"
+        else:
+            output += "    !! Nowhere !!\n"
+        output += "\n"
+    return output.rstrip()
 
 
 def main() -> None:

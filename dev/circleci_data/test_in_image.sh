@@ -1,5 +1,8 @@
 export PATH=$PATH:/home/$(whoami)/.local/bin
 
+# don't force SSH for git clones in testing image
+git config --global --unset url.ssh://git@github.com.insteadof
+
 # install testing requirements
 pip install -r /code/dev/circleci_data/requirements.txt
 

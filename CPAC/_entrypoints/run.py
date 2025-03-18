@@ -795,7 +795,7 @@ def run_main():
                 args.data_config_file, args.participant_label, args.aws_input_creds
             )
         sub_list = sub_list_filter_by_labels(
-            sub_list, {"T1w": args.T1w_label, "bold": args.bold_label}
+            list(sub_list), {"T1w": args.T1w_label, "bold": args.bold_label}
         )
 
         # C-PAC only handles single anatomical images (for now)
