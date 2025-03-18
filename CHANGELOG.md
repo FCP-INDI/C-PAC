@@ -33,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made orientation configurable (was hard-coded as "RPI").
 - Moved `ref_mask_res_2` and `T1w_template_res-2` fields from registration into surface under `abcd_prefreesurfer_prep`.
 - Moved `find_censors node` inside `create_nuisance_regression_workflow` into its own function/subworkflow as `offending_timepoints_connector`.
+- [FSL-AFNI subworkflow](https://github.com/FCP-INDI/C-PAC/blob/4bdd6c410ef0a9b90f53100ea005af1f7d6e76c0/CPAC/func_preproc/func_preproc.py#L1052C4-L1231C25)
+  - Moved `FSL-AFNI subworkflow` from inside a `bold_mask_fsl_afni` nodeblock into a separate function.
+  - Renamed `desc-ref_bold` created in this workflow to `desc-unifized_bold`.
+  - `coregistration_prep_fmriprep` nodeblock now checks if `desc-unifized_bold` exists in the Resource Pool, if not it runs the `FSL-AFNI subworkflow` to create it.
 
 ### Fixed
 
@@ -125,6 +129,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `simplejson`
 - `wxpython`
 - `yamlordereddictloader`
+
+#### Removed CI dependency
+
+- `tj-actions/changed-files` ([CVE-2023-51664](https://www.stepsecurity.io/blog/harden-runner-detection-tj-actions-changed-files-action-is-compromised))
 
 ### Upgraded dependencies
 

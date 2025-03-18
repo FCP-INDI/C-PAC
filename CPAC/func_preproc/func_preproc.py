@@ -501,6 +501,203 @@ def get_idx(in_files, stop_idx=None, start_idx=None):
     return stopidx, startidx
 
 
+def fsl_afni_subworkflow(cfg, pipe_num, opt=None):
+    wf = pe.Workflow(name=f"fsl_afni_subworkflow_{pipe_num}")
+
+    inputNode = pe.Node(
+        util.IdentityInterface(
+            fields=[
+                "FSL-AFNI-bold-ref",
+                "FSL-AFNI-brain-mask",
+                "FSL-AFNI-brain-probseg",
+                "motion-basefile",
+            ]
+        ),
+        name="inputspec",
+    )
+
+    outputNode = pe.Node(
+        util.IdentityInterface(
+            fields=["space-bold_desc-brain_mask", "desc-unifized_bold"]
+        ),
+        name="outputspec",
+    )
+
+    # Initialize transforms with antsAI
+    init_aff = pe.Node(
+        AI(
+            metric=("Mattes", 32, "Regular", 0.2),
+            transform=("Affine", 0.1),
+            search_factor=(20, 0.12),
+            principal_axes=False,
+            convergence=(10, 1e-6, 10),
+            verbose=True,
+        ),
+        name=f"init_aff_{pipe_num}",
+        n_procs=cfg.pipeline_setup["system_config"]["num_OMP_threads"],
+    )
+
+    init_aff.inputs.search_grid = (40, (0, 40, 40))
+
+    # Set up spatial normalization
+    norm = pe.Node(
+        ants.Registration(
+            winsorize_upper_quantile=0.98,
+            winsorize_lower_quantile=0.05,
+            float=True,
+            metric=["Mattes"],
+            metric_weight=[1],
+            radius_or_number_of_bins=[64],
+            transforms=["Affine"],
+            transform_parameters=[[0.1]],
+            number_of_iterations=[[200]],
+            convergence_window_size=[10],
+            convergence_threshold=[1.0e-9],
+            sampling_strategy=["Random", "Random"],
+            smoothing_sigmas=[[2]],
+            sigma_units=["mm", "mm", "mm"],
+            shrink_factors=[[2]],
+            sampling_percentage=[0.2],
+            use_histogram_matching=[True],
+        ),
+        name=f"norm_{pipe_num}",
+        n_procs=cfg.pipeline_setup["system_config"]["num_OMP_threads"],
+    )
+
+    map_brainmask = pe.Node(
+        ants.ApplyTransforms(
+            interpolation="BSpline",
+            float=True,
+        ),
+        name=f"map_brainmask_{pipe_num}",
+    )
+
+    binarize_mask = pe.Node(
+        interface=fsl.maths.MathsCommand(), name=f"binarize_mask_{pipe_num}"
+    )
+    binarize_mask.inputs.args = "-thr 0.85 -bin"
+
+    # Dilate pre_mask
+    pre_dilate = pe.Node(
+        fsl.DilateImage(
+            operation="max",
+            kernel_shape="sphere",
+            kernel_size=3.0,
+            internal_datatype="char",
+        ),
+        name=f"pre_mask_dilate_{pipe_num}",
+    )
+
+    # Fix precision errors
+    # https://github.com/ANTsX/ANTs/wiki/Inputs-do-not-occupy-the-same-physical-space#fixing-precision-errors
+    print_header = pe.Node(
+        PrintHeader(what_information=4), name=f"print_header_{pipe_num}"
+    )
+    set_direction = pe.Node(SetDirectionByMatrix(), name=f"set_direction_{pipe_num}")
+
+    # Run N4 normally, force num_threads=1 for stability (images are
+    # small, no need for >1)
+    n4_correct = pe.Node(
+        ants.N4BiasFieldCorrection(
+            dimension=3, copy_header=True, bspline_fitting_distance=200
+        ),
+        shrink_factor=2,
+        rescale_intensities=True,
+        name=f"n4_correct_{pipe_num}",
+        n_procs=1,
+    )
+
+    # Create a generous BET mask out of the bias-corrected EPI
+    skullstrip_first_pass = pe.Node(
+        fsl.BET(frac=0.2, mask=True, functional=False),
+        name=f"skullstrip_first_pass_{pipe_num}",
+    )
+
+    bet_dilate = pe.Node(
+        fsl.DilateImage(
+            operation="max",
+            kernel_shape="sphere",
+            kernel_size=6.0,
+            internal_datatype="char",
+        ),
+        name=f"skullstrip_first_dilate_{pipe_num}",
+    )
+
+    bet_mask = pe.Node(fsl.ApplyMask(), name=f"skullstrip_first_mask_{pipe_num}")
+
+    # Use AFNI's unifize for T2 constrast
+    unifize = pe.Node(
+        afni_utils.Unifize(
+            t2=True,
+            outputtype="NIFTI_GZ",
+            args="-clfrac 0.2 -rbt 18.3 65.0 90.0",
+            out_file="uni.nii.gz",
+        ),
+        name=f"unifize_{pipe_num}",
+    )
+
+    # Run ANFI's 3dAutomask to extract a refined brain mask
+    skullstrip_second_pass = pe.Node(
+        preprocess.Automask(dilate=1, outputtype="NIFTI_GZ"),
+        name=f"skullstrip_second_pass_{pipe_num}",
+    )
+
+    # Take intersection of both masks
+    combine_masks = pe.Node(
+        fsl.BinaryMaths(operation="mul"), name=f"combine_masks_{pipe_num}"
+    )
+
+    # Compute masked brain
+    apply_mask = pe.Node(fsl.ApplyMask(), name=f"extract_ref_brain_bold_{pipe_num}")
+
+    wf.connect(
+        [
+            (inputNode, init_aff, [("FSL-AFNI-bold-ref", "fixed_image")]),
+            (inputNode, init_aff, [("FSL-AFNI-brain-mask", "fixed_image_mask")]),
+            (inputNode, init_aff, [("motion-basefile", "moving_image")]),
+            (init_aff, norm, [("output_transform", "initial_moving_transform")]),
+            (inputNode, norm, [("FSL-AFNI-bold-ref", "fixed_image")]),
+            (inputNode, norm, [("motion-basefile", "moving_image")]),
+            # Use the higher resolution and probseg for numerical stability in rounding
+            (inputNode, map_brainmask, [("FSL-AFNI-brain-probseg", "input_image")]),
+            (inputNode, map_brainmask, [("motion-basefile", "reference_image")]),
+            (
+                norm,
+                map_brainmask,
+                [
+                    ("reverse_invert_flags", "invert_transform_flags"),
+                    ("reverse_transforms", "transforms"),
+                ],
+            ),
+            (map_brainmask, binarize_mask, [("output_image", "in_file")]),
+            (binarize_mask, pre_dilate, [("out_file", "in_file")]),
+            (pre_dilate, print_header, [("out_file", "image")]),
+            (print_header, set_direction, [("header", "direction")]),
+            (
+                inputNode,
+                set_direction,
+                [("motion-basefile", "infile"), ("motion-basefile", "outfile")],
+            ),
+            (set_direction, n4_correct, [("outfile", "mask_image")]),
+            (inputNode, n4_correct, [("motion-basefile", "input_image")]),
+            (n4_correct, skullstrip_first_pass, [("output_image", "in_file")]),
+            (skullstrip_first_pass, bet_dilate, [("mask_file", "in_file")]),
+            (bet_dilate, bet_mask, [("out_file", "mask_file")]),
+            (skullstrip_first_pass, bet_mask, [("out_file", "in_file")]),
+            (bet_mask, unifize, [("out_file", "in_file")]),
+            (unifize, skullstrip_second_pass, [("out_file", "in_file")]),
+            (skullstrip_first_pass, combine_masks, [("mask_file", "in_file")]),
+            (skullstrip_second_pass, combine_masks, [("out_file", "operand_file")]),
+            (unifize, apply_mask, [("out_file", "in_file")]),
+            (combine_masks, apply_mask, [("out_file", "mask_file")]),
+            (combine_masks, outputNode, [("out_file", "space-bold_desc-brain_mask")]),
+            (apply_mask, outputNode, [("out_file", "desc-unifized_bold")]),
+        ]
+    )
+
+    return wf
+
+
 @nodeblock(
     name="func_reorient",
     config=["functional_preproc", "update_header"],
@@ -953,7 +1150,7 @@ def bold_mask_fsl(wf, cfg, strat_pool, pipe_num, opt=None):
         "space-bold_desc-brain_mask": {
             "Description": "mask of the skull-stripped input file"
         },
-        "desc-ref_bold": {
+        "desc-unifized_bold": {
             "Description": "the ``bias_corrected_file`` after skull-stripping"
         },
     },
@@ -1004,6 +1201,7 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
     #     * Removed ``if not pre_mask`` conditional block
     #     * Modified docstring to reflect local changes
     #     * Refactored some variables and connections and updated style to match C-PAC codebase
+    #     * Moved fsl-afni subworkflow into a separate function and added a function call in this nodeblock.
 
     # ORIGINAL WORK'S ATTRIBUTION NOTICE:
     #    Copyright (c) 2016, the CRN developers team.
@@ -1048,184 +1246,23 @@ def bold_mask_fsl_afni(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # Modifications copyright (C) 2021 - 2024  C-PAC Developers
 
-    # Initialize transforms with antsAI
-    init_aff = pe.Node(
-        AI(
-            metric=("Mattes", 32, "Regular", 0.2),
-            transform=("Affine", 0.1),
-            search_factor=(20, 0.12),
-            principal_axes=False,
-            convergence=(10, 1e-6, 10),
-            verbose=True,
-        ),
-        name=f"init_aff_{pipe_num}",
-        n_procs=cfg.pipeline_setup["system_config"]["num_OMP_threads"],
-    )
-    node, out = strat_pool.get_data("FSL-AFNI-bold-ref")
-    wf.connect(node, out, init_aff, "fixed_image")
+    fsl_afni_wf = fsl_afni_subworkflow(cfg, pipe_num, opt)
 
-    node, out = strat_pool.get_data("FSL-AFNI-brain-mask")
-    wf.connect(node, out, init_aff, "fixed_image_mask")
-
-    init_aff.inputs.search_grid = (40, (0, 40, 40))
-
-    # Set up spatial normalization
-    norm = pe.Node(
-        ants.Registration(
-            winsorize_upper_quantile=0.98,
-            winsorize_lower_quantile=0.05,
-            float=True,
-            metric=["Mattes"],
-            metric_weight=[1],
-            radius_or_number_of_bins=[64],
-            transforms=["Affine"],
-            transform_parameters=[[0.1]],
-            number_of_iterations=[[200]],
-            convergence_window_size=[10],
-            convergence_threshold=[1.0e-9],
-            sampling_strategy=["Random", "Random"],
-            smoothing_sigmas=[[2]],
-            sigma_units=["mm", "mm", "mm"],
-            shrink_factors=[[2]],
-            sampling_percentage=[0.2],
-            use_histogram_matching=[True],
-        ),
-        name=f"norm_{pipe_num}",
-        n_procs=cfg.pipeline_setup["system_config"]["num_OMP_threads"],
-    )
-
-    node, out = strat_pool.get_data("FSL-AFNI-bold-ref")
-    wf.connect(node, out, norm, "fixed_image")
-
-    map_brainmask = pe.Node(
-        ants.ApplyTransforms(
-            interpolation="BSpline",
-            float=True,
-        ),
-        name=f"map_brainmask_{pipe_num}",
-    )
-
-    # Use the higher resolution and probseg for numerical stability in rounding
-    node, out = strat_pool.get_data("FSL-AFNI-brain-probseg")
-    wf.connect(node, out, map_brainmask, "input_image")
-
-    binarize_mask = pe.Node(
-        interface=fsl.maths.MathsCommand(), name=f"binarize_mask_{pipe_num}"
-    )
-    binarize_mask.inputs.args = "-thr 0.85 -bin"
-
-    # Dilate pre_mask
-    pre_dilate = pe.Node(
-        fsl.DilateImage(
-            operation="max",
-            kernel_shape="sphere",
-            kernel_size=3.0,
-            internal_datatype="char",
-        ),
-        name=f"pre_mask_dilate_{pipe_num}",
-    )
-
-    # Fix precision errors
-    # https://github.com/ANTsX/ANTs/wiki/Inputs-do-not-occupy-the-same-physical-space#fixing-precision-errors
-    print_header = pe.Node(
-        PrintHeader(what_information=4), name=f"print_header_{pipe_num}"
-    )
-    set_direction = pe.Node(SetDirectionByMatrix(), name=f"set_direction_{pipe_num}")
-
-    # Run N4 normally, force num_threads=1 for stability (images are
-    # small, no need for >1)
-    n4_correct = pe.Node(
-        ants.N4BiasFieldCorrection(
-            dimension=3, copy_header=True, bspline_fitting_distance=200
-        ),
-        shrink_factor=2,
-        rescale_intensities=True,
-        name=f"n4_correct_{pipe_num}",
-        n_procs=1,
-    )
-
-    # Create a generous BET mask out of the bias-corrected EPI
-    skullstrip_first_pass = pe.Node(
-        fsl.BET(frac=0.2, mask=True, functional=False),
-        name=f"skullstrip_first_pass_{pipe_num}",
-    )
-
-    bet_dilate = pe.Node(
-        fsl.DilateImage(
-            operation="max",
-            kernel_shape="sphere",
-            kernel_size=6.0,
-            internal_datatype="char",
-        ),
-        name=f"skullstrip_first_dilate_{pipe_num}",
-    )
-
-    bet_mask = pe.Node(fsl.ApplyMask(), name=f"skullstrip_first_mask_{pipe_num}")
-
-    # Use AFNI's unifize for T2 constrast
-    unifize = pe.Node(
-        afni_utils.Unifize(
-            t2=True,
-            outputtype="NIFTI_GZ",
-            args="-clfrac 0.2 -rbt 18.3 65.0 90.0",
-            out_file="uni.nii.gz",
-        ),
-        name=f"unifize_{pipe_num}",
-    )
-
-    # Run ANFI's 3dAutomask to extract a refined brain mask
-    skullstrip_second_pass = pe.Node(
-        preprocess.Automask(dilate=1, outputtype="NIFTI_GZ"),
-        name=f"skullstrip_second_pass_{pipe_num}",
-    )
-
-    # Take intersection of both masks
-    combine_masks = pe.Node(
-        fsl.BinaryMaths(operation="mul"), name=f"combine_masks_{pipe_num}"
-    )
-
-    # Compute masked brain
-    apply_mask = pe.Node(fsl.ApplyMask(), name=f"extract_ref_brain_bold_{pipe_num}")
-
-    node, out = strat_pool.get_data(["motion-basefile"])
-
-    wf.connect(
-        [
-            (node, init_aff, [(out, "moving_image")]),
-            (node, map_brainmask, [(out, "reference_image")]),
-            (node, norm, [(out, "moving_image")]),
-            (init_aff, norm, [("output_transform", "initial_moving_transform")]),
-            (
-                norm,
-                map_brainmask,
-                [
-                    ("reverse_invert_flags", "invert_transform_flags"),
-                    ("reverse_transforms", "transforms"),
-                ],
-            ),
-            (map_brainmask, binarize_mask, [("output_image", "in_file")]),
-            (binarize_mask, pre_dilate, [("out_file", "in_file")]),
-            (pre_dilate, print_header, [("out_file", "image")]),
-            (print_header, set_direction, [("header", "direction")]),
-            (node, set_direction, [(out, "infile"), (out, "outfile")]),
-            (set_direction, n4_correct, [("outfile", "mask_image")]),
-            (node, n4_correct, [(out, "input_image")]),
-            (n4_correct, skullstrip_first_pass, [("output_image", "in_file")]),
-            (skullstrip_first_pass, bet_dilate, [("mask_file", "in_file")]),
-            (bet_dilate, bet_mask, [("out_file", "mask_file")]),
-            (skullstrip_first_pass, bet_mask, [("out_file", "in_file")]),
-            (bet_mask, unifize, [("out_file", "in_file")]),
-            (unifize, skullstrip_second_pass, [("out_file", "in_file")]),
-            (skullstrip_first_pass, combine_masks, [("mask_file", "in_file")]),
-            (skullstrip_second_pass, combine_masks, [("out_file", "operand_file")]),
-            (unifize, apply_mask, [("out_file", "in_file")]),
-            (combine_masks, apply_mask, [("out_file", "mask_file")]),
-        ]
-    )
+    for key in [
+        "FSL-AFNI-bold-ref",
+        "FSL-AFNI-brain-mask",
+        "FSL-AFNI-brain-probseg",
+        "motion-basefile",
+    ]:
+        node, out = strat_pool.get_data(key)
+        wf.connect(node, out, fsl_afni_wf, f"inputspec.{key}")
 
     outputs = {
-        "space-bold_desc-brain_mask": (combine_masks, "out_file"),
-        "desc-ref_bold": (apply_mask, "out_file"),
+        "desc-unifized_bold": (fsl_afni_wf, "outputspec.desc-unifized_bold"),
+        "space-bold_desc-brain_mask": (
+            fsl_afni_wf,
+            "outputspec.space-bold_desc-brain_mask",
+        ),
     }
 
     return (wf, outputs)

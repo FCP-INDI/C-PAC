@@ -22,9 +22,9 @@ FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.5-jammy as FSL
 FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.4-beta-jammy as ICA-AROMA
 
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+LABEL org.opencontainers.image.description="NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Standard software dependencies for C-PAC standard and lite images"
-LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
 USER root
 
 # Installing connectome-workbench
