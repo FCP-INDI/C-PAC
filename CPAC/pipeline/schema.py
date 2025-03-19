@@ -725,12 +725,10 @@ latest_schema = Schema(
                     "run": bool1_1,
                     "interpolation": In({"trilinear", "sinc", "spline"}),
                     "using": str,
-                    "input": str,
                     "cost": str,
                     "dof": int,
                     "arguments": Maybe(str),
                     "func_input_prep": {
-                        "reg_with_skull": bool1_1,
                         "input": [
                             In(
                                 {
@@ -741,7 +739,10 @@ latest_schema = Schema(
                             )
                         ],
                         "Mean Functional": {"n4_correct_func": bool1_1},
-                        "Selected Functional Volume": {"func_reg_input_volume": int},
+                        "Selected Functional Volume": {
+                            "func_reg_input_volume": int,
+                        },
+                        "mask_sbref": bool1_1,
                     },
                     "boundary_based_registration": {
                         "run": forkable,
@@ -1036,7 +1037,14 @@ latest_schema = Schema(
                             {
                                 "Name": Required(str),
                                 "Censor": {
-                                    "method": str,
+                                    "method": In(
+                                        [
+                                            "Kill",
+                                            "Zero",
+                                            "Interpolate",
+                                            "SpikeRegression",
+                                        ]
+                                    ),
                                     "thresholds": [
                                         {
                                             "type": str,

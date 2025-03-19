@@ -1830,6 +1830,10 @@ def bold_mask_ccs(wf, cfg, strat_pool, pipe_num, opt=None):
             "Description": "The skull-stripped BOLD time-series.",
             "SkullStripped": True,
         },
+        "desc-head_bold": {
+            "Description": "The non skull-stripped BOLD time-series.",
+            "SkullStripped": False,
+        },
     },
 )
 def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -1841,8 +1845,8 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     func_edge_detect.inputs.expr = "a*b"
     func_edge_detect.inputs.outputtype = "NIFTI_GZ"
 
-    node, out = strat_pool.get_data("desc-preproc_bold")
-    wf.connect(node, out, func_edge_detect, "in_file_a")
+    node_head_bold, out_head_bold = strat_pool.get_data("desc-preproc_bold")
+    wf.connect(node_head_bold, out_head_bold, func_edge_detect, "in_file_a")
 
     node, out = strat_pool.get_data("space-bold_desc-brain_mask")
     wf.connect(node, out, func_edge_detect, "in_file_b")
@@ -1850,6 +1854,7 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         "desc-preproc_bold": (func_edge_detect, "out_file"),
         "desc-brain_bold": (func_edge_detect, "out_file"),
+        "desc-head_bold": (node_head_bold, out_head_bold),
     }
 
     return (wf, outputs)

@@ -705,9 +705,6 @@ registration_workflows:
       run: Off
       func_input_prep:
 
-        # Choose whether to use functional brain or skull as the input to functional-to-anatomical registration
-        reg_with_skull: Off
-
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
         # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
         input: [Mean_Functional]
@@ -722,6 +719,9 @@ registration_workflows:
           # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'.
           #Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
           func_reg_input_volume: 0
+
+        # Mask the sbref created by coregistration input prep nodeblocks above before registration
+        mask_sbref: On
 
       boundary_based_registration:
 
@@ -747,8 +747,7 @@ registration_workflows:
       # Choose FSL or ABCD as coregistration method
       using: FSL
 
-      # Choose brain or whole-head as coregistration input
-      input: brain
+      #TODO Add input field here to choose between whole head or brain
 
       # Choose coregistration interpolation
       interpolation: trilinear
