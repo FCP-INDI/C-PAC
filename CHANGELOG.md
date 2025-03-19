@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional positional argument "cfg" to `create_lesion_preproc`.
 - New switch `mask_sbref` under `func_input_prep` in functional registration and set to default `on`.
 - New resource `desc-head_bold` as non skull-stripped bold from nodeblock `bold_masking`.
+- `censor_file_path` from `offending_timepoints_connector` in the `build_nuisance_regressor` node.
 
 ### Changed
 
@@ -33,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatically tag untagged `subject_id` and `unique_id` as `!!str` when loading data config files.
 - Made orientation configurable (was hard-coded as "RPI").
 - Moved `ref_mask_res_2` and `T1w_template_res-2` fields from registration into surface under `abcd_prefreesurfer_prep`.
+- Moved `find_censors node` inside `create_nuisance_regression_workflow` into its own function/subworkflow as `offending_timepoints_connector`.
 - [FSL-AFNI subworkflow](https://github.com/FCP-INDI/C-PAC/blob/4bdd6c410ef0a9b90f53100ea005af1f7d6e76c0/CPAC/func_preproc/func_preproc.py#L1052C4-L1231C25)
   - Moved `FSL-AFNI subworkflow` from inside a `bold_mask_fsl_afni` nodeblock into a separate function.
   - Renamed `desc-ref_bold` created in this workflow to `desc-unifized_bold`.
@@ -45,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restored `bids-validator` functionality.
 - Fixed empty `shell` variable in cluster run scripts.
 - A bug in which bandpass filters always assumed 1D regressor files have exactly 5 header rows.
+- Removed an erroneous connection to AFNI 3dTProject in nuisance denoising that would unnecessarily send a spike regressor as a censor. This would sometimes cause TRs to unnecessarily be dropped from the timeseries as if scrubbing were being performed.
 
 ### Removed
 
