@@ -496,6 +496,104 @@ def gather_nuisance(
     return output_file_path, censor_indices
 
 
+def offending_timepoints_connector(
+    nuisance_selectors, name="offending_timepoints_connector"
+):
+    inputspec = pe.Node(
+        util.IdentityInterface(
+            fields=[
+                "fd_j_file_path",
+                "fd_p_file_path",
+                "dvars_file_path",
+            ]
+        ),
+        name="inputspec",
+    )
+
+    wf = pe.Workflow(name=name)
+
+    outputspec = pe.Node(
+        util.IdentityInterface(fields=["out_file"]),
+        name="outputspec",
+    )
+
+    censor_selector = nuisance_selectors.get("Censor")
+
+    find_censors = pe.Node(
+        Function(
+            input_names=[
+                "fd_j_file_path",
+                "fd_j_threshold",
+                "fd_p_file_path",
+                "fd_p_threshold",
+                "dvars_file_path",
+                "dvars_threshold",
+                "number_of_previous_trs_to_censor",
+                "number_of_subsequent_trs_to_censor",
+            ],
+            output_names=["out_file"],
+            function=find_offending_time_points,
+            as_module=True,
+        ),
+        name="find_offending_time_points",
+    )
+
+    if not censor_selector.get("thresholds"):
+        msg = "Censoring requested, but thresh_metric not provided."
+        raise ValueError(msg)
+
+    for threshold in censor_selector["thresholds"]:
+        if "type" not in threshold or threshold["type"] not in [
+            "DVARS",
+            "FD_J",
+            "FD_P",
+        ]:
+            msg = "Censoring requested, but with invalid threshold type."
+            raise ValueError(msg)
+
+        if "value" not in threshold:
+            msg = "Censoring requested, but threshold not provided."
+            raise ValueError(msg)
+
+        if threshold["type"] == "FD_J":
+            find_censors.inputs.fd_j_threshold = threshold["value"]
+            wf.connect(inputspec, "fd_j_file_path", find_censors, "fd_j_file_path")
+
+        if threshold["type"] == "FD_P":
+            find_censors.inputs.fd_p_threshold = threshold["value"]
+            wf.connect(inputspec, "fd_p_file_path", find_censors, "fd_p_file_path")
+
+        if threshold["type"] == "DVARS":
+            find_censors.inputs.dvars_threshold = threshold["value"]
+            wf.connect(inputspec, "dvars_file_path", find_censors, "dvars_file_path")
+
+    if (
+        censor_selector.get("number_of_previous_trs_to_censor")
+        and censor_selector["method"] != "SpikeRegression"
+    ):
+        find_censors.inputs.number_of_previous_trs_to_censor = censor_selector[
+            "number_of_previous_trs_to_censor"
+        ]
+
+    else:
+        find_censors.inputs.number_of_previous_trs_to_censor = 0
+
+    if (
+        censor_selector.get("number_of_subsequent_trs_to_censor")
+        and censor_selector["method"] != "SpikeRegression"
+    ):
+        find_censors.inputs.number_of_subsequent_trs_to_censor = censor_selector[
+            "number_of_subsequent_trs_to_censor"
+        ]
+
+    else:
+        find_censors.inputs.number_of_subsequent_trs_to_censor = 0
+
+    wf.connect(find_censors, "out_file", outputspec, "out_file")
+
+    return wf
+
+
 def create_regressor_workflow(
     nuisance_selectors,
     use_ants,
@@ -1547,6 +1645,38 @@ def create_regressor_workflow(
         "functional_file_path",
     )
 
+    if nuisance_selectors.get("Censor"):
+        if nuisance_selectors["Censor"]["method"] == "SpikeRegression":
+            offending_timepoints_connector_wf = offending_timepoints_connector(
+                nuisance_selectors
+            )
+            nuisance_wf.connect(
+                [
+                    (
+                        inputspec,
+                        offending_timepoints_connector_wf,
+                        [("fd_j_file_path", "inputspec.fd_j_file_path")],
+                    ),
+                    (
+                        inputspec,
+                        offending_timepoints_connector_wf,
+                        [("fd_p_file_path", "inputspec.fd_p_file_path")],
+                    ),
+                    (
+                        inputspec,
+                        offending_timepoints_connector_wf,
+                        [("dvars_file_path", "inputspec.dvars_file_path")],
+                    ),
+                ]
+            )
+
+            nuisance_wf.connect(
+                offending_timepoints_connector_wf,
+                "outputspec.out_file",
+                build_nuisance_regressors,
+                "censor_file_path",
+            )
+
     build_nuisance_regressors.inputs.selector = nuisance_selectors
 
     # Check for any regressors to combine into files
@@ -1656,93 +1786,28 @@ def create_nuisance_regression_workflow(nuisance_selectors, name="nuisance_regre
     nuisance_wf = pe.Workflow(name=name)
 
     if nuisance_selectors.get("Censor"):
-        censor_methods = ["Kill", "Zero", "Interpolate", "SpikeRegression"]
-
-        censor_selector = nuisance_selectors.get("Censor")
-        if censor_selector.get("method") not in censor_methods:
-            msg = (
-                "Improper censoring method specified ({0}), "
-                "should be one of {1}.".format(
-                    censor_selector.get("method"), censor_methods
-                )
-            )
-            raise ValueError(msg)
-
-        find_censors = pe.Node(
-            Function(
-                input_names=[
-                    "fd_j_file_path",
-                    "fd_j_threshold",
-                    "fd_p_file_path",
-                    "fd_p_threshold",
-                    "dvars_file_path",
-                    "dvars_threshold",
-                    "number_of_previous_trs_to_censor",
-                    "number_of_subsequent_trs_to_censor",
-                ],
-                output_names=["out_file"],
-                function=find_offending_time_points,
-                as_module=True,
-            ),
-            name="find_offending_time_points",
+        offending_timepoints_connector_wf = offending_timepoints_connector(
+            nuisance_selectors
         )
-
-        if not censor_selector.get("thresholds"):
-            msg = "Censoring requested, but thresh_metric not provided."
-            raise ValueError(msg)
-
-        for threshold in censor_selector["thresholds"]:
-            if "type" not in threshold or threshold["type"] not in [
-                "DVARS",
-                "FD_J",
-                "FD_P",
-            ]:
-                msg = "Censoring requested, but with invalid threshold type."
-                raise ValueError(msg)
-
-            if "value" not in threshold:
-                msg = "Censoring requested, but threshold not provided."
-                raise ValueError(msg)
-
-            if threshold["type"] == "FD_J":
-                find_censors.inputs.fd_j_threshold = threshold["value"]
-                nuisance_wf.connect(
-                    inputspec, "fd_j_file_path", find_censors, "fd_j_file_path"
-                )
-
-            if threshold["type"] == "FD_P":
-                find_censors.inputs.fd_p_threshold = threshold["value"]
-                nuisance_wf.connect(
-                    inputspec, "fd_p_file_path", find_censors, "fd_p_file_path"
-                )
-
-            if threshold["type"] == "DVARS":
-                find_censors.inputs.dvars_threshold = threshold["value"]
-                nuisance_wf.connect(
-                    inputspec, "dvars_file_path", find_censors, "dvars_file_path"
-                )
-
-        if (
-            censor_selector.get("number_of_previous_trs_to_censor")
-            and censor_selector["method"] != "SpikeRegression"
-        ):
-            find_censors.inputs.number_of_previous_trs_to_censor = censor_selector[
-                "number_of_previous_trs_to_censor"
+        nuisance_wf.connect(
+            [
+                (
+                    inputspec,
+                    offending_timepoints_connector_wf,
+                    [("fd_j_file_path", "inputspec.fd_j_file_path")],
+                ),
+                (
+                    inputspec,
+                    offending_timepoints_connector_wf,
+                    [("fd_p_file_path", "inputspec.fd_p_file_path")],
+                ),
+                (
+                    inputspec,
+                    offending_timepoints_connector_wf,
+                    [("dvars_file_path", "inputspec.dvars_file_path")],
+                ),
             ]
-
-        else:
-            find_censors.inputs.number_of_previous_trs_to_censor = 0
-
-        if (
-            censor_selector.get("number_of_subsequent_trs_to_censor")
-            and censor_selector["method"] != "SpikeRegression"
-        ):
-            find_censors.inputs.number_of_subsequent_trs_to_censor = censor_selector[
-                "number_of_subsequent_trs_to_censor"
-            ]
-
-        else:
-            find_censors.inputs.number_of_subsequent_trs_to_censor = 0
+        )
 
     # Use 3dTproject to perform nuisance variable regression
     nuisance_regression = pe.Node(
@@ -1757,17 +1822,19 @@ def create_nuisance_regression_workflow(nuisance_selectors, name="nuisance_regre
     nuisance_regression.inputs.norm = False
 
     if nuisance_selectors.get("Censor"):
-        if nuisance_selectors["Censor"]["method"] == "SpikeRegression":
-            nuisance_wf.connect(find_censors, "out_file", nuisance_regression, "censor")
-        else:
-            if nuisance_selectors["Censor"]["method"] == "Interpolate":
-                nuisance_regression.inputs.cenmode = "NTRP"
-            else:
-                nuisance_regression.inputs.cenmode = nuisance_selectors["Censor"][
-                    "method"
-                ].upper()
+        if nuisance_selectors["Censor"]["method"] != "SpikeRegression":
+            nuisance_regression.inputs.cenmode = (
+                "NTRP"
+                if nuisance_selectors["Censor"]["method"] == "Interpolate"
+                else nuisance_selectors["Censor"]["method"].upper()
+            )
 
-            nuisance_wf.connect(find_censors, "out_file", nuisance_regression, "censor")
+            nuisance_wf.connect(
+                offending_timepoints_connector_wf,
+                "outputspec.out_file",
+                nuisance_regression,
+                "censor",
+            )
 
     if nuisance_selectors.get("PolyOrt"):
         if not nuisance_selectors["PolyOrt"].get("degree"):
