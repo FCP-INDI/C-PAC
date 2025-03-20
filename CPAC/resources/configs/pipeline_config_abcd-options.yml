@@ -203,10 +203,6 @@ registration_workflows:
         # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
         input: [Selected_Functional_Volume]
 
-      # reference: 'brain' or 'restore-brain'
-      # In ABCD-options pipeline, 'restore-brain' is used as coregistration reference
-      reference: restore-brain
-
       # Choose coregistration interpolation
       interpolation: spline
 

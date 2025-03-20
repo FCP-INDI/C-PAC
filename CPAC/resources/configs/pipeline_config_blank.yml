@@ -14,7 +14,6 @@ pipeline_setup:
 
   # Desired orientation for the output data. "RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"
   desired_orientation: RPI
-
   output_directory:
 
     # Quality control outputs
@@ -744,10 +743,6 @@ registration_workflows:
         # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.
         bbr_schedule: $FSLDIR/etc/flirtsch/bbr.sch
-
-      # reference: 'brain' or 'restore-brain'
-      # In ABCD-options pipeline, 'restore-brain' is used as coregistration reference
-      reference: brain
 
       # Choose FSL or ABCD as coregistration method
       using: FSL

@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Required positional parameter "wf" in input and output of `ingress_pipeconfig_paths` function, where a node to reorient templates is added to the `wf`.
 - Required positional parameter "orientation" to `resolve_resolution`.
 - Optional positional argument "cfg" to `create_lesion_preproc`.
+- Allow enabling `overwrite_transform` only when the registration method is `ANTS`.
+- `resource_inventory` utility to inventory NodeBlock function inputs and outputs.
 - New switch `mask_sbref` under `func_input_prep` in functional registration and set to default `on`.
 - New resource `desc-head_bold` as non skull-stripped bold from nodeblock `bold_masking`.
 - `censor_file_path` from `offending_timepoints_connector` in the `build_nuisance_regressor` node.
@@ -33,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved `pygraphviz` from requirements to `graphviz` optional dependencies group.
 - Automatically tag untagged `subject_id` and `unique_id` as `!!str` when loading data config files.
 - Made orientation configurable (was hard-coded as "RPI").
+- Resource-not-found errors now include information about where to source those resources.
 - Moved `ref_mask_res_2` and `T1w_template_res-2` fields from registration into surface under `abcd_prefreesurfer_prep`.
 - Moved `find_censors node` inside `create_nuisance_regression_workflow` into its own function/subworkflow as `offending_timepoints_connector`.
 - [FSL-AFNI subworkflow](https://github.com/FCP-INDI/C-PAC/blob/4bdd6c410ef0a9b90f53100ea005af1f7d6e76c0/CPAC/func_preproc/func_preproc.py#L1052C4-L1231C25)

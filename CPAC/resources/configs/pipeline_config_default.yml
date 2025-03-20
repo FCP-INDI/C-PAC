@@ -13,6 +13,9 @@ pipeline_setup:
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac-default-pipeline
 
+  # Desired orientation for the output data. "RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"
+  desired_orientation: RPI
+
   output_directory:
 
     # Directory where C-PAC should write out processed data, logs, and crash reports.
@@ -758,10 +761,6 @@ registration_workflows:
       # functional (BOLD/EPI) registration to anatomical (structural/T1)
 
       run: On
-
-      # reference: 'brain' or 'restore-brain'
-      # In ABCD-options pipeline, 'restore-brain' is used as coregistration reference
-      reference: brain
 
       # Choose FSL or ABCD as coregistration method
       using: FSL

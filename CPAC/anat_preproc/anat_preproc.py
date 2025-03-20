@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -2572,7 +2572,7 @@ def brain_mask_acpc_niworkflows_ants_T2(wf, cfg, strat_pool, pipe_num, opt=None)
     config=["anatomical_preproc", "brain_extraction"],
     option_key="using",
     option_val="UNet",
-    inputs=["desc-preproc_T2w", "T1w-brain-template", "T1w-template", "unet_model"],
+    inputs=["desc-preproc_T2w", "T1w-brain-template", "T1w-template", "unet-model"],
     outputs=["space-T2w_desc-brain_mask"],
 )
 def brain_mask_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -2586,7 +2586,7 @@ def brain_mask_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     config=["anatomical_preproc", "brain_extraction"],
     option_key="using",
     option_val="UNet",
-    inputs=["desc-preproc_T2w", "T1w-brain-template", "T1w-template", "unet_model"],
+    inputs=["desc-preproc_T2w", "T1w-brain-template", "T1w-template", "unet-model"],
     outputs=["space-T2w_desc-acpcbrain_mask"],
 )
 def brain_mask_acpc_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
