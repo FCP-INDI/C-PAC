@@ -1634,7 +1634,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
         node,
         out,
         anat_brain_mask_to_func_res,
-        "inputspec.pace-template_desc-brain_mask",
+        "inputspec.space-template_desc-brain_mask",
     )
 
     wf.connect(
