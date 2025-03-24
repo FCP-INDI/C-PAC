@@ -2045,7 +2045,7 @@ def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
                 creds_path=data_paths["creds_path"],
                 dl_dir=cfg.pipeline_setup["working_directory"]["path"],
             )
-            # if .mgz reorient to RPI
+            # reorient *.mgz
             if outfile.endswith(".mgz"):
                 reorient_mgz = pe.Node(
                     Function(
