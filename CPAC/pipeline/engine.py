@@ -30,6 +30,7 @@ from nipype import config, logging
 from nipype.interfaces import afni
 from nipype.interfaces.utility import Rename
 
+from CPAC.anat_preproc.utils import mri_convert_reorient
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import (
     fisher_z_score_standardize,
@@ -66,6 +67,7 @@ from CPAC.utils.outputs import Outputs
 from CPAC.utils.utils import (
     check_prov_for_regtool,
     create_id_string,
+    flip_orientation_code,
     get_last_prov_entry,
     read_json,
     write_output_json,
@@ -2043,9 +2045,30 @@ def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
                 creds_path=data_paths["creds_path"],
                 dl_dir=cfg.pipeline_setup["working_directory"]["path"],
             )
-            rpool.set_data(
-                key, fs_ingress, "outputspec.data", {}, "", f"fs_{key}_ingress"
-            )
+            # if .mgz reorient to RPI
+            if outfile.endswith(".mgz"):
+                reorient_mgz = pe.Node(
+                    Function(
+                        input_names=["in_file", "orientation", "out_file"],
+                        output_names=["out_file"],
+                        function=mri_convert_reorient,
+                    ),
+                    name=f"reorient_mgz_{key}",
+                )
+                # Flip orientation before reorient because mri_convert's orientation is opposite that of AFNI
+                reorient_mgz.inputs.orientation = flip_orientation_code(
+                    cfg.pipeline_setup["desired_orientation"]
+                )
+                reorient_mgz.inputs.out_file = None
+                wf.connect(fs_ingress, "outputspec.data", reorient_mgz, "in_file")
+
+                rpool.set_data(
+                    key, reorient_mgz, "out_file", {}, "", f"fs_{key}_ingress"
+                )
+            else:
+                rpool.set_data(
+                    key, fs_ingress, "outputspec.data", {}, "", f"fs_{key}_ingress"
+                )
         else:
             warnings.warn(
                 str(LookupError(f"\n[!] Path does not exist for {fullpath}.\n"))

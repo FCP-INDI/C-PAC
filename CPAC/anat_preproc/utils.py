@@ -502,6 +502,38 @@ def mri_convert(in_file, reslice_like=None, out_file=None, args=None):
     return out_file
 
 
+def mri_convert_reorient(in_file, orientation, out_file=None):
+    """
+    Convert files from mgz to nifti format.
+
+    Parameters
+    ----------
+    in_file : string
+        A path of mgz input file
+    orientation : string
+        Orientation of the output file
+    out_file : string
+        A path of nifti output file
+    args : string
+        Arguments of mri_convert
+
+    Returns
+    -------
+    out_file : string
+        A path of nifti output file
+    """
+    import os
+
+    if out_file is None:
+        out_file = in_file.split(".")[0] + "_reoriented.mgz"
+
+    cmd = "mri_convert %s %s --out_orientation %s" % (in_file, out_file, orientation)
+
+    os.system(cmd)
+
+    return out_file
+
+
 def wb_command(in_file):
     import os
 

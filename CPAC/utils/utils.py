@@ -2631,3 +2631,11 @@ def _replace_in_value_list(current_value, replacement_tuple):
         for v in current_value
         if bool(v) and v not in {"None", "Off", ""}
     ]
+
+
+def flip_orientation_code(code):
+    """
+    Reverts an orientation code by flipping R↔L, A↔P, and I↔S.
+    """
+    flip_dict = {"R": "L", "L": "R", "A": "P", "P": "A", "I": "S", "S": "I"}
+    return "".join(flip_dict[c] for c in code)
