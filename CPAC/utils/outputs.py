@@ -1,10 +1,30 @@
+# Copyright (C) 2018-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Specify the resources that C-PAC writes to the output direcotry."""
+
+from importlib.resources import files
+
 import pandas as pd
-import pkg_resources as p
 
 
 class Outputs:
-    # Settle some things about the resource pool reference and the output directory
-    reference_csv = p.resource_filename("CPAC", "resources/cpac_outputs.tsv")
+    """Settle some things about the resource pool reference and the output directory."""
+
+    reference_csv = str(files("CPAC").joinpath("resources/cpac_outputs.tsv"))
 
     try:
         reference = pd.read_csv(reference_csv, delimiter="\t", keep_default_na=False)

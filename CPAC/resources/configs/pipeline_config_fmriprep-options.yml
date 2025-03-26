@@ -151,12 +151,6 @@ registration_workflows:
     registration:
       FSL-FNIRT:
 
-        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2:
-
-        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2:
-
         # Reference mask for FSL registration.
         ref_mask:
 

@@ -221,6 +221,7 @@ registration_workflows:
       # functional (BOLD/EPI) registration to anatomical (structural/T1)
       run: On
 
+      #TODO Add input field here to choose between whole head or brain
       # Choose coregistration interpolation
       interpolation: spline
 
