@@ -22,7 +22,7 @@ from typing import cast, Optional
 from networkx.classes.digraph import DiGraph
 from nipype import config as nipype_config
 from nipype.interfaces import fsl
-from nipype.interfaces.utility import IdentityInterface, Merge
+from nipype.interfaces.utility import Merge
 
 from CPAC.longitudinal.preproc import subject_specific_template
 from CPAC.longitudinal.robust_template import mri_robust_template
@@ -454,9 +454,6 @@ def anat_longitudinal_wf(
             )
             raise ValueError(msg)
 
-    reorient_T1w = pe.Node(IdentityInterface(fields=[head_output]), "reorient_T1w")
-    wf.connect(wholehead_template_node, head_output, reorient_T1w, head_output)
-
     rpool.set_data(
         "longitudinal-template_space-longitudinal_desc-brain_T1w",
         brain_template_node,
@@ -473,14 +470,6 @@ def anat_longitudinal_wf(
         "",
         wholehead_template_node.name,
     )
-    rpool.set_data(
-        "longitudinal-template_space-longitudinal_desc-reorient_T1w",
-        reorient_T1w,
-        head_output,
-        {},
-        "",
-        reorient_T1w.name,
-    )
 
     pipeline_blocks = [mask_longitudinal_T1w_brain]
     pipeline_blocks = build_T1w_registration_stack(
@@ -493,7 +482,6 @@ def anat_longitudinal_wf(
         "longitudinal-template_space-longitudinal_desc-brain_mask",
         "longitudinal-template_space-longitudinal_desc-brain_T1w",
         "longitudinal-template_space-longitudinal_desc-head_T1w",
-        "longitudinal-template_space-longitudinal_desc-reorient_T1w",
     ]
     rpool.gather_pipes(wf, config)
     wf = connect_pipeline(wf, config, rpool, pipeline_blocks)

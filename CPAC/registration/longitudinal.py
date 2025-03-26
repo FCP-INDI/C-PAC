@@ -48,10 +48,7 @@ def get_common_reg_inputs(
             "longitudinal-template_space-longitudinal_desc-brain_T1w"
         )
         input_head = strat_pool.node_data(
-            [
-                "longitudinal-template_space-longitudinal_desc-head_T1w",
-                "longitudinal-template_space-longitudinal_desc-reorient_T1w",
-            ]
+            "longitudinal-template_space-longitudinal_desc-head_T1w"
         )
         reference_mask = strat_pool.node_data(
             "longitudinal-template_space-longitudinal_desc-brain_mask"
@@ -82,10 +79,7 @@ def get_common_reg_inputs(
             "longitudinal-template_space-longitudinal_desc-brain_T1w"
         )
         t1w_template = strat_pool.node_data(
-            [
-                "longitudinal-template_space-longitudinal_desc-head_T1w",
-                "longitudinal-template_space-longitudinal_desc-reorient_T1w",
-            ]
+            "longitudinal-template_space-longitudinal_desc-head_T1w"
         )
     else:
         t1w_brain_template = strat_pool.node_data(

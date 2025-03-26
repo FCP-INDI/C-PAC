@@ -1704,7 +1704,6 @@ def bold_to_T1template_xfm_connector(
         (
             [
                 "desc-preproc_T1w",
-                "longitudinal-template_space-longitudinal_desc-reorient_T1w",
                 "longitudinal-template_space-longitudinal_desc-head_T1w",
             ],
             [
@@ -1768,7 +1767,6 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data(
         [
             "desc-preproc_T1w",
-            "longitudinal-template_space-longitudinal_desc-reorient_T1w",
             "longitudinal-template_space-longitudinal_desc-head_T1w",
         ]
     )
@@ -1801,7 +1799,6 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         (
             [
                 "desc-preproc_T1w",
-                "longitudinal-template_space-longitudinal_desc-reorient_T1w",
                 "longitudinal-template_space-longitudinal_desc-head_T1w",
             ],
             [
@@ -1850,7 +1847,6 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=N
     node, out = strat_pool.get_data(
         [
             "desc-preproc_T1w",
-            "longitudinal-template_space-longitudinal_desc-reorient_T1w",
             "longitudinal-template_space-longitudinal_desc-head_T1w",
         ]
     )
@@ -1926,10 +1922,6 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     return (wf, outputs)
 
 
-def _gather_longitudinal_nodedata(strat_pool: "ResourcePool") -> tuple:
-    """Gather common NodeData for longitudinal registration."""
-
-
 @nodeblock(
     name="register_ANTs_anat_to_template",
     config=["registration_workflows", "anatomical_registration"],
@@ -1950,10 +1942,7 @@ def _gather_longitudinal_nodedata(strat_pool: "ResourcePool") -> tuple:
                 "desc-head_T1w",
                 "desc-preproc_T1w",
             ],
-            [
-                "longitudinal-template_space-longitudinal_desc-head_T1w",
-                "longitudinal-template_space-longitudinal_desc-reorient_T1w",
-            ],
+            "longitudinal-template_space-longitudinal_desc-head_T1w",
             "space-longitudinal_desc-head_T1w",
             "space-longitudinal_desc-brain_T1w",
             "space-longitudinal_desc-preproc_T1w",
@@ -2062,10 +2051,7 @@ def register_ANTs_anat_to_template(
                 "desc-head_T1w",
                 "desc-preproc_T1w",
             ],
-            [
-                "longitudinal-template_space-longitudinal_desc-head_T1w",
-                "longitudinal-template_space-longitudinal_desc-reorient_T1w",
-            ],
+            "longitudinal-template_space-longitudinal_desc-head_T1w",
         ),
         "T1w-template-symmetric",
         "T1w-brain-template-symmetric",
