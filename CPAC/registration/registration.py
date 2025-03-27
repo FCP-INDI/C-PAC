@@ -2318,26 +2318,28 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         "dilated-symmetric-brain-mask",
     ],
     outputs={
-        "space-symtemplate_desc-preproc_T1w": {
-            "Template": "T1w-brain-template-symmetric"
+        **{
+            f"space-symtemplate_desc-{suffix}": {
+                "Template": "T1w-brain-template-symmetric"
+            }
+            for suffix in [
+                *[f"{desc}_T1w" for desc in ["brain", "preproc"]],
+                "brain_mask",
+            ]
         },
-        "from-T1w_to-symtemplate_mode-image_desc-linear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-symtemplate_to-T1w_mode-image_desc-linear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-T1w_to-symtemplate_mode-image_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-longitudinal_to-symtemplate_mode-image_desc-linear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-symtemplate_to-longitudinal_mode-image_desc-linear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-longitudinal_to-symtemplate_mode-image_xfm": {
-            "Template": "T1w-template-symmetric"
+        **{
+            output: {"Template": "T1w-template-symmetric"}
+            for output in [
+                "space-symtemplate_desc-head_T1w",
+                "from-T1w_to-symtemplate_mode-image_desc-linear_xfm",
+                "from-symtemplate_to-T1w_mode-image_desc-linear_xfm",
+                "from-T1w_to-symtemplate_mode-image_warp",
+                "from-T1w_to-symtemplate_mode-image_xfm",
+                "from-longitudinal_to-symtemplate_mode-image_desc-linear_xfm",
+                "from-symtemplate_to-longitudinal_mode-image_desc-linear_xfm",
+                "from-longitudinal_to-symtemplate_mode-image_xfm",
+                "space-symtemplate_desc-T1wT2w_biasfield",
+            ]
         },
     },
 )
