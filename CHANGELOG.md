@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Renamed `desc-ref_bold` created in this workflow to `desc-unifized_bold`.
   - `coregistration_prep_fmriprep` nodeblock now checks if `desc-unifized_bold` exists in the Resource Pool, if not it runs the `FSL-AFNI subworkflow` to create it.
 - Input `desc-brain_bold` to `desc-preproc_bold` for `sbref` generation nodeblock `coregistration_prep_vol`.
+- Turned `generate_xcpqc_files` on for all preconfigurations except `blank`.
 
 ### Fixed
 
