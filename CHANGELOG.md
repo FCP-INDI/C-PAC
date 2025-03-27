@@ -67,6 +67,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `input` field from `coregistration` in blank and default config.
 - `reg_with_skull` swtich from `func_input_prep` in blank and default config.
 
+#### Removed CI dependency
+
+- `tj-actions/changed-files` ([CVE-2023-51664](https://www.stepsecurity.io/blog/harden-runner-detection-tj-actions-changed-files-action-is-compromised))
+
 ## [1.8.7] - 2024-05-03
 
 ### Added
@@ -137,10 +141,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `simplejson`
 - `wxpython`
 - `yamlordereddictloader`
-
-#### Removed CI dependency
-
-- `tj-actions/changed-files` ([CVE-2023-51664](https://www.stepsecurity.io/blog/harden-runner-detection-tj-actions-changed-files-action-is-compromised))
 
 ### Upgraded dependencies
 
