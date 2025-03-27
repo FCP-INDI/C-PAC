@@ -1601,7 +1601,7 @@ def FSL_registration_connector(
                 fnirt_reg_anat_mni,
                 "outputspec.output_head",
             ),
-            f"space-{sym}template_desc-{orig}_mask": (
+            f"space-{sym}template_desc-{'brain' if orig == 'T1w' else orig}_mask": (
                 fnirt_reg_anat_mni,
                 "outputspec.output_mask",
             ),
