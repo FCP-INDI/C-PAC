@@ -144,21 +144,24 @@ jobs:
           TAG=$TAG$VARIANT
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
           cat $GITHUB_ENV
-      - name: setup-conda
-        uses: conda-incubator/setup-miniconda@v3.1.1
-        with:
-          activate-environment: datalad-osf
-          miniforge-version: latest
-          python-version: 3.12
-      - name: Set up datalad-OSF
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Configure system for datalad-OSF
         run: |
           sudo apt-get update && sudo apt-get install -y git-annex
           git config --global user.email "CMI_CPAC_Support@childmind.org"
           git config --global user.name "Theodore (Machine User)"
-          yes | conda install datalad
-          pip install datalad-osf
+      - name: Set up datalad-OSF
+        uses: conda-incubator/setup-miniconda@v3.1.1
+        with:
+          activate-environment: datalad-osf
+          channels: ""
+          conda-remove-defaults: "true"
+          environment-file: .github/configs/datalad-osf_environment.yaml
+          python-version: 3.12
       - name: Get NHP test data
         run: |
+          conda activate datalad-osf
           datalad clone osf://xt93j test-data
       - name: Run ${{ matrix.preconfig }} smoke test
         run: |
@@ -207,23 +210,26 @@ jobs:
           TAG=$TAG$VARIANT
           echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
           cat $GITHUB_ENV
-      - name: setup-conda
-        uses: conda-incubator/setup-miniconda@v3.1.1
-        with:
-          activate-environment: datalad-osf
-          miniforge-version: latest
-          python-version: 3.12
-      - name: Set up datalad-OSF
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Configure system for datalad-OSF
         run: |
           sudo apt-get update && sudo apt-get install -y git-annex
           git config --global user.email "CMI_CPAC_Support@childmind.org"
           git config --global user.name "Theodore (Machine User)"
-          yes | conda install datalad
-          pip install datalad-osf
+      - name: Set up datalad-OSF
+        uses: conda-incubator/setup-miniconda@v3.1.1
+        with:
+          activate-environment: datalad-osf
+          channels: ""
+          conda-remove-defaults: "true"
+          environment-file: .github/configs/datalad-osf_environment.yaml
+          python-version: 3.12
       - name: Get rodent test data
         run: |
           export GIT_TRACE=1
           export DATALAD_LOG_LEVEL=DEBUG
+          conda activate datalad-osf
           datalad clone osf://uya3r test-data
       - name: Run rodent smoke test
         run: |

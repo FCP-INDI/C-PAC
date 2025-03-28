@@ -1,0 +1,8 @@
+name: datalad-osf
+channels:
+  - conda-forge
+dependencies:
+  - datalad
+  - pip
+  - pip:
+      - datalad-osf
