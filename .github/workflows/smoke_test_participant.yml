@@ -149,14 +149,13 @@ jobs:
         with:
           activate-environment: datalad-osf
           miniforge-version: latest
-          channels: conda-forge
-          conda-remove-defaults: "true"
           python-version: 3.12
       - name: Set up datalad-OSF
         run: |
           sudo apt-get update && sudo apt-get install -y git-annex
           git config --global user.email "CMI_CPAC_Support@childmind.org"
           git config --global user.name "Theodore (Machine User)"
+          conda config --add channels conda-forge
           yes | conda install datalad
           pip install datalad-osf
       - name: Get NHP test data
@@ -214,14 +213,13 @@ jobs:
         with:
           activate-environment: datalad-osf
           miniforge-version: latest
-          channels: conda-forge
-          conda-remove-defaults: "true"
           python-version: 3.12
       - name: Set up datalad-OSF
         run: |
           sudo apt-get update && sudo apt-get install -y git-annex
           git config --global user.email "CMI_CPAC_Support@childmind.org"
           git config --global user.name "Theodore (Machine User)"
+          conda config --add channels conda-forge
           yes | conda install datalad
           pip install datalad-osf
       - name: Get rodent test data
