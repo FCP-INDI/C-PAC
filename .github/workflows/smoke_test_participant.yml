@@ -155,13 +155,12 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3.1.1
         with:
           activate-environment: datalad-osf
-          channels: ""
-          conda-remove-defaults: "true"
+          condarc-file: .github/configs/datalad-osf.condarc
           environment-file: .github/configs/datalad-osf_environment.yaml
           python-version: 3.12
       - name: Get NHP test data
         run: |
-          conda activate datalad-osf
+          source $CONDA/bin/activate datalad-osf
           datalad clone osf://xt93j test-data
       - name: Run ${{ matrix.preconfig }} smoke test
         run: |
@@ -221,15 +220,14 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3.1.1
         with:
           activate-environment: datalad-osf
-          channels: ""
-          conda-remove-defaults: "true"
+          condarc-file: .github/configs/datalad-osf.condarc
           environment-file: .github/configs/datalad-osf_environment.yaml
           python-version: 3.12
       - name: Get rodent test data
         run: |
+          source $CONDA/bin/activate datalad-osf
           export GIT_TRACE=1
           export DATALAD_LOG_LEVEL=DEBUG
-          conda activate datalad-osf
           datalad clone osf://uya3r test-data
       - name: Run rodent smoke test
         run: |
