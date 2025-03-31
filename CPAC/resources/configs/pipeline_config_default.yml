@@ -765,8 +765,6 @@ registration_workflows:
       # Choose FSL or ABCD as coregistration method
       using: FSL
 
-      #TODO Add input field here to choose between whole head or brain
-
       # Choose coregistration interpolation
       interpolation: trilinear
 
