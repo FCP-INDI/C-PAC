@@ -573,14 +573,12 @@ def run_main():
                 args.num_ants_threads = c['pipeline_setup', 'system_config',
                                           'num_ants_threads']
             except KeyError:
-                args.num_ants_threads = 3
+                args.num_ants_threads = 1
         c['pipeline_setup', 'system_config', 'num_ants_threads'] = int(
             args.num_ants_threads)
-
-        c['pipeline_setup']['system_config']['num_ants_threads'] = min(
-            c['pipeline_setup']['system_config']['max_cores_per_participant'],
-            int(c['pipeline_setup']['system_config']['num_ants_threads'])
-        )
+        # couple together OMP and ANTs threads
+        c['pipeline_setup', 'system_config', 'num_OMP_threads'] = int(
+            args.num_ants_threads)
 
         if args.random_seed:
             c['pipeline_setup']['system_config']['random_seed'] = \
@@ -657,6 +655,8 @@ def run_main():
             c['pipeline_setup']['system_config']['max_cores_per_participant']))
         print("Number of threads for ANTs: {0}".format(
             c['pipeline_setup']['system_config']['num_ants_threads']))
+        print("Number of threads for OMP: {0}".format(
+            c['pipeline_setup']['system_config']['num_OMP_threads']))
 
         # create a timestamp for writing config files
         # pylint: disable=invalid-name

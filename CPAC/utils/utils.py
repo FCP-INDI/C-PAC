@@ -1386,6 +1386,7 @@ def check_system_deps(check_ants=False,
 def check_config_resources(c):
     # Import packages
     import psutil
+    import warnings
     from multiprocessing import cpu_count
 
     # Init variables
@@ -1433,39 +1434,29 @@ def check_config_resources(c):
             'num_participants_at_once']
 
     # Now check ANTS
-    if 'ANTS' in c.registration_workflows['anatomical_registration'][
-        'registration']['using']:
-        if c.pipeline_setup['system_config']['num_ants_threads'] is None:
-            num_ants_cores = num_cores_per_sub
-        elif c.pipeline_setup['system_config']['num_ants_threads'] > \
-                c.pipeline_setup['system_config'][
-                    'max_cores_per_participant']:
-            err_msg = 'Number of threads for ANTS: %d is greater than the ' \
-                      'number of threads per subject: %d. Change this and ' \
-                      'try again.' % (
-                      c.pipeline_setup['system_config']['num_ants_threads'],
-                      c.pipeline_setup['system_config'][
-                          'max_cores_per_participant'])
-            raise Exception(err_msg)
-        else:
-            num_ants_cores = c.pipeline_setup['system_config'][
-                'num_ants_threads']
+    if c.pipeline_setup['system_config']['num_ants_threads'] is None:
+        num_ants_cores = num_cores_per_sub
     else:
-        num_ants_cores = 1
+        if c.pipeline_setup['system_config']['num_ants_threads'] > \
+                c.pipeline_setup['system_config']['max_cores_per_participant']:
+            warn_msg = 'Number of threads for ANTS: %d is greater than the ' \
+                      'number of threads per subject: %d.' % (
+                      c.pipeline_setup['system_config']['num_ants_threads'],
+                      c.pipeline_setup['system_config']['max_cores_per_participant'])
+            warnings.warn(warn_msg)
+        num_ants_cores = c.pipeline_setup['system_config']['num_ants_threads']
 
     # Now check OMP
     if c.pipeline_setup['system_config']['num_OMP_threads'] is None:
         num_omp_cores = 1
-    elif c.pipeline_setup['system_config']['num_OMP_threads'] > \
-            c.pipeline_setup['system_config']['max_cores_per_participant']:
-        err_msg = 'Number of threads for OMP: %d is greater than the ' \
-                  'number of threads per subject: %d. Change this and ' \
-                  'try again.' % (c.pipeline_setup['system_config'][
-                                      'num_OMP_threads'],
-                                  c.pipeline_setup['system_config'][
-                                      'max_cores_per_participant'])
-        raise Exception(err_msg)
     else:
+        if c.pipeline_setup['system_config']['num_OMP_threads'] > \
+                c.pipeline_setup['system_config']['max_cores_per_participant']:
+            warn_msg = 'Number of threads for OMP: %d is greater than the ' \
+                    'number of threads per subject: %d.' % (
+                    c.pipeline_setup['system_config']['num_OMP_threads'],
+                    c.pipeline_setup['system_config']['max_cores_per_participant'])
+            warnings.warn(warn_msg)
         num_omp_cores = c.pipeline_setup['system_config']['num_OMP_threads']
 
     # Return memory and cores
