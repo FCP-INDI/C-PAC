@@ -1,0 +1,108 @@
+# This is a C-PAC nodeblock descriptor file.
+
+Non-Local Means (NLM) Filtering:
+    description:
+        Performs non-local means filtering on structural data.
+    references:
+        https://en.wikipedia.org/wiki/Non-local_means
+    method:
+        nlm_filtering:
+            description:
+                Uses ANTs DenoiseImage.
+            references:
+                https://manpages.debian.org/experimental/ants/DenoiseImage.1.en.html
+            config:
+                None
+            operations:
+                Mermaid syntax here
+            source:
+                NiWrap: https://github.com/childmindresearch/cpac_blocks/blob/main/anat_preproc/nlm.py
+                Nipype: https://github.com/FCP-INDI/C-PAC/blob/rc/v1.8.7/CPAC/anat_preproc/anat_preproc.py#L1528-L1537
+            validation:
+                s3://path/to/gold/standard
+
+T1w Brain Mask Generation:
+    description:
+        Generates a binary brain mask of a T1w structural image.
+    references:
+        None
+    method:
+        brain_mask_fsl:
+            description:
+                Uses FSL BET.
+            references:
+                - links to manuals
+                - links to papers
+                - etc.
+            config:
+                Robustfov: Off
+                frac: 0.5
+                mesh_boolean: Off
+                outline: Off
+                padding: Off
+                radius: 0
+                reduce_bias: Off
+                remove_eyes: Off
+                robust: Off
+                skull: Off
+                surfaces: Off
+                threshold: Off
+                vertical_gradient: 0.0
+            operations:
+                Mermaid syntax here
+            source:
+            validation:
+        brain_mask_afni:
+            description:
+                Uses AFNI 3dSkullStrip.
+            references:
+                - links to manuals
+                - links to papers
+                - etc.
+            config:
+                shrink_factor: 0.6
+                var_shrink_fac: On
+                shrink_factor_bot_lim: 0.4
+                avoid_vent: On
+                n_iterations: 250
+                pushout: On
+                touchup: On
+                fill_hole: 10
+                NN_smooth: 72
+                smooth_final: 20
+                avoid_eyes: On
+                use_edge: On
+                exp_frac: 0.1
+                push_to_edge: Off
+                use_skull: Off
+                perc_int: 0
+                max_inter_iter: 4
+                fac: 1
+                blur_fwhm: 0
+                monkey: Off
+            operations:
+                Mermaid syntax here
+            source:
+            validation:
+
+ACPC Alignment:
+    description:
+        ACPC alignment is meant to ... etc.
+    references:
+        - links to pages/tutorials generically about ACPC alignment
+    method:
+        acpc_alignment_head:
+            description:
+                More specific info (if needed)
+            references:
+            config:
+            operations:
+            source:
+            validation:
+        acpc_alignment_head_with_mask:
+            description:
+            references:
+            config:
+            operations:
+            source:
+            validation:
