@@ -21,6 +21,9 @@ pipeline_setup:
       # Generate quality control pages containing preprocessing and derivative outputs.
       generate_quality_control_images: On
 
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcpqc_files: On
+
 anatomical_preproc:
   run: On
   acpc_alignment:
