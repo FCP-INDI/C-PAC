@@ -14,7 +14,15 @@ Non-Local Means (NLM) Filtering:
             config:
                 None
             operations:
-                Mermaid syntax here
+                graph TD;
+                    nlm_filtering["nlm_filtering"];
+                    anat_denoise["anat_denoise"];
+                    
+                    nlm_filtering -->|connects| anat_denoise;
+                    anat_denoise -->|output_image| desc_preproc_T1w["desc-preproc_T1w"];
+                    
+                    desc_preproc_input["desc-preproc_T1w"] -->|input data| nlm_filtering;
+                    nlm_filtering -->|outputs| desc_preproc_T1w;
             source:
                 NiWrap: https://github.com/childmindresearch/cpac_blocks/blob/main/anat_preproc/nlm.py
                 Nipype: https://github.com/FCP-INDI/C-PAC/blob/rc/v1.8.7/CPAC/anat_preproc/anat_preproc.py#L1528-L1537
@@ -49,7 +57,13 @@ T1w Brain Mask Generation:
                 threshold: Off
                 vertical_gradient: 0.0
             operations:
-                Mermaid syntax here
+                graph TD;
+                    brain_mask_fsl["brain_mask_fsl"];
+                    fsl_brain_connector["fsl_brain_connector"];
+
+                    desc_preproc_T1w["desc-preproc_T1w"] -->|input| brain_mask_fsl;
+                    brain_mask_fsl -->|calls| fsl_brain_connector;
+                    fsl_brain_connector -->|output| space_T1w_desc_brain_mask["space-T1w_desc-brain_mask"];
             source:
             validation:
         brain_mask_afni:
@@ -81,7 +95,13 @@ T1w Brain Mask Generation:
                 blur_fwhm: 0
                 monkey: Off
             operations:
-                Mermaid syntax here
+                graph TD;
+                    brain_mask_afni_T2["brain_mask_afni_T2"];
+                    afni_brain_connector["afni_brain_connector"];
+
+                    desc_preproc_T2w["desc-preproc_T2w"] -->|input| brain_mask_afni_T2;
+                    brain_mask_afni_T2 -->|calls| afni_brain_connector;
+                    afni_brain_connector -->|output| space_T2w_desc_brain_mask["space-T2w_desc-brain_mask"];
             source:
             validation:
 
@@ -97,6 +117,19 @@ ACPC Alignment:
             references:
             config:
             operations:
+                graph TD;
+                    acpc_align_head["acpc_align_head"];
+                    acpc_alignment["acpc_alignment"];
+
+                    desc_head_T1w["desc-head_T1w"] -->|input| acpc_align_head;
+                    desc_preproc_T1w["desc-preproc_T1w"] -->|input| acpc_align_head;
+                    T1w_ACPC_template["T1w-ACPC-template"] -->|template input| acpc_align_head;
+
+                    acpc_align_head -->|calls| acpc_alignment;
+
+                    acpc_alignment -->|output| desc_head_T1w_out["desc-head_T1w"];
+                    acpc_alignment -->|output| desc_preproc_T1w_out["desc-preproc_T1w"];
+                    acpc_alignment -->|output| from_T1w_to_ACPC_xfm["from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"];
             source:
             validation:
         acpc_alignment_head_with_mask:
@@ -104,5 +137,21 @@ ACPC Alignment:
             references:
             config:
             operations:
+                graph TD;
+                    acpc_align_head_with_mask["acpc_align_head_with_mask"];
+                    acpc_alignment["acpc_alignment"];
+
+                    desc_head_T1w["desc-head_T1w"] -->|input| acpc_align_head_with_mask;
+                    desc_preproc_T1w["desc-preproc_T1w"] -->|input| acpc_align_head_with_mask;
+                    T1w_ACPC_template["T1w-ACPC-template"] -->|template input| acpc_align_head_with_mask;
+                    T1w_brain_ACPC_template["T1w-brain-ACPC-template"] -->|brain template input| acpc_align_head_with_mask;
+                    space_T1w_desc_brain_mask["space-T1w_desc-brain_mask"] -->|mask input| acpc_align_head_with_mask;
+
+                    acpc_align_head_with_mask -->|calls| acpc_alignment;
+
+                    acpc_alignment -->|output| desc_head_T1w_out["desc-head_T1w"];
+                    acpc_alignment -->|output| desc_preproc_T1w_out["desc-preproc_T1w"];
+                    acpc_alignment -->|output| space_T1w_desc_brain_mask_out["space-T1w_desc-brain_mask"];
+                    acpc_alignment -->|output| from_T1w_to_ACPC_xfm["from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm"];
             source:
             validation:
