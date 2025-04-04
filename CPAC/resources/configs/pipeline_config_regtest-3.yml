@@ -21,6 +21,9 @@ pipeline_setup:
       # Generate quality control pages containing preprocessing and derivative outputs.
       generate_quality_control_images: On
 
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcpqc_files: On
+
     # Include extra versions and intermediate steps of functional preprocessing in the output directory.
     write_func_outputs: On
 
