@@ -639,6 +639,9 @@ latest_schema = Schema(
                 },
                 "FreeSurfer-BET": {"T1w_brain_template_mask_ccs": Maybe(str)},
             },
+            "restore_t1w_intensity": {
+                "run": bool1_1,
+            },
         },
         "segmentation": {
             "run": bool1_1,

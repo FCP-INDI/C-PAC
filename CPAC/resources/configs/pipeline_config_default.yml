@@ -484,6 +484,9 @@ anatomical_preproc:
       # Template to be used for FreeSurfer-BET brain extraction in CCS-options pipeline
       T1w_brain_template_mask_ccs: /ccs_template/MNI152_T1_1mm_first_brain_mask.nii.gz
 
+  restore_t1w_intensity:
+    run: Off
+
 
 segmentation:
 
