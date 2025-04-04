@@ -84,8 +84,8 @@ anatomical_preproc:
     # this is a fork option
     using: [FreeSurfer-ABCD]
 
-    FreeSurfer-ABCD:
-      correct_restore_brain_intensity_abcd: On
+  restore_t1w_intensity:
+    run: On
 
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering:

@@ -3161,8 +3161,8 @@ def fast_bias_field_correction(config=None, wf_name="fast_bias_field_correction"
 
 @nodeblock(
     name="correct_restore_brain_intensity_abcd",
-    config=["anatomical_preproc", "brain_extraction", "FreeSurfer-ABCD"],
-    switch=["correct_restore_brain_intensity_abcd"],
+    config=["anatomical_preproc", "restore_t1w_intensity"],
+    switch=["run"],
     inputs=[
         (
             "desc-preproc_T1w",
