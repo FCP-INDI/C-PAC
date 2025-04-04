@@ -638,6 +638,9 @@ latest_schema = Schema(
                     "regmask_path": Maybe(str),
                 },
                 "FreeSurfer-BET": {"T1w_brain_template_mask_ccs": Maybe(str)},
+                "FreeSurfer-ABCD": {
+                    "correct_restore_brain_intensity_abcd": bool1_1,
+                },
             },
         },
         "segmentation": {

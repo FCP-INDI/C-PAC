@@ -419,6 +419,9 @@ anatomical_preproc:
       # niworkflows-ants registration mask (can be optional)
       regmask_path: /ants_template/oasis/T_template0_BrainCerebellumRegistrationMask.nii.gz
 
+    FreeSurfer-ABCD:
+      correct_restore_brain_intensity_abcd: Off
+
   run_t2: Off
 
   # Bias field correction based on square root of T1w * T2w
