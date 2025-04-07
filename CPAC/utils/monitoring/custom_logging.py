@@ -21,12 +21,15 @@ import os
 import subprocess
 from sys import exc_info as sys_exc_info
 from traceback import print_exception
-from typing import Optional, Sequence
+from typing import Optional, Sequence, TYPE_CHECKING
 
-from nipype import logging as nipype_logging
+from nipype import config as nipype_config, logging as nipype_logging
 
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.monitoring.config import MOCK_LOGGERS
+
+if TYPE_CHECKING:
+    from CPAC.utils.configuration import Configuration
 
 
 def failed_to_start(log_dir, exception):
@@ -309,3 +312,51 @@ def set_up_logger(
     handler = logging.FileHandler(filepath)
     logger.addHandler(handler)
     return logger
+
+
+def init_loggers(
+    subject_id: str,
+    cpac_config: "Configuration",
+    log_dir: str,
+    mock: bool = True,
+    longitudinal: bool = False,
+) -> None:
+    """Set up and configure loggers."""
+    from CPAC.utils.datasource import bidsier_prefix
+
+    set_up_logger(
+        f"{subject_id}_expectedOutputs",
+        filename=f'{bidsier_prefix(cpac_config["subject_id"])}_' 'expectedOutputs.yml',
+        level="info",
+        log_dir=log_dir,
+        mock=mock,
+        overwrite_existing=(  # don't overwrite if we have a longitudinal template
+            longitudinal or not cpac_config["longitudinal_template_generation", "run"]
+        ),
+    )
+    if cpac_config["pipeline_setup", "Debugging", "verbose"]:
+        set_up_logger("CPAC.engine", level="debug", log_dir=log_dir, mock=True)
+
+    nipype_config.update_config(
+        {
+            "logging": {
+                "log_directory": log_dir,
+                "log_to_file": bool(
+                    getattr(
+                        cpac_config["pipeline_setup", "log_directory"],
+                        "run_logging",
+                        True,
+                    )
+                ),
+            },
+            "execution": {
+                "crashfile_format": "txt",
+                "resource_monitor_frequency": 0.2,
+                "stop_on_first_crash": cpac_config[
+                    "pipeline_setup", "system_config", "fail_fast"
+                ],
+            },
+        }
+    )
+    nipype_config.enable_resource_monitor()
+    nipype_logging.update_logging(nipype_config)

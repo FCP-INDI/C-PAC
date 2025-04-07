@@ -29,7 +29,6 @@ from typing import Literal, Optional
 
 import yaml
 import nipype
-from nipype import config, logging
 from flowdump import save_workflow_json, WorkflowJSONMeta
 from indi_aws import aws_utils, fetch_creds
 
@@ -198,6 +197,7 @@ from CPAC.utils.docs import version_report
 from CPAC.utils.monitoring import (
     FMLOGGER,
     getLogger,
+    init_loggers,
     log_nodes_cb,
     log_nodes_initial,
     LOGTAIL,
@@ -221,11 +221,11 @@ faulthandler.enable()
 
 
 def run_workflow(
-    sub_dict,
-    c,
-    run,
-    pipeline_timing_info=None,
-    p_name=None,
+    sub_dict: dict,
+    c: Configuration,
+    run: bool,
+    pipeline_timing_info: Optional[list] = None,
+    p_name: Optional[str] = None,
     plugin="MultiProc",
     plugin_args=None,
     test_config=False,
@@ -256,8 +256,6 @@ def run_workflow(
        0 for success
        1 for general failure
     """
-    from CPAC.utils.datasource import bidsier_prefix
-
     if plugin is not None and not isinstance(plugin, str):
         msg = (
             'CPAC.pipeline.cpac_pipeline.run_workflow requires a '
@@ -273,36 +271,7 @@ def run_workflow(
     subject_id, p_name, log_dir = set_subject(sub_dict, c)
     c["subject_id"] = subject_id
 
-    set_up_logger(
-        f"{subject_id}_expectedOutputs",
-        filename=f'{bidsier_prefix(c["subject_id"])}_' 'expectedOutputs.yml',
-        level="info",
-        log_dir=log_dir,
-        mock=True,
-        overwrite_existing=True,
-    )
-    if c.pipeline_setup["Debugging"]["verbose"]:
-        set_up_logger("CPAC.engine", level="debug", log_dir=log_dir, mock=True)
-
-    config.update_config(
-        {
-            "logging": {
-                "log_directory": log_dir,
-                "log_to_file": bool(
-                    getattr(c.pipeline_setup["log_directory"], "run_logging", True)
-                ),
-            },
-            "execution": {
-                "crashfile_format": "txt",
-                "resource_monitor_frequency": 0.2,
-                "stop_on_first_crash": c[
-                    "pipeline_setup", "system_config", "fail_fast"
-                ],
-            },
-        }
-    )
-    config.enable_resource_monitor()
-    logging.update_logging(config)
+    init_loggers(subject_id, c, log_dir, mock=True, longitudinal=False)
 
     # Start timing here
     pipeline_start_time = time.time()
@@ -555,6 +524,7 @@ Please, make yourself aware of how it works and its assumptions:
 
     workflow_result = None
     exitcode = 0
+    cb_log_filename = os.path.join(log_dir, "callback.log")
     try:
         subject_info["resource_pool"] = []
 
@@ -566,8 +536,6 @@ Please, make yourself aware of how it works and its assumptions:
         subject_info["status"] = "Running"
 
         # Create callback logger
-        cb_log_filename = os.path.join(log_dir, "callback.log")
-
         try:
             if not os.path.exists(os.path.dirname(cb_log_filename)):
                 os.makedirs(os.path.dirname(cb_log_filename))
@@ -598,8 +566,9 @@ Please, make yourself aware of how it works and its assumptions:
             plugin = MultiProcPlugin(plugin_args)
 
         try:
-            # Actually run the pipeline now, for the current subject
-            workflow_result = workflow.run(plugin=plugin, plugin_args=plugin_args)
+            if run:
+                # Actually run the pipeline now, for the current subject
+                workflow_result = workflow.run(plugin=plugin, plugin_args=plugin_args)
         except UnicodeDecodeError:
             msg = (
                 "C-PAC migrated from Python 2 to Python 3 in v1.6.2 (see "
@@ -814,7 +783,7 @@ CPAC run error:
                     run_start=pipeline_start_datetime,
                     run_finish=strftime("%Y-%m-%d %H:%M:%S"),
                     output_check=check_outputs(
-                        c.pipeline_setup["output_directory"]["path"],
+                        c["pipeline_setup"]["output_directory"]["path"],
                         log_dir,
                         c.pipeline_setup["pipeline_name"],
                         c["subject_id"],
@@ -1073,14 +1042,6 @@ def build_T1w_registration_stack(
     space: Literal["longitudinal", "T1w"] = "T1w",
 ):
     """Build the T1w registration pipeline blocks."""
-    # if space == "longitudinal":
-    #     for using in cfg[
-    #         "registration_workflows", "anatomical_registration", "registration", "using"
-    #     ]:
-    #         if using.lower() != "fsl":
-    #             msg = f"{using} anatomical registration not yet implemented for longitudinal workflows."
-    #             raise NotImplementedError(msg)
-
     if not pipeline_blocks:
         pipeline_blocks = []
 

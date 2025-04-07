@@ -29,11 +29,11 @@ from CPAC.pipeline.utils import get_shell
 from CPAC.utils.configuration import check_pname, Configuration, set_subject
 from CPAC.utils.configuration.yaml_template import upgrade_pipeline_to_1_8
 from CPAC.utils.ga import track_run
-from CPAC.utils.monitoring import failed_to_start, log_nodes_cb, WFLOGGER
+from CPAC.utils.monitoring import failed_to_start, init_loggers, log_nodes_cb, WFLOGGER
 
 
-# Run condor jobs
 def run_condor_jobs(c, config_file, subject_list_file, p_name):
+    """Run condor jobs."""
     # Import packages
     import subprocess
     from time import strftime
@@ -249,6 +249,8 @@ def run_T1w_longitudinal(sublist, cfg: Configuration, dry_run: bool = False):
     # sessions for each participant as value
     for subject_id, sub_list in subject_id_dict.items():
         if len(sub_list) > 1:
+            _, _, log_dir = set_subject(sub_list[0], cfg)
+            init_loggers(subject_id, cfg, log_dir, mock=True, longitudinal=True)
             anat_longitudinal_wf(subject_id, sub_list, cfg, dry_run=dry_run)
         elif len(sub_list) == 1:
             warnings.warn(
@@ -491,160 +493,9 @@ def run(
         """
 
         # BEGIN LONGITUDINAL TEMPLATE PIPELINE
-        if (
-            hasattr(c, "longitudinal_template_generation")
-            and c.longitudinal_template_generation["run"]
-        ):
+        if c["longitudinal_template_generation", "run"]:
             run_T1w_longitudinal(sublist, c, dry_run=test_config)
             # TODO functional longitudinal pipeline
-
-        """
-            if valid_longitudinal_data:
-                rsc_file_list = []
-                for dirpath, dirnames, filenames in os.walk(c.pipeline_setup[
-                                                                'output_directory']['path']):
-                    for f in filenames:
-                        # TODO is there a better way to check output folder name?
-                        if f != '.DS_Store' and 'T1w_longitudinal_pipeline' in dirpath:
-                            rsc_file_list.append(os.path.join(dirpath, f))
-
-                subject_specific_dict = {subj: [] for subj in subject_id_dict.keys()}
-                session_specific_dict = {os.path.join(session['subject_id'], session['unique_id']): [] for session in sublist}
-                for rsc_path in rsc_file_list:
-                    key = [s for s in session_specific_dict.keys() if s in rsc_path]
-                    if key:
-                        session_specific_dict[key[0]].append(rsc_path)
-                    else:
-                        subj = [s for s in subject_specific_dict.keys() if s in rsc_path]
-                        if subj:
-                            subject_specific_dict[subj[0]].append(rsc_path)
-
-                # update individual-specific outputs:
-                # anatomical_brain, anatomical_brain_mask and anatomical_reorient
-                for key in session_specific_dict.keys():
-                    for f in session_specific_dict[key]:
-                        sub, ses = key.split('/')
-                        ses_list = [subj for subj in sublist if sub in subj['subject_id'] and ses in subj['unique_id']]
-                        if len(ses_list) > 1:
-                            raise Exception("There are several files containing " + f)
-                        if len(ses_list) == 1:
-                            ses = ses_list[0]
-                            subj_id = ses['subject_id']
-                            tmp = f.split(c.pipeline_setup['output_directory']['path'])[-1]
-                            keys = tmp.split(os.sep)
-                            if keys[0] == '':
-                                keys = keys[1:]
-                            if len(keys) > 1:
-                                if ses.get('resource_pool') is None:
-                                    ses['resource_pool'] = {
-                                        keys[0].split(c.pipeline_setup['pipeline_name'] + '_')[-1]: {
-                                            keys[-2]: f
-                                        }
-                                    }
-                                else:
-                                    strat_key = keys[0].split(c.pipeline_setup['pipeline_name'] + '_')[-1]
-                                    if ses['resource_pool'].get(strat_key) is None:
-                                        ses['resource_pool'].update({
-                                            strat_key: {
-                                                keys[-2]: f
-                                            }
-                                        })
-                                    else:
-                                        ses['resource_pool'][strat_key].update({
-                                                keys[-2]: f
-                                            })
-
-                for key in subject_specific_dict:
-                    for f in subject_specific_dict[key]:
-                        ses_list = [subj for subj in sublist if key in subj['anat']]
-                        for ses in ses_list:
-                            tmp = f.split(c.pipeline_setup['output_directory']['path'])[-1]
-                            keys = tmp.split(os.sep)
-                            if keys[0] == '':
-                                keys = keys[1:]
-                            if len(keys) > 1:
-                                if ses.get('resource_pool') is None:
-                                    ses['resource_pool'] = {
-                                        keys[0].split(c.pipeline_setup['pipeline_name'] + '_')[-1]: {
-                                            keys[-2]: f
-                                        }
-                                    }
-                                else:
-                                    strat_key = keys[0].split(c.pipeline_setup['pipeline_name'] + '_')[-1]
-                                    if ses['resource_pool'].get(strat_key) is None:
-                                        ses['resource_pool'].update({
-                                            strat_key: {
-                                                keys[-2]: f
-                                            }
-                                        })
-                                    else:
-                                        if keys[-2] == 'anatomical_brain' or keys[-2] == 'anatomical_brain_mask' or keys[-2] == 'anatomical_skull_leaf':
-                                            pass
-                                        elif 'apply_warp_anat_longitudinal_to_standard' in keys[-2] or 'fsl_apply_xfm_longitudinal' in keys[-2]:
-                                            # TODO update!!!
-                                            # it assumes session id == last key (ordered by session count instead of session id) + 1
-                                            # might cause problem if session id is not continuous
-                                            def replace_index(target1, target2, file_path):
-                                                index1 = file_path.index(target1)+len(target1)
-                                                index2 = file_path.index(target2)+len(target2)
-                                                file_str_list = list(file_path)
-                                                file_str_list[index1] = "*"
-                                                file_str_list[index2] = "*"
-                                                file_path_updated = "".join(file_str_list)
-                                                file_list = glob.glob(file_path_updated)
-                                                file_list.sort()
-                                                return file_list
-                                            if ses['unique_id'] == str(int(keys[-2][-1])+1):
-                                                if keys[-3] == 'seg_probability_maps':
-                                                    f_list = replace_index('seg_probability_maps_', 'segment_prob_', f)
-                                                    ses['resource_pool'][strat_key].update({
-                                                        keys[-3]: f_list
-                                                    })
-                                                elif keys[-3] == 'seg_partial_volume_files':
-                                                    f_list = replace_index('seg_partial_volume_files_', 'segment_pve_', f)
-                                                    ses['resource_pool'][strat_key].update({
-                                                        keys[-3]: f_list
-                                                    })
-                                                else:
-                                                    ses['resource_pool'][strat_key].update({
-                                                        keys[-3]: f # keys[-3]: 'anatomical_to_standard'
-                                                    })
-                                        elif keys[-2] != 'warp_list':
-                                            ses['resource_pool'][strat_key].update({
-                                                    keys[-2]: f
-                                                })
-                                        elif keys[-2] == 'warp_list':
-                                            if 'ses-'+ses['unique_id'] in tmp:
-                                                ses['resource_pool'][strat_key].update({
-                                                    keys[-2]: f
-                                                })
-                for key in subject_specific_dict:
-                    ses_list = [subj for subj in sublist if key in subj['anat']]
-                    for ses in ses_list:
-                        for reg_strat in strat_list:
-                            try:
-                                ss_strat_list = list(ses['resource_pool'])
-                                for strat_key in ss_strat_list:
-                                    try:
-                                        ses['resource_pool'][strat_key].update({
-                                            'registration_method': reg_strat['registration_method']
-                                        })
-                                    except KeyError:
-                                        pass
-                            except KeyError:
-                                pass
-
-                yaml.dump(sublist, open(os.path.join(c.pipeline_setup['working_directory']['path'],'data_config_longitudinal.yml'), 'w'), default_flow_style=False)
-                WFLOGGER.info("\n\nLongitudinal pipeline completed.\n\n")
-
-                # skip main preprocessing
-                if (
-                    not c.anatomical_preproc['run'] and
-                    not c.functional_preproc['run']
-                ):
-                    sys.exit()
-        """
-        # END LONGITUDINAL TEMPLATE PIPELINE
 
         # If it only allows one, run it linearly
         if c.pipeline_setup["system_config"]["num_participants_at_once"] == 1:
