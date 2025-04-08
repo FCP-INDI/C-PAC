@@ -18,6 +18,7 @@
 
 from multiprocessing import Process
 import os
+from pathlib import Path
 from time import strftime
 import warnings
 
@@ -249,7 +250,9 @@ def run_T1w_longitudinal(sublist, cfg: Configuration, dry_run: bool = False):
     # sessions for each participant as value
     for subject_id, sub_list in subject_id_dict.items():
         if len(sub_list) > 1:
+            log_dir: str
             _, _, log_dir = set_subject(sub_list[0], cfg)
+            log_dir = str(Path(log_dir).parent / f"{subject_id}_longitudinal")
             init_loggers(subject_id, cfg, log_dir, mock=True, longitudinal=True)
             anat_longitudinal_wf(subject_id, sub_list, cfg, dry_run=dry_run)
         elif len(sub_list) == 1:
