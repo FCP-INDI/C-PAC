@@ -13,6 +13,14 @@ pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac_abcd-prep
+  output_directory:
+
+    # Quality control outputs
+    quality_control:
+
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcpqc_files: On
+
   system_config:
 
     # The maximum amount of memory each participant's workflow can allocate.
@@ -167,7 +175,6 @@ registration_workflows:
         # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
         input: [Selected_Functional_Volume]
 
-      #TODO Add input field here to choose between whole head or brain
       # Choose coregistration interpolation
       interpolation: spline
 

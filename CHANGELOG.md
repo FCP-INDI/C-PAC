@@ -43,7 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Renamed `desc-ref_bold` created in this workflow to `desc-unifized_bold`.
   - `coregistration_prep_fmriprep` nodeblock now checks if `desc-unifized_bold` exists in the Resource Pool, if not it runs the `FSL-AFNI subworkflow` to create it.
 - Input `desc-brain_bold` to `desc-preproc_bold` for `sbref` generation nodeblock `coregistration_prep_vol`.
-- Disabled variant image builds.
+- Turned `generate_xcpqc_files` on for all preconfigurations except `blank`.
+- Introduced specific switch `restore_t1w_intensity` for `correct_restore_brain_intensity_abcd` nodeblock, enabling it by default only in `abcd-options` pre-config.
 
 ### Fixed
 
@@ -68,6 +69,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Inputs `[desc-motion_bold, bold]` from `coregistration_prep_vol` nodeblock.
 - `input` field from `coregistration` in blank and default config.
 - `reg_with_skull` swtich from `func_input_prep` in blank and default config.
+
+#### Removed CI dependency
+
+- `tj-actions/changed-files` ([CVE-2023-51664](https://www.stepsecurity.io/blog/harden-runner-detection-tj-actions-changed-files-action-is-compromised))
 
 ## [1.8.7] - 2024-05-03
 
@@ -139,10 +144,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `simplejson`
 - `wxpython`
 - `yamlordereddictloader`
-
-#### Removed CI dependency
-
-- `tj-actions/changed-files` ([CVE-2023-51664](https://www.stepsecurity.io/blog/harden-runner-detection-tj-actions-changed-files-action-is-compromised))
 
 ### Upgraded dependencies
 

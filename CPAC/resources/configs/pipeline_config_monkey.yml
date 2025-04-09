@@ -18,6 +18,9 @@ pipeline_setup:
     # Quality control outputs
     quality_control:
 
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcpqc_files: On
+
       # Generate quality control pages containing preprocessing and derivative outputs.
       generate_quality_control_images: On
 
@@ -165,7 +168,6 @@ registration_workflows:
           # this can increase tissue contrast which may improve registration quality in some data
           n4_correct_func: On
 
-      #TODO Add input field here to choose between whole head or brain
       # Choose coregistration interpolation
       interpolation: spline
 

@@ -13,6 +13,14 @@ pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac_abcd-options
+  output_directory:
+
+    # Quality control outputs
+    quality_control:
+
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcpqc_files: On
+
   system_config:
 
     # The maximum amount of memory each participant's workflow can allocate.
@@ -79,6 +87,9 @@ anatomical_preproc:
     # using: ['3dSkullStrip', 'BET', 'UNet', 'niworkflows-ants', 'FreeSurfer-ABCD', 'FreeSurfer-BET-Tight', 'FreeSurfer-BET-Loose', 'FreeSurfer-Brainmask']
     # this is a fork option
     using: [FreeSurfer-ABCD]
+
+  restore_t1w_intensity:
+    run: On
 
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering:
@@ -203,7 +214,6 @@ registration_workflows:
         # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
         input: [Selected_Functional_Volume]
 
-      #TODO Add input field here to choose between whole head or brain
       # Choose coregistration interpolation
       interpolation: spline
 

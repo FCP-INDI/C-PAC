@@ -54,10 +54,10 @@ pipeline_setup:
     # Quality control outputs
     quality_control:
       # Generate quality control pages containing preprocessing and derivative outputs.
-      generate_quality_control_images: True
+      generate_quality_control_images: On
 
       # Generate eXtensible Connectivity Pipeline-style quality control files
-      generate_xcpqc_files: False
+      generate_xcpqc_files: On
 
   working_directory:
 
@@ -484,6 +484,9 @@ anatomical_preproc:
       # Template to be used for FreeSurfer-BET brain extraction in CCS-options pipeline
       T1w_brain_template_mask_ccs: /ccs_template/MNI152_T1_1mm_first_brain_mask.nii.gz
 
+  restore_t1w_intensity:
+    run: Off
+
 
 segmentation:
 
@@ -764,8 +767,6 @@ registration_workflows:
 
       # Choose FSL or ABCD as coregistration method
       using: FSL
-
-      #TODO Add input field here to choose between whole head or brain
 
       # Choose coregistration interpolation
       interpolation: trilinear
