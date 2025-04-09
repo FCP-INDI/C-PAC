@@ -324,6 +324,9 @@ def init_loggers(
     """Set up and configure loggers."""
     from CPAC.utils.datasource import bidsier_prefix
 
+    if "subject_id" not in cpac_config:
+        cpac_config["subject_id"] = subject_id
+
     set_up_logger(
         f"{subject_id}_expectedOutputs",
         filename=f'{bidsier_prefix(cpac_config["subject_id"])}_' 'expectedOutputs.yml',
