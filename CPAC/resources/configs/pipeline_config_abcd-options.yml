@@ -13,6 +13,14 @@ pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac_abcd-options
+  output_directory:
+
+    # Quality control outputs
+    quality_control:
+
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcpqc_files: On
+
   system_config:
 
     # The maximum amount of memory each participant's workflow can allocate.
@@ -31,6 +39,12 @@ surface_analysis:
   # Run freesurfer_abcd_preproc to obtain preprocessed T1w for reconall
   abcd_prefreesurfer_prep:
     run: On
+
+    # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+    ref_mask_res-2: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_2mm_brain_mask_dil.nii.gz
+
+    # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+    T1w_template_res-2: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_2mm.nii.gz
 
   # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
@@ -74,6 +88,9 @@ anatomical_preproc:
     # this is a fork option
     using: [FreeSurfer-ABCD]
 
+  restore_t1w_intensity:
+    run: On
+
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering:
 
@@ -102,13 +119,6 @@ registration_workflows:
   anatomical_registration:
     run: On
     registration:
-      FSL-FNIRT:
-
-        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_2mm_brain_mask_dil.nii.gz
-
-        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2: /opt/dcan-tools/pipeline/global/templates/MNI152_T1_2mm.nii.gz
 
       # option parameters
       ANTs:
@@ -200,16 +210,9 @@ registration_workflows:
       run: On
       func_input_prep:
 
-        # Choose whether to use functional brain or skull as the input to functional-to-anatomical registration
-        reg_with_skull: On
-
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
         # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
         input: [Selected_Functional_Volume]
-
-      # reference: 'brain' or 'restore-brain'
-      # In ABCD-options pipeline, 'restore-brain' is used as coregistration reference
-      reference: restore-brain
 
       # Choose coregistration interpolation
       interpolation: spline

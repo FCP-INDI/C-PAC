@@ -13,6 +13,14 @@ pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac_fmriprep-options
+  output_directory:
+
+    # Quality control outputs
+    quality_control:
+
+      # Generate eXtensible Connectivity Pipeline-style quality control files
+      generate_xcpqc_files: On
+
   system_config:
 
     # Select Off if you intend to run CPAC on a single machine.
@@ -150,12 +158,6 @@ registration_workflows:
     run: On
     registration:
       FSL-FNIRT:
-
-        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2:
-
-        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2:
 
         # Reference mask for FSL registration.
         ref_mask:

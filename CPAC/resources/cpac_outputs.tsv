@@ -171,7 +171,6 @@ desc-restore-brain_T1w	T1w	T1w	anat	NIfTI
 space-template_desc-brain_T1w	T1w	template	anat	NIfTI				Yes	
 space-template_desc-preproc_T1w	T1w	template	anat	NIfTI					
 space-template_desc-head_T1w	T1w	template	anat	NIfTI					
-space-template_desc-T1w_mask	mask	template	anat	NIfTI					
 space-template_desc-Mean_timeseries	timeseries		func	1D					
 desc-MeanSCA_timeseries	timeseries		func	1D					
 desc-SpatReg_timeseries	timeseries		func	1D					

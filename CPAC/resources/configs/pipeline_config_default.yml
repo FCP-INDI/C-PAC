@@ -15,6 +15,7 @@ pipeline_setup:
 
   # Desired orientation for the output data. "RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"
   desired_orientation: RPI
+
   output_directory:
 
     # Directory where C-PAC should write out processed data, logs, and crash reports.
@@ -53,10 +54,10 @@ pipeline_setup:
     # Quality control outputs
     quality_control:
       # Generate quality control pages containing preprocessing and derivative outputs.
-      generate_quality_control_images: True
+      generate_quality_control_images: On
 
       # Generate eXtensible Connectivity Pipeline-style quality control files
-      generate_xcpqc_files: False
+      generate_xcpqc_files: On
 
   working_directory:
 
@@ -198,6 +199,12 @@ surface_analysis:
   # Run freesurfer_abcd_preproc to obtain preprocessed T1w for reconall
   abcd_prefreesurfer_prep:
     run: Off
+
+    # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+    ref_mask_res-2: $FSLDIR/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
+
+    # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+    T1w_template_res-2: $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz
 
   # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
@@ -490,6 +497,9 @@ anatomical_preproc:
       # Template to be used for FreeSurfer-BET brain extraction in CCS-options pipeline
       T1w_brain_template_mask_ccs: /ccs_template/MNI152_T1_1mm_first_brain_mask.nii.gz
 
+  restore_t1w_intensity:
+    run: Off
+
 
 segmentation:
 
@@ -753,12 +763,6 @@ registration_workflows:
         # It is not necessary to change this path unless you intend to use a different template.
         identity_matrix: $FSLDIR/etc/flirtsch/ident.mat
 
-        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2: $FSLDIR/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
-
-        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2: $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz
-
     overwrite_transform:
 
       run: Off
@@ -774,15 +778,8 @@ registration_workflows:
 
       run: On
 
-      # reference: 'brain' or 'restore-brain'
-      # In ABCD-options pipeline, 'restore-brain' is used as coregistration reference
-      reference: brain
-
       # Choose FSL or ABCD as coregistration method
       using: FSL
-
-      # Choose brain or whole-head as coregistration input
-      input: brain
 
       # Choose coregistration interpolation
       interpolation: trilinear
@@ -797,9 +794,6 @@ registration_workflows:
       arguments: None
 
       func_input_prep:
-
-        # Choose whether to use functional brain or skull as the input to functional-to-anatomical registration
-        reg_with_skull: Off
 
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
         # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
@@ -816,6 +810,9 @@ registration_workflows:
           # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'.
           #Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
           func_reg_input_volume: 0
+
+        # Mask the sbref created by coregistration input prep nodeblocks above before registration
+        mask_sbref: On
 
       boundary_based_registration:
         # this is a fork point

@@ -511,6 +511,7 @@ latest_schema = Schema(
             "Debugging": {
                 "verbose": bool1_1,
             },
+            "freesurfer_dir": str,
             "outdir_ingress": {
                 "run": bool1_1,
                 "Template": Maybe(str),
@@ -639,6 +640,9 @@ latest_schema = Schema(
                 },
                 "FreeSurfer-BET": {"T1w_brain_template_mask_ccs": Maybe(str)},
             },
+            "restore_t1w_intensity": {
+                "run": bool1_1,
+            },
         },
         "segmentation": {
             "run": bool1_1,
@@ -713,8 +717,6 @@ latest_schema = Schema(
                         "interpolation": In({"trilinear", "sinc", "spline"}),
                         "identity_matrix": Maybe(str),
                         "ref_mask": Maybe(str),
-                        "ref_mask_res-2": Maybe(str),
-                        "T1w_template_res-2": Maybe(str),
                     },
                 },
                 "overwrite_transform": {
@@ -725,15 +727,12 @@ latest_schema = Schema(
             "functional_registration": {
                 "coregistration": {
                     "run": bool1_1,
-                    "reference": In({"brain", "restore-brain"}),
                     "interpolation": In({"trilinear", "sinc", "spline"}),
                     "using": str,
-                    "input": str,
                     "cost": str,
                     "dof": int,
                     "arguments": Maybe(str),
                     "func_input_prep": {
-                        "reg_with_skull": bool1_1,
                         "input": [
                             In(
                                 {
@@ -744,7 +743,10 @@ latest_schema = Schema(
                             )
                         ],
                         "Mean Functional": {"n4_correct_func": bool1_1},
-                        "Selected Functional Volume": {"func_reg_input_volume": int},
+                        "Selected Functional Volume": {
+                            "func_reg_input_volume": int,
+                        },
+                        "mask_sbref": bool1_1,
                     },
                     "boundary_based_registration": {
                         "run": forkable,
@@ -817,6 +819,8 @@ latest_schema = Schema(
         "surface_analysis": {
             "abcd_prefreesurfer_prep": {
                 "run": bool1_1,
+                "ref_mask_res-2": Maybe(str),
+                "T1w_template_res-2": Maybe(str),
             },
             "freesurfer": {
                 "run_reconall": bool1_1,
@@ -1053,7 +1057,14 @@ latest_schema = Schema(
                             {
                                 "Name": Required(str),
                                 "Censor": {
-                                    "method": str,
+                                    "method": In(
+                                        [
+                                            "Kill",
+                                            "Zero",
+                                            "Interpolate",
+                                            "SpikeRegression",
+                                        ]
+                                    ),
                                     "thresholds": [
                                         {
                                             "type": str,
@@ -1350,7 +1361,9 @@ def schema(config_dict):
                     "``nuisance_corrections: 2-nuisance_regression: space`` "
                     f"to ``template`` {or_else}"
                 )
-                raise ExclusiveInvalid(msg)
+                raise ExclusiveInvalid(
+                    msg, path=["nuisance_corrections", "2-nuisance_regression", "space"]
+                )
             if any(
                 registration != "ANTS"
                 for registration in partially_validated["registration_workflows"][
@@ -1363,7 +1376,15 @@ def schema(config_dict):
                     "``registration_workflows: anatomical_registration: "
                     f"registration: using`` to ``ANTS`` {or_else}"
                 )
-                raise ExclusiveInvalid(msg)
+                raise ExclusiveInvalid(
+                    msg,
+                    path=[
+                        "registration_workflows",
+                        "anatomical_registration",
+                        "registration",
+                        "using",
+                    ],
+                )
     except KeyError:
         pass
     try:
@@ -1418,7 +1439,36 @@ def schema(config_dict):
                 "[!] Ingress_regressors and create_regressors can't both run! "
                 " Try turning one option off.\n "
             )
-            raise ExclusiveInvalid(msg)
+            raise ExclusiveInvalid(
+                msg, path=["nuisance_corrections", "2-nuisance_regression"]
+            )
+
+        overwrite = partially_validated["registration_workflows"][
+            "anatomical_registration"
+        ]["overwrite_transform"]
+
+        if (
+            overwrite["run"]
+            and "ANTS"
+            not in partially_validated["registration_workflows"][
+                "anatomical_registration"
+            ]["registration"]["using"]
+        ):
+            msg = (
+                "[!] Overwrite transform method is the same as the anatomical"
+                " registration method!\nNo need to overwrite transform with the same"
+                " registration method. Please turn it off or use a different"
+                " registration method."
+            )
+            raise ExclusiveInvalid(
+                msg,
+                path=[
+                    "registration_workflows",
+                    "anatomical_registration",
+                    "overwrite_transform",
+                    "run",
+                ],
+            )
     except KeyError:
         pass
     try:

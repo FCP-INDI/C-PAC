@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Required positional parameter "wf" in input and output of `ingress_pipeconfig_paths` function, where a node to reorient templates is added to the `wf`.
 - Required positional parameter "orientation" to `resolve_resolution`.
 - Optional positional argument "cfg" to `create_lesion_preproc`.
+- Allow enabling `overwrite_transform` only when the registration method is `ANTS`.
+- `resource_inventory` utility to inventory NodeBlock function inputs and outputs.
+- New switch `mask_sbref` under `func_input_prep` in functional registration and set to default `on`.
+- New resource `desc-head_bold` as non skull-stripped bold from nodeblock `bold_masking`.
+- `censor_file_path` from `offending_timepoints_connector` in the `build_nuisance_regressor` node.
 - `mri_robust_template` for longitudinal template generation.
 - `max_iter` parameter for longitudinal template generation.
 
@@ -32,7 +37,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved `pygraphviz` from requirements to `graphviz` optional dependencies group.
 - Automatically tag untagged `subject_id` and `unique_id` as `!!str` when loading data config files.
 - Made orientation configurable (was hard-coded as "RPI").
-- Disabled variant image builds.
+- Resource-not-found errors now include information about where to source those resources.
+- Moved `ref_mask_res_2` and `T1w_template_res-2` fields from registration into surface under `abcd_prefreesurfer_prep`.
+- Moved `find_censors node` inside `create_nuisance_regression_workflow` into its own function/subworkflow as `offending_timepoints_connector`.
+- [FSL-AFNI subworkflow](https://github.com/FCP-INDI/C-PAC/blob/4bdd6c410ef0a9b90f53100ea005af1f7d6e76c0/CPAC/func_preproc/func_preproc.py#L1052C4-L1231C25)
+  - Moved `FSL-AFNI subworkflow` from inside a `bold_mask_fsl_afni` nodeblock into a separate function.
+  - Renamed `desc-ref_bold` created in this workflow to `desc-unifized_bold`.
+  - `coregistration_prep_fmriprep` nodeblock now checks if `desc-unifized_bold` exists in the Resource Pool, if not it runs the `FSL-AFNI subworkflow` to create it.
+- Input `desc-brain_bold` to `desc-preproc_bold` for `sbref` generation nodeblock `coregistration_prep_vol`.
+- Turned `generate_xcpqc_files` on for all preconfigurations except `blank`.
+- Introduced specific switch `restore_t1w_intensity` for `correct_restore_brain_intensity_abcd` nodeblock, enabling it by default only in `abcd-options` pre-config.
 - Made `mri_robust_template` default implementation for longitudinal template generation.
 
 ### Fixed
@@ -41,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restored `bids-validator` functionality.
 - Fixed empty `shell` variable in cluster run scripts.
 - A bug in which bandpass filters always assumed 1D regressor files have exactly 5 header rows.
+- Removed an erroneous connection to AFNI 3dTProject in nuisance denoising that would unnecessarily send a spike regressor as a censor. This would sometimes cause TRs to unnecessarily be dropped from the timeseries as if scrubbing were being performed.
 - Supplied missing `subject_id` for longitudinal workflow logger and make that field optional for the logger.
 
 ### Removed
@@ -49,6 +64,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ABCD-HCP`
   - `fMRIPrep-LTS`
 - Typehinting support for Python < 3.10.
+- Extra outputs listed in `freesurfer_abcd_preproc`.
+- Resource `space-template_desc-T1w_mask`
+  - as output from FNIRT registration.
+  - as inputs from Nodeblocks requesting it and, replaced with `space-template_desc-brain_mask`.
+  - from outputs tsv.
+- Inputs `[desc-motion_bold, bold]` from `coregistration_prep_vol` nodeblock.
+- `input` field from `coregistration` in blank and default config.
+- `reg_with_skull` swtich from `func_input_prep` in blank and default config.
+
+#### Removed CI dependency
+
+- `tj-actions/changed-files` ([CVE-2023-51664](https://www.stepsecurity.io/blog/harden-runner-detection-tj-actions-changed-files-action-is-compromised))
 
 ## [1.8.7] - 2024-05-03
 

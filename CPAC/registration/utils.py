@@ -62,6 +62,49 @@ class RegistrationTemplates(NamedTuple):
     reference_mask: list[str] | str = "T1w-brain-template-mask"
 
 
+@overload
+def convert_pedir(pedir: bytes | str, convert: Literal["xyz_to_int"]) -> int: ...
+@overload
+def convert_pedir(pedir: bytes | str, convert: Literal["ijk_to_xyz"]) -> str: ...
+def convert_pedir(
+    pedir: bytes | str, convert: Literal["xyz_to_int", "ijk_to_xyz"] = "xyz_to_int"
+) -> int | str:
+    """FSL Flirt requires pedir input encoded as an int."""
+    if convert == "xyz_to_int":
+        conv_dct = {
+            "x": 1,
+            "y": 2,
+            "z": 3,
+            "x-": -1,
+            "y-": -2,
+            "z-": -3,
+            "i": 1,
+            "j": 2,
+            "k": 3,
+            "i-": -1,
+            "j-": -2,
+            "k-": -3,
+            "-x": -1,
+            "-i": -1,
+            "-y": -2,
+            "-j": -2,
+            "-z": -3,
+            "-k": -3,
+        }
+    elif convert == "ijk_to_xyz":
+        conv_dct = {"i": "x", "j": "y", "k": "z", "i-": "x-", "j-": "y-", "k-": "z-"}
+
+    if isinstance(pedir, bytes):
+        pedir = pedir.decode()
+    if not isinstance(pedir, str):
+        msg = f"\n\nPhase-encoding direction must be a string value.\n\nValue: {pedir}\n\n"
+        raise ValueError(msg)
+    if pedir not in conv_dct.keys():
+        msg = f"\n\nInvalid phase-encoding direction entered: {pedir}\n\n"
+        raise ValueError(msg)
+    return conv_dct[pedir]
+
+
 def apply_transform(
     wf_name: str,
     reg_tool: str,

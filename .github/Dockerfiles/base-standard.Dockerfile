@@ -17,9 +17,9 @@
 FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-jammy as FreeSurfer
 
 FROM ghcr.io/fcp-indi/c-pac/stage-base:lite-v1.8.8.dev2
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+LABEL org.opencontainers.image.description="NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Standard software dependencies for C-PAC standard images"
-LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
 USER root
 
 # Installing FreeSurfer
