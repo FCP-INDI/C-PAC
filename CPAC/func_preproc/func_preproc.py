@@ -1661,9 +1661,6 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
         "in_file",
     )
 
-    node, out = strat_pool.get_data("desc-preproc_bold")
-    wf.connect(node, out, func_mask_template_to_native, "master")
-
     outputs = {
         "space-template_res-bold_desc-brain_T1w": (
             anat_brain_to_func_res,
