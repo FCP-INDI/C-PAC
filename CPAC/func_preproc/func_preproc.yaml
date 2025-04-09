@@ -1,0 +1,89 @@
+# This is a C-PAC nodeblock descriptor file.
+
+Reorient BOLD:
+    description:
+        Reorients the header's grid to the chosen orientation.
+        Highly recommended to run this nodeblock first in the BOLD pipeline. This is to ensure all data is set to the same grid orientation.
+    references:
+        None
+    method:
+        AFNI:
+            description:
+                Uses AFNI 3drefit -deoblique and 3dresample -orient.
+            references:
+                https://afni.nimh.nih.gov/pub/dist/doc/program_help/3drefit.html
+                https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dresample.html
+            config:
+                desired_orientation: RPI
+                    options: [RPI, LPI, etc.]
+            operations:
+                graph TD;
+            source:
+                Nipype: https://github.com/FCP-INDI/C-PAC/blob/rc/v1.8.7/CPAC/func_preproc/func_preproc.py#AUTOMATE?
+            validation:
+                s3://path/to/gold/standard
+
+Scale BOLD:
+    description:
+        Scales the BOLD to a different size.
+        Often used in rodent pipelines where the raw BOLD is much smaller.
+    references:
+        None
+    method:
+        AFNI:
+            description:
+                Uses AFNI 3drefit xyzscale.
+            references:
+                https://afni.nimh.nih.gov/pub/dist/doc/program_help/3drefit.html
+            config:
+                scaling_factor: 10
+            operations:
+                graph TD;
+            source:
+                Nipype: https://github.com/FCP-INDI/C-PAC/blob/rc/v1.8.7/CPAC/func_preproc/func_preproc.py#AUTOMATE?
+            validation:
+                s3://path/to/gold/standard
+
+Truncate BOLD Timeseries:
+    description:
+        Truncates the BOLD timeseries to the desired length, by dropping chosen TRs/volumes.
+        Often used to drop the first few TRs, but can drop TRs at the end as well.
+    references:
+        None
+    method:
+        AFNI:
+            description:
+                Uses AFNI 3dcalc.
+            references:
+                https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dcalc.html
+            config:
+                start_tr: 0
+                stop_tr: End
+            operations:
+                graph TD;
+            source:
+                Nipype: https://github.com/FCP-INDI/C-PAC/blob/rc/v1.8.7/CPAC/func_preproc/func_preproc.py#AUTOMATE?
+            validation:
+                s3://path/to/gold/standard
+
+Despiking:
+    description:
+        Removes spikes from the BOLD timeseries.
+        NOTE - this is NOT the same as spike regression in nuisance confound regression.
+    references:
+        None
+    method:
+        AFNI:
+            description:
+                Uses AFNI 3dDespike.
+                From the manual - "Check your data visually before and after despiking and registration!"
+            references:
+                https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dDespike.html
+            config:
+                None
+            operations:
+                graph TD;
+            source:
+                Nipype: https://github.com/FCP-INDI/C-PAC/blob/rc/v1.8.7/CPAC/func_preproc/func_preproc.py#AUTOMATE?
+            validation:
+                s3://path/to/gold/standard
