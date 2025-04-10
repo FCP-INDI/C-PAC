@@ -1,0 +1,119 @@
+# This is a C-PAC nodeblock descriptor file.
+
+Phase Difference Distortion Correction:
+    description:
+        Perform phase-difference distortion (susceptibility) correction.
+        Uses two phase images (or one phase difference image) and one or two magnitude field map images.
+    references:
+        None
+    method:
+        FSL FUGUE:
+            description:
+                Uses the FSL FUGUE tool.
+            references:
+                https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FUGUE/Guide
+            config:
+                fmap_skullstrip_option: BET
+                    options: [BET, AFNI]
+                    description:
+                        Since the quality of the distortion heavily relies on the skull-stripping step, we provide a choice of method ('AFNI' for AFNI 3dSkullStrip or 'BET' for FSL BET).
+                fmap_skullstrip_BET_frac: 0.5
+                    description:
+                        Set the fraction value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
+                fmap_skullstrip_AFNI_threshold: 0.6
+                    description:
+                        Set the threshold value for the skull-stripping of the magnitude file. Depending on the data, a tighter extraction may be necessary in order to prevent noisy voxels from interfering with preparing the field map.
+            operations:
+                graph TD;
+            source:
+                Nipype: CPAC.distortion_correction.distcor_phasediff_fsl_fugue
+            validation:
+                s3://path/to/gold/standard
+
+Phase Encoding Direction Distortion Correction:
+    description:
+        Perform phase-encoding distortion (susceptibility) correction.
+        Also known as "Blip-Up/Blip-Down" or "PE-Polar".
+        Uses EPI-style field maps.
+    references:
+        None
+    method:
+        AFNI 3dQWarp:
+            description:
+                The workflow in this nodeblock has been adapted from nipreps sdcflows.
+                Uses the AFNI 3dQWarp tool to calculate the distortion "unwarp" for phase encoding direction EPI field map distortion correction.
+            references:
+                https://www.nipreps.org/sdcflows/master/_modules/sdcflows/workflows/fit/pepolar.html
+                https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dQwarp.html
+            config:
+                None
+            operations:
+                graph TD;
+            source:
+                Nipype: CPAC.distortion_correction.distcor_blip_afni_qwarp
+            validation:
+                s3://path/to/gold/standard
+        FSL TOPUP:
+            description:
+                The workflow in this nodeblock has been adapted from the DCAN-Labs ABCD-HCP pipeline.
+                Uses the FSL TOPUP tool to calculate the distortion "unwarp" for phase encoding direction EPI field map distortion correction.
+            references:
+                https://github.com/DCAN-Labs/abcd-hcp-pipeline/tree/main
+                https://ftp.nmr.mgh.harvard.edu/pub/dist/freesurfer/tutorial_packages/centos6/fsl_507/doc/wiki/topup(2f)TopupUsersGuide.html
+            config:
+                warpres: 10
+                    description:
+                        (approximate) resolution (in mm) of warp basis for the different sub-sampling levels
+                subsamp: 1
+                    description:
+                        sub-sampling scheme
+                fwhm: 8
+                    description:
+                        FWHM (in mm) of gaussian smoothing kernel
+                miter: 5
+                    description:
+                        Max number of non-linear iterations
+                lambda: 1
+                    description:
+                        Weight of regularisation, default depends on --ssqlambda and --regmod switches
+                ssqlambda: 1
+                    description:
+                        If set = 1, lambda is weighted by current ssq
+                regmod: bending_energy
+                    options: [bending_energy, membrane_energy]
+                    description:
+                        Model for regularisation of warp-field
+                estmov: 1
+                    description:
+                        Estimate movements if set
+                        TODO- I think this is a boolean? And the others probably too
+                minmet: 0
+                    options: [0, 1]
+                    description:
+                        Minimisation method 0=Levenberg-Marquardt, 1=Scaled Conjugate Gradient
+                splineorder: 3
+                    options: [3, 2]
+                    description:
+                        Order of spline, 2->Quadratic spline, 3->Cubic spline
+                numprec: double
+                    options: [double, float]
+                    description:
+                        Precision for representing Hessian
+                interp: spline
+                    options: [spline, linear]
+                    description:
+                        Image interpolation model
+                scale: 0
+                    options: [0, 1]
+                    description:
+                        If set (=1), the images are individually scaled to a common mean
+                regrid: 1
+                    options: [1, 0]
+                    description:
+                        If set (=1), the calculations are done in a different grid
+            operations:
+                graph TD;
+            source:
+                Nipype: CPAC.distortion_correction.distcor_blip_fsl_topup
+            validation:
+                s3://path/to/gold/standard
