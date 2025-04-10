@@ -17,6 +17,7 @@
 """Specify the resources that C-PAC writes to the output direcotry."""
 
 from importlib.resources import files
+from typing import ClassVar
 
 import pandas as pd
 
@@ -47,8 +48,12 @@ class Outputs:
         reference[reference["4D Time Series"] == "Yes"]["Resource"]
     )
 
-    anat = list(reference[reference["Sub-Directory"] == "anat"]["Resource"])
-    func = list(reference[reference["Sub-Directory"] == "func"]["Resource"])
+    anat: ClassVar[list[str]] = list(
+        reference[reference["Sub-Directory"] == "anat"]["Resource"]
+    )
+    func: ClassVar[list[str]] = list(
+        reference[reference["Sub-Directory"] == "func"]["Resource"]
+    )
 
     # outputs to send into smoothing, if smoothing is enabled, and
     # outputs to write out if the user selects to write non-smoothed outputs
@@ -64,6 +69,8 @@ class Outputs:
 
     all_template_filter = _template_filter | _epitemplate_filter | _symtemplate_filter
     all_native_filter = _T1w_native_filter | _bold_native_filter | _long_native_filter
+
+    bold_native: ClassVar[list[str]] = list(reference[_bold_native_filter]["Resource"])
 
     native_nonsmooth = list(
         reference[all_native_filter & _nonsmoothed_filter]["Resource"]
@@ -121,3 +128,11 @@ class Outputs:
         for gifti in giftis.itertuples()
         if " " in gifti.File
     }
+
+
+def group_derivatives(pull_func: bool = False) -> list[str]:
+    """Gather keys for anatomical and functional derivatives for group analysis."""
+    derivatives: list[str] = Outputs.func + Outputs.anat
+    if pull_func:
+        derivatives = derivatives + Outputs.bold_native
+    return derivatives
