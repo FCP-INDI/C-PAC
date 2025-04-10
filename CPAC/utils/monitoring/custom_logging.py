@@ -329,7 +329,7 @@ def init_loggers(
 
     set_up_logger(
         f"{subject_id}_expectedOutputs",
-        filename=f'{bidsier_prefix(cpac_config["subject_id"])}_' 'expectedOutputs.yml',
+        filename=f"{bidsier_prefix(cpac_config['subject_id'])}_expectedOutputs.yml",
         level="info",
         log_dir=log_dir,
         mock=mock,
@@ -337,6 +337,7 @@ def init_loggers(
             longitudinal or not cpac_config["longitudinal_template_generation", "run"]
         ),
     )
+
     if cpac_config["pipeline_setup", "Debugging", "verbose"]:
         set_up_logger("CPAC.engine", level="debug", log_dir=log_dir, mock=True)
 
@@ -361,5 +362,7 @@ def init_loggers(
             },
         }
     )
+
     nipype_config.enable_resource_monitor()
+
     nipype_logging.update_logging(nipype_config)

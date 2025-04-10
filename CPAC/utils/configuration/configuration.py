@@ -16,6 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """C-PAC Configuration class and related functions."""
 
+from collections.abc import Iterable
 import os
 import re
 from typing import Any, cast, Literal, Optional, overload
@@ -29,6 +30,7 @@ from CPAC.pipeline.nipype_pipeline_engine import MapNode, Node
 from .diff import dct_diff
 
 CONFIG_KEY_TYPE = str | list[str]
+_DICT = dict
 SPECIAL_REPLACEMENT_STRINGS = {r"${resolution_for_anat}", r"${func_resolution}"}
 
 
@@ -187,11 +189,22 @@ class Configuration:
         os.environ["CPAC_WORKDIR"] = self["pipeline_setup", "working_directory", "path"]
 
     def __str__(self):
+        """Return string representation of a Configuration instance."""
         return f"C-PAC Configuration ('{self['pipeline_setup', 'pipeline_name']}')"
 
     def __repr__(self):
         """Show Configuration as a dict when accessed directly."""
         return str(self.dict())
+
+    def __contains__(self, item: str | list[Any]) -> bool:
+        """Check if an item is in the Configuration."""
+        if isinstance(item, str):
+            return item in self.keys()
+        try:
+            self.get_nested(self, item)
+            return True
+        except KeyError:
+            return False
 
     def __copy__(self):
         newone = type(self)({})
@@ -199,7 +212,9 @@ class Configuration:
         newone._update_attr()
         return newone
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Iterable) -> Any:
+        """Get an item from a Configuration."""
+        self._check_keys(key)
         if isinstance(key, str):
             return getattr(self, key)
         if isinstance(key, (list, tuple)):
@@ -207,7 +222,9 @@ class Configuration:
         self.key_type_error(key)
         return None
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Iterable, value: Any) -> None:
+        """Set an item in a Configuration."""
+        self._check_keys(key)
         if isinstance(key, str):
             setattr(self, key, value)
         elif isinstance(key, (list, tuple)):
@@ -432,7 +449,21 @@ class Configuration:
             raise val
         setattr(self, key, val)
 
-    def get_nested(self, _d, keys):
+    @staticmethod
+    def _check_keys(keys: Iterable) -> None:
+        """Check that keys are iterable and at least 1 key is provided."""
+        if not keys:
+            if isinstance(keys, Iterable):
+                error = KeyError
+                msg = "No keys provided to `set_nested`."
+            else:
+                error = TypeError
+                msg = f"`set_nested` keys must be iterable, got {type(keys)}."
+            raise error(msg)
+
+    def get_nested(self, _d: "Configuration | _DICT", keys: Iterable) -> Any:
+        """Get a value from a Configuration dictionary given a nested key."""
+        self._check_keys(keys)
         if _d is None:
             _d = {}
         if isinstance(keys, str):
@@ -440,16 +471,28 @@ class Configuration:
         if isinstance(keys, (list, tuple)):
             if len(keys) > 1:
                 return self.get_nested(_d[keys[0]], keys[1:])
+            assert len(keys) == 1
             return _d[keys[0]]
         return _d
 
-    def set_nested(self, d, keys, value):  # pylint: disable=invalid-name
+    @overload
+    def set_nested(
+        self, d: "Configuration", keys: Iterable, value: Any
+    ) -> "Configuration": ...
+    @overload
+    def set_nested(self, d: _DICT, keys: Iterable, value: Any) -> _DICT: ...
+    def set_nested(
+        self, d: "Configuration | _DICT", keys: Iterable, value: Any
+    ) -> "Configuration | _DICT":
+        """Set a nested key in a Configuration dictionary."""
+        self._check_keys(keys)
         if isinstance(keys, str):
             d[keys] = value
         elif isinstance(keys, (list, tuple)):
             if len(keys) > 1:
                 d[keys[0]] = self.set_nested(d[keys[0]], keys[1:], value)
             else:
+                assert len(keys) == 1
                 d[keys[0]] = value
         return d
 
