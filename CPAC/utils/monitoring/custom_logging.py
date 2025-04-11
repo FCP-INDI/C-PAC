@@ -18,10 +18,11 @@
 
 import logging
 import os
+from pathlib import Path
 import subprocess
 from sys import exc_info as sys_exc_info
 from traceback import print_exception
-from typing import Optional, Sequence, TYPE_CHECKING
+from typing import Literal, Optional, Sequence, TYPE_CHECKING, TypeAlias
 
 from nipype import config as nipype_config, logging as nipype_logging
 
@@ -30,6 +31,31 @@ from CPAC.utils.monitoring.config import MOCK_LOGGERS
 
 if TYPE_CHECKING:
     from CPAC.utils.configuration import Configuration
+LogLevel: TypeAlias = (
+    Literal[
+        "CRITICAL",
+        "critical",
+        "Critical",
+        "DEBUG",
+        "debug",
+        "Debug",
+        "ERROR",
+        "error",
+        "Error",
+        "INFO",
+        "info",
+        "Info",
+        "NOTSET",
+        "notset",
+        "Notset",
+        "NotSet",
+        "notSet",
+        "WARNING",
+        "warning",
+        "Warning",
+    ]
+    | int
+)
 
 
 def failed_to_start(log_dir, exception):
@@ -49,17 +75,8 @@ def failed_to_start(log_dir, exception):
     logger.exception(exception)
 
 
-def getLogger(name):  # pylint: disable=invalid-name
-    """Get a mock logger if one exists, falling back on real loggers.
-
-    Parameters
-    ----------
-    name : str
-
-    Returns
-    -------
-    logger : CPAC.utils.monitoring.custom_logging.MockLogger or logging.Logger
-    """
+def getLogger(name: str) -> "logging.Logger | MockLogger":  # pylint: disable=invalid-name
+    """Get a mock logger if one exists, falling back on real loggers."""
     if name in MOCK_LOGGERS:
         return MOCK_LOGGERS[name]
     logger = nipype_logging.getLogger(name)
@@ -158,7 +175,10 @@ class MockHandler:
 class MockLogger:
     """Mock logging.Logger to provide API without keeping the logger in memory."""
 
-    def __init__(self, name, filename, level, log_dir):
+    def __init__(
+        self, name: str, filename: str, level: LogLevel, log_dir: Path | str
+    ) -> None:
+        """Initialize a mock logger."""
         self.name = name
         self.level = level
         self.handlers = [MockHandler(os.path.join(log_dir, filename))]
@@ -243,34 +263,38 @@ def _lazy_sub(message, *items):
 
 
 def set_up_logger(
-    name, filename=None, level=None, log_dir=None, mock=False, overwrite_existing=False
-):
+    name: str,
+    filename: Optional[str] = None,
+    level: Optional[LogLevel] = None,
+    log_dir: Optional[Path | str] = None,
+    mock: bool = False,
+    overwrite_existing: bool = False,
+) -> logging.Logger | MockLogger:
     r"""Initialize a logger.
 
     Parameters
     ----------
-    name : str
+    name
         logger name (for subsequent calls to ``logging.getLogger``) to
         write to the same log file)
 
-    filename : str, optional
+    filename
         filename to write log to. If not specified, filename will be
         the same as ``name`` with the extension ``log``
 
-    level : str, optional
-        one of ``{critical, error, warning, info, debug, notset}``,
-        case-insensitive
+    level
+        https://docs.python.org/3/library/logging.html#levels
 
-    log_dir : str, optional
+    log_dir
 
-    mock : bool, optional
+    mock
         if ``True``, return a ``CPAC.utils.monitoring.MockLogger``
         instead of a ``logging.Logger``
 
     Returns
     -------
-    logger : logging.Handler
-        initialized logging Handler
+    logger
+        initialized logger
 
     Examples
     --------
@@ -295,19 +319,25 @@ def set_up_logger(
     """
     if filename is None:
         filename = f"{name}.log"
-    try:
-        level = getattr(logging, level.upper())
-    except AttributeError:
+    if isinstance(level, str):
+        try:
+            level = getattr(logging, level.upper())
+        except AttributeError:
+            pass
+    if not level:
         level = logging.NOTSET
-    if log_dir is None:
-        log_dir = os.getcwd()
-    filepath = os.path.join(log_dir, filename)
-    if overwrite_existing and os.path.exists(filepath):
-        with open(filepath, "w") as log_file:
+    log_dir = Path(log_dir) if log_dir else Path.cwd()
+    filepath = log_dir / filename
+    if overwrite_existing and filepath.exists():
+        with filepath.open("w", encoding="utf-8") as log_file:
             log_file.write("")
+    if not filepath.exists():
+        filepath.parent.mkdir(parents=True, exist_ok=True)
     if mock:
         return MockLogger(name, filename, level, log_dir)
     logger = getLogger(name)
+    if isinstance(logger, MockLogger):
+        return logger
     logger.setLevel(level)
     handler = logging.FileHandler(filepath)
     logger.addHandler(handler)
