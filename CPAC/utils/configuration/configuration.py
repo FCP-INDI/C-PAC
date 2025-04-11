@@ -45,156 +45,8 @@ class ConfigurationDictUpdateConflation(SyntaxError):
         super().__init__()
 
 
-class Configuration:
-    """
-    Class to set dictionary keys as map attributes.
-
-    If the given dictionary includes the key ``FROM``, that key's value
-    will form the base of the Configuration object with the values in
-    the given dictionary overriding matching keys in the base at any
-    depth. If no ``FROM`` key is included, the base Configuration is
-    the blank preconfiguration.
-
-    .. versionchanged:: 1.8.5
-       From version 1.8.0 to version 1.8.5, unspecified keys were based on the default configuration rather than the blank preconfiguration.
-
-    ``FROM`` accepts either the name of a preconfigured pipleine or a
-    path to a YAML file.
-
-    Given a Configuration ``c``, and a list or tuple of an attribute name
-    and nested keys ``keys = ['attribute', 'key0', 'key1']`` or
-    ``keys = ('attribute', 'key0', 'key1')``, the value 'value' nested in
-
-    .. code-block:: python
-
-        c.attribute = {'key0': {'key1': 'value'}}
-
-    can be accessed (get and set) in any of the following ways (and
-    more):
-
-    .. code-block:: python
-
-        c.attribute['key0']['key1']
-        c['attribute']['key0']['key1']
-        c['attribute', 'key0', 'key1']
-        c[keys]
-
-    Examples
-    --------
-    >>> c = Configuration({})
-    >>> c['pipeline_setup', 'pipeline_name']
-    'cpac-blank-template'
-    >>> c = Configuration({'pipeline_setup': {
-    ...     'pipeline_name': 'example_pipeline'}})
-    >>> c['pipeline_setup', 'pipeline_name']
-    'example_pipeline'
-    >>> c['pipeline_setup', 'pipeline_name'] = 'new_pipeline2'
-    >>> c['pipeline_setup', 'pipeline_name']
-    'new_pipeline2'
-
-    >>> from CPAC.utils.tests.configs import SLACK_420349
-
-    # test "FROM: /path/to/file"
-    >>> slack_420349_filepath = Configuration(
-    ...     yaml.safe_load(SLACK_420349['filepath']))
-    >>> slack_420349_filepath['pipeline_setup', 'pipeline_name']
-    'slack_420349_filepath'
-
-    # test "FROM: preconfig"
-    >>> slack_420349_preconfig = Configuration(
-    ...    yaml.safe_load(SLACK_420349['preconfig']))
-    >>> slack_420349_preconfig['pipeline_setup', 'pipeline_name']
-    'slack_420349_preconfig'
-    """
-
-    def __init__(
-        self, config_map: Optional[dict] = None, skip_env_check: bool = False
-    ) -> None:
-        """Initialize a Configuration instance.
-
-        Parameters
-        ----------
-        config_map : dict, optional
-
-        skip_env_check : bool, optional
-        """
-        from CPAC.pipeline.schema import schema
-        from CPAC.utils.utils import lookup_nested_value, update_nested_dict
-
-        if config_map is None:
-            config_map = {}
-        if skip_env_check:
-            config_map["skip env check"] = True
-
-        base_config = config_map.pop("FROM", None)
-        if base_config:
-            if base_config.lower() in ["default", "default_pipeline"]:
-                base_config = "default"
-            # import another config (specified with 'FROM' key)
-            try:
-                base_config = Preconfiguration(
-                    base_config, skip_env_check=skip_env_check
-                )
-            except BadParameter:
-                base_config = configuration_from_file(base_config)
-            config_map = update_nested_dict(base_config.dict(), config_map)
-        else:
-            # base everything on blank pipeline for unspecified keys
-            config_map = update_nested_dict(
-                preconfig_yaml("blank", load=True), config_map
-            )
-
-        config_map = self._nonestr_to_None(config_map)
-
-        try:
-            regressors = lookup_nested_value(
-                config_map,
-                ["nuisance_corrections", "2-nuisance_regression", "Regressors"],
-            )
-        except KeyError:
-            regressors = []
-        if isinstance(regressors, list):
-            for i, regressor in enumerate(regressors):
-                # set Regressor 'Name's if not provided
-                if "Name" not in regressor:
-                    regressor["Name"] = f"Regressor-{i + 1!s}"
-                # make Regressor 'Name's Nipype-friendly
-                regressor["Name"] = nipype_friendly_name(regressor["Name"])
-
-        config_map = schema(config_map)
-
-        # remove 'skip env check' now that the config is validated
-        if "skip env check" in config_map:
-            del config_map["skip env check"]
-        # remove 'FROM' before setting attributes now that it's imported
-        if "FROM" in config_map:
-            del config_map["FROM"]
-
-        if skip_env_check:
-            for key in config_map:
-                # set attribute
-                setattr(self, key, self.set_without_ENV(config_map[key]))
-        else:
-            # set FSLDIR to the environment $FSLDIR if the user sets it to
-            # 'FSLDIR' in the pipeline config file
-            _FSLDIR = config_map.get("FSLDIR")
-            if _FSLDIR and bool(re.match(r"^[\$\{]{0,2}?FSLDIR[\}]?$", _FSLDIR)):
-                config_map["FSLDIR"] = os.environ["FSLDIR"]
-            for key in config_map:
-                # set attribute
-                setattr(self, key, self.set_from_ENV(config_map[key]))
-        self._update_attr()
-
-        # set working directory as an environment variable
-        os.environ["CPAC_WORKDIR"] = self["pipeline_setup", "working_directory", "path"]
-
-    def __str__(self):
-        """Return string representation of a Configuration instance."""
-        return f"C-PAC Configuration ('{self['pipeline_setup', 'pipeline_name']}')"
-
-    def __repr__(self):
-        """Show Configuration as a dict when accessed directly."""
-        return str(self.dict())
+class NestedKeyMixin:
+    """Provide methods for getting and setting nested keys."""
 
     def __contains__(self, item: str | list[Any]) -> bool:
         """Check if an item is in the Configuration."""
@@ -205,12 +57,6 @@ class Configuration:
             return True
         except KeyError:
             return False
-
-    def __copy__(self):
-        newone = type(self)({})
-        newone.__dict__.update(self.__dict__)
-        newone._update_attr()
-        return newone
 
     def __getitem__(self, key: Iterable) -> Any:
         """Get an item from a Configuration."""
@@ -268,29 +114,6 @@ class Configuration:
         """
         return dct_diff(self.dict(), other.dict())
 
-    def dict(self) -> dict[Any, Any]:
-        """Show contents of a C-PAC configuration as a dict."""
-        return {k: v for k, v in self.__dict__.items() if not callable(v)}
-
-    def get(self, key: Any, default: Any = None, /) -> Any:
-        """Provide convenience access from `Configuration` to :meth:`dict.get` .
-
-        Examples
-        --------
-        >>> c = Configuration()
-        >>> c.get("subject_id") is None
-        True
-        >>> c.get("subject_id", "fake_ID")
-        'fake_ID'
-        >>> isinstance(c.get("pipeline_setup"), dict)
-        True
-        """
-        return self.dict().get(key, default)
-
-    def keys(self):
-        """Show toplevel keys of a C-PAC configuration dict."""
-        return self.dict().keys()
-
     def _nonestr_to_None(self, d):
         """Recursive method to type convert 'None' to None in nested config.
 
@@ -314,140 +137,6 @@ class Configuration:
         if isinstance(d, dict):
             return {i: self._nonestr_to_None(d[i]) for i in d}
         return d
-
-    def set_from_ENV(self, conf):  # pylint: disable=invalid-name
-        """Replace strings like $VAR and ${VAR} with environment variable values.
-
-        Parameters
-        ----------
-        conf : any
-
-        Returns
-        -------
-        conf : any
-
-        Examples
-        --------
-        >>> import os
-        >>> os.environ['SAMPLE_VALUE_SFE'] = '/example/path'
-        >>> c = Configuration()
-        >>> c.set_from_ENV({'key': {'nested_list': [
-        ...     1, '1', '$SAMPLE_VALUE_SFE/extended']}})
-        {'key': {'nested_list': [1, '1', '/example/path/extended']}}
-        >>> c.set_from_ENV(['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE'])
-        ['/example/path', 'SAMPLE_VALUE_SFE']
-        >>> del os.environ['SAMPLE_VALUE_SFE']
-        """
-        if isinstance(conf, list):
-            return [self.set_from_ENV(item) for item in conf]
-        if isinstance(conf, dict):
-            return {key: self.set_from_ENV(conf[key]) for key in conf}
-        if isinstance(conf, str):
-            # set any specified environment variables
-            # (only matching all-caps plus `-` and `_`)
-            # like `${VAR}`
-            _pattern1 = r"\${[A-Z\-_]*}"
-            # like `$VAR`
-            _pattern2 = r"\$[A-Z\-_]*(?=/|$)"
-            # replace with environment variables if they exist
-            for _pattern in [_pattern1, _pattern2]:
-                _match = re.search(_pattern, conf)
-                if _match:
-                    _match = _match.group().lstrip("${").rstrip("}")
-                    conf = re.sub(_pattern, os.environ.get(_match, f"${_match}"), conf)
-        return conf
-
-    def set_without_ENV(self, conf):  # pylint: disable=invalid-name
-        """Retain strings like $VAR and ${VAR} when setting attributes.
-
-        Parameters
-        ----------
-        conf : any
-
-        Returns
-        -------
-        conf : any
-
-        Examples
-        --------
-        >>> import os
-        >>> os.environ['SAMPLE_VALUE_SFE'] = '/example/path'
-        >>> c = Configuration()
-        >>> c.set_without_ENV({'key': {'nested_list': [
-        ...     1, '1', '$SAMPLE_VALUE_SFE/extended']}})
-        {'key': {'nested_list': [1, '1', '$SAMPLE_VALUE_SFE/extended']}}
-        >>> c.set_without_ENV(['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE'])
-        ['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE']
-        >>> del os.environ['SAMPLE_VALUE_SFE']
-        """
-        if isinstance(conf, list):
-            return [self.set_without_ENV(item) for item in conf]
-        if isinstance(conf, dict):
-            return {key: self.set_without_ENV(conf[key]) for key in conf}
-        return conf
-
-    def sub_pattern(self, pattern, orig_key):
-        return orig_key.replace(pattern, self[pattern[2:-1].split(".")])
-
-    def check_pattern(self, orig_key, tags=None):
-        if tags is None:
-            tags = []
-        if isinstance(orig_key, dict):
-            return {k: self.check_pattern(orig_key[k], tags) for k in orig_key}
-        if isinstance(orig_key, list):
-            return [self.check_pattern(item) for item in orig_key]
-        if not isinstance(orig_key, str):
-            return orig_key
-        template_pattern = r"\${.*}"
-        r = re.finditer(template_pattern, orig_key)
-        for i in r:
-            pattern = i.group(0)
-            if isinstance(pattern, str) and len(pattern) and pattern not in tags:
-                try:
-                    orig_key = self.sub_pattern(pattern, orig_key)
-                except AttributeError as ae:
-                    if pattern not in SPECIAL_REPLACEMENT_STRINGS:
-                        warn(str(ae), category=SyntaxWarning)
-        return orig_key
-
-    # method to find any pattern ($) in the configuration
-    # and update the attributes with its pattern value
-    def _update_attr(self):
-        def check_path(key):
-            if isinstance(key, str) and "/" in key:
-                if not os.path.exists(key):
-                    warn(f"Invalid path- {key}. Please check your configuration file")
-
-        attributes = [
-            (attr, getattr(self, attr))
-            for attr in dir(self)
-            if not callable(attr) and not attr.startswith("__")
-        ]
-
-        template_list = [
-            "template_brain_only_for_anat",
-            "template_skull_for_anat",
-            "ref_mask",
-            "template_brain_only_for_func",
-            "template_skull_for_func",
-            "template_symmetric_brain_only",
-            "template_symmetric_skull",
-            "dilated_symmetric_brain_mask",
-        ]
-
-        for attr_key, attr_value in attributes:
-            if attr_key in template_list:
-                new_key = self.check_pattern(attr_value, "FSLDIR")
-            else:
-                new_key = self.check_pattern(attr_value)
-            setattr(self, attr_key, new_key)
-
-    def update(self, key, val=ConfigurationDictUpdateConflation()):
-        if isinstance(key, dict):
-            raise ConfigurationDictUpdateConflation
-        if isinstance(val, Exception):
-            raise val
-        setattr(self, key, val)
 
     @staticmethod
     def _check_keys(keys: Iterable) -> None:
@@ -682,6 +371,321 @@ class Configuration:
                 ]
             )
         )
+
+
+class Configuration(NestedKeyMixin):
+    """
+    Class to set dictionary keys as map attributes.
+
+    If the given dictionary includes the key ``FROM``, that key's value
+    will form the base of the Configuration object with the values in
+    the given dictionary overriding matching keys in the base at any
+    depth. If no ``FROM`` key is included, the base Configuration is
+    the blank preconfiguration.
+
+    .. versionchanged:: 1.8.5
+       From version 1.8.0 to version 1.8.5, unspecified keys were based on the default configuration rather than the blank preconfiguration.
+
+    ``FROM`` accepts either the name of a preconfigured pipleine or a
+    path to a YAML file.
+
+    Given a Configuration ``c``, and a list or tuple of an attribute name
+    and nested keys ``keys = ['attribute', 'key0', 'key1']`` or
+    ``keys = ('attribute', 'key0', 'key1')``, the value 'value' nested in
+
+    .. code-block:: python
+
+        c.attribute = {'key0': {'key1': 'value'}}
+
+    can be accessed (get and set) in any of the following ways (and
+    more):
+
+    .. code-block:: python
+
+        c.attribute['key0']['key1']
+        c['attribute']['key0']['key1']
+        c['attribute', 'key0', 'key1']
+        c[keys]
+
+    Examples
+    --------
+    >>> c = Configuration({})
+    >>> c['pipeline_setup', 'pipeline_name']
+    'cpac-blank-template'
+    >>> c = Configuration({'pipeline_setup': {
+    ...     'pipeline_name': 'example_pipeline'}})
+    >>> c['pipeline_setup', 'pipeline_name']
+    'example_pipeline'
+    >>> c['pipeline_setup', 'pipeline_name'] = 'new_pipeline2'
+    >>> c['pipeline_setup', 'pipeline_name']
+    'new_pipeline2'
+
+    >>> from CPAC.utils.tests.configs import SLACK_420349
+
+    # test "FROM: /path/to/file"
+    >>> slack_420349_filepath = Configuration(
+    ...     yaml.safe_load(SLACK_420349['filepath']))
+    >>> slack_420349_filepath['pipeline_setup', 'pipeline_name']
+    'slack_420349_filepath'
+
+    # test "FROM: preconfig"
+    >>> slack_420349_preconfig = Configuration(
+    ...    yaml.safe_load(SLACK_420349['preconfig']))
+    >>> slack_420349_preconfig['pipeline_setup', 'pipeline_name']
+    'slack_420349_preconfig'
+    """
+
+    def __init__(
+        self, config_map: Optional[dict] = None, skip_env_check: bool = False
+    ) -> None:
+        """Initialize a Configuration instance.
+
+        Parameters
+        ----------
+        config_map : dict, optional
+
+        skip_env_check : bool, optional
+        """
+        from CPAC.pipeline.schema import schema
+        from CPAC.utils.utils import lookup_nested_value, update_nested_dict
+
+        if config_map is None:
+            config_map = {}
+        if skip_env_check:
+            config_map["skip env check"] = True
+
+        base_config = config_map.pop("FROM", None)
+        if base_config:
+            if base_config.lower() in ["default", "default_pipeline"]:
+                base_config = "default"
+            # import another config (specified with 'FROM' key)
+            try:
+                base_config = Preconfiguration(
+                    base_config, skip_env_check=skip_env_check
+                )
+            except BadParameter:
+                base_config = configuration_from_file(base_config)
+            config_map = update_nested_dict(base_config.dict(), config_map)
+        else:
+            # base everything on blank pipeline for unspecified keys
+            config_map = update_nested_dict(
+                preconfig_yaml("blank", load=True), config_map
+            )
+
+        config_map = self._nonestr_to_None(config_map)
+
+        try:
+            regressors = lookup_nested_value(
+                config_map,
+                ["nuisance_corrections", "2-nuisance_regression", "Regressors"],
+            )
+        except KeyError:
+            regressors = []
+        if isinstance(regressors, list):
+            for i, regressor in enumerate(regressors):
+                # set Regressor 'Name's if not provided
+                if "Name" not in regressor:
+                    regressor["Name"] = f"Regressor-{i + 1!s}"
+                # make Regressor 'Name's Nipype-friendly
+                regressor["Name"] = nipype_friendly_name(regressor["Name"])
+
+        config_map = schema(config_map)
+
+        # remove 'skip env check' now that the config is validated
+        if "skip env check" in config_map:
+            del config_map["skip env check"]
+        # remove 'FROM' before setting attributes now that it's imported
+        if "FROM" in config_map:
+            del config_map["FROM"]
+
+        if skip_env_check:
+            for key in config_map:
+                # set attribute
+                setattr(self, key, self.set_without_ENV(config_map[key]))
+        else:
+            # set FSLDIR to the environment $FSLDIR if the user sets it to
+            # 'FSLDIR' in the pipeline config file
+            _FSLDIR = config_map.get("FSLDIR")
+            if _FSLDIR and bool(re.match(r"^[\$\{]{0,2}?FSLDIR[\}]?$", _FSLDIR)):
+                config_map["FSLDIR"] = os.environ["FSLDIR"]
+            for key in config_map:
+                # set attribute
+                setattr(self, key, self.set_from_ENV(config_map[key]))
+        self._update_attr()
+
+        # set working directory as an environment variable
+        os.environ["CPAC_WORKDIR"] = self["pipeline_setup", "working_directory", "path"]
+
+    def __str__(self):
+        """Return string representation of a Configuration instance."""
+        return f"C-PAC Configuration ('{self['pipeline_setup', 'pipeline_name']}')"
+
+    def __repr__(self):
+        """Show Configuration as a dict when accessed directly."""
+        return str(self.dict())
+
+    def __copy__(self):
+        newone = type(self)({})
+        newone.__dict__.update(self.__dict__)
+        newone._update_attr()
+        return newone
+
+    def dict(self) -> dict[Any, Any]:
+        """Show contents of a C-PAC configuration as a dict."""
+        return {k: v for k, v in self.__dict__.items() if not callable(v)}
+
+    def get(self, key: Any, default: Any = None, /) -> Any:
+        """Provide convenience access from `Configuration` to :meth:`dict.get` .
+
+        Examples
+        --------
+        >>> c = Configuration()
+        >>> c.get("subject_id") is None
+        True
+        >>> c.get("subject_id", "fake_ID")
+        'fake_ID'
+        >>> isinstance(c.get("pipeline_setup"), dict)
+        True
+        """
+        return self.dict().get(key, default)
+
+    def keys(self):
+        """Show toplevel keys of a C-PAC configuration dict."""
+        return self.dict().keys()
+
+    def set_from_ENV(self, conf):  # pylint: disable=invalid-name
+        """Replace strings like $VAR and ${VAR} with environment variable values.
+
+        Parameters
+        ----------
+        conf : any
+
+        Returns
+        -------
+        conf : any
+
+        Examples
+        --------
+        >>> import os
+        >>> os.environ['SAMPLE_VALUE_SFE'] = '/example/path'
+        >>> c = Configuration()
+        >>> c.set_from_ENV({'key': {'nested_list': [
+        ...     1, '1', '$SAMPLE_VALUE_SFE/extended']}})
+        {'key': {'nested_list': [1, '1', '/example/path/extended']}}
+        >>> c.set_from_ENV(['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE'])
+        ['/example/path', 'SAMPLE_VALUE_SFE']
+        >>> del os.environ['SAMPLE_VALUE_SFE']
+        """
+        if isinstance(conf, list):
+            return [self.set_from_ENV(item) for item in conf]
+        if isinstance(conf, dict):
+            return {key: self.set_from_ENV(conf[key]) for key in conf}
+        if isinstance(conf, str):
+            # set any specified environment variables
+            # (only matching all-caps plus `-` and `_`)
+            # like `${VAR}`
+            _pattern1 = r"\${[A-Z\-_]*}"
+            # like `$VAR`
+            _pattern2 = r"\$[A-Z\-_]*(?=/|$)"
+            # replace with environment variables if they exist
+            for _pattern in [_pattern1, _pattern2]:
+                _match = re.search(_pattern, conf)
+                if _match:
+                    _match = _match.group().lstrip("${").rstrip("}")
+                    conf = re.sub(_pattern, os.environ.get(_match, f"${_match}"), conf)
+        return conf
+
+    def set_without_ENV(self, conf):  # pylint: disable=invalid-name
+        """Retain strings like $VAR and ${VAR} when setting attributes.
+
+        Parameters
+        ----------
+        conf : any
+
+        Returns
+        -------
+        conf : any
+
+        Examples
+        --------
+        >>> import os
+        >>> os.environ['SAMPLE_VALUE_SFE'] = '/example/path'
+        >>> c = Configuration()
+        >>> c.set_without_ENV({'key': {'nested_list': [
+        ...     1, '1', '$SAMPLE_VALUE_SFE/extended']}})
+        {'key': {'nested_list': [1, '1', '$SAMPLE_VALUE_SFE/extended']}}
+        >>> c.set_without_ENV(['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE'])
+        ['${SAMPLE_VALUE_SFE}', 'SAMPLE_VALUE_SFE']
+        >>> del os.environ['SAMPLE_VALUE_SFE']
+        """
+        if isinstance(conf, list):
+            return [self.set_without_ENV(item) for item in conf]
+        if isinstance(conf, dict):
+            return {key: self.set_without_ENV(conf[key]) for key in conf}
+        return conf
+
+    def sub_pattern(self, pattern, orig_key):
+        return orig_key.replace(pattern, self[pattern[2:-1].split(".")])
+
+    def check_pattern(self, orig_key, tags=None):
+        if tags is None:
+            tags = []
+        if isinstance(orig_key, dict):
+            return {k: self.check_pattern(orig_key[k], tags) for k in orig_key}
+        if isinstance(orig_key, list):
+            return [self.check_pattern(item) for item in orig_key]
+        if not isinstance(orig_key, str):
+            return orig_key
+        template_pattern = r"\${.*}"
+        r = re.finditer(template_pattern, orig_key)
+        for i in r:
+            pattern = i.group(0)
+            if isinstance(pattern, str) and len(pattern) and pattern not in tags:
+                try:
+                    orig_key = self.sub_pattern(pattern, orig_key)
+                except AttributeError as ae:
+                    if pattern not in SPECIAL_REPLACEMENT_STRINGS:
+                        warn(str(ae), category=SyntaxWarning)
+        return orig_key
+
+    # method to find any pattern ($) in the configuration
+    # and update the attributes with its pattern value
+    def _update_attr(self):
+        def check_path(key):
+            if isinstance(key, str) and "/" in key:
+                if not os.path.exists(key):
+                    warn(f"Invalid path- {key}. Please check your configuration file")
+
+        attributes = [
+            (attr, getattr(self, attr))
+            for attr in dir(self)
+            if not callable(attr) and not attr.startswith("__")
+        ]
+
+        template_list = [
+            "template_brain_only_for_anat",
+            "template_skull_for_anat",
+            "ref_mask",
+            "template_brain_only_for_func",
+            "template_skull_for_func",
+            "template_symmetric_brain_only",
+            "template_symmetric_skull",
+            "dilated_symmetric_brain_mask",
+        ]
+
+        for attr_key, attr_value in attributes:
+            if attr_key in template_list:
+                new_key = self.check_pattern(attr_value, "FSLDIR")
+            else:
+                new_key = self.check_pattern(attr_value)
+            setattr(self, attr_key, new_key)
+
+    def update(self, key, val=ConfigurationDictUpdateConflation()):
+        if isinstance(key, dict):
+            raise ConfigurationDictUpdateConflation
+        if isinstance(val, Exception):
+            raise val
+        setattr(self, key, val)
 
     @overload
     def orientation_node(self, name: str, node_type: type[MapNode]) -> MapNode: ...

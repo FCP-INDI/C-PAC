@@ -27,14 +27,19 @@ from typing import Optional
 from click import BadParameter
 import yaml
 
-from CPAC.utils.configuration import Configuration, preconfig_yaml, Preconfiguration
+from CPAC.utils.configuration import (
+    Configuration,
+    NestedKeyMixin,
+    preconfig_yaml,
+    Preconfiguration,
+)
 from CPAC.utils.monitoring import UTLOGGER
 from CPAC.utils.utils import update_config_dict, update_pipeline_values_1_8, YAML_BOOLS
 
 YAML_LOOKUP = {yaml_str: key for key, value in YAML_BOOLS.items() for yaml_str in value}
 
 
-class YamlTemplate:  # pylint: disable=too-few-public-methods
+class YamlTemplate(NestedKeyMixin):
     """A class to link YAML comments to the contents of a YAML file.
 
     Attributes
@@ -80,8 +85,6 @@ class YamlTemplate:  # pylint: disable=too-few-public-methods
         else:
             self._dict = base_config.dict()
         self._parse_comments()
-
-    get_nested = Configuration.get_nested
 
     def dump(self, new_dict, parents=None):
         """Dump YAML from a new dictionary with comments from template dictionary.
