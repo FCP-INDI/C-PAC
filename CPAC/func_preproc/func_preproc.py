@@ -1597,7 +1597,6 @@ def anat_brain_mask_to_bold_res(wf_name, cfg, pipe_num):
     option_key=["functional_preproc", "func_masking", "using"],
     option_val="Anatomical_Resampled",
     inputs=[
-        "desc-preproc_bold",
         "T1w-template-funcreg",
         "space-template_desc-preproc_T1w",
         "space-template_desc-brain_mask",
@@ -1605,7 +1604,6 @@ def anat_brain_mask_to_bold_res(wf_name, cfg, pipe_num):
     outputs=[
         "space-template_res-bold_desc-brain_T1w",
         "space-template_desc-bold_mask",
-        "space-bold_desc-brain_mask",
     ],
 )
 def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -1644,23 +1642,6 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
         "inputspec.space-template_desc-preproc_T1w",
     )
 
-    # Resample func mask in template space back to native space
-    func_mask_template_to_native = pe.Node(
-        interface=afni.Resample(),
-        name=f"resample_func_mask_to_native_{pipe_num}",
-        mem_gb=0,
-        mem_x=(0.0115, "in_file", "t"),
-    )
-    func_mask_template_to_native.inputs.resample_mode = "NN"
-    func_mask_template_to_native.inputs.outputtype = "NIFTI_GZ"
-
-    wf.connect(
-        anat_brain_mask_to_func_res,
-        "outputspec.space-template_desc-bold_mask",
-        func_mask_template_to_native,
-        "in_file",
-    )
-
     outputs = {
         "space-template_res-bold_desc-brain_T1w": (
             anat_brain_to_func_res,
@@ -1670,7 +1651,6 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
             anat_brain_mask_to_func_res,
             "outputspec.space-template_desc-bold_mask",
         ),
-        "space-bold_desc-brain_mask": (func_mask_template_to_native, "out_file"),
     }
 
     return (wf, outputs)
