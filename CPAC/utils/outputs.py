@@ -28,7 +28,9 @@ class Outputs:
     reference_csv = str(files("CPAC").joinpath("resources/cpac_outputs.tsv"))
 
     try:
-        reference = pd.read_csv(reference_csv, delimiter="\t", keep_default_na=False)
+        reference: ClassVar[pd.DataFrame] = pd.read_csv(
+            reference_csv, delimiter="\t", keep_default_na=False
+        )
     except Exception as e:
         err = (
             "\n[!] Could not access or read the cpac_outputs.tsv "
