@@ -50,6 +50,7 @@ from CPAC.resources.templates.lookup_table import lookup_identifier
 from CPAC.utils.bids_utils import res_in_filename
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.datasource import (
+    bidsier_prefix,
     create_anat_datasource,
     create_func_datasource,
     create_general_datasource,
@@ -64,6 +65,7 @@ from CPAC.utils.monitoring import (
     WARNING_FREESURFER_OFF_WITH_DATA,
     WFLOGGER,
 )
+from CPAC.utils.monitoring.custom_logging import MockLogger
 from CPAC.utils.outputs import Outputs
 from CPAC.utils.utils import (
     check_prov_for_regtool,
@@ -1133,10 +1135,20 @@ class ResourcePool:
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
         excl = []
         substring_excl = []
-        outputs_logger = getLogger(
-            f'{cfg.get("subject_id", getattr(wf, "name", ""))}_expectedOutputs'
-        )
-        expected_outputs = ExpectedOutputs()
+        try:
+            unique_id = re.match(r"(.*_)(sub-.*)", wf.name).group(2)  # pyright: ignore[reportOptionalMemberAccess]
+        except (AttributeError, IndexError):
+            unique_id = cfg.get("subject_id", getattr(wf, "name", ""))
+        unique_id = bidsier_prefix(unique_id)
+        outputs_logger = getLogger(f"{unique_id}_expectedOutputs")
+        expected = {}
+        if isinstance(outputs_logger, MockLogger):
+            try:
+                # load already-expected outputs
+                expected = outputs_logger.yaml_contents()
+            except (FileNotFoundError, TypeError):
+                pass
+        expected_outputs = ExpectedOutputs(expected)
 
         if add_excl:
             excl += add_excl

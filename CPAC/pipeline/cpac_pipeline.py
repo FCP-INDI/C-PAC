@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -271,8 +271,7 @@ def run_workflow(
 
     subject_id, p_name, log_dir = set_subject(sub_dict, c)
     c["subject_id"] = subject_id
-
-    init_loggers(subject_id, c, log_dir, mock=True, longitudinal=False)
+    init_loggers(subject_id, c, log_dir, mock=True)
 
     # Start timing here
     pipeline_start_time = time.time()
@@ -1208,7 +1207,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
     wf = initialize_nipype_wf(
         cfg, sub_dict["subject_id"], sub_dict.get("unique_id", None), name=pipeline_name
     )
-
     # Extract credentials path if it exists
     try:
         creds_path = sub_dict["creds_path"]

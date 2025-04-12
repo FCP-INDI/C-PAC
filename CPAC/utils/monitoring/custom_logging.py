@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2024  C-PAC Developers
+# Copyright (C) 2022-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -24,6 +24,7 @@ from sys import exc_info as sys_exc_info
 from traceback import print_exception
 from typing import Literal, Optional, Sequence, TYPE_CHECKING, TypeAlias
 
+import yaml
 from nipype import config as nipype_config, logging as nipype_logging
 
 from CPAC.utils.docs import docstring_parameter
@@ -163,6 +164,22 @@ def log_subprocess(cmd, *args, raise_error=True, **kwargs):
     return output, 0
 
 
+class ListToSetYamlLoader(yaml.Loader):
+    """Custom YAML loader to convert lists to sets."""
+
+    def construct_sequence(  # pyright: ignore[reportIncompatibleMethodOverride]
+        self, node, deep=False
+    ) -> set[str]:
+        """Convert YAML sequence to a set."""
+        return set(super().construct_sequence(node, deep))
+
+
+ListToSetYamlLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_SEQUENCE_TAG,
+    ListToSetYamlLoader.construct_sequence,
+)
+
+
 # pylint: disable=too-few-public-methods
 class MockHandler:
     """Handler for MockLogger."""
@@ -233,6 +250,24 @@ class MockLogger:
                 return handler
         return None
 
+    def yaml_contents(self) -> dict:
+        """If the logger's first handler is a YAML file, return the contents and delete them from the logger."""
+        file = self._get_first_file_handler(self.handlers)
+        if hasattr(file, "baseFilename"):
+            file = Path(getattr(file, "baseFilename"))
+            if file.suffix == ".yml":
+                with file.open("r", encoding="utf-8") as f:
+                    contents = yaml.load(f.read(), Loader=ListToSetYamlLoader)
+                with file.open("w", encoding="utf-8") as f:
+                    f.write("")
+                return contents
+            error = TypeError
+            msg = f"Could not load YAML contents from {file}"
+        else:
+            error = FileNotFoundError
+            msg = f"Could not find file handler for {self.name}"
+        raise error(msg)
+
 
 def _lazy_sub(message, *items):
     """Given lazy-logging syntax, return string with substitutions.
@@ -268,7 +303,6 @@ def set_up_logger(
     level: Optional[LogLevel] = None,
     log_dir: Optional[Path | str] = None,
     mock: bool = False,
-    overwrite_existing: bool = False,
 ) -> logging.Logger | MockLogger:
     r"""Initialize a logger.
 
@@ -328,9 +362,6 @@ def set_up_logger(
         level = logging.NOTSET
     log_dir = Path(log_dir) if log_dir else Path.cwd()
     filepath = log_dir / filename
-    if overwrite_existing and filepath.exists():
-        with filepath.open("w", encoding="utf-8") as log_file:
-            log_file.write("")
     if not filepath.exists():
         filepath.parent.mkdir(parents=True, exist_ok=True)
     if mock:
@@ -356,16 +387,12 @@ def init_loggers(
 
     if "subject_id" not in cpac_config:
         cpac_config["subject_id"] = subject_id
-
     set_up_logger(
-        f"{subject_id}_expectedOutputs",
+        f"{cpac_config['subject_id']}_expectedOutputs",
         filename=f"{bidsier_prefix(cpac_config['subject_id'])}_expectedOutputs.yml",
         level="info",
         log_dir=log_dir,
         mock=mock,
-        overwrite_existing=(  # don't overwrite if we have a longitudinal template
-            longitudinal or not cpac_config["longitudinal_template_generation", "run"]
-        ),
     )
 
     if cpac_config["pipeline_setup", "Debugging", "verbose"]:
