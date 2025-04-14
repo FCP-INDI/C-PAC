@@ -144,5 +144,5 @@ dependencies:
  - importlib-metadata 6.8.0
  - lxml 4.9.2
  - pip 23.1.2
- - setuptools 68.0.0
+ - setuptools 70.0.0
  - wheel 0.40.0
