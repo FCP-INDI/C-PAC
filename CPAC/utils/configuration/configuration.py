@@ -16,18 +16,18 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """C-PAC Configuration class and related functions."""
 
-from collections.abc import Iterable
+from collections.abc import Iterable, KeysView
+from importlib.resources import files
 import os
 import re
 from typing import Any, cast, Literal, Optional, overload
 from warnings import warn
 
 from click import BadParameter
-import pkg_resources as p
 import yaml
 
 from CPAC.pipeline.nipype_pipeline_engine import MapNode, Node
-from .diff import dct_diff
+from .diff import dct_diff, DiffDict
 
 CONFIG_KEY_TYPE = str | list[str]
 _DICT = dict
@@ -48,6 +48,10 @@ class ConfigurationDictUpdateConflation(SyntaxError):
 class NestedKeyMixin:
     """Provide methods for getting and setting nested keys."""
 
+    def dict(self) -> dict[Any, Any]:
+        """Show contents as a dict."""
+        return {k: v for k, v in self.__dict__.items() if not callable(v)}
+
     def __contains__(self, item: str | list[Any]) -> bool:
         """Check if an item is in the Configuration."""
         if isinstance(item, str):
@@ -59,7 +63,7 @@ class NestedKeyMixin:
             return False
 
     def __getitem__(self, key: Iterable) -> Any:
-        """Get an item from a Configuration."""
+        """Get an item from a nested dictionary."""
         self._check_keys(key)
         if isinstance(key, str):
             return getattr(self, key)
@@ -69,7 +73,7 @@ class NestedKeyMixin:
         return None
 
     def __setitem__(self, key: Iterable, value: Any) -> None:
-        """Set an item in a Configuration."""
+        """Set an item in a nested dictionary."""
         self._check_keys(key)
         if isinstance(key, str):
             setattr(self, key, value)
@@ -78,8 +82,8 @@ class NestedKeyMixin:
         else:
             self.key_type_error(key)
 
-    def __sub__(self: "Configuration", other: "Configuration"):
-        """Return the set difference between two Configurations.
+    def __sub__(self: "NestedKeyMixin", other: "NestedKeyMixin") -> DiffDict:
+        """Return the set difference between two nested dictionaries.
 
         Examples
         --------
@@ -133,7 +137,7 @@ class NestedKeyMixin:
         if isinstance(d, list):
             return [self._nonestr_to_None(i) for i in d]
         if isinstance(d, set):
-            return {self._nonestr_to_None(i) for i in d}
+            return {self._nonestr_to_None(i) for i in list(d)}
         if isinstance(d, dict):
             return {i: self._nonestr_to_None(d[i]) for i in d}
         return d
@@ -150,7 +154,7 @@ class NestedKeyMixin:
                 msg = f"`set_nested` keys must be iterable, got {type(keys)}."
             raise error(msg)
 
-    def get_nested(self, _d: "Configuration | _DICT", keys: Iterable) -> Any:
+    def get_nested(self, _d: "NestedKeyMixin | _DICT", keys: Iterable) -> Any:
         """Get a value from a Configuration dictionary given a nested key."""
         self._check_keys(keys)
         if _d is None:
@@ -164,16 +168,20 @@ class NestedKeyMixin:
             return _d[keys[0]]
         return _d
 
+    def keys(self) -> KeysView[Any]:
+        """Show toplevel keys of a nested dict."""
+        return self.dict().keys()
+
     @overload
     def set_nested(
-        self, d: "Configuration", keys: Iterable, value: Any
-    ) -> "Configuration": ...
+        self, d: "NestedKeyMixin", keys: Iterable, value: Any
+    ) -> "NestedKeyMixin": ...
     @overload
     def set_nested(self, d: _DICT, keys: Iterable, value: Any) -> _DICT: ...
     def set_nested(
-        self, d: "Configuration | _DICT", keys: Iterable, value: Any
-    ) -> "Configuration | _DICT":
-        """Set a nested key in a Configuration dictionary."""
+        self, d: "NestedKeyMixin | _DICT", keys: Iterable, value: Any
+    ) -> "NestedKeyMixin | _DICT":
+        """Set a nested key in a nested dictionary."""
         self._check_keys(keys)
         if isinstance(keys, str):
             d[keys] = value
@@ -435,6 +443,25 @@ class Configuration(NestedKeyMixin):
     'slack_420349_preconfig'
     """
 
+    amplitude_low_frequency_fluctuation: dict
+    anatomical_preproc: dict
+    FROM: str
+    functional_preproc: dict
+    longitudinal_template_generation: dict
+    network_centrality: dict
+    nuisance_corrections: dict
+    pipeline_setup: dict
+    post_processing: dict
+    PyPEER: dict
+    regional_homogeneity: dict
+    registration_workflows: dict
+    seed_based_correlation_analysis: dict
+    segmentation: dict
+    skip_env_check: bool
+    surface_analysis: dict
+    timeseries_extraction: dict
+    voxel_mirrored_homotopic_connectivity: dict
+
     def __init__(
         self, config_map: Optional[dict] = None, skip_env_check: bool = False
     ) -> None:
@@ -490,6 +517,7 @@ class Configuration(NestedKeyMixin):
                 regressor["Name"] = nipype_friendly_name(regressor["Name"])
 
         config_map = schema(config_map)
+        assert isinstance(config_map, dict)
 
         # remove 'skip env check' now that the config is validated
         if "skip env check" in config_map:
@@ -525,14 +553,11 @@ class Configuration(NestedKeyMixin):
         return str(self.dict())
 
     def __copy__(self):
+        """Copy a pipeline Configuration."""
         newone = type(self)({})
         newone.__dict__.update(self.__dict__)
         newone._update_attr()
         return newone
-
-    def dict(self) -> dict[Any, Any]:
-        """Show contents of a C-PAC configuration as a dict."""
-        return {k: v for k, v in self.__dict__.items() if not callable(v)}
 
     def get(self, key: Any, default: Any = None, /) -> Any:
         """Provide convenience access from `Configuration` to :meth:`dict.get` .
@@ -548,10 +573,6 @@ class Configuration(NestedKeyMixin):
         True
         """
         return self.dict().get(key, default)
-
-    def keys(self):
-        """Show toplevel keys of a C-PAC configuration dict."""
-        return self.dict().keys()
 
     def set_from_ENV(self, conf):  # pylint: disable=invalid-name
         """Replace strings like $VAR and ${VAR} with environment variable values.
@@ -625,9 +646,11 @@ class Configuration(NestedKeyMixin):
         return conf
 
     def sub_pattern(self, pattern, orig_key):
+        """Make a defined pattern substitution."""
         return orig_key.replace(pattern, self[pattern[2:-1].split(".")])
 
     def check_pattern(self, orig_key, tags=None):
+        """Make defined pattern substitutions."""
         if tags is None:
             tags = []
         if isinstance(orig_key, dict):
@@ -681,6 +704,7 @@ class Configuration(NestedKeyMixin):
             setattr(self, attr_key, new_key)
 
     def update(self, key, val=ConfigurationDictUpdateConflation()):
+        """Update a C-PAC pipeline Configuration."""
         if isinstance(key, dict):
             raise ConfigurationDictUpdateConflation
         if isinstance(val, Exception):
@@ -704,7 +728,7 @@ class Configuration(NestedKeyMixin):
         return orientation_node(name=name, orientation=orientation, node_type=node_type)
 
 
-def check_pname(p_name: str, pipe_config: Configuration) -> str:
+def check_pname(p_name: Optional[str], pipe_config: Configuration) -> str:
     """Check / set `p_name`, the str representation of a pipeline for use in filetrees.
 
     Parameters
@@ -816,9 +840,8 @@ def preconfig_yaml(preconfig_name="default", load=False):
     if load:
         with open(preconfig_yaml(preconfig_name), "r", encoding="utf-8") as _f:
             return yaml.safe_load(_f)
-    return p.resource_filename(
-        "CPAC",
-        os.path.join("resources", "configs", f"pipeline_config_{preconfig_name}.yml"),
+    return files("CPAC").joinpath(
+        f"resources/configs/pipeline_config_{preconfig_name}.yml"
     )
 
 
