@@ -47,4 +47,3 @@ lxml==4.9.2
 pip==23.3
 setuptools==70.0.0
 wheel==0.40.0
-zipp==3.19.1
