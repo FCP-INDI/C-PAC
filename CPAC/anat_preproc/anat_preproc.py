@@ -3058,7 +3058,7 @@ def fnirt_based_brain_extraction(config=None, wf_name="fnirt_based_brain_extract
     inverse_warp = pe.Node(interface=fsl.InvWarp(), name="inverse_warp")
     inverse_warp.inputs.output_type = "NIFTI_GZ"
 
-    preproc.connect(inputnode, "template_skull_for_anat_2mm", inverse_warp, "reference")
+    preproc.connect(inputnode, "anat_data", inverse_warp, "reference")
 
     preproc.connect(non_linear_reg, "field_file", inverse_warp, "warp")
 
