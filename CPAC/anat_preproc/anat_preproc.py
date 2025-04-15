@@ -3053,8 +3053,7 @@ def fnirt_based_brain_extraction(config=None, wf_name="fnirt_based_brain_extract
     preproc.connect(non_linear_reg, "field_file", apply_warp, "field_file")
 
     # Invert warp and transform dilated brain mask back into native space, and use it to mask input image
-    # Input and reference spaces are the same, using 2mm reference to save time
-    # invwarp --ref="$Reference2mm" -w "$WD"/str2standard.nii.gz -o "$WD"/standard2str.nii.gz
+    # invwarp --ref="$T1w" -w "$WD"/str2standard.nii.gz -o "$WD"/standard2str.nii.gz
     inverse_warp = pe.Node(interface=fsl.InvWarp(), name="inverse_warp")
     inverse_warp.inputs.output_type = "NIFTI_GZ"
 
