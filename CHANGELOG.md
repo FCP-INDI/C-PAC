@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed empty `shell` variable in cluster run scripts.
 - A bug in which bandpass filters always assumed 1D regressor files have exactly 5 header rows.
 - Removed an erroneous connection to AFNI 3dTProject in nuisance denoising that would unnecessarily send a spike regressor as a censor. This would sometimes cause TRs to unnecessarily be dropped from the timeseries as if scrubbing were being performed.
-- Lingering calls to `cpac_outputs.csv` (was changed to `cpac_outputs.tsv` in v1.8.1).
+- Fixed chipped `desc-restoreBrain_T1w` from `freesurfer_abcd_preproc` nodeblock.
 
 ### Removed
 
@@ -116,7 +116,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed a bug where sparsity thresholds were not being scaled for network centrality.
 - Fixed a bug where `calculate_motion_first` would not calculate motion at all.
 - Fixed a bug in parsing `FROM: /file/path` syntax
-- Fixed chipped `desc-restoreBrain_T1w` from `freesurfer_abcd_preproc` nodeblock.
 
 ### Changed
 
