@@ -20,6 +20,7 @@ from . import configuration, diff
 from .configuration import (
     check_pname,
     Configuration,
+    NestedKeyMixin,
     preconfig_yaml,
     Preconfiguration,
     set_subject,
@@ -30,6 +31,7 @@ __all__ = [
     "Configuration",
     "configuration",
     "diff",
+    "NestedKeyMixin",
     "Preconfiguration",
     "preconfig_yaml",
     "set_subject",

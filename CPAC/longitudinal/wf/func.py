@@ -22,6 +22,7 @@ import os
 import nipype.interfaces.io as nio
 
 from CPAC.longitudinal.preproc import subject_specific_template
+from CPAC.longitudinal.wf.utils import check_creds_path
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.registration import (
     create_fsl_flirt_linear_reg,
@@ -82,22 +83,7 @@ def func_preproc_longitudinal_wf(subject_id, sub_list, config):
             unique_id = sub_dict["unique_id"]
             session_id_list.append(unique_id)
 
-            try:
-                creds_path = sub_dict["creds_path"]
-                if creds_path and "none" not in creds_path.lower():
-                    if os.path.exists(creds_path):
-                        input_creds_path = os.path.abspath(creds_path)
-                    else:
-                        err_msg = (
-                            'Credentials path: "%s" for subject "%s" was not '
-                            "found. Check this path and try again."
-                            % (creds_path, subject_id)
-                        )
-                        raise Exception(err_msg)
-                else:
-                    input_creds_path = None
-            except KeyError:
-                input_creds_path = None
+            input_creds_path = check_creds_path(sub_dict.get("creds_path"), subject_id)
 
             strat = Strategy()
             strat_list = [strat]

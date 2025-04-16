@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -50,7 +50,6 @@ from CPAC.utils.datasource import check_for_s3
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.pc import PC
 from CPAC.utils.monitoring import IFLOGGER
-from CPAC.utils.utils import check_prov_for_regtool
 from .bandpass import afni_1dBandpass, bandpass_voxels
 
 
@@ -2011,8 +2010,7 @@ def filtering_bold_and_regressors(
     outputs=["desc-preproc_bold", "desc-cleaned_bold"],
 )
 def ICA_AROMA_FSLreg(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance("from-T1w_to-template_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-T1w_to-template_mode-image_xfm")
 
     if reg_tool != "fsl":
         return (wf, None)
@@ -2058,8 +2056,7 @@ def ICA_AROMA_FSLreg(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-preproc_bold", "desc-cleaned_bold"],
 )
 def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance("from-bold_to-template_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-bold_to-template_mode-image_xfm")
 
     if reg_tool != "ants":
         return (wf, None)
@@ -2129,8 +2126,7 @@ def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-preproc_bold", "desc-cleaned_bold"],
 )
 def ICA_AROMA_FSLEPIreg(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance("from-bold_to-EPItemplate_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-bold_to-EPItemplate_mode-image_xfm")
 
     if reg_tool != "fsl":
         return (wf, None)
@@ -2182,8 +2178,7 @@ def ICA_AROMA_FSLEPIreg(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-preproc_bold", "desc-cleaned_bold"],
 )
 def ICA_AROMA_ANTsEPIreg(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance("from-bold_to-EPItemplate_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-bold_to-EPItemplate_mode-image_xfm")
 
     if reg_tool != "ants":
         return (wf, None)
@@ -2513,15 +2508,13 @@ def nuisance_regressors_generation(
     if space == "T1w":
         prefixes[0] = ""
         if strat_pool.check_rpool("from-template_to-T1w_mode-image_desc-linear_xfm"):
-            xfm_prov = strat_pool.get_cpac_provenance(
+            reg_tool = strat_pool.reg_tool(
                 "from-template_to-T1w_mode-image_desc-linear_xfm"
             )
-            reg_tool = check_prov_for_regtool(xfm_prov)
     elif space == "bold":
-        xfm_prov = strat_pool.get_cpac_provenance(
+        reg_tool = strat_pool.reg_tool(
             "from-EPItemplate_to-bold_mode-image_desc-linear_xfm"
         )
-        reg_tool = check_prov_for_regtool(xfm_prov)
     if reg_tool is not None:
         use_ants = reg_tool == "ants"
     else:

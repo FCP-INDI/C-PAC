@@ -76,6 +76,11 @@ space-bold_label-GM_desc-eroded_mask	mask	functional	func	NIfTI
 space-bold_label-GM_mask	mask	functional	func	NIfTI					
 space-bold_label-WM_desc-eroded_mask	mask	functional	func	NIfTI					
 space-bold_label-WM_mask	mask	functional	func	NIfTI					
+longitudinal-template_space-longitudinal_desc-brain_T1w	T1w	longitudinal T1w	anat	NIfTI					
+longitudinal-template_space-longitudinal_desc-head_T1w	T1w	longitudinal T1w	anat	NIfTI					
+longitudinal-template_space-longitudinal_desc-brain_mask	mask	longitudinal T1w	anat	NIfTI					
+space-longitudinal_desc-brain_T1w	T1w	longitudinal T1w	anat	NIfTI					
+space-longitudinal_desc-head_T1w	T1w	longitudinal T1w	anat	NIfTI					
 space-longitudinal_desc-brain_mask	mask	longitudinal T1w	anat	NIfTI					
 space-longitudinal_label-CSF_desc-preproc_mask	mask	longitudinal T1w	anat	NIfTI					
 space-longitudinal_label-CSF_mask	mask	longitudinal T1w	anat	NIfTI					
@@ -186,6 +191,7 @@ from-EPItemplate_to-bold_mode-image_desc-nonlinear_xfm	xfm		func	NIfTI
 from-longitudinal_to-symtemplate_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
 from-longitudinal_to-symtemplate_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
 from-longitudinal_to-symtemplate_mode-image_xfm	xfm		anat	NIfTI					
+from-longitudinal_to-T1w_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
 from-longitudinal_to-template_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
 from-longitudinal_to-template_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
 from-longitudinal_to-template_mode-image_xfm	xfm		anat	NIfTI					
@@ -196,6 +202,7 @@ from-symtemplate_to-longitudinal_mode-image_xfm	xfm		anat	NIfTI
 from-symtemplate_to-T1w_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
 from-symtemplate_to-T1w_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
 from-symtemplate_to-T1w_mode-image_xfm	xfm		anat	NIfTI					
+from-T1w_to-longitudinal_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
 from-T1w_to-symtemplate_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
 from-T1w_to-symtemplate_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
 from-T1w_to-symtemplate_mode-image_xfm	xfm		anat	NIfTI					
@@ -257,7 +264,6 @@ hemi-L_space-native_veryinflated	surface_derived		func	GIFTI surf
 hemi-R_space-native_veryinflated	surface_derived		func	GIFTI surf					
 hemi-L_space-fsLR_den-164k_midthickness	surface_derived		func	GIFTI surf					
 hemi-R_space-fsLR_den-164k_midthickness	surface_derived		func	GIFTI surf					
-hemi-L_space-fsLR_den-32k_midthickness	surface_derived		func	GIFTI surf					
 hemi-L_space-fsLR_den-32k_midthickness	surface_derived		func	GIFTI surf					
 hemi-L_space-native_midthickness	surface_derived		func	GIFTI surf					
 hemi-R_space-native_midthickness	surface_derived		func	GIFTI surf					

@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New switch `mask_sbref` under `func_input_prep` in functional registration and set to default `on`.
 - New resource `desc-head_bold` as non skull-stripped bold from nodeblock `bold_masking`.
 - `censor_file_path` from `offending_timepoints_connector` in the `build_nuisance_regressor` node.
+- `mri_robust_template` for longitudinal template generation.
+- `max_iter` parameter for longitudinal template generation.
 
 ### Changed
 
@@ -45,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Input `desc-brain_bold` to `desc-preproc_bold` for `sbref` generation nodeblock `coregistration_prep_vol`.
 - Turned `generate_xcpqc_files` on for all preconfigurations except `blank`.
 - Introduced specific switch `restore_t1w_intensity` for `correct_restore_brain_intensity_abcd` nodeblock, enabling it by default only in `abcd-options` pre-config.
+- Made `mri_robust_template` default implementation for longitudinal template generation.
 
 ### Fixed
 

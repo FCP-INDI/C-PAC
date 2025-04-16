@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2024  C-PAC Developers
+# Copyright (C) 2022-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -18,15 +18,45 @@
 
 import logging
 import os
+from pathlib import Path
 import subprocess
 from sys import exc_info as sys_exc_info
 from traceback import print_exception
-from typing import Optional, Sequence
+from typing import Literal, Optional, Sequence, TYPE_CHECKING, TypeAlias
 
-from nipype import logging as nipype_logging
+import yaml
+from nipype import config as nipype_config, logging as nipype_logging
 
 from CPAC.utils.docs import docstring_parameter
 from CPAC.utils.monitoring.config import MOCK_LOGGERS
+
+if TYPE_CHECKING:
+    from CPAC.utils.configuration import Configuration
+LogLevel: TypeAlias = (
+    Literal[
+        "CRITICAL",
+        "critical",
+        "Critical",
+        "DEBUG",
+        "debug",
+        "Debug",
+        "ERROR",
+        "error",
+        "Error",
+        "INFO",
+        "info",
+        "Info",
+        "NOTSET",
+        "notset",
+        "Notset",
+        "NotSet",
+        "notSet",
+        "WARNING",
+        "warning",
+        "Warning",
+    ]
+    | int
+)
 
 
 def failed_to_start(log_dir, exception):
@@ -46,17 +76,8 @@ def failed_to_start(log_dir, exception):
     logger.exception(exception)
 
 
-def getLogger(name):  # pylint: disable=invalid-name
-    """Get a mock logger if one exists, falling back on real loggers.
-
-    Parameters
-    ----------
-    name : str
-
-    Returns
-    -------
-    logger : CPAC.utils.monitoring.custom_logging.MockLogger or logging.Logger
-    """
+def getLogger(name: str) -> "logging.Logger | MockLogger":  # pylint: disable=invalid-name
+    """Get a mock logger if one exists, falling back on real loggers."""
     if name in MOCK_LOGGERS:
         return MOCK_LOGGERS[name]
     logger = nipype_logging.getLogger(name)
@@ -143,6 +164,22 @@ def log_subprocess(cmd, *args, raise_error=True, **kwargs):
     return output, 0
 
 
+class ListToSetYamlLoader(yaml.Loader):
+    """Custom YAML loader to convert lists to sets."""
+
+    def construct_sequence(  # pyright: ignore[reportIncompatibleMethodOverride]
+        self, node, deep=False
+    ) -> set[str]:
+        """Convert YAML sequence to a set."""
+        return set(super().construct_sequence(node, deep))
+
+
+ListToSetYamlLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_SEQUENCE_TAG,
+    ListToSetYamlLoader.construct_sequence,
+)
+
+
 # pylint: disable=too-few-public-methods
 class MockHandler:
     """Handler for MockLogger."""
@@ -155,7 +192,10 @@ class MockHandler:
 class MockLogger:
     """Mock logging.Logger to provide API without keeping the logger in memory."""
 
-    def __init__(self, name, filename, level, log_dir):
+    def __init__(
+        self, name: str, filename: str, level: LogLevel, log_dir: Path | str
+    ) -> None:
+        """Initialize a mock logger."""
         self.name = name
         self.level = level
         self.handlers = [MockHandler(os.path.join(log_dir, filename))]
@@ -210,6 +250,24 @@ class MockLogger:
                 return handler
         return None
 
+    def yaml_contents(self) -> dict:
+        """If the logger's first handler is a YAML file, return the contents and delete them from the logger."""
+        file = self._get_first_file_handler(self.handlers)
+        if hasattr(file, "baseFilename"):
+            file = Path(getattr(file, "baseFilename"))
+            if file.suffix == ".yml":
+                with file.open("r", encoding="utf-8") as f:
+                    contents = yaml.load(f.read(), Loader=ListToSetYamlLoader)
+                with file.open("w", encoding="utf-8") as f:
+                    f.write("")
+                return contents
+            error = TypeError
+            msg = f"Could not load YAML contents from {file}"
+        else:
+            error = FileNotFoundError
+            msg = f"Could not find file handler for {self.name}"
+        raise error(msg)
+
 
 def _lazy_sub(message, *items):
     """Given lazy-logging syntax, return string with substitutions.
@@ -240,34 +298,37 @@ def _lazy_sub(message, *items):
 
 
 def set_up_logger(
-    name, filename=None, level=None, log_dir=None, mock=False, overwrite_existing=False
-):
+    name: str,
+    filename: Optional[str] = None,
+    level: Optional[LogLevel] = None,
+    log_dir: Optional[Path | str] = None,
+    mock: bool = False,
+) -> logging.Logger | MockLogger:
     r"""Initialize a logger.
 
     Parameters
     ----------
-    name : str
+    name
         logger name (for subsequent calls to ``logging.getLogger``) to
         write to the same log file)
 
-    filename : str, optional
+    filename
         filename to write log to. If not specified, filename will be
         the same as ``name`` with the extension ``log``
 
-    level : str, optional
-        one of ``{critical, error, warning, info, debug, notset}``,
-        case-insensitive
+    level
+        https://docs.python.org/3/library/logging.html#levels
 
-    log_dir : str, optional
+    log_dir
 
-    mock : bool, optional
+    mock
         if ``True``, return a ``CPAC.utils.monitoring.MockLogger``
         instead of a ``logging.Logger``
 
     Returns
     -------
-    logger : logging.Handler
-        initialized logging Handler
+    logger
+        initialized logger
 
     Examples
     --------
@@ -292,20 +353,73 @@ def set_up_logger(
     """
     if filename is None:
         filename = f"{name}.log"
-    try:
-        level = getattr(logging, level.upper())
-    except AttributeError:
+    if isinstance(level, str):
+        try:
+            level = getattr(logging, level.upper())
+        except AttributeError:
+            pass
+    if not level:
         level = logging.NOTSET
-    if log_dir is None:
-        log_dir = os.getcwd()
-    filepath = os.path.join(log_dir, filename)
-    if overwrite_existing and os.path.exists(filepath):
-        with open(filepath, "w") as log_file:
-            log_file.write("")
+    log_dir = Path(log_dir) if log_dir else Path.cwd()
+    filepath = log_dir / filename
+    if not filepath.exists():
+        filepath.parent.mkdir(parents=True, exist_ok=True)
     if mock:
         return MockLogger(name, filename, level, log_dir)
     logger = getLogger(name)
+    if isinstance(logger, MockLogger):
+        return logger
     logger.setLevel(level)
     handler = logging.FileHandler(filepath)
     logger.addHandler(handler)
     return logger
+
+
+def init_loggers(
+    subject_id: str,
+    cpac_config: "Configuration",
+    log_dir: str,
+    mock: bool = True,
+    longitudinal: bool = False,
+) -> None:
+    """Set up and configure loggers."""
+    from CPAC.utils.datasource import bidsier_prefix
+
+    if "subject_id" not in cpac_config:
+        cpac_config["subject_id"] = subject_id
+    set_up_logger(
+        f"{cpac_config['subject_id']}_expectedOutputs",
+        filename=f"{bidsier_prefix(cpac_config['subject_id'])}_expectedOutputs.yml",
+        level="info",
+        log_dir=log_dir,
+        mock=mock,
+    )
+
+    if cpac_config["pipeline_setup", "Debugging", "verbose"]:
+        set_up_logger("CPAC.engine", level="debug", log_dir=log_dir, mock=True)
+
+    nipype_config.update_config(
+        {
+            "logging": {
+                "log_directory": log_dir,
+                "log_to_file": bool(
+                    getattr(
+                        cpac_config["pipeline_setup", "log_directory"],
+                        "run_logging",
+                        True,
+                    )
+                ),
+            },
+            "execution": {
+                "crashfile_format": "txt",
+                "resource_monitor_frequency": 0.2,
+                "stop_on_first_crash": cpac_config[
+                    "pipeline_setup", "system_config", "fail_fast"
+                ],
+            },
+        }
+    )
+
+    nipype_config.enable_resource_monitor()
+
+    nipype_logging.update_logging(nipype_config)

@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2024  C-PAC Developers
+# Copyright (C) 2019-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -17,9 +17,13 @@
 """Utlities for NIfTI images."""
 
 import os
+from typing import Literal, overload
 
 import numpy as np
 import nibabel as nib
+from nipype.interfaces.afni import utils as afni_utils
+
+from CPAC.pipeline import nipype_pipeline_engine as pe
 
 
 def nifti_image_input(
@@ -93,3 +97,35 @@ def inverse_nifti_values(image):
     out_data[zeros] = 0
 
     return nib.nifti1.Nifti1Image(out_data, img.affine)
+
+
+@overload
+def orientation_node(
+    name: str,
+    orientation: Literal["RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"],
+    node_type: type[pe.MapNode],
+) -> pe.MapNode: ...
+@overload
+def orientation_node(
+    name: str,
+    orientation: Literal["RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"],
+    node_type: type[pe.Node],
+) -> pe.Node: ...
+def orientation_node(
+    name: str,
+    orientation: Literal["RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"],
+    node_type: type[pe.Node | pe.MapNode] = pe.Node,
+) -> pe.Node | pe.MapNode:
+    """Return a node configured to resample an input with AFNI 3dresample."""
+    kwargs = {
+        "interface": afni_utils.Resample(
+            orientation=orientation,
+            outputtype="NIFTI_GZ",
+        ),
+        "name": name,
+        "mem_gb": 0,
+        "mem_x": (0.0115, "in_file", "t"),
+    }
+    if node_type == pe.MapNode:
+        kwargs["iterfield"] = ["in_file", "out_file"]
+    return node_type(**kwargs)
