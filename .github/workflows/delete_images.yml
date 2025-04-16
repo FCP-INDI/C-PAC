@@ -1,5 +1,9 @@
 name: Delete development images
 
+permissions:
+  contents: read
+  packages: write
+
 on:
   delete:
 
@@ -14,6 +18,7 @@ jobs:
           - ''
           - lite
     env:
+      DELETED_BRANCH: ${{ github.event.ref }}
       GITHUB_TOKEN: ${{ secrets.API_PACKAGE_READ_DELETE }}
       IMAGE: c-pac
     steps:
@@ -32,7 +37,7 @@ jobs:
           then
             VARIANT=-${{ inputs.variant }}
           fi
-          TAG=${GITHUB_REF_NAME}
+          TAG=${DELETED_BRANCH//\//_}
           TAG=$TAG$VARIANT
 
           VERSION_ID=$(python .github/scripts/get_package_id.py $OWNER $IMAGE $TAG)
