@@ -16,7 +16,14 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 name: Run participant smoke test
 
-permissions: read-all
+permissions:
+  checks: write
+  contents: read
+  deployments: write
+  issues: write
+  packages: write
+  pull-requests: write
+  statuses: write
 
 on:
   workflow_call:

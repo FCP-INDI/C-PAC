@@ -17,9 +17,13 @@
 name: Build and test C-PAC
 
 permissions:
+  checks: write
   contents: read
+  deployments: write
+  issues: write
   packages: write
-  pull-requests: read
+  pull-requests: write
+  statuses: write
 
 on:
   workflow_call:
