@@ -1150,14 +1150,14 @@ functional_preproc:
 
       # Choose whether or not to dilate the anatomical mask if you choose 'Anatomical_Refined' as the functional masking option. It will dilate one voxel if enabled.
       anatomical_mask_dilation: Off
-  
+
   template_space_func_masking:
     run: Off
       # Anatomical_Resampled: Resample anatomical brain mask in standard space to get BOLD brain mask in standard space. Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline. ("Create fMRI resolution standard space files for T1w image, wmparc, and brain mask […] don't use FLIRT to do spline interpolation with -applyisoxfm for the 2mm and 1mm cases because it doesn't know the peculiarities of the MNI template FOVs")
     using: [Anatomical_Resampled]
 
     apply_func_mask_in_template_space: Off
-    
+
   generate_func_mean:
 
     # Generate mean functional image
