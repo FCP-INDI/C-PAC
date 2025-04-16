@@ -83,6 +83,8 @@ def get_packages(owner, tag, api_token=None):
                     ]
                 )
             )
+        if isinstance(response, dict):
+            response = [response]
         return response
 
     _packages = fetch(
