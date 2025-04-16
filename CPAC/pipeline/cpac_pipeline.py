@@ -1275,7 +1275,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
                     bold_mask_fsl_afni,
                     bold_mask_anatomical_refined,
                     bold_mask_anatomical_based,
-                    bold_mask_anatomical_resampled,
                     bold_mask_ccs,
                 ],
                 bold_masking,
@@ -1401,6 +1400,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
 
         if cfg.voxel_mirrored_homotopic_connectivity["run"]:
             pipeline_blocks += [create_func_to_T1template_symmetric_xfm]
+
+    # Template space functional masking
+    if cfg.functional_preproc["template_space_func_masking"]["run"]:
+        if not rpool.check_rpool("space-template_desc-bold_mask"):
+            pipeline_blocks += bold_mask_anatomical_resampled,
+        if cfg.functional_preproc["template_space_func_masking"]["apply_func_mask_in_template_space"]:
+            pipeline_blocks += apply_func_mask_to_template,
 
     # Nuisance Correction
     generate_only = (
