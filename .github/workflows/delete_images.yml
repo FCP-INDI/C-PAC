@@ -34,7 +34,7 @@ jobs:
           else
             OWNER_TYPE=org
           fi
-          echo "OWNER_TYPE=${OWNER_TYPE}" >> $GITHUB_ENV
+          echo "OWNER_TYPE=${OWNER_TYPE:0:4}" >> $GITHUB_ENV
           if [[ "${{ matrix.variant }}" != "" ]]
           then
             VARIANT="-${{ matrix.variant }}"
