@@ -19,7 +19,7 @@ jobs:
           - lite
     env:
       DELETED_BRANCH: ${{ github.event.ref }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.API_PACKAGE_READ_DELETE }}
       IMAGE: c-pac
     steps:
       - name: Check out C-PAC
@@ -50,7 +50,7 @@ jobs:
         if: matrix.variant == ''
         uses: Chizkiyahu/delete-untagged-ghcr-action@v6
         with:
-          token: ${GITHUB_TOKEN}
+          token: ${{ secrets.API_PACKAGE_READ_DELETE }}
           repository_owner: ${{ github.repository_owner }}
           repository: ${{ github.repository }}
           untagged_only: true
