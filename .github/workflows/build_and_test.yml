@@ -17,7 +17,9 @@
 name: Build and test C-PAC
 
 permissions:
+  contents: read
   packages: write
+  pull-requests: read
 
 on:
   workflow_call:

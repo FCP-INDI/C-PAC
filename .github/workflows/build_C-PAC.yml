@@ -1,5 +1,7 @@
 name: Build C-PAC image
 
+permissions: read-all
+
 on:
   workflow_call:
     inputs:

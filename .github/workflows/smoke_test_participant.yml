@@ -16,6 +16,8 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 name: Run participant smoke test
 
+permissions: read-all
+
 on:
   workflow_call:
   workflow_dispatch:

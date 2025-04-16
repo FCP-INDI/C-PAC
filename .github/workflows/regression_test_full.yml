@@ -1,5 +1,7 @@
 name: Run Regression Full Test
 
+permissions: read-all
+
 on:
   workflow_call:
 

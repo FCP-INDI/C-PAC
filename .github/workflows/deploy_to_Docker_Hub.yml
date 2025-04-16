@@ -1,5 +1,7 @@
 name: Deploy to Docker Hub
 
+permissions: read-all
+
 on:
   workflow_call:
     inputs:
