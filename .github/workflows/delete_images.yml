@@ -33,18 +33,19 @@ jobs:
           else
             OWNER_TYPE=org
           fi
-          if [[ "${{ inputs.variant }}" != "" ]]
+          if [[ "${{ matrix.variant }}" != "" ]]
           then
-            VARIANT=-${{ inputs.variant }}
+            VARIANT="-${{ matrix.variant }}"
           fi
           TAG=${DELETED_BRANCH//\//_}
           TAG=$TAG$VARIANT
 
           VERSION_ID=$(python .github/scripts/get_package_id.py $OWNER $IMAGE $TAG)
-          curl \
+          MESSAGE=$(curl \
             -u ${GITHUB_TOKEN}: \
             -X DELETE \
-            https://api.github.com/${OWNER_TYPE}/${OWNER}/packages/container/c-pac/versions/${VERSION_ID}
+            https://api.github.com/${OWNER_TYPE}/${OWNER}/packages/container/c-pac/versions/${VERSION_ID})
+          echo "${MESSAGE}"
       - name: Delete all containers from repository without tags
         uses: Chizkiyahu/delete-untagged-ghcr-action@v6
         with:
