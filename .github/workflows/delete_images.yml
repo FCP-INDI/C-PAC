@@ -19,7 +19,7 @@ jobs:
           - lite
     env:
       DELETED_BRANCH: ${{ github.event.ref }}
-      GITHUB_TOKEN: ${{ secrets.API_PACKAGE_READ_DELETE }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       IMAGE: c-pac
     steps:
       - name: Check out C-PAC
