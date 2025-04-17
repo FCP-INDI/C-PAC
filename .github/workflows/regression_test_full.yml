@@ -1,5 +1,14 @@
 name: Run Regression Full Test
 
+permissions:
+  checks: write
+  contents: read
+  deployments: write
+  issues: write
+  packages: write
+  pull-requests: write
+  statuses: write
+
 on:
   workflow_call:
 

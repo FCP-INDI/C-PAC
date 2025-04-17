@@ -1,5 +1,14 @@
 name: Launch lite regression test
 
+permissions:
+  checks: write
+  contents: read
+  deployments: write
+  issues: write
+  packages: write
+  pull-requests: write
+  statuses: write
+
 on:
   pull_request:
     branches:
