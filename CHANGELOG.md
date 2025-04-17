@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Input `desc-brain_bold` to `desc-preproc_bold` for `sbref` generation nodeblock `coregistration_prep_vol`.
 - Turned `generate_xcpqc_files` on for all preconfigurations except `blank`.
 - Introduced specific switch `restore_t1w_intensity` for `correct_restore_brain_intensity_abcd` nodeblock, enabling it by default only in `abcd-options` pre-config.
+- Updated GitHub Actions to run automated integration and regression tests on HPC.
 
 ### Fixed
 

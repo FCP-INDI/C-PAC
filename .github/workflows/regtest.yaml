@@ -1,0 +1,116 @@
+name: Launch  regression test
+
+on:
+  pull_request:
+    branches:
+      - develop
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+  workflow_call:
+    inputs:
+      test_mode:
+        type: string
+        required: true
+    secrets:
+      GH_CLI_BIN_PATH:
+        description: 'path to directory containing GitHub CLI binary if not on default $PATH'
+        required: false
+      SSH_PRIVATE_KEY:
+        required: true
+      SSH_USER:
+        required: true
+      SSH_HOST:
+        required: true
+      SSH_WORK_DIR:
+        required: true
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        type: string
+        required: true
+
+jobs:
+  test:
+    name: Regression Test - ${{ inputs.test_mode }}
+    environment: ACCESS
+    env:
+      COMPARISON_PATH: ${{ secrets.COMPARISON_PATH }}
+      DASHBOARD_REPO: ${{ vars.DASHBOARD_REPO}}
+      DOCKER_TAG:
+      GH_CLI_BIN_PATH: ${{ secrets.GH_CLI_BIN_PATH }}
+      SLURM_TESTING_BRANCH: ${{ vars.SLURM_TESTING_BRANCH }}
+      SLURM_TESTING_PACKAGE: ${{ vars.SLURM_TESTING_PACKAGE }}
+      SLURM_TESTING_REPO: ${{ vars.SLURM_TESTING_REPO }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_WORK_DIR: ${{ secrets.SSH_WORK_DIR }}
+      TOKEN_FILE: ${{ secrets.TOKEN_FILE }}
+    if: |
+      ${{ github.env.SSH_PRIVATE_KEY != '' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'pull_request' &&
+        github.event.repository.fork == 'false')) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get C-PAC branch
+        run: |
+          if [[ ! $GITHUB_REF_NAME == 'main' ]] && [[ ! $GITHUB_REF_NAME == 'develop' ]]
+          then
+            TAG=${GITHUB_REF_NAME//\//_}
+          elif [[ $GITHUB_REF_NAME == 'develop' ]]
+          then
+            TAG=nightly
+          elif [[ $GITHUB_REF_NAME == 'main' ]]
+          then
+            TAG=latest
+          fi
+          TAG=$TAG$VARIANT
+          echo DOCKER_TAG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):$TAG >> $GITHUB_ENV
+          cat $GITHUB_ENV
+
+      - name: Install SSH Keys
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ env.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H -t rsa "${{ env.SSH_HOST }}" > ~/.ssh/known_hosts
+
+      - name: Connect and Run Regression Test ${{ inputs.test_mode }}
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ env.SSH_PRIVATE_KEY }}
+          command_timeout: 200m
+          script: |
+            set -x
+            cd ${{ env.SSH_WORK_DIR }}
+            if pip show "${{ env.SLURM_TESTING_PACKAGE }}" > /dev/null 2>&1; then
+                # If the package is installed, upgrade it
+                python3 -m pip install --user --upgrade --force-reinstall "https://github.com/${{ env.SLURM_TESTING_REPO }}/archive/${{ env.SLURM_TESTING_BRANCH }}.zip"
+            else
+                # If the package is not installed, install it
+                python3 -m pip install --user "https://github.com/${{ env.SLURM_TESTING_REPO }}/archive/${{ env.SLURM_TESTING_BRANCH }}.zip"
+            fi
+            _CPAC_SLURM_TESTING_WD="${{ env.SSH_WORK_DIR }}/automatic_tests/${{ inputs.test_mode }}/${{ github.sha }}"
+            mkdir -p "${_CPAC_SLURM_TESTING_WD}"
+            sbatch cpac-slurm-status ${{ inputs.test_mode }} launch \
+              --wd="${_CPAC_SLURM_TESTING_WD}" \
+              --comparison-path="${{ env.COMPARISON_PATH }}" \
+              --dashboard-repo="${{ env.DASHBOARD_REPO}}" \
+              --home-dir="${{ env.SSH_WORK_DIR }}" \
+              --image="${{ env.DOCKER_TAG }}" \
+              --owner="${{ github.repository_owner }}" \
+              --path-extra="${{ env.GH_CLI_BIN_PATH }}" \
+              --repo="${{ github.repository }}" \
+              --sha="${{ github.sha }}" \
+              --slurm-testing-branch="${{ env.SLURM_TESTING_BRANCH }}" \
+              --slurm-testing-repo="${{ env.SLURM_TESTING_REPO }}" \
+              --token-file="${{ env.TOKEN_FILE }}"
+
+      - name: Cleanup SSH
+        run: |
+          rm -rf ~/.ssh
