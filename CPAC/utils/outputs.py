@@ -1,13 +1,36 @@
+# Copyright (C) 2018-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Specify the resources that C-PAC writes to the output direcotry."""
+
+from importlib.resources import files
+from typing import ClassVar
+
 import pandas as pd
-import pkg_resources as p
 
 
 class Outputs:
-    # Settle some things about the resource pool reference and the output directory
-    reference_csv = p.resource_filename("CPAC", "resources/cpac_outputs.tsv")
+    """Settle some things about the resource pool reference and the output directory."""
+
+    reference_csv = str(files("CPAC").joinpath("resources/cpac_outputs.tsv"))
 
     try:
-        reference = pd.read_csv(reference_csv, delimiter="\t", keep_default_na=False)
+        reference: ClassVar[pd.DataFrame] = pd.read_csv(
+            reference_csv, delimiter="\t", keep_default_na=False
+        )
     except Exception as e:
         err = (
             "\n[!] Could not access or read the cpac_outputs.tsv "
@@ -27,8 +50,12 @@ class Outputs:
         reference[reference["4D Time Series"] == "Yes"]["Resource"]
     )
 
-    anat = list(reference[reference["Sub-Directory"] == "anat"]["Resource"])
-    func = list(reference[reference["Sub-Directory"] == "func"]["Resource"])
+    anat: ClassVar[list[str]] = list(
+        reference[reference["Sub-Directory"] == "anat"]["Resource"]
+    )
+    func: ClassVar[list[str]] = list(
+        reference[reference["Sub-Directory"] == "func"]["Resource"]
+    )
 
     # outputs to send into smoothing, if smoothing is enabled, and
     # outputs to write out if the user selects to write non-smoothed outputs
@@ -44,6 +71,8 @@ class Outputs:
 
     all_template_filter = _template_filter | _epitemplate_filter | _symtemplate_filter
     all_native_filter = _T1w_native_filter | _bold_native_filter | _long_native_filter
+
+    bold_native: ClassVar[list[str]] = list(reference[_bold_native_filter]["Resource"])
 
     native_nonsmooth = list(
         reference[all_native_filter & _nonsmoothed_filter]["Resource"]
@@ -101,3 +130,11 @@ class Outputs:
         for gifti in giftis.itertuples()
         if " " in gifti.File
     }
+
+
+def group_derivatives(pull_func: bool = False) -> list[str]:
+    """Gather keys for anatomical and functional derivatives for group analysis."""
+    derivatives: list[str] = Outputs.func + Outputs.anat
+    if pull_func:
+        derivatives = derivatives + Outputs.bold_native
+    return derivatives

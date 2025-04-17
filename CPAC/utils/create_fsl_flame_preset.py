@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2024  C-PAC Developers
+# Copyright (C) 2018-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -1091,20 +1091,6 @@ def run(
     #       or something
 
     import os
-
-    import pandas as pd
-    import pkg_resources as p
-
-    # make life easy
-    keys_csv = p.resource_filename("CPAC", "resources/cpac_outputs.csv")
-    try:
-        pd.read_csv(keys_csv)
-    except Exception as e:
-        err = (
-            "\n[!] Could not access or read the cpac_outputs.csv "
-            f"resource file:\n{keys_csv}\n\nError details {e}\n"
-        )
-        raise Exception(err)
 
     if derivative_list == "all":
         derivative_list = [

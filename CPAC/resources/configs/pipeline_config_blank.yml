@@ -14,7 +14,6 @@ pipeline_setup:
 
   # Desired orientation for the output data. "RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"
   desired_orientation: RPI
-
   output_directory:
 
     # Quality control outputs
@@ -420,6 +419,9 @@ anatomical_preproc:
       # niworkflows-ants registration mask (can be optional)
       regmask_path: /ants_template/oasis/T_template0_BrainCerebellumRegistrationMask.nii.gz
 
+  restore_t1w_intensity:
+    run: Off
+
   run_t2: Off
 
   # Bias field correction based on square root of T1w * T2w
@@ -706,9 +708,6 @@ registration_workflows:
       run: Off
       func_input_prep:
 
-        # Choose whether to use functional brain or skull as the input to functional-to-anatomical registration
-        reg_with_skull: Off
-
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
         # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
         input: [Mean_Functional]
@@ -723,6 +722,9 @@ registration_workflows:
           # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'.
           #Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
           func_reg_input_volume: 0
+
+        # Mask the sbref created by coregistration input prep nodeblocks above before registration
+        mask_sbref: On
 
       boundary_based_registration:
 
@@ -745,15 +747,8 @@ registration_workflows:
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.
         bbr_schedule: $FSLDIR/etc/flirtsch/bbr.sch
 
-      # reference: 'brain' or 'restore-brain'
-      # In ABCD-options pipeline, 'restore-brain' is used as coregistration reference
-      reference: brain
-
       # Choose FSL or ABCD as coregistration method
       using: FSL
-
-      # Choose brain or whole-head as coregistration input
-      input: brain
 
       # Choose coregistration interpolation
       interpolation: trilinear

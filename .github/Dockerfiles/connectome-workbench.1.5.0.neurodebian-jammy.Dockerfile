@@ -24,9 +24,9 @@ RUN apt-get update \
 USER c-pac_user
 
 # FROM scratch
-# LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+# LABEL org.opencontainers.image.description="NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 # connectome-workbench 1.5.0 stage"
-# LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+# LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
 # COPY --from=base /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
 # COPY --from=base /lib/x86_64-linux-gnu/libGL.so.1 /lib/x86_64-linux-gnu/libGL.so.1
 # COPY --from=base /lib/x86_64-linux-gnu/libGLU.so.1 /lib/x86_64-linux-gnu/libGLU.so.1

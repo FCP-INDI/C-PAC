@@ -510,6 +510,7 @@ latest_schema = Schema(
             "Debugging": {
                 "verbose": bool1_1,
             },
+            "freesurfer_dir": str,
             "outdir_ingress": {
                 "run": bool1_1,
                 "Template": Maybe(str),
@@ -638,6 +639,9 @@ latest_schema = Schema(
                 },
                 "FreeSurfer-BET": {"T1w_brain_template_mask_ccs": Maybe(str)},
             },
+            "restore_t1w_intensity": {
+                "run": bool1_1,
+            },
         },
         "segmentation": {
             "run": bool1_1,
@@ -722,15 +726,12 @@ latest_schema = Schema(
             "functional_registration": {
                 "coregistration": {
                     "run": bool1_1,
-                    "reference": In({"brain", "restore-brain"}),
                     "interpolation": In({"trilinear", "sinc", "spline"}),
                     "using": str,
-                    "input": str,
                     "cost": str,
                     "dof": int,
                     "arguments": Maybe(str),
                     "func_input_prep": {
-                        "reg_with_skull": bool1_1,
                         "input": [
                             In(
                                 {
@@ -741,7 +742,10 @@ latest_schema = Schema(
                             )
                         ],
                         "Mean Functional": {"n4_correct_func": bool1_1},
-                        "Selected Functional Volume": {"func_reg_input_volume": int},
+                        "Selected Functional Volume": {
+                            "func_reg_input_volume": int,
+                        },
+                        "mask_sbref": bool1_1,
                     },
                     "boundary_based_registration": {
                         "run": forkable,
@@ -1036,7 +1040,14 @@ latest_schema = Schema(
                             {
                                 "Name": Required(str),
                                 "Censor": {
-                                    "method": str,
+                                    "method": In(
+                                        [
+                                            "Kill",
+                                            "Zero",
+                                            "Interpolate",
+                                            "SpikeRegression",
+                                        ]
+                                    ),
                                     "thresholds": [
                                         {
                                             "type": str,
@@ -1388,6 +1399,22 @@ def schema(config_dict):
                 " Try turning one option off.\n "
             )
             raise ExclusiveInvalid(msg)
+
+        overwrite = partially_validated["registration_workflows"][
+            "anatomical_registration"
+        ]["overwrite_transform"]
+
+        if (
+            overwrite["run"]
+            and "ANTS"
+            not in partially_validated["registration_workflows"][
+                "anatomical_registration"
+            ]["registration"]["using"]
+        ):
+            raise ExclusiveInvalid(
+                "[!] Overwrite transform method is the same as the anatomical registration method! "
+                "No need to overwrite transform with the same registration method. Please turn it off or use a different registration method."
+            )
     except KeyError:
         pass
     try:

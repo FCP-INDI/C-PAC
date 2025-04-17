@@ -101,9 +101,9 @@ ENTRYPOINT ["/bin/bash"]
 
 # # Only keep what we need
 FROM scratch
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+LABEL org.opencontainers.image.description="NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 FSL 6.0.6.5 stage"
-LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
 COPY --from=FSL /lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
 COPY --from=FSL /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
 COPY --from=FSL /usr/bin /usr/bin

@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2024  C-PAC Developers
+# Copyright (C) 2021-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -17,6 +17,7 @@
 import ast
 import copy
 import hashlib
+from importlib.resources import files
 from itertools import chain
 import json
 import os
@@ -24,10 +25,12 @@ import re
 from typing import Optional
 import warnings
 
+import pandas as pd
 from nipype import config, logging
 from nipype.interfaces import afni
 from nipype.interfaces.utility import Rename
 
+from CPAC.anat_preproc.utils import mri_convert_reorient
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import (
     fisher_z_score_standardize,
@@ -64,6 +67,7 @@ from CPAC.utils.outputs import Outputs
 from CPAC.utils.utils import (
     check_prov_for_regtool,
     create_id_string,
+    flip_orientation_code,
     get_last_prov_entry,
     read_json,
     write_output_json,
@@ -418,10 +422,12 @@ class ResourcePool:
             if report_fetched:
                 return (None, None)
             return None
+        from CPAC.pipeline.resource_inventory import where_to_find
+
         msg = (
             "\n\n[!] C-PAC says: None of the listed resources are in "
-            f"the resource pool:\n\n  {resource}\n\nOptions:\n- You "
-            "can enable a node block earlier in the pipeline which "
+            f"the resource pool:\n\n  {where_to_find(resource)}\n\nOptions:\n"
+            "- You can enable a node block earlier in the pipeline which "
             "produces these resources. Check the 'outputs:' field in "
             "a node block's documentation.\n- You can directly "
             "provide this required data by pulling it from another "
@@ -456,7 +462,9 @@ class ResourcePool:
         try:
             self.rpool[new_name] = self.rpool[resource]
         except KeyError:
-            msg = f"[!] {resource} not in the resource pool."
+            from CPAC.pipeline.resource_inventory import where_to_find
+
+            msg = f"[!] Not in the resource pool:\n{where_to_find(resource)}"
             raise Exception(msg)
 
     def update_resource(self, resource, new_name):
@@ -628,11 +636,13 @@ class ResourcePool:
             total_pool.append(sub_pool)
 
         if not total_pool:
+            from CPAC.pipeline.resource_inventory import where_to_find
+
             raise LookupError(
                 "\n\n[!] C-PAC says: None of the listed "
                 "resources in the node block being connected "
                 "exist in the resource pool.\n\nResources:\n"
-                "%s\n\n" % resource_list
+                "%s\n\n" % where_to_find(resource_list)
             )
 
         # TODO: right now total_pool is:
@@ -1007,6 +1017,19 @@ class ResourcePool:
             for label_con_tpl in post_labels:
                 label = label_con_tpl[0]
                 connection = (label_con_tpl[1], label_con_tpl[2])
+                if "desc-" not in label:
+                    if "space-template" in label:
+                        new_label = label.replace(
+                            "space-template", "space-template_desc-zstd"
+                        )
+                    else:
+                        new_label = f"desc-zstd_{label}"
+                else:
+                    for tag in label.split("_"):
+                        if "desc-" in tag:
+                            newtag = f"{tag}-zstd"
+                            new_label = label.replace(tag, newtag)
+                            break
                 if label in Outputs.to_zstd:
                     zstd = z_score_standardize(f"{label}_zstd_{pipe_x}", input_type)
 
@@ -1014,20 +1037,6 @@ class ResourcePool:
 
                     node, out = self.get_data(mask, pipe_idx=mask_idx)
                     wf.connect(node, out, zstd, "inputspec.mask")
-
-                    if "desc-" not in label:
-                        if "space-template" in label:
-                            new_label = label.replace(
-                                "space-template", "space-template_desc-zstd"
-                            )
-                        else:
-                            new_label = f"desc-zstd_{label}"
-                    else:
-                        for tag in label.split("_"):
-                            if "desc-" in tag:
-                                newtag = f"{tag}-zstd"
-                                new_label = label.replace(tag, newtag)
-                                break
 
                     post_labels.append((new_label, zstd, "outputspec.out_file"))
 
@@ -1188,7 +1197,7 @@ class ResourcePool:
                 key
                 for json_info in all_jsons
                 for key in json_info.get("CpacVariant", {}).keys()
-                if key not in (*MOVEMENT_FILTER_KEYS, "regressors")
+                if key not in (*MOVEMENT_FILTER_KEYS, "timeseries")
             }
             if "bold" in unlabelled:
                 all_bolds = list(
@@ -2036,9 +2045,30 @@ def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
                 creds_path=data_paths["creds_path"],
                 dl_dir=cfg.pipeline_setup["working_directory"]["path"],
             )
-            rpool.set_data(
-                key, fs_ingress, "outputspec.data", {}, "", f"fs_{key}_ingress"
-            )
+            # reorient *.mgz
+            if outfile.endswith(".mgz"):
+                reorient_mgz = pe.Node(
+                    Function(
+                        input_names=["in_file", "orientation", "out_file"],
+                        output_names=["out_file"],
+                        function=mri_convert_reorient,
+                    ),
+                    name=f"reorient_mgz_{key}",
+                )
+                # Flip orientation before reorient because mri_convert's orientation is opposite that of AFNI
+                reorient_mgz.inputs.orientation = flip_orientation_code(
+                    cfg.pipeline_setup["desired_orientation"]
+                )
+                reorient_mgz.inputs.out_file = None
+                wf.connect(fs_ingress, "outputspec.data", reorient_mgz, "in_file")
+
+                rpool.set_data(
+                    key, reorient_mgz, "out_file", {}, "", f"fs_{key}_ingress"
+                )
+            else:
+                rpool.set_data(
+                    key, fs_ingress, "outputspec.data", {}, "", f"fs_{key}_ingress"
+                )
         else:
             warnings.warn(
                 str(LookupError(f"\n[!] Path does not exist for {fullpath}.\n"))
@@ -2411,15 +2441,17 @@ def strip_template(data_label, dir_path, filename):
     return data_label, json
 
 
+def template_dataframe() -> pd.DataFrame:
+    """Return the template dataframe."""
+    template_csv = files("CPAC").joinpath("resources/cpac_templates.csv")
+    return pd.read_csv(str(template_csv), keep_default_na=False)
+
+
 def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
     # ingress config file paths
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
 
-    import pandas as pd
-    import pkg_resources as p
-
-    template_csv = p.resource_filename("CPAC", "resources/cpac_templates.csv")
-    template_df = pd.read_csv(template_csv, keep_default_na=False)
+    template_df = template_dataframe()
     desired_orientation = cfg.pipeline_setup["desired_orientation"]
 
     for row in template_df.itertuples():

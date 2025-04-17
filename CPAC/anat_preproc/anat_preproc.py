@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -2572,7 +2572,7 @@ def brain_mask_acpc_niworkflows_ants_T2(wf, cfg, strat_pool, pipe_num, opt=None)
     config=["anatomical_preproc", "brain_extraction"],
     option_key="using",
     option_val="UNet",
-    inputs=["desc-preproc_T2w", "T1w-brain-template", "T1w-template", "unet_model"],
+    inputs=["desc-preproc_T2w", "T1w-brain-template", "T1w-template", "unet-model"],
     outputs=["space-T2w_desc-brain_mask"],
 )
 def brain_mask_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -2586,7 +2586,7 @@ def brain_mask_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
     config=["anatomical_preproc", "brain_extraction"],
     option_key="using",
     option_val="UNet",
-    inputs=["desc-preproc_T2w", "T1w-brain-template", "T1w-template", "unet_model"],
+    inputs=["desc-preproc_T2w", "T1w-brain-template", "T1w-template", "unet-model"],
     outputs=["space-T2w_desc-acpcbrain_mask"],
 )
 def brain_mask_acpc_unet_T2(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -3053,12 +3053,11 @@ def fnirt_based_brain_extraction(config=None, wf_name="fnirt_based_brain_extract
     preproc.connect(non_linear_reg, "field_file", apply_warp, "field_file")
 
     # Invert warp and transform dilated brain mask back into native space, and use it to mask input image
-    # Input and reference spaces are the same, using 2mm reference to save time
-    # invwarp --ref="$Reference2mm" -w "$WD"/str2standard.nii.gz -o "$WD"/standard2str.nii.gz
+    # invwarp --ref="$T1w" -w "$WD"/str2standard.nii.gz -o "$WD"/standard2str.nii.gz
     inverse_warp = pe.Node(interface=fsl.InvWarp(), name="inverse_warp")
     inverse_warp.inputs.output_type = "NIFTI_GZ"
 
-    preproc.connect(inputnode, "template_skull_for_anat_2mm", inverse_warp, "reference")
+    preproc.connect(inputnode, "anat_data", inverse_warp, "reference")
 
     preproc.connect(non_linear_reg, "field_file", inverse_warp, "warp")
 
@@ -3161,9 +3160,8 @@ def fast_bias_field_correction(config=None, wf_name="fast_bias_field_correction"
 
 @nodeblock(
     name="correct_restore_brain_intensity_abcd",
-    config=["anatomical_preproc", "brain_extraction"],
-    option_key="using",
-    option_val="FreeSurfer-ABCD",
+    config=["anatomical_preproc", "restore_t1w_intensity"],
+    switch=["run"],
     inputs=[
         (
             "desc-preproc_T1w",
