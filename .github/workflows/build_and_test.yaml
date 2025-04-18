@@ -46,6 +46,10 @@ on:
         description: 'third phase of staging images to rebuild (base images)'
         type: string
         required: true
+      test_mode:
+        description: 'lite or full?'
+        type: string
+        default: None
 
 jobs:
   Ubuntu:
@@ -186,7 +190,7 @@ jobs:
         run: |
             sed -i -e 's/^/\.github\/Dockerfiles\//' .github/stage_requirements/${{ matrix.variant }}.txt
             echo 'dev/docker_data/required_afni_pkgs.txt' >> .github/stage_requirements/${{ matrix.variant }}.txt
-            echo '.github/workflows/build_and_test.yml' >> .github/stage_requirements/${{ matrix.variant }}.txt
+            echo '.github/workflows/build_and_test.yaml' >> .github/stage_requirements/${{ matrix.variant }}.txt
             echo '.github/stage_requirements/${{ matrix.variant }}.txt' >> .github/stage_requirements/${{ matrix.variant }}.txt
       - name: Set tag & see if it exists
         continue-on-error: true
@@ -258,7 +262,7 @@ jobs:
         run: |
             sed -i -e 's/^/\.github\/Dockerfiles\//' .github/stage_requirements/standard.txt
             echo 'dev/docker_data/required_afni_pkgs.txt' >> .github/stage_requirements/standard.txt
-            echo '.github/workflows/build_and_test.yml' >> .github/stage_requirements/standard.txt
+            echo '.github/workflows/build_and_test.yaml' >> .github/stage_requirements/standard.txt
             echo '.github/stage_requirements/standard.txt' >> .github/stage_requirements/standard.txt
       - name: Set tag & see if it exists
         continue-on-error: true
@@ -327,19 +331,21 @@ jobs:
     if: github.ref_name == 'develop' || github.ref_name == 'main'
     uses: ./.github/workflows/smoke_test_participant.yml
 
-  regtest-lite:
-    name: Run lite regression test
+  check_test_mode:
+    name: check_test_mode
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ${{ inputs.test_mode }}
+
+  regtest:
+    name: Run regression and integration test
     needs:
       - C-PAC
     secrets: inherit
-    if: contains(github.event.head_commit.message, '[run reg-suite]')
-    uses: ./.github/workflows/regression_test_lite.yml
-
-  regtest-full:
-    name: Run full regression test
-    needs:
-      - smoke-tests-participant
-    uses: ./.github/workflows/regression_test_full.yml
+    if: inputs.test_mode == 'lite'
+    uses: ./.github/workflows/regtest.yaml
+    with:
+      test_mode: ${{ inputs.test_mode }}
 
   Circle_tests:
     name: Run tests on CircleCI

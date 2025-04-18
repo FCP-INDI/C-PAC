@@ -46,7 +46,7 @@ flowchart LR
       subgraph build_C-PAC.yml
         bCPAC[[C-PAC]]
       end
-      subgraph build_and_test.yml
+      subgraph build_and_test.yaml
         ubuntu[[Ubnutu]]-->stages[[stages]]-->build-base[[build-base]]-->build-base-standard[[build-base-standard]]
 
         Circle_tests[[Circle_tests]]
@@ -65,7 +65,7 @@ flowchart LR
         smoke-tests-participant[[smoke-tests-participant]]
       end
 
-      on_push.yml-->build_and_test.yml
+      on_push.yaml-->build_and_test.yaml
 
       delete_images.yml
     end
@@ -79,8 +79,8 @@ flowchart LR
 
     Circle_tests-->CircleCI((Run tests on Circle CI))
 
-    on_push.yml<-->get_pr_base_shas
-    on_push.yml-->update_all_preconfigs
+    on_push.yaml<-->get_pr_base_shas
+    on_push.yaml-->update_all_preconfigs
 
     cpacdockerfiles<-->C-PAC
 
@@ -94,7 +94,7 @@ flowchart LR
     bCPAC<-->local_ghcr
     stages<-->local_ghcr
 
-    push>git push]-->on_push.yml
+    push>git push]-->on_push.yaml
 
     smoke-tests-participant-->smoke_test_human
     smoke-tests-participant-->smoke_test_nhp

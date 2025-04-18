@@ -251,11 +251,6 @@ bet_frac:
    - brain_extraction
    - FSL-BET
    - frac
-bet_mask_boolean:
-   - anatomical_preproc
-   - brain_extraction
-   - FSL-BET
-   - mask_boolean
 bet_mesh_boolean:
    - anatomical_preproc
    - brain_extraction
