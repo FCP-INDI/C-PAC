@@ -2,6 +2,9 @@
 version: 2.1
 # Singularity started failing to set up on Circle circa May 2023, so those tests are currently disabled
 
+orbs:
+  codecov: codecov/codecov@5
+
 parameters:
   branch:
     type: string
@@ -36,7 +39,8 @@ commands:
           name: "Combining and reporting coverage"
           command: |
               coverage combine
-              coverage html --ignore-errors
+              coverage xml -o coverage.xml  # Generate XML report
+      - codecov/upload
   configure-git-user:
     steps:
       - add_ssh_keys:
@@ -185,8 +189,6 @@ jobs:
       #     key: coverage-singularity-lite-{{ .Revision }}
       - set-python-version
       - combine-coverage
-      - store_artifacts:
-          path: htmlcov
   push-branch-to-docker-hub:
     parameters:
       variant:
