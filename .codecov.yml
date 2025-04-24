@@ -11,7 +11,7 @@ comment:
 
 coverage:
   precision: 1
-  range: "50..100"
+  range: "50..90"
   round: nearest
   status:
     project:
