@@ -3770,7 +3770,7 @@ def apply_phasediff_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, opt=
             "fsl-blip-warp",
         )
     ],
-    outputs=["desc-preproc_bold", "desc-stc_bold", "bold"],
+    outputs=["desc-preproc_bold", "desc-reorient_bold", "desc-stc_bold"],
 )
 def apply_blip_to_timeseries_separately(wf, cfg, strat_pool, pipe_num, opt=None):
     """Apply blip to timeseries."""
