@@ -316,7 +316,6 @@ functional_preproc:
 
 nuisance_corrections:
   2-nuisance_regression:
-    run: Off
     # Select which nuisance signal corrections to apply
     Regressors:
       - Name: default
@@ -328,9 +327,6 @@ nuisance_corrections:
           include_delayed: On
           include_delayed_squared: On
           include_squared: On
-
-    # switch to Off if nuisance regression is off and you don't want to write out the regressors
-    create_regressors: Off
 
     # Process and refine masks used to produce regressors and time series for
     # regression.
@@ -388,10 +384,10 @@ regional_homogeneity:
 # -----------------------
 post_processing:
   spatial_smoothing:
-    run: Off
+    run: On
 
   z-scoring:
-    run: Off
+    run: On
 
 seed_based_correlation_analysis:
 
