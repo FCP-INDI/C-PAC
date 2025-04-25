@@ -1611,7 +1611,7 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
 
     Adapted from `DCAN Lab's BOLD mask method from the ABCD pipeline <https://github.com/DCAN-Labs/DCAN-HCP/blob/1d90814/fMRIVolume/scripts/OneStepResampling.sh#L121-L132>`_.
     """
-    anat_brain_to_func_res = anat_brain_to_bold_res(wf_name="anat_brain_to_bold_res", cfg, pipe_num)
+    anat_brain_to_func_res = anat_brain_to_bold_res(wf_name="anat_brain_to_bold_res", cfg=cfg, pipe_num=pipe_num)
 
     node, out = strat_pool.get_data("space-template_desc-preproc_T1w")
     wf.connect(

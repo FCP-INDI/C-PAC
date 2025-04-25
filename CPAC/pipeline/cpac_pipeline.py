@@ -99,6 +99,7 @@ from CPAC.func_preproc.func_preproc import (
     bold_mask_fsl,
     bold_mask_fsl_afni,
     bold_masking,
+    template_space_bold_masking,
     func_despike,
     func_despike_template,
     func_mean,
@@ -1401,13 +1402,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
         if cfg.voxel_mirrored_homotopic_connectivity["run"]:
             pipeline_blocks += [create_func_to_T1template_symmetric_xfm]
 
-    # Template space functional masking
-    if cfg.functional_preproc["template_space_func_masking"]["run"]:
-        if not rpool.check_rpool("space-template_desc-bold_mask"):
-            pipeline_blocks += bold_mask_anatomical_resampled,
-        if cfg.functional_preproc["template_space_func_masking"]["apply_func_mask_in_template_space"]:
-            pipeline_blocks += apply_func_mask_to_template,
-
     # Nuisance Correction
     generate_only = (
         True not in cfg["nuisance_corrections", "2-nuisance_regression", "run"]
@@ -1518,6 +1512,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
             warp_bold_mask_to_EPItemplate,
             warp_deriv_mask_to_EPItemplate,
         ]
+        
+    # Template space functional masking
+    if cfg.functional_preproc["template_space_func_masking"]["run"]:
+        if not rpool.check_rpool("space-template_desc-bold_mask"):
+            pipeline_blocks += bold_mask_anatomical_resampled,
+        if cfg.functional_preproc["template_space_func_masking"]["apply_func_mask_in_template_space"]:
+            pipeline_blocks += template_space_bold_masking,
 
     # Template-space nuisance regression
     nuisance_template = (

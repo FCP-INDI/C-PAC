@@ -87,11 +87,19 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
         gen_motion_stats,
         "inputspec.motion_correct",
     )
-    wf.connect(
-        *strat_pool.get_data("space-bold_desc-brain_mask"),
-        gen_motion_stats,
-        "inputspec.mask",
-    )
+
+    try :
+        wf.connect(*strat_pool.get_data("space-bold_desc-brain_mask"),
+            gen_motion_stats,
+            "inputspec.mask",
+        )
+    except :
+        mask_bold = pe.Node(interface=afni.MaskTool(), name=f"mask_bold_{pipe_num}")
+        mask_bold.inputs.outputtype = "NIFTI_GZ"
+        node, out = strat_pool.get_data("desc-preproc_bold")
+        wf.connect(node, out, mask_bold, "in_file")
+        wf.connect(mask_bold, "out_file", gen_motion_stats, "inputspec.mask") 
+
     wf.connect(
         *strat_pool.get_data("desc-movementParameters_motion"),
         gen_motion_stats,
