@@ -218,7 +218,7 @@ registration_workflows:
 
       # Choose coregistration degree of freedom
       dof: 12
-      
+
 
 
     func_registration_to_template:
@@ -331,7 +331,7 @@ nuisance_corrections:
 
     # switch to Off if nuisance regression is off and you don't want to write out the regressors
     create_regressors: Off
-    
+
     # Process and refine masks used to produce regressors and time series for
     # regression.
     regressor_masks:

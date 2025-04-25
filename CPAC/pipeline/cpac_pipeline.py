@@ -1512,13 +1512,15 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
             warp_bold_mask_to_EPItemplate,
             warp_deriv_mask_to_EPItemplate,
         ]
-        
+
     # Template space functional masking
     if cfg.functional_preproc["template_space_func_masking"]["run"]:
         if not rpool.check_rpool("space-template_desc-bold_mask"):
-            pipeline_blocks += bold_mask_anatomical_resampled,
-        if cfg.functional_preproc["template_space_func_masking"]["apply_func_mask_in_template_space"]:
-            pipeline_blocks += template_space_bold_masking,
+            pipeline_blocks += (bold_mask_anatomical_resampled,)
+        if cfg.functional_preproc["template_space_func_masking"][
+            "apply_func_mask_in_template_space"
+        ]:
+            pipeline_blocks += (template_space_bold_masking,)
 
     # Template-space nuisance regression
     nuisance_template = (
