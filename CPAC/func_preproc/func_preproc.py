@@ -1592,9 +1592,9 @@ def anat_brain_mask_to_bold_res(wf_name, cfg, pipe_num):
     name="bold_mask_anatomical_resampled",
     switch=[
         ["functional_preproc", "run"],
-        ["functional_preproc", "func_masking", "run"],
+        ["functional_preproc", "template_space_func_masking", "run"],
     ],
-    option_key=["functional_preproc", "func_masking", "using"],
+    option_key=["functional_preproc", "template_space_func_masking", "using"],
     option_val="Anatomical_Resampled",
     inputs=[
         "T1w-template-funcreg",
