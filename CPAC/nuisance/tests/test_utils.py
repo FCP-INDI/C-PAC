@@ -1,8 +1,26 @@
+# Copyright (C) 2019-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Test nuisance utilities."""
+
+from importlib.resources import as_file, files
 import os
 import tempfile
 
 import numpy as np
-import pkg_resources as p
 import pytest
 
 from CPAC.nuisance.utils import calc_compcor_components, find_offending_time_points
@@ -10,24 +28,22 @@ from CPAC.utils.monitoring.custom_logging import getLogger
 
 logger = getLogger("CPAC.nuisance.tests")
 
-mocked_outputs = p.resource_filename(
-    "CPAC", os.path.join("nuisance", "tests", "motion_statistics")
-)
+_mocked_outputs = files("CPAC").joinpath("nuisance/tests/motion_statistics")
 
 
 @pytest.mark.skip(reason="needs refactoring")
 def test_find_offending_time_points():
     dl_dir = tempfile.mkdtemp()
     os.chdir(dl_dir)
-
-    censored = find_offending_time_points(
-        os.path.join(mocked_outputs, "FD_J.1D"),
-        os.path.join(mocked_outputs, "FD_P.1D"),
-        os.path.join(mocked_outputs, "DVARS.1D"),
-        2.0,
-        2.0,
-        "1.5SD",
-    )
+    with as_file(_mocked_outputs) as mocked_outputs:
+        censored = find_offending_time_points(
+            str(mocked_outputs / "FD_J.1D"),
+            str(mocked_outputs / "FD_P.1D"),
+            str(mocked_outputs / "DVARS.1D"),
+            2.0,
+            2.0,
+            "1.5SD",
+        )
 
     censored = np.loadtxt(censored).astype(bool)
 
@@ -41,4 +57,4 @@ def test_calc_compcor_components():
 
     compcor_filename = calc_compcor_components(data_filename, 5, mask_filename)
     logger.info("compcor components written to %s", compcor_filename)
-    assert 0 == 1
+
