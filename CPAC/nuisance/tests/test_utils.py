@@ -18,12 +18,18 @@
 
 from importlib.resources import as_file, files
 import os
+from pathlib import Path
+from random import randint
 import tempfile
 
 import numpy as np
 import pytest
 
-from CPAC.nuisance.utils import calc_compcor_components, find_offending_time_points
+from CPAC.nuisance.utils import (
+    calc_compcor_components,
+    find_offending_time_points,
+    load_censor_tsv,
+)
 from CPAC.utils.monitoring.custom_logging import getLogger
 
 logger = getLogger("CPAC.nuisance.tests")
@@ -58,3 +64,20 @@ def test_calc_compcor_components():
     compcor_filename = calc_compcor_components(data_filename, 5, mask_filename)
     logger.info("compcor components written to %s", compcor_filename)
 
+
+@pytest.mark.parametrize("header", [True, False])
+def test_load_censor_tsv(header: bool, tmp_path: Path) -> None:
+    """Test loading of censor tsv files with and without headers."""
+    expected_length = 3
+    filepath = tmp_path / "censor.tsv"
+    with filepath.open("w") as f:
+        if header:
+            f.write("censor\n")
+        for i in range(expected_length):
+            f.write(f"{randint(0, 1)}\n")
+    censors = load_censor_tsv(str(filepath), expected_length)
+    assert (
+        censors.shape[0] == expected_length
+    ), "Length of censors does not match expected length"
+    with pytest.raises(ValueError, match="expected length"):
+        load_censor_tsv(str(filepath), expected_length + 1)

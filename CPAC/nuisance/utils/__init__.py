@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2024  C-PAC Developers
+# Copyright (C) 2019-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -21,6 +21,7 @@ from .compcor import calc_compcor_components
 from .utils import (
     find_offending_time_points,
     generate_summarize_tissue_mask,
+    load_censor_tsv,
     NuisanceRegressor,
     temporal_variance_mask,
 )
@@ -30,6 +31,7 @@ __all__ = [
     "compcor",
     "find_offending_time_points",
     "generate_summarize_tissue_mask",
+    "load_censor_tsv",
     "NuisanceRegressor",
     "temporal_variance_mask",
 ]

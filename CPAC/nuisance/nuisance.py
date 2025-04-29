@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,6 +14,8 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Nusiance regression."""
+
 import os
 from typing import Literal
 
@@ -29,6 +31,7 @@ from CPAC.aroma.aroma import create_aroma
 from CPAC.nuisance.utils import (
     find_offending_time_points,
     generate_summarize_tissue_mask,
+    load_censor_tsv,
     temporal_variance_mask,
 )
 from CPAC.nuisance.utils.compcor import (
@@ -302,7 +305,7 @@ def gather_nuisance(
             raise ValueError(msg)
 
         try:
-            regressors = np.loadtxt(regressor_file)
+            regressors = load_censor_tsv(regressor_file, regressor_length)
         except (OSError, TypeError, UnicodeDecodeError, ValueError) as error:
             msg = f"Could not read regressor {regressor_type} from {regressor_file}."
             raise OSError(msg) from error
@@ -382,7 +385,7 @@ def gather_nuisance(
     if custom_file_paths:
         for custom_file_path in custom_file_paths:
             try:
-                custom_regressor = np.loadtxt(custom_file_path)
+                custom_regressor = load_censor_tsv(custom_file_path, regressor_length)
             except:
                 msg = "Could not read regressor {0} from {1}.".format(
                     "Custom", custom_file_path
@@ -421,7 +424,7 @@ def gather_nuisance(
             censor_volumes = np.ones((regressor_length,), dtype=int)
         else:
             try:
-                censor_volumes = np.loadtxt(regressor_file)
+                censor_volumes = load_censor_tsv(regressor_file, regressor_length)
             except:
                 msg = (
                     f"Could not read regressor {regressor_type} from {regressor_file}."
