@@ -1844,11 +1844,6 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     switch=[
         ["functional_preproc", "run"],
         ["functional_preproc", "template_space_func_masking", "run"],
-        [
-            "functional_preproc",
-            "template_space_func_masking",
-            "apply_func_mask_in_template_space",
-        ],
     ],
     inputs=[("space-template_desc-preproc_bold", "space-template_desc-bold_mask")],
     outputs={
@@ -1868,25 +1863,25 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def template_space_bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     """Mask the bold in template space."""
-    func_edge_detect = pe.Node(
+    func_apply_mask = pe.Node(
         interface=afni_utils.Calc(),
         name=f"template_space_func_extract_brain_{pipe_num}",
     )
 
-    func_edge_detect.inputs.expr = "a*b"
-    func_edge_detect.inputs.outputtype = "NIFTI_GZ"
+    func_apply_mask.inputs.expr = "a*b"
+    func_apply_mask.inputs.outputtype = "NIFTI_GZ"
 
     node_head_bold, out_head_bold = strat_pool.get_data(
         "space-template_desc-preproc_bold"
     )
-    wf.connect(node_head_bold, out_head_bold, func_edge_detect, "in_file_a")
+    wf.connect(node_head_bold, out_head_bold, func_apply_mask, "in_file_a")
 
     node, out = strat_pool.get_data("space-template_desc-bold_mask")
-    wf.connect(node, out, func_edge_detect, "in_file_b")
+    wf.connect(node, out, func_apply_mask, "in_file_b")
 
     outputs = {
-        "space-template_desc-preproc_bold": (func_edge_detect, "out_file"),
-        "space-template_desc-brain_bold": (func_edge_detect, "out_file"),
+        "space-template_desc-preproc_bold": (func_apply_mask, "out_file"),
+        "space-template_desc-brain_bold": (func_apply_mask, "out_file"),
         "space-template_desc-head_bold": (node_head_bold, out_head_bold),
     }
 
