@@ -1013,7 +1013,6 @@ latest_schema = Schema(
             "template_space_func_masking": {
                 "run": bool1_1,
                 "using": [In({"Anatomical_Resampled"})],
-                "apply_func_mask_in_template_space": bool1_1,
             },
             "generate_func_mean": {
                 "run": bool1_1,
