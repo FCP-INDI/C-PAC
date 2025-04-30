@@ -525,6 +525,9 @@ class ScanParameters:
             msg = f"Missing value for {val_to_check} for participant {self.subject}."
             raise ValueError(msg)
 
+        if isinstance(ret_val, bytes):
+            ret_val = ret_val.decode("utf-8")
+
         return ret_val
 
     @overload
@@ -631,6 +634,8 @@ class ScanParameters:
                 f" ≅ '{matched_keys[1]}'."
             )
         if convert_to:
+            if isinstance(raw_value, bytes):
+                raw_value = raw_value.decode("utf-8")
             try:
                 value = convert_to(raw_value)
             except (TypeError, ValueError):
@@ -2634,8 +2639,6 @@ def _replace_in_value_list(current_value, replacement_tuple):
 
 
 def flip_orientation_code(code):
-    """
-    Reverts an orientation code by flipping R↔L, A↔P, and I↔S.
-    """
+    """Reverts an orientation code by flipping R↔L, A↔P, and I↔S."""
     flip_dict = {"R": "L", "L": "R", "A": "P", "P": "A", "I": "S", "S": "I"}
     return "".join(flip_dict[c] for c in code)
