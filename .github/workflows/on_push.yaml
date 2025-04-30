@@ -107,10 +107,36 @@ jobs:
           echo "phase_three=${phase_three}" >> $GITHUB_OUTPUT
           echo "rebuild_phase_three=${rebuild_phase_three}" >> $GITHUB_OUTPUT
 
+  check_pr:
+    runs-on: ubuntu-latest
+    outputs:
+      test_mode: ${{ steps.check_pr.outputs.test_mode }}
+    steps:
+      - name: Check out C-PAC
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - name: Check if commit is in a PR to develop
+        id: check_pr
+        run: |
+          TEST_MODE=none
+          if echo "${{ github.event.head_commit.message }}" | grep -q '\[run reg-suite lite\]'
+          then
+            TEST_MODE=lite
+          elif gh pr list --base develop --json number,state,draft | jq 'any(.[]; .state == "OPEN" or .draft == true)'; then
+            TEST_MODE=lite
+          elif gh pr list --base main --json number,state,draft | jq 'any(.[]; .state == "OPEN" or .draft == true)'; then
+            TEST_MODE=full
+          fi
+          echo "test_mode=${TEST_MODE}"
+          echo "test_mode=${TEST_MODE}" >> $GITHUB_OUTPUT
+
   build-stages:
     name: Build multistage image stages
-    needs: check-updated-preconfigs
-    uses: ./.github/workflows/build_and_test.yml
+    needs:
+      - check_pr
+      - check-updated-preconfigs
+    uses: ./.github/workflows/build_and_test.yaml
     secrets: inherit
     with:
       phase_one: ${{ needs.check-updated-preconfigs.outputs.phase_one }}
@@ -119,3 +145,4 @@ jobs:
       rebuild_phase_two: ${{ needs.check-updated-preconfigs.outputs.rebuild_phase_two }}
       phase_three: ${{ needs.check-updated-preconfigs.outputs.phase_three }}
       rebuild_phase_three: ${{ needs.check-updated-preconfigs.outputs.rebuild_phase_three }}
+      test_mode: ${{ needs.check_pr.outputs.test_mode }}

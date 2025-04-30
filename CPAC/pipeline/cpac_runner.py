@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Run C-PAC."""
+"""Run C-PAC pipeline as configured."""
 
 from multiprocessing import Process
 import os
@@ -29,20 +29,20 @@ from CPAC.pipeline.utils import get_shell
 from CPAC.utils.configuration import check_pname, Configuration, set_subject
 from CPAC.utils.configuration.yaml_template import upgrade_pipeline_to_1_8
 from CPAC.utils.ga import track_run
-from CPAC.utils.monitoring import failed_to_start, log_nodes_cb, WFLOGGER
+from CPAC.utils.io import load_yaml
+from CPAC.utils.monitoring import failed_to_start, FMLOGGER, log_nodes_cb, WFLOGGER
+
+RECOMMENDED_MAX_PATH_LENGTH: int = 70
+"""Recommended maximum length for a working directory path."""
 
 
-# Run condor jobs
 def run_condor_jobs(c, config_file, subject_list_file, p_name):
+    """Run condor jobs."""
     # Import packages
     import subprocess
     from time import strftime
 
-    try:
-        sublist = yaml.safe_load(open(os.path.realpath(subject_list_file), "r"))
-    except:
-        msg = "Subject list is not in proper YAML format. Please check your file"
-        raise Exception(msg)
+    sublist = load_yaml(subject_list_file, "Subject list")
 
     cluster_files_dir = os.path.join(os.getcwd(), "cluster_files")
     subject_bash_file = os.path.join(
@@ -103,7 +103,10 @@ def run_condor_jobs(c, config_file, subject_list_file, p_name):
 
 # Create and run script for CPAC to run on cluster
 def run_cpac_on_cluster(config_file, subject_list_file, cluster_files_dir):
-    """Build a batch job submission script and submit to the scheduler."""
+    """Build a SLURM batch job submission script.
+
+    Submit it to the scheduler via 'sbatch'.
+    """
     # Import packages
     import getpass
     import re
@@ -113,18 +116,11 @@ def run_cpac_on_cluster(config_file, subject_list_file, cluster_files_dir):
     from indi_schedulers import cluster_templates
 
     # Load in pipeline config
-    try:
-        pipeline_dict = yaml.safe_load(open(os.path.realpath(config_file), "r"))
-        pipeline_config = Configuration(pipeline_dict)
-    except:
-        msg = "Pipeline config is not in proper YAML format. Please check your file"
-        raise Exception(msg)
+    pipeline_dict = load_yaml(config_file, "Pipeline config")
+    pipeline_config = Configuration(pipeline_dict)
+
     # Load in the subject list
-    try:
-        sublist = yaml.safe_load(open(os.path.realpath(subject_list_file), "r"))
-    except:
-        msg = "Subject list is not in proper YAML format. Please check your file"
-        raise Exception(msg)
+    sublist = load_yaml(subject_list_file, "Subject list")
 
     # Init variables
     timestamp = str(strftime("%Y_%m_%d_%H_%M_%S"))
@@ -237,6 +233,7 @@ def run_cpac_on_cluster(config_file, subject_list_file, cluster_files_dir):
 
 
 def run_T1w_longitudinal(sublist, cfg):
+    """Run anatomical longitudinal pipeline."""
     subject_id_dict = {}
 
     for sub in sublist:
@@ -259,7 +256,7 @@ def run_T1w_longitudinal(sublist, cfg):
             )
 
 
-def run(
+def run(  # noqa: PLR0915
     subject_list_file,
     config_file=None,
     p_name=None,
@@ -321,22 +318,21 @@ def run(
     config_file = os.path.realpath(config_file)
     try:
         if not os.path.exists(config_file):
-            raise IOError
-        else:
+            raise FileNotFoundError(config_file)
+        try:
+            c = Configuration(load_yaml(config_file, "Pipeline configuration"))
+        except Invalid:
             try:
-                c = Configuration(yaml.safe_load(open(config_file, "r")))
-            except Invalid:
-                try:
-                    upgrade_pipeline_to_1_8(config_file)
-                    c = Configuration(yaml.safe_load(open(config_file, "r")))
-                except Exception as e:
-                    msg = (
-                        "C-PAC could not upgrade pipeline configuration file "
-                        f"{config_file} to v1.8 syntax"
-                    )
-                    raise RuntimeError(msg) from e
+                upgrade_pipeline_to_1_8(config_file)
+                c = Configuration(load_yaml(config_file, "Pipeline configuration"))
             except Exception as e:
-                raise e
+                msg = (
+                    "C-PAC could not upgrade pipeline configuration file "
+                    f"{config_file} to v1.8 syntax"
+                )
+                raise RuntimeError(msg) from e
+        except Exception as e:
+            raise e
     except IOError as e:
         msg = f"config file {config_file} doesn't exist"
         raise FileNotFoundError(msg) from e
@@ -384,10 +380,10 @@ def run(
         msg = "Working directory not specified"
         raise Exception(msg)
 
-    if len(c.pipeline_setup["working_directory"]["path"]) > 70:
+    if len(c.pipeline_setup["working_directory"]["path"]) > RECOMMENDED_MAX_PATH_LENGTH:
         warnings.warn(
             "We recommend that the working directory full path "
-            "should have less then 70 characters. "
+            f"should have less then {RECOMMENDED_MAX_PATH_LENGTH} characters. "
             "Long paths might not work in your operating system."
         )
         warnings.warn(
@@ -399,12 +395,8 @@ def run(
     p_name = check_pname(p_name, c)
 
     # Load in subject list
-    try:
-        if not sublist:
-            sublist = yaml.safe_load(open(subject_list_file, "r"))
-    except:
-        msg = "Subject list is not in proper YAML format. Please check your file"
-        raise FileNotFoundError(msg)
+    if not sublist:
+        sublist = load_yaml(subject_list_file, "Subject list")
 
     # Populate subject scan map
     sub_scan_map = {}
@@ -417,12 +409,12 @@ def run(
             scan_ids = ["scan_anat"]
 
             if "func" in sub:
-                for id in sub["func"]:
-                    scan_ids.append("scan_" + str(id))
+                for _id in sub["func"]:
+                    scan_ids.append("scan_" + str(_id))
 
             if "rest" in sub:
-                for id in sub["rest"]:
-                    scan_ids.append("scan_" + str(id))
+                for _id in sub["rest"]:
+                    scan_ids.append("scan_" + str(_id))
 
             sub_scan_map[s] = scan_ids
     except Exception as e:
@@ -443,8 +435,10 @@ def run(
                 level="participant" if not test_config else "test",
                 participants=len(sublist),
             )
-        except:
-            WFLOGGER.error("Usage tracking failed for this run.")
+        except Exception as exception:
+            WFLOGGER.error(
+                "Usage tracking failed for this run.\nDetails: %s", exception
+            )
 
     # If we're running on cluster, execute job scheduler
     if c.pipeline_setup["system_config"]["on_grid"]["run"]:
@@ -470,15 +464,20 @@ def run(
         # Create working dir
         if not os.path.exists(c.pipeline_setup["working_directory"]["path"]):
             try:
-                os.makedirs(c.pipeline_setup["working_directory"]["path"])
-            except:
-                err = (
-                    "\n\n[!] CPAC says: Could not create the working "
-                    "directory: %s\n\nMake sure you have permissions "
-                    "to write to this directory.\n\n"
-                    % c.pipeline_setup["working_directory"]["path"]
+                os.makedirs(
+                    c.pipeline_setup["working_directory"]["path"], exist_ok=True
                 )
-                raise Exception(err)
+            except FileExistsError:
+                FMLOGGER.warn(
+                    f"Path exists: {c['pipeline_setup', 'working_directory', 'path']}"
+                )
+            except Exception as exception:
+                err = (
+                    "\n\n[!] CPAC says: Could not create the working directory: "
+                    f"{c['pipeline_setup', 'working_directory', 'path']}\n\nMake sure "
+                    "you have permissions to write to this directory.\n\n"
+                )
+                raise IOError(err) from exception
         """
         if not os.path.exists(c.pipeline_setup['log_directory']['path']):
             try:
