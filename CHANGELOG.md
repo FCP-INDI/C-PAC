@@ -46,6 +46,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Turned `generate_xcpqc_files` on for all preconfigurations except `blank`.
 - Introduced specific switch `restore_t1w_intensity` for `correct_restore_brain_intensity_abcd` nodeblock, enabling it by default only in `abcd-options` pre-config.
 - Updated GitHub Actions to run automated integration and regression tests on HPC.
+- Refactored `bold_mask_anatomical_resampled` nodeblock and related pipeline configs:
+  - Limited scope to template-space masking only.
+  - Removed broken support for native-space masking.
+  - Introduced a new `template_space_func_masking` section in the pipeline config for template-space-only methods.
+  - Moved `Anatomical_Resampled` masking method from `func_masking` to the `template_space_func_masking`.
 
 ### Fixed
 

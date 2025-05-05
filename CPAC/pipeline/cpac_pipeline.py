@@ -107,6 +107,7 @@ from CPAC.func_preproc.func_preproc import (
     func_scaling,
     func_slice_time,
     func_truncate,
+    template_space_bold_masking,
 )
 from CPAC.network_centrality.pipeline import network_centrality
 from CPAC.nuisance.nuisance import (
@@ -1275,7 +1276,6 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
                     bold_mask_fsl_afni,
                     bold_mask_anatomical_refined,
                     bold_mask_anatomical_based,
-                    bold_mask_anatomical_resampled,
                     bold_mask_ccs,
                 ],
                 bold_masking,
@@ -1511,6 +1511,17 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
         pipeline_blocks += [
             warp_bold_mask_to_EPItemplate,
             warp_deriv_mask_to_EPItemplate,
+        ]
+
+    # Template space functional masking
+    if cfg.functional_preproc["template_space_func_masking"]["run"]:
+        if not rpool.check_rpool("space-template_desc-bold_mask"):
+            pipeline_blocks += [
+                bold_mask_anatomical_resampled,
+            ]
+
+        pipeline_blocks += [
+            template_space_bold_masking,
         ]
 
     # Template-space nuisance regression
