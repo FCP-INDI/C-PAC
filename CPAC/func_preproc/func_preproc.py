@@ -29,7 +29,7 @@ from CPAC.utils.interfaces.ants import (
     PrintHeader,
     SetDirectionByMatrix,
 )
-from CPAC.utils.utils import add_afni_prefix
+from CPAC.utils.utils import add_afni_prefix, afni_3dwarp
 
 
 def collect_arguments(*args):
@@ -708,7 +708,10 @@ def fsl_afni_subworkflow(cfg, pipe_num, opt=None):
 def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
     """Reorient functional timeseries."""
     func_deoblique = pe.Node(
-        interface=afni_utils.Refit(),
+        Function(
+            input_names=["in_file", "deoblique"],
+            output_names=["out_file"],
+            function=afni_3dwarp),
         name=f"func_deoblique_{pipe_num}",
         mem_gb=0.68,
         mem_x=(4664065662093477 / 1208925819614629174706176, "in_file"),
