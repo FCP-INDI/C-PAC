@@ -962,6 +962,46 @@ def add_afni_prefix(tpattern):
     return tpattern
 
 
+def afni_3dwarp(in_file, out_file=None, deoblique=False):
+    """
+    Runs AFNI's 3dWarp command with optional deobliquing.
+
+    Parameters
+    ----------
+    in_file : str
+        Path to the input NIfTI file.
+    out_file : str or None
+        Path for the output file. If None, a name will be generated in the current directory.
+    deoblique : bool
+        If True, adds the '-deoblique' flag to the 3dWarp command.
+
+    Returns
+    -------
+    out_file : str
+        Path to the output file.
+    """
+    import os
+    import subprocess
+
+    if not out_file:
+        base = os.path.basename(in_file)
+        base = base.replace(".nii.gz", "").replace(".nii", "")
+        suffix = "_deoblique" if deoblique else "_warped"
+        out_file = os.path.abspath(f"{base}{suffix}.nii.gz")
+
+    cmd = ["3dWarp"]
+    if deoblique:
+        cmd.append("-deoblique")
+    cmd += ["-prefix", out_file, in_file]
+
+    try:
+        subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"3dWarp failed with error:\n{e.output.decode()}")
+
+    return out_file
+
+
 def write_to_log(workflow, log_dir, index, inputs, scan_id):
     """Write into log file the status of the workflow run."""
     import datetime
