@@ -13,11 +13,13 @@
 # License for more details.
 
 # You should have received a copy of the GNU Lesser General Public
-# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+
 FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.5-jammy as FSL
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free as AFNI
 USER root
-ENV AFNI_VERSION="23.3.09"
+
+ENV AFNI_VERSION="25.1.08"
+
 # To use the same Python environment to share common libraries
 COPY --from=FSL /usr/share/fsl/6.0 /usr/share/fsl/6.0
 ENV FSLDIR=/usr/share/fsl/6.0 \
@@ -28,6 +30,7 @@ ENV FSLDIR=/usr/share/fsl/6.0 \
 COPY dev/docker_data/required_afni_pkgs.txt /opt/required_afni_pkgs.txt
 COPY dev/docker_data/checksum/AFNI.${AFNI_VERSION}.sha384 /tmp/AFNI.${AFNI_VERSION}.sha384
 ENV PATH=/opt/afni:$PATH
+
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
   apt-transport-https \
@@ -109,23 +112,20 @@ RUN apt-get update \
   && mkdir /opt/afni \
   && tar -xvf afni-AFNI_${AFNI_VERSION}.tar.gz -C /opt/afni --strip-components 1 \
   && rm -rf afni-AFNI_${AFNI_VERSION}.tar.gz \
-  # Fix GLwDrawA per https://github.com/afni/afni/blob/AFNI_23.1.10/src/other_builds/OS_notes.linux_fedora_25_64.txt
   && cd /usr/include/GL \
   && mv GLwDrawA.h GLwDrawA.h.orig \
   && sed 's/GLAPI WidgetClass/extern GLAPI WidgetClass/' GLwDrawA.h.orig > GLwDrawA.h \
   && cd /opt/afni/src \
   && sed '/^INSTALLDIR =/c INSTALLDIR = /opt/afni' other_builds/Makefile.linux_ubuntu_22_64 > Makefile \
-  && make vastness && make cleanest \
+  && make totality && make cleanest \
   && cd /opt/afni \
   && VERSION_STRING=$(afni --version) \
   && VERSION_NAME=$(echo $VERSION_STRING | awk -F"'" '{print $2}') \
-  # filter down to required packages
   && cd /opt/afni/linux_openmp_64 \
   && ls > ../full_ls \
-  && sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sort > ../required_ls \
-  && comm -2 -3 ../full_ls ../required_ls | xargs rm -rf \
+  && sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sed 's/\r//' | sort > ../required_ls \
+  && comm -2 -3 ../full_ls ../required_ls | xargs -r rm -rf \
   && rm -f ../full_ls ../required_ls \
-  # get rid of stuff we just needed for building
   && apt-get remove -y \
   bzip2 \
   cmake \
