@@ -37,6 +37,7 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
+from CPAC.utils.utils import afni_3dwarp
 
 
 def acpc_alignment(
@@ -1448,7 +1449,11 @@ def mask_T2(wf_name="mask_T2"):
     outputs=["desc-preproc_T1w", "desc-reorient_T1w", "desc-head_T1w"],
 )
 def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
-    anat_deoblique = pe.Node(interface=afni.Refit(), name=f"anat_deoblique_{pipe_num}")
+    anat_deoblique = pe.Node(Function(
+        input_names=["in_file", "deoblique"],
+        output_names=["out_file"],
+        function=afni_3dwarp
+    ), name=f"anat_deoblique_{pipe_num}")
     anat_deoblique.inputs.deoblique = True
 
     node, out = strat_pool.get_data("T1w")
