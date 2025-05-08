@@ -30,7 +30,6 @@ ENV FSLDIR=/usr/share/fsl/6.0 \
 COPY dev/docker_data/required_afni_pkgs.txt /opt/required_afni_pkgs.txt
 COPY dev/docker_data/checksum/AFNI.${AFNI_VERSION}.sha384 /tmp/AFNI.${AFNI_VERSION}.sha384
 ENV PATH=/opt/afni:$PATH
-
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
   apt-transport-https \
@@ -112,20 +111,21 @@ RUN apt-get update \
   && mkdir /opt/afni \
   && tar -xvf afni-AFNI_${AFNI_VERSION}.tar.gz -C /opt/afni --strip-components 1 \
   && rm -rf afni-AFNI_${AFNI_VERSION}.tar.gz \
+  # Fix GLwDrawA per https://github.com/afni/afni/blob/AFNI_23.1.10/src/other_builds/OS_notes.linux_fedora_25_64.txt
   && cd /usr/include/GL \
   && mv GLwDrawA.h GLwDrawA.h.orig \
   && sed 's/GLAPI WidgetClass/extern GLAPI WidgetClass/' GLwDrawA.h.orig > GLwDrawA.h \
   && cd /opt/afni/src \
   && sed '/^INSTALLDIR =/c INSTALLDIR = /opt/afni' other_builds/Makefile.linux_ubuntu_22_64 > Makefile \
-  && make totality && make cleanest \
+  && make vastness && make cleanest \
   && cd /opt/afni \
   && VERSION_STRING=$(afni --version) \
   && VERSION_NAME=$(echo $VERSION_STRING | awk -F"'" '{print $2}') \
-  && cd /opt/afni/linux_openmp_64 \
-  && ls > ../full_ls \
-  && sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sed 's/\r//' | sort > ../required_ls \
-  && comm -2 -3 ../full_ls ../required_ls | xargs -r rm -rf \
-  && rm -f ../full_ls ../required_ls \
+  # filter down to required packages
+  && ls > full_ls \
+  && sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sort > required_ls \
+  && comm -2 -3 full_ls required_ls | xargs rm -rf full_ls required_ls \
+  # get rid of stuff we just needed for building
   && apt-get remove -y \
   bzip2 \
   cmake \
