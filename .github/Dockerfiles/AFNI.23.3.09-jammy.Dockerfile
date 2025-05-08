@@ -14,12 +14,12 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.5-jammy as FSL
-FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free as AFNI
+FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.5-jammy AS fsl
+FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free AS afni
 USER root
 ENV AFNI_VERSION="23.3.09"
 # To use the same Python environment to share common libraries
-COPY --from=FSL /usr/share/fsl/6.0 /usr/share/fsl/6.0
+COPY --from=fsl /usr/share/fsl/6.0 /usr/share/fsl/6.0
 ENV FSLDIR=/usr/share/fsl/6.0 \
   PATH=/usr/share/fsl/6.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
   LD_LIBRARY_PATH=/usr/share/fsl/6.0/lib:$LD_LIBRARY_PATH
@@ -159,7 +159,7 @@ FROM scratch
 LABEL org.opencontainers.image.description="NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
   AFNI ${AFNI_VERSION} (${VERSION_NAME}) stage"
 LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
-COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
-COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
-COPY --from=AFNI /lib64/ld* /lib64/
-COPY --from=AFNI /opt/afni/ /opt/afni/
+COPY --from=afni /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
+COPY --from=afni /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
+COPY --from=afni /lib64/ld* /lib64/
+COPY --from=afni /opt/afni/ /opt/afni/
