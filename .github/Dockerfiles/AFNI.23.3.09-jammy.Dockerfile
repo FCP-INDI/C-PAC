@@ -122,7 +122,8 @@ RUN apt-get update \
   # filter down to required packages
   && ls > full_ls \
   && sed 's/linux_openmp_64\///g' /opt/required_afni_pkgs.txt | sort > required_ls \
-  && comm -2 -3 full_ls required_ls | xargs rm -rf full_ls required_ls \
+  && grep -qxF '3dWarp' full_ls || echo '3dWarp' >> required_ls \
+  && comm -2 -3 full_ls required_ls | xargs rm -rf \
   # get rid of stuff we just needed for building
   && apt-get remove -y \
   bzip2 \
