@@ -1,4 +1,4 @@
-AFNI.25.1.08-jammy
+AFNI.23.3.09-jammy
 ANTs.2.4.3-jammy
 c3d.1.0.0-jammy
 connectome-workbench.1.5.0.neurodebian-jammy

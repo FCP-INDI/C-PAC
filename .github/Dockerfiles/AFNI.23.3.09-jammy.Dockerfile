@@ -13,13 +13,11 @@
 # License for more details.
 
 # You should have received a copy of the GNU Lesser General Public
-
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.5-jammy as FSL
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free as AFNI
 USER root
-
-ENV AFNI_VERSION="25.1.08"
-
+ENV AFNI_VERSION="23.3.09"
 # To use the same Python environment to share common libraries
 COPY --from=FSL /usr/share/fsl/6.0 /usr/share/fsl/6.0
 ENV FSLDIR=/usr/share/fsl/6.0 \
@@ -105,7 +103,7 @@ RUN apt-get update \
   xvfb \
   zlib1g-dev \
   && curl -LOJ https://github.com/afni/afni/archive/AFNI_${AFNI_VERSION}.tar.gz \
-  #&& sha384sum --check /tmp/AFNI.${AFNI_VERSION}.sha384 \
+  && sha384sum --check /tmp/AFNI.${AFNI_VERSION}.sha384 \
   && ln -svf /usr/lib/x86_64-linux-gnu/libgsl.so.27 /usr/lib/x86_64-linux-gnu/libgsl.so.19 \
   && ln -svf /usr/lib/x86_64-linux-gnu/libgsl.so.27 /usr/lib/x86_64-linux-gnu/libgsl.so.0 \
   && mkdir /opt/afni \
