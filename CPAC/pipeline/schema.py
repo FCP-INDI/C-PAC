@@ -21,6 +21,7 @@
 from itertools import chain, permutations
 import re
 from subprocess import CalledProcessError
+from typing import Literal, TypeAlias
 
 import numpy as np
 from pathvalidate import sanitize_filename
@@ -61,6 +62,12 @@ SCIENTIFIC_NOTATION_STR_REGEX = r"^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$"
 RESOLUTION_REGEX = r"^[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*$"
 
 Number = Any(float, int, All(str, Match(SCIENTIFIC_NOTATION_STR_REGEX)))
+Organism: TypeAlias = Literal[
+    "human",
+    "non-human primate",
+    "rodent",
+]
+ORGANISMS: list[Organism] = ["human", "non-human primate", "rodent"]
 
 
 def str_to_bool1_1(x):  # pylint: disable=invalid-name
@@ -423,6 +430,7 @@ latest_schema = Schema(
         "skip env check": Maybe(bool),  # flag for skipping an environment check
         "pipeline_setup": {
             "pipeline_name": All(str, Length(min=1), sanitize),
+            "organism": In(ORGANISMS),
             "desired_orientation": In(
                 {"RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"}
             ),
@@ -1411,10 +1419,13 @@ def schema(config_dict):
                 "anatomical_registration"
             ]["registration"]["using"]
         ):
-            raise ExclusiveInvalid(
-                "[!] Overwrite transform method is the same as the anatomical registration method! "
-                "No need to overwrite transform with the same registration method. Please turn it off or use a different registration method."
+            msg = (
+                "[!] Overwrite transform method is the same as the anatomical "
+                "registration method! No need to overwrite transform with the same "
+                "registration method. Please turn it off or use a different "
+                "registration method."
             )
+            raise ExclusiveInvalid(msg)
     except KeyError:
         pass
     try:

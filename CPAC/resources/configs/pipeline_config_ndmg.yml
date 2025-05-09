@@ -18,11 +18,11 @@ pipeline_setup:
     # Quality control outputs
     quality_control:
 
-      # Generate quality control pages containing preprocessing and derivative outputs.
-      generate_quality_control_images: On
-
       # Generate eXtensible Connectivity Pipeline-style quality control files
       generate_xcpqc_files: On
+
+      # Generate quality control pages containing preprocessing and derivative outputs.
+      generate_quality_control_images: On
 
   system_config:
 

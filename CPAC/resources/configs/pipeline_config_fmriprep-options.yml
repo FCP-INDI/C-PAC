@@ -14,9 +14,13 @@ pipeline_setup:
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac_fmriprep-options
   output_directory:
+
+    # Quality control outputs
     quality_control:
+
       # Generate eXtensible Connectivity Pipeline-style quality control files
       generate_xcpqc_files: On
+
   system_config:
 
     # Select Off if you intend to run CPAC on a single machine.
