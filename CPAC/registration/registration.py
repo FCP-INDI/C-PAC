@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -17,7 +17,7 @@
 # pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
 """Workflows for registration."""
 
-from typing import Optional
+from typing import Literal, Optional
 
 from voluptuous import RequiredFieldInvalid
 from nipype.interfaces import afni, ants, c3, fsl, utility as util
@@ -40,6 +40,7 @@ from CPAC.registration.utils import (
     seperate_warps_list,
     single_ants_xfm_to_list,
 )
+from CPAC.utils.configuration import Configuration
 from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
 from CPAC.utils.utils import check_prov_for_motion_tool, check_prov_for_regtool
@@ -1454,9 +1455,15 @@ def create_wf_calculate_ants_warp(
 
 
 def FSL_registration_connector(
-    wf_name, cfg, orig="T1w", opt=None, symmetric=False, template="T1w"
-):
+    wf_name: str,
+    cfg: Configuration,
+    orig: str = "T1w",
+    opt: Literal["FSL", "FSL-linear"] = "FSL",
+    symmetric: bool = False,
+    template: str = "T1w",
+) -> tuple[pe.Workflow, dict[str, tuple]]:
     """Transform raw data to template with FSL."""
+    assert opt in ["FSL", "FSL-linear"]
     wf = pe.Workflow(name=wf_name)
 
     inputNode = pe.Node(
@@ -1485,78 +1492,71 @@ def FSL_registration_connector(
     tmpl = ""
     if template == "EPI":
         tmpl = "EPI"
+    flirt_reg_anat_mni = create_fsl_flirt_linear_reg(f"anat_mni_flirt_register{symm}")
 
-    if opt in ("FSL", "FSL-linear"):
-        flirt_reg_anat_mni = create_fsl_flirt_linear_reg(
-            f"anat_mni_flirt_register{symm}"
-        )
+    # Input registration parameters
+    wf.connect(inputNode, "interpolation", flirt_reg_anat_mni, "inputspec.interp")
 
-        # Input registration parameters
-        wf.connect(inputNode, "interpolation", flirt_reg_anat_mni, "inputspec.interp")
+    wf.connect(inputNode, "input_brain", flirt_reg_anat_mni, "inputspec.input_brain")
 
-        wf.connect(
-            inputNode, "input_brain", flirt_reg_anat_mni, "inputspec.input_brain"
-        )
+    wf.connect(
+        inputNode,
+        "reference_brain",
+        flirt_reg_anat_mni,
+        "inputspec.reference_brain",
+    )
 
-        wf.connect(
-            inputNode,
-            "reference_brain",
+    write_lin_composite_xfm = pe.Node(
+        interface=fsl.ConvertWarp(), name=f"fsl_lin-warp_to_nii{symm}"
+    )
+
+    wf.connect(inputNode, "reference_brain", write_lin_composite_xfm, "reference")
+
+    wf.connect(
+        flirt_reg_anat_mni,
+        "outputspec.linear_xfm",
+        write_lin_composite_xfm,
+        "premat",
+    )
+
+    write_invlin_composite_xfm = pe.Node(
+        interface=fsl.ConvertWarp(), name=f"fsl_invlin-warp_to_nii{symm}"
+    )
+
+    wf.connect(inputNode, "reference_brain", write_invlin_composite_xfm, "reference")
+
+    wf.connect(
+        flirt_reg_anat_mni,
+        "outputspec.invlinear_xfm",
+        write_invlin_composite_xfm,
+        "premat",
+    )
+
+    outputs = {
+        f"space-{sym}template_desc-preproc_{orig}": (
             flirt_reg_anat_mni,
-            "inputspec.reference_brain",
-        )
-
-        write_lin_composite_xfm = pe.Node(
-            interface=fsl.ConvertWarp(), name=f"fsl_lin-warp_to_nii{symm}"
-        )
-
-        wf.connect(inputNode, "reference_brain", write_lin_composite_xfm, "reference")
-
-        wf.connect(
-            flirt_reg_anat_mni,
-            "outputspec.linear_xfm",
+            "outputspec.output_brain",
+        ),
+        f"from-{orig}_to-{sym}{tmpl}template_mode-image_desc-linear_xfm": (
             write_lin_composite_xfm,
-            "premat",
-        )
-
-        write_invlin_composite_xfm = pe.Node(
-            interface=fsl.ConvertWarp(), name=f"fsl_invlin-warp_to_nii{symm}"
-        )
-
-        wf.connect(
-            inputNode, "reference_brain", write_invlin_composite_xfm, "reference"
-        )
-
-        wf.connect(
-            flirt_reg_anat_mni,
-            "outputspec.invlinear_xfm",
+            "out_file",
+        ),
+        f"from-{sym}{tmpl}template_to-{orig}_mode-image_desc-linear_xfm": (
             write_invlin_composite_xfm,
-            "premat",
-        )
+            "out_file",
+        ),
+        f"from-{orig}_to-{sym}{tmpl}template_mode-image_xfm": (
+            write_lin_composite_xfm,
+            "out_file",
+        ),
+    }
 
-        outputs = {
-            f"space-{sym}template_desc-preproc_{orig}": (
-                flirt_reg_anat_mni,
-                "outputspec.output_brain",
-            ),
-            f"from-{orig}_to-{sym}{tmpl}template_mode-image_desc-linear_xfm": (
-                write_lin_composite_xfm,
-                "out_file",
-            ),
-            f"from-{sym}{tmpl}template_to-{orig}_mode-image_desc-linear_xfm": (
-                write_invlin_composite_xfm,
-                "out_file",
-            ),
-            f"from-{orig}_to-{sym}{tmpl}template_mode-image_xfm": (
-                write_lin_composite_xfm,
-                "out_file",
-            ),
-        }
-
-    if opt == "FSL" and cfg["pipeline_setup", "organism"] == "non-human primate":
-        fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg_nhp(
-            f"anat_mni_fnirt_register{symm}"
-        )
-
+    if opt == "FSL":
+        fnirt_reg_anat_mni = (
+            create_fsl_fnirt_nonlinear_reg_nhp
+            if cfg["pipeline_setup", "organism"] == "non-human primate"
+            else create_fsl_fnirt_nonlinear_reg
+        )(f"anat_mni_fnirt_register{symm}")
         wf.connect(
             inputNode, "input_brain", fnirt_reg_anat_mni, "inputspec.input_brain"
         )
@@ -1597,30 +1597,35 @@ def FSL_registration_connector(
                 fnirt_reg_anat_mni,
                 "outputspec.output_brain",
             ),
-            f"space-{sym}template_desc-head_{orig}": (
-                fnirt_reg_anat_mni,
-                "outputspec.output_head",
-            ),
-            f"space-{sym}template_desc-{'brain' if orig == 'T1w' else orig}_mask": (
-                fnirt_reg_anat_mni,
-                "outputspec.output_mask",
-            ),
-            f"space-{sym}template_desc-T1wT2w_biasfield": (
-                fnirt_reg_anat_mni,
-                "outputspec.output_biasfield",
-            ),
             f"from-{orig}_to-{sym}{tmpl}template_mode-image_xfm": (
                 fnirt_reg_anat_mni,
                 "outputspec.nonlinear_xfm",
             ),
-            f"from-{orig}_to-{sym}{tmpl}template_mode-image_warp": (
-                fnirt_reg_anat_mni,
-                "outputspec.nonlinear_warp",
-            ),
         }
+        if cfg["pipeline_setup", "organism"] == "non-human primate":
+            added_outputs.update(
+                {
+                    f"space-{sym}template_desc-head_{orig}": (
+                        fnirt_reg_anat_mni,
+                        "outputspec.output_head",
+                    ),
+                    f"space-{sym}template_desc-{'brain' if orig == 'T1w' else orig}_mask": (
+                        fnirt_reg_anat_mni,
+                        "outputspec.output_mask",
+                    ),
+                    f"space-{sym}template_desc-T1wT2w_biasfield": (
+                        fnirt_reg_anat_mni,
+                        "outputspec.output_biasfield",
+                    ),
+                    f"from-{orig}_to-{sym}{tmpl}template_mode-image_warp": (
+                        fnirt_reg_anat_mni,
+                        "outputspec.nonlinear_warp",
+                    ),
+                }
+            )
         outputs.update(added_outputs)
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 def ANTs_registration_connector(
@@ -2256,6 +2261,7 @@ def bold_to_T1template_xfm_connector(
 )
 def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Register T1w to template with FSL."""
+    assert opt in ["FSL", "FSL-linear"]
     fsl, outputs = FSL_registration_connector(
         f"register_{opt}_anat_to_template_{pipe_num}", cfg, orig="T1w", opt=opt
     )
@@ -2274,11 +2280,18 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = connect
     wf.connect(node, out, fsl, "inputspec.input_brain")
 
-    node, out = strat_pool.get_data("T1w-brain-template")
-    wf.connect(node, out, fsl, "inputspec.reference_brain")
+    if cfg["pipeline_setup", "organism"] == "non-human primate":
+        node, out = strat_pool.get_data("FNIRT-T1w-brain-template")
+        wf.connect(node, out, fsl, "inputspec.reference_brain")
 
-    node, out = strat_pool.get_data("T1w-template")
-    wf.connect(node, out, fsl, "inputspec.reference_head")
+        node, out = strat_pool.get_data("FNIRT-T1w-template")
+        wf.connect(node, out, fsl, "inputspec.reference_head")
+    else:
+        node, out = strat_pool.get_data("T1w-brain-template")
+        wf.connect(node, out, fsl, "inputspec.reference_brain")
+
+        node, out = strat_pool.get_data("T1w-template")
+        wf.connect(node, out, fsl, "inputspec.reference_head")
 
     node, out = strat_pool.get_data(
         ["desc-preproc_T1w", "space-longitudinal_desc-reorient_T1w"]
@@ -2345,6 +2358,7 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Register T1w to symmetric template with FSL."""
+    assert opt in ["FSL", "FSL-linear"]
     fsl, outputs = FSL_registration_connector(
         f"register_{opt}_anat_to_template_symmetric_{pipe_num}",
         cfg,
@@ -2419,6 +2433,7 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=N
 )
 def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Directly register the mean functional to an EPI template. No T1w involved."""
+    assert opt in ["FSL", "FSL-linear"]
     fsl, outputs = FSL_registration_connector(
         f"register_{opt}_EPI_to_template_{pipe_num}",
         cfg,
