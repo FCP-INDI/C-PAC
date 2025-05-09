@@ -1552,7 +1552,7 @@ def FSL_registration_connector(
             ),
         }
 
-    if opt == "FSL":
+    if opt == "FSL" and cfg["pipeline_setup", "organism"] == "non-human primate":
         fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg_nhp(
             f"anat_mni_fnirt_register{symm}"
         )

@@ -13,16 +13,19 @@ pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac_default_monkey_skullstrip
+
+  # Human, non-human primate, or rodent data?
+  organism: non-human primate
   output_directory:
 
     # Quality control outputs
     quality_control:
 
-      # Generate quality control pages containing preprocessing and derivative outputs.
-      generate_quality_control_images: On
-
       # Generate eXtensible Connectivity Pipeline-style quality control files
       generate_xcpqc_files: On
+
+      # Generate quality control pages containing preprocessing and derivative outputs.
+      generate_quality_control_images: On
 
   system_config:
 
