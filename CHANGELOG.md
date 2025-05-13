@@ -71,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Inputs `[desc-motion_bold, bold]` from `coregistration_prep_vol` nodeblock.
 - `input` field from `coregistration` in blank and default config.
 - `reg_with_skull` swtich from `func_input_prep` in blank and default config.
+- Support for AFNI 3dECM < v21.1.1.
 
 #### Removed CI dependency
 

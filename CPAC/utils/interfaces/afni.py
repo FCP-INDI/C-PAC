@@ -1,4 +1,4 @@
-# Copyright (C) 2023  C-PAC Developers
+# Copyright (C) 2023-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -31,8 +31,6 @@ except ValueError:
     _major, _minor, _patch = [int(part) for part in AFNI_SEMVER.split(".")]
     AFNI_SEMVER = str(semver.Version.parse(f"{_major}.{_minor}.{_patch}"))
     del _major, _minor, _patch
-AFNI_GTE_21_1_1 = semver.compare(AFNI_SEMVER, "21.1.1") >= 0
-"""AFNI version >= 21.1.1?"""
 
 
 class ECMInputSpec(_ECMInputSpec):
@@ -51,4 +49,4 @@ class ECM(_ECM):
     input_spec = ECMInputSpec
 
 
-__all__ = ["AFNI_GTE_21_1_1", "ECM"]
+__all__ = ["ECM"]
