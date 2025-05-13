@@ -962,6 +962,34 @@ def add_afni_prefix(tpattern):
     return tpattern
 
 
+def is_oblique(in_file):
+    """
+    Check if a NIfTI file is oblique using AFNI's 3dinfo.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the input NIfTI file.
+
+    Returns
+    -------
+    bool
+        True if the image is oblique, False otherwise.
+    """
+    import subprocess
+
+    oblique = False
+    try:
+        result = subprocess.check_output(
+            ["3dinfo", "-is_oblique", in_file], stderr=subprocess.STDOUT
+        )
+        if result.decode().strip().endswith("1"):
+            oblique = True
+        return oblique
+    except Exception as e:
+        raise RuntimeError(f"Failed to check obliqueness with 3dinfo:\n{e}")
+
+
 def afni_3dwarp(in_file, out_file=None, deoblique=False):
     """
     Runs AFNI's 3dWarp command with optional deobliquing.

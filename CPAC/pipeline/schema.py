@@ -104,6 +104,7 @@ bool1_1 = All(str_to_bool1_1, bool)
 forkable = All(Coerce(ListFromItem), [bool1_1], Length(max=2))
 valid_options = {
     "acpc": {"target": ["brain", "whole-head"]},
+    "deoblique": ["warp", "refit"],
     "brain_extraction": {
         "using": [
             "3dSkullStrip",
@@ -519,6 +520,7 @@ latest_schema = Schema(
         "anatomical_preproc": {
             "run": bool1_1,
             "run_t2": bool1_1,
+            "deoblique": [In(valid_options["deoblique"])],
             "non_local_means_filtering": {
                 "run": forkable,
                 "noise_model": Maybe(str),
@@ -878,6 +880,7 @@ latest_schema = Schema(
             },
             "update_header": {
                 "run": bool1_1,
+                "deoblique": [In(valid_options["deoblique"])],
             },
             "scaling": {"run": bool1_1, "scaling_factor": Number},
             "despiking": {"run": forkable, "space": In({"native", "template"})},

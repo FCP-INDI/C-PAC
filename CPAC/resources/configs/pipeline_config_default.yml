@@ -288,6 +288,11 @@ anatomical_preproc:
 
   run_t2: Off
 
+  # [warp] - Deoblique the input image using AFNI 3dWarp. Changes header and the image data.
+  # [refit] - Clear the header of the input image using AFNI 3drefit. Changes only the header.
+  # applies for both T1w and T2w images
+  deoblique: ["warp"]
+
   # Non-local means filtering via ANTs DenoiseImage
   non_local_means_filtering:
 
@@ -1023,6 +1028,10 @@ functional_preproc:
 
     # Convert raw data from LPI to RPI
     run: On
+
+    # [warp] - Deoblique the input image using AFNI 3dWarp. Changes header and the image data.
+    # [refit] - Clear the header of the input image using AFNI 3drefit. Changes only the header.
+    deoblique: ["refit"]
 
   truncation:
 
