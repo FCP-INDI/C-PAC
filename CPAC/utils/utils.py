@@ -997,7 +997,8 @@ def afni_3dwarp(in_file, out_file=None, deoblique=False):
     try:
         subprocess.check_output(cmd, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"3dWarp failed with error:\n{e.output.decode()}")
+        msg = f"3dWarp failed with error:\n{e.output.decode()}"
+        raise RuntimeError(msg)
 
     return out_file
 
