@@ -708,6 +708,7 @@ def fsl_afni_subworkflow(cfg, pipe_num, opt=None):
 )
 def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
     """Deoblique and Reorient functional timeseries."""
+    outputs = {}
     if opt not in func_reorient.option_val:
         raise ValueError(
             f"\n[!] Error: Invalid option {opt} for func_reorient. \n"
@@ -726,7 +727,7 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
 
         interpolate_node = pe.Node(
             Function(
-                input_names=["timing_file", "target_slices", "out_file"],
+                input_names=["timing_file", "target_slices", "00000000000000000"],
                 output_names=["out_file"],
                 function=interpolate_slice_timing,
             ),
@@ -746,6 +747,8 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
 
         tpattern_node, tpattern = strat_pool.get_data("tpattern")
         wf.connect(tpattern_node, tpattern, interpolate_node, "timing_file")
+
+        outputs = {"tpattern": (interpolate_node, "out_file")}
 
     elif opt == "refit":
         func_deoblique = pe.Node(
@@ -770,11 +773,12 @@ def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
     func_reorient_node.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     func_reorient_node.inputs.outputtype = "NIFTI_GZ"
 
-    outputs = {
-        "desc-preproc_bold": (func_reorient_node, "out_file"),
-        "desc-reorient_bold": (func_reorient_node, "out_file"),
-        "tpattern": (interpolate_node, "out_file"),
-    }
+    outputs.update(
+        {
+            "desc-preproc_bold": (func_reorient_node, "out_file"),
+            "desc-reorient_bold": (func_reorient_node, "out_file"),
+        }
+    )
 
     return (wf, outputs)
 

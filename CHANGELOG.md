@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New switch `mask_sbref` under `func_input_prep` in functional registration and set to default `on`.
 - New resource `desc-head_bold` as non skull-stripped bold from nodeblock `bold_masking`.
 - `censor_file_path` from `offending_timepoints_connector` in the `build_nuisance_regressor` node.
-- Switch `sink_native_transforms` under `registration_workflows` to output all `.mat` files in ANTs and FSL Transforms.
+- `deoblique` field in pipeline config with `warp` and `refit` options to apply `3dWarp` or `3drefit` during data initialization.
 
 ### Changed
 
