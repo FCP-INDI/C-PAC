@@ -3110,7 +3110,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
             "mask_sbref",
         ],
     ],
-    inputs=["sbref", "space-bold_desc-brain_mask"],
+    inputs=[("sbref", "space-bold_desc-brain_mask")],
     outputs=["sbref"],
 )
 def mask_sbref(wf, cfg, strat_pool, pipe_num, opt=None):
