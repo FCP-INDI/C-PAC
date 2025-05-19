@@ -52,6 +52,8 @@ from warnings import warn
 
 from nipype.utils.draw_gantt_chart import draw_lines, draw_resource_bar, log_to_dict
 
+from CPAC.utils.monitoring.monitoring import DatetimeWithSafeNone
+
 
 def create_event_dict(start_time, nodes_list):
     """
@@ -660,12 +662,12 @@ def _timing_timestamp(node):
         msg = "No logged nodes have timing information."
         raise ProcessLookupError(msg)
     return {
-        k: (
+        k: DatetimeWithSafeNone(
             datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%f")
             if "." in v
             else datetime.fromisoformat(v)
         )
         if (k in {"start", "finish"} and isinstance(v, str))
-        else v
+        else DatetimeWithSafeNone(v)
         for k, v in node.items()
     }

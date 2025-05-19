@@ -1,5 +1,6 @@
 """Tests of CPAC utility functions."""
 
+from datetime import datetime, timedelta
 import multiprocessing
 from unittest import mock
 
@@ -10,6 +11,7 @@ from CPAC.func_preproc import get_motion_ref
 from CPAC.pipeline.nodeblock import NodeBlockFunction
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring.custom_logging import log_subprocess
+from CPAC.utils.monitoring.monitoring import DatetimeWithSafeNone
 from CPAC.utils.tests import old_functions
 from CPAC.utils.utils import (
     check_config_resources,
@@ -168,3 +170,14 @@ def test_system_deps():
     Raises an exception if dependencies are not met.
     """
     check_system_deps(*([True] * 4))
+
+
+@pytest.mark.parametrize(["t1", "t2"], [(datetime.now(), None), (datetime.now(), None)])
+def test_datetime_with_safe_none(t1, t2):
+    """Test DatetimeWithSafeNone class works with datetime and None."""
+    t1 = DatetimeWithSafeNone(t1)
+    t2 = DatetimeWithSafeNone(t2)
+    if t1 and t2:
+        assert isinstance(t2 - t1, datetime)
+    else:
+        assert t2 - t1 == timedelta(0)

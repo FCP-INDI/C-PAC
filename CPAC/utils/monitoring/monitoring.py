@@ -1,9 +1,11 @@
+from datetime import datetime, timedelta
 import glob
 import json
 import math
 import os
 import socketserver
 import threading
+from typing import Optional
 
 import networkx as nx
 from traits.trait_base import Undefined
@@ -11,6 +13,68 @@ from nipype.utils.profiler import log_nodes_cb as _nipype_log_nodes_cb
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from .custom_logging import getLogger
+
+
+def _safe_none_diff(
+    self: "DatetimeWithSafeNone | _NoTime", other: "DatetimeWithSafeNone | _NoTime"
+) -> datetime | timedelta:
+    """Subtract between a datetime or timedelta or None."""
+    if isinstance(self, _NoTime):
+        return timedelta(0)
+    if isinstance(other, DatetimeWithSafeNone):
+        if isinstance(other, _NoTime):
+            return timedelta(0)
+        return self - other
+    if isinstance(other, (datetime, timedelta)):
+        return self._dt - other
+    msg = f"Cannot subtract {type(other)} from {type(self)}"
+    raise NotImplementedError(msg)
+
+
+class _NoTime:
+    """A wrapper for None values that can be used in place of a datetime object."""
+
+    def __bool__(self) -> bool:
+        """Return False for _NoTime."""
+        return False
+
+    def __int__(self) -> int:
+        """Return 0 for _NoTime."""
+        return 0
+
+    def __sub__(self, other: "DatetimeWithSafeNone | _NoTime") -> datetime | timedelta:
+        """Subtract between None and a datetime or timedelta or None."""
+        return _safe_none_diff(self, other)
+
+
+NoTime = _NoTime()
+"""A singleton None that can be used in place of a datetime object."""
+
+
+class DatetimeWithSafeNone(datetime, _NoTime):
+    """Time class that can be None or a time value."""
+
+    def __new__(cls, dt: Optional[datetime]) -> "DatetimeWithSafeNone | _NoTime":
+        """Create a new instance of the class."""
+        return (
+            NoTime
+            if dt is None
+            else datetime.__new__(
+                cls,
+                dt.year,
+                dt.month,
+                dt.day,
+                dt.hour,
+                dt.minute,
+                dt.second,
+                dt.microsecond,
+                dt.tzinfo,
+            )
+        )
+
+    def __sub__(self, other: "DatetimeWithSafeNone | _NoTime") -> datetime | timedelta:
+        """Subtract between a datetime or timedelta or None."""
+        return _safe_none_diff(self, other)
 
 
 # Log initial information from all the nodes
@@ -111,8 +175,8 @@ def log_nodes_cb(node, status):
     status_dict = {
         "id": str(node),
         "hash": node.inputs.get_hashval()[1],
-        "start": getattr(runtime, "startTime", None),
-        "finish": getattr(runtime, "endTime", None),
+        "start": DatetimeWithSafeNone(getattr(runtime, "startTime", None)),
+        "finish": DatetimeWithSafeNone(getattr(runtime, "endTime", None)),
         "runtime_threads": runtime_threads,
         "runtime_memory_gb": getattr(runtime, "mem_peak_gb", "N/A"),
         "estimated_memory_gb": node.mem_gb,
@@ -122,7 +186,9 @@ def log_nodes_cb(node, status):
     if hasattr(node, "input_data_shape") and node.input_data_shape is not Undefined:
         status_dict["input_data_shape"] = node.input_data_shape
 
-    if status_dict["start"] is None or status_dict["finish"] is None:
+    if any(
+        not isinstance(status_dict[label], datetime) for label in ["start", "finish"]
+    ):
         status_dict["error"] = True
 
     logger.debug(json.dumps(status_dict))
