@@ -3,7 +3,7 @@ version: 2.1
 # Singularity started failing to set up on Circle circa May 2023, so those tests are currently disabled
 
 orbs:
-  codecov: codecov/codecov@5
+  codecov: codecov/codecov@5.3.0
 
 parameters:
   branch:
@@ -172,7 +172,7 @@ commands:
 jobs:
   combine-coverage:
     machine:
-      image: ubuntu-2004:2023.04.2
+      image: ubuntu-2404:2024.11.1
     steps:
       - checkout
       - restore_cache:
