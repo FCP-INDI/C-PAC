@@ -172,7 +172,8 @@ def test_system_deps():
     check_system_deps(*([True] * 4))
 
 
-@pytest.mark.parametrize(["t1", "t2"], [(datetime.now(), None), (datetime.now(), None)])
+@pytest.mark.parametrize("t1", [datetime.now(), None])
+@pytest.mark.parametrize("t2", [datetime.now(), None])
 def test_datetime_with_safe_none(t1, t2):
     """Test DatetimeWithSafeNone class works with datetime and None."""
     t1 = DatetimeWithSafeNone(t1)
