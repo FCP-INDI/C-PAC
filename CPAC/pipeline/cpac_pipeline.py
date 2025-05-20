@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -87,7 +87,7 @@ from CPAC.func_preproc import (
     func_motion_correct,
     func_motion_correct_only,
     func_motion_estimates,
-    get_motion_ref,
+    get_motion_refs,
     motion_estimate_filter,
 )
 from CPAC.func_preproc.func_preproc import (
@@ -1318,7 +1318,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
                 "motion_estimates"
             ]["calculate_motion_first"]:
                 func_motion_blocks = [
-                    get_motion_ref,
+                    *get_motion_refs,
                     func_motion_estimates,
                     motion_estimate_filter,
                 ]
@@ -1332,7 +1332,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
                 )
             else:
                 func_motion_blocks = [
-                    get_motion_ref,
+                    *get_motion_refs,
                     func_motion_correct,
                     motion_estimate_filter,
                 ]

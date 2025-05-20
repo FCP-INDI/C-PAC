@@ -14,7 +14,6 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-# pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
 """Monitoring utilities for C-PAC."""
 
 from datetime import datetime, timedelta

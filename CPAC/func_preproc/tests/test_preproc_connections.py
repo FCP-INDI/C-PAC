@@ -31,7 +31,7 @@ from CPAC.func_preproc.func_motion import (
     func_motion_correct,
     func_motion_correct_only,
     func_motion_estimates,
-    get_motion_ref,
+    get_motion_refs,
     motion_estimate_filter,
 )
 from CPAC.func_preproc.func_preproc import func_normalize
@@ -219,13 +219,13 @@ def test_motion_filter_connections(
         "calculate_motion_first",
     ]:
         func_motion_blocks = [
-            get_motion_ref,
+            *get_motion_refs,
             func_motion_estimates,
             motion_estimate_filter,
         ]
     else:
         func_motion_blocks = [
-            get_motion_ref,
+            *get_motion_refs,
             func_motion_correct,
             motion_estimate_filter,
         ]

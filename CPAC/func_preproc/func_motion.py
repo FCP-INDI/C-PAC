@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -16,7 +16,8 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functions for calculating motion parameters."""
 
-# pylint: disable=ungrouped-imports,wrong-import-order,wrong-import-position
+from typing import Literal
+
 from nipype.interfaces import afni, fsl, utility as util
 from nipype.interfaces.afni import preprocess, utils as afni_utils
 
@@ -31,8 +32,10 @@ from CPAC.generate_motion_statistics import (
     motion_power_statistics,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.engine import ResourcePool
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.pipeline.schema import valid_options
+from CPAC.utils.configuration import Configuration
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
 
@@ -364,79 +367,97 @@ def get_mcflirt_rms_abs(rms_files):
         "motion_correction",
         "motion_correction_reference",
     ],
-    option_val=["mean", "median", "selected_volume", "fmriprep_reference"],
-    inputs=["desc-preproc_bold", "desc-reorient_bold"],
+    option_val=["mean", "median", "selected_volume"],
+    inputs=["desc-preproc_bold"],
     outputs=["motion-basefile"],
 )
-def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
-    if opt not in get_motion_ref.option_val:
-        msg = (
-            "\n\n[!] Error: The 'motion_correction_reference' "
-            "parameter of the 'motion_correction' workflow "
-            "must be one of:\n\t{0}.\n\nTool input: '{1}'"
-            "\n\n".format(
-                " or ".join([f"'{val}'" for val in get_motion_ref.option_val]), opt
+def get_motion_ref(
+    wf: pe.Workflow,
+    cfg: Configuration,
+    strat_pool: ResourcePool,
+    pipe_num: int,
+    opt: Literal["mean", "median", "selected_volume"],
+) -> tuple[pe.Workflow, dict[str, tuple[pe.Node, str]]]:
+    """Get the reference image for motion correction."""
+    node, out = strat_pool.get_data("desc-preproc_bold")
+    in_label = "in_file"
+    match opt:
+        case "mean":
+            func_get_RPI = pe.Node(
+                interface=afni_utils.TStat(options="-mean"),
+                name=f"func_get_mean_RPI_{pipe_num}",
+                mem_gb=0.48,
+                mem_x=(1435097126797993 / 302231454903657293676544, in_label),
             )
-        )
-        raise ValueError(msg)
+        case "median":
+            func_get_RPI = pe.Node(
+                interface=afni_utils.TStat(options="-median"),
+                name=f"func_get_median_RPI_{pipe_num}",
+            )
+        case "selected_volume":
+            func_get_RPI = pe.Node(
+                interface=afni.Calc(
+                    expr="a",
+                    single_idx=cfg.functional_preproc[
+                        "motion_estimates_and_correction"
+                    ]["motion_correction"]["motion_correction_reference_volume"],
+                ),
+                name=f"func_get_selected_RPI_{pipe_num}",
+            )
+            in_label = "in_file_a"
+        case _:
+            msg = (
+                "\n\n[!] Error: The 'motion_correction_reference' "
+                "parameter of the 'motion_correction' workflow "
+                "must be one of:\n\t{0}.\n\nTool input: '{1}'"
+                "\n\n".format(
+                    " or ".join([f"'{val}'" for val in get_motion_ref.option_val]), opt
+                )
+            )
+            raise ValueError(msg)
+    func_get_RPI.inputs.outputtype = "NIFTI_GZ"
+    wf.connect(node, out, func_get_RPI, in_label)
+    outputs = {"motion-basefile": (func_get_RPI, "out_file")}
+    return wf, outputs
 
-    if opt == "mean":
-        func_get_RPI = pe.Node(
-            interface=afni_utils.TStat(),
-            name=f"func_get_mean_RPI_{pipe_num}",
-            mem_gb=0.48,
-            mem_x=(1435097126797993 / 302231454903657293676544, "in_file"),
-        )
 
-        func_get_RPI.inputs.options = "-mean"
-        func_get_RPI.inputs.outputtype = "NIFTI_GZ"
+@nodeblock(
+    name="get_motion_ref_fmriprep",
+    switch=["functional_preproc", "motion_estimates_and_correction", "run"],
+    option_key=[
+        "functional_preproc",
+        "motion_estimates_and_correction",
+        "motion_correction",
+        "motion_correction_reference",
+    ],
+    option_val=["fmriprep_reference"],
+    inputs=["desc-reorient_bold"],
+    outputs=["motion-basefile"],
+)
+def get_motion_ref_fmriprep(
+    wf: pe.Workflow,
+    cfg: Configuration,
+    strat_pool: ResourcePool,
+    pipe_num: int,
+    opt: Literal["fmriprep_reference"],
+) -> tuple[pe.Workflow, dict[str, tuple[pe.Node, str]]]:
+    """Get the fMRIPrep-style reference image for motion correction."""
+    assert opt == "fmriprep_reference"
+    func_get_RPI = pe.Node(
+        Function(
+            input_names=["in_file"],
+            output_names=["out_file"],
+            function=estimate_reference_image,
+        ),
+        name=f"func_get_fmriprep_ref_{pipe_num}",
+    )
 
-        node, out = strat_pool.get_data("desc-preproc_bold")
-        wf.connect(node, out, func_get_RPI, "in_file")
-
-    elif opt == "median":
-        func_get_RPI = pe.Node(
-            interface=afni_utils.TStat(), name=f"func_get_median_RPI_{pipe_num}"
-        )
-
-        func_get_RPI.inputs.options = "-median"
-        func_get_RPI.inputs.outputtype = "NIFTI_GZ"
-
-        node, out = strat_pool.get_data("desc-preproc_bold")
-        wf.connect(node, out, func_get_RPI, "in_file")
-
-    elif opt == "selected_volume":
-        func_get_RPI = pe.Node(
-            interface=afni.Calc(), name=f"func_get_selected_RPI_{pipe_num}"
-        )
-
-        func_get_RPI.inputs.set(
-            expr="a",
-            single_idx=cfg.functional_preproc["motion_estimates_and_correction"][
-                "motion_correction"
-            ]["motion_correction_reference_volume"],
-            outputtype="NIFTI_GZ",
-        )
-
-        node, out = strat_pool.get_data("desc-preproc_bold")
-        wf.connect(node, out, func_get_RPI, "in_file_a")
-
-    elif opt == "fmriprep_reference":
-        func_get_RPI = pe.Node(
-            Function(
-                input_names=["in_file"],
-                output_names=["out_file"],
-                function=estimate_reference_image,
-            ),
-            name=f"func_get_fmriprep_ref_{pipe_num}",
-        )
-
-        node, out = strat_pool.get_data("desc-reorient_bold")
-        wf.connect(node, out, func_get_RPI, "in_file")
+    node, out = strat_pool.get_data("desc-reorient_bold")
+    wf.connect(node, out, func_get_RPI, "in_file")
 
     outputs = {"motion-basefile": (func_get_RPI, "out_file")}
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 def motion_correct_3dvolreg(wf, cfg, strat_pool, pipe_num):
@@ -728,7 +749,9 @@ motion_correct = {
 }
 
 
-def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
+def motion_correct_connections(
+    wf, cfg, strat_pool, pipe_num, opt
+):  # -> tuple[Any, dict[str, tuple[Node, str]]]:
     """Check opt for valid option, then connect that option."""
     motion_correct_options = valid_options["motion_correction"]
     if opt not in motion_correct_options:
