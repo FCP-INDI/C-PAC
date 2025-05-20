@@ -1,3 +1,22 @@
+# Copyright (C) 2018-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+# pylint: disable=too-many-lines,ungrouped-imports,wrong-import-order
+"""Monitoring utilities for C-PAC."""
+
 from datetime import datetime, timedelta
 import glob
 import json
@@ -42,6 +61,14 @@ class _NoTime:
         """Return 0 for _NoTime."""
         return 0
 
+    def __repr__(self) -> str:
+        """Return 'NoTime' for _NoTime."""
+        return "NoTime"
+
+    def __str__(self) -> str:
+        """Return 'NoTime' for _NoTime."""
+        return "NoTime"
+
     def __sub__(self, other: "DatetimeWithSafeNone | _NoTime") -> datetime | timedelta:
         """Subtract between None and a datetime or timedelta or None."""
         return _safe_none_diff(self, other)
@@ -72,13 +99,27 @@ class DatetimeWithSafeNone(datetime, _NoTime):
             )
         )
 
+    def __bool__(self) -> bool:
+        """Return True if not NoTime."""
+        return self is not NoTime
+
     def __sub__(self, other: "DatetimeWithSafeNone | _NoTime") -> datetime | timedelta:
         """Subtract between a datetime or timedelta or None."""
         return _safe_none_diff(self, other)
 
+    def __repr__(self) -> str:
+        """Return the string representation of the datetime or NoTime."""
+        if self:
+            return datetime.__repr__(self)
+        return "NoTime"
 
-# Log initial information from all the nodes
+    def __str__(self) -> str:
+        """Return the string representation of the datetime or NoTime."""
+        return super().__str__()
+
+
 def recurse_nodes(workflow, prefix=""):
+    """Log initial information from all the nodes."""
     for node in nx.topological_sort(workflow._graph):
         if isinstance(node, pe.Workflow):
             for subnode in recurse_nodes(node, prefix + workflow.name + "."):
@@ -221,7 +262,7 @@ class LoggingRequestHandler(socketserver.BaseRequestHandler):
 
             with open(callback_file, "rb") as lf:
                 for l in lf.readlines():  # noqa: E741
-                    l = l.strip()  # noqa: E741
+                    l = l.strip()  # noqa: E741,PLW2901
                     try:
                         node = json.loads(l)
                         if node["id"] not in tree[subject]:
