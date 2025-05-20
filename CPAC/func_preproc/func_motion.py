@@ -16,7 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functions for calculating motion parameters."""
 
-from typing import Literal
+from typing import Literal, TYPE_CHECKING
 
 from nipype.interfaces import afni, fsl, utility as util
 from nipype.interfaces.afni import preprocess, utils as afni_utils
@@ -32,12 +32,14 @@ from CPAC.generate_motion_statistics import (
     motion_power_statistics,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.engine import ResourcePool
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.utils import check_prov_for_motion_tool
+
+if TYPE_CHECKING:
+    from CPAC.pipeline.engine import ResourcePool
 
 
 @nodeblock(
@@ -374,7 +376,7 @@ def get_mcflirt_rms_abs(rms_files):
 def get_motion_ref(
     wf: pe.Workflow,
     cfg: Configuration,
-    strat_pool: ResourcePool,
+    strat_pool: "ResourcePool",
     pipe_num: int,
     opt: Literal["mean", "median", "selected_volume"],
 ) -> tuple[pe.Workflow, dict[str, tuple[pe.Node, str]]]:
@@ -437,7 +439,7 @@ def get_motion_ref(
 def get_motion_ref_fmriprep(
     wf: pe.Workflow,
     cfg: Configuration,
-    strat_pool: ResourcePool,
+    strat_pool: "ResourcePool",
     pipe_num: int,
     opt: Literal["fmriprep_reference"],
 ) -> tuple[pe.Workflow, dict[str, tuple[pe.Node, str]]]:
