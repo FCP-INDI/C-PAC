@@ -1,3 +1,19 @@
+# Copyright (C) 2021-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """
 Generate XCP-stype quality control files.
 
@@ -439,7 +455,7 @@ def get_bids_info(subject, scan, wf_name):
             "space-bold_desc-brain_mask",
             ["T1w-brain-template-mask", "EPI-template-mask"],
             ["space-template_desc-bold_mask", "space-EPItemplate_desc-bold_mask"],
-            "regressors",
+            "desc-confounds_timeseries",
             ["T1w-brain-template-funcreg", "EPI-brain-template-funcreg"],
             [
                 "desc-movementParametersUnfiltered_motion",
@@ -458,7 +474,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     # pylint: disable=invalid-name, unused-argument
     if cfg[
         "nuisance_corrections", "2-nuisance_regression", "run"
-    ] and not strat_pool.check_rpool("regressors"):
+    ] and not strat_pool.check_rpool("desc-confounds_timeseries"):
         return wf, {}
     bids_info = pe.Node(
         Function(
@@ -501,8 +517,8 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
     )
     qc_file.inputs.desc = "preproc"
     qc_file.inputs.regressors = (
-        strat_pool.node_data("regressors")
-        .node.name.split("regressors_")[-1][::-1]
+        strat_pool.node_data("desc-confounds_timeseries")
+        .node.name.split("desc-confounds_timeseries_")[-1][::-1]
         .split("_", 1)[-1][::-1]
     )
     bold_to_T1w_mask = pe.Node(

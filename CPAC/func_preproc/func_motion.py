@@ -751,9 +751,7 @@ motion_correct = {
 }
 
 
-def motion_correct_connections(
-    wf, cfg, strat_pool, pipe_num, opt
-):  # -> tuple[Any, dict[str, tuple[Node, str]]]:
+def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
     """Check opt for valid option, then connect that option."""
     motion_correct_options = valid_options["motion_correction"]
     if opt not in motion_correct_options:

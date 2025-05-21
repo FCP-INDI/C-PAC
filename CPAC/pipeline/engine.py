@@ -14,6 +14,8 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""C-PAC pipeline engine."""
+
 import ast
 import copy
 import hashlib
@@ -307,7 +309,7 @@ class ResourcePool:
             "ingress_regressors."
         )
         _nr = cfg["nuisance_corrections", "2-nuisance_regression"]
-        if not hasattr(self, "timeseries"):
+        if not hasattr(self, "desc-confounds_timeseries"):
             if _nr["Regressors"]:
                 self.regressors = {reg["Name"]: reg for reg in _nr["Regressors"]}
             else:
