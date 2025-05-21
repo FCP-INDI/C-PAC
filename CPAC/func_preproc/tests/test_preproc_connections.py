@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2024  C-PAC Developers
+# Copyright (C) 2023-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -26,12 +26,12 @@ from voluptuous.error import Invalid
 from nipype.interfaces.utility import Function as NipypeFunction
 from nipype.pipeline.engine import Workflow as NipypeWorkflow
 
+from CPAC.func_preproc import get_motion_refs
 from CPAC.func_preproc.func_motion import (
     calc_motion_stats,
     func_motion_correct,
     func_motion_correct_only,
     func_motion_estimates,
-    get_motion_refs,
     motion_estimate_filter,
 )
 from CPAC.func_preproc.func_preproc import func_normalize
