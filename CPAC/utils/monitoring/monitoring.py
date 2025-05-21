@@ -23,7 +23,7 @@ import math
 import os
 import socketserver
 import threading
-from typing import Optional
+from typing import Optional, TypeAlias
 
 import networkx as nx
 from traits.trait_base import Undefined
@@ -80,12 +80,12 @@ NoTime = _NoTime()
 class DatetimeWithSafeNone(datetime, _NoTime):
     """Time class that can be None or a time value."""
 
-    def __new__(cls, dt: Optional[datetime]) -> "DatetimeWithSafeNone | _NoTime":
+    def __new__(cls, dt: "OptionalDatetime") -> "DatetimeWithSafeNone | _NoTime":
         """Create a new instance of the class."""
-        return (
-            NoTime
-            if dt is None
-            else datetime.__new__(
+        if dt is None:
+            return NoTime
+        if isinstance(dt, datetime):
+            return datetime.__new__(
                 cls,
                 dt.year,
                 dt.month,
@@ -96,7 +96,14 @@ class DatetimeWithSafeNone(datetime, _NoTime):
                 dt.microsecond,
                 dt.tzinfo,
             )
-        )
+        if isinstance(dt, str):
+            try:
+                return DatetimeWithSafeNone(datetime.fromisoformat(dt))
+            except (ValueError, TypeError):
+                error = f"Invalid ISO-format datetime string: {dt}"
+        else:
+            error = f"Cannot convert {type(dt)} to datetime"
+        raise TypeError(error)
 
     def __bool__(self) -> bool:
         """Return True if not NoTime."""
@@ -115,6 +122,10 @@ class DatetimeWithSafeNone(datetime, _NoTime):
     def __str__(self) -> str:
         """Return the string representation of the datetime or NoTime."""
         return super().__str__()
+
+
+OptionalDatetime: TypeAlias = Optional[datetime | str | DatetimeWithSafeNone | _NoTime]
+"""Type alias for a datetime, ISO-format string or None."""
 
 
 def recurse_nodes(workflow, prefix=""):

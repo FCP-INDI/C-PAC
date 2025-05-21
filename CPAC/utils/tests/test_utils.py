@@ -27,7 +27,7 @@ from CPAC.func_preproc import get_motion_refs
 from CPAC.pipeline.nodeblock import NodeBlockFunction
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring.custom_logging import log_subprocess
-from CPAC.utils.monitoring.monitoring import DatetimeWithSafeNone
+from CPAC.utils.monitoring.monitoring import DatetimeWithSafeNone, OptionalDatetime
 from CPAC.utils.tests import old_functions
 from CPAC.utils.utils import (
     check_config_resources,
@@ -189,13 +189,17 @@ def test_system_deps():
     check_system_deps(*([True] * 4))
 
 
-@pytest.mark.parametrize("t1", [datetime.now(), None])
-@pytest.mark.parametrize("t2", [datetime.now(), None])
-def test_datetime_with_safe_none(t1, t2):
+@pytest.mark.parametrize(
+    "t1", [datetime.now(), datetime.isoformat(datetime.now()), None]
+)
+@pytest.mark.parametrize(
+    "t2", [datetime.now(), datetime.isoformat(datetime.now()), None]
+)
+def test_datetime_with_safe_none(t1: OptionalDatetime, t2: OptionalDatetime):
     """Test DatetimeWithSafeNone class works with datetime and None."""
     t1 = DatetimeWithSafeNone(t1)
     t2 = DatetimeWithSafeNone(t2)
     if t1 and t2:
-        assert isinstance(t2 - t1, datetime)
+        assert isinstance(t2 - t1, timedelta)
     else:
         assert t2 - t1 == timedelta(0)
