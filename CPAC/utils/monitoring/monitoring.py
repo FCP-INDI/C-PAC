@@ -23,7 +23,7 @@ import math
 import os
 import socketserver
 import threading
-from typing import Optional, TypeAlias
+from typing import Any, Optional, TypeAlias
 
 import networkx as nx
 from traits.trait_base import Undefined
@@ -124,6 +124,23 @@ class DatetimeWithSafeNone(datetime, _NoTime):
         return super().__str__()
 
 
+class DatetimeJSONEncoder(json.JSONEncoder):
+    """JSON encoder that handles DatetimeWithSafeNone instances."""
+
+    def default(self, o: Any) -> str:
+        """Convert datetime objects to ISO format."""
+        if isinstance(o, datetime):
+            return o.isoformat()
+        if o is None or o is NoTime:
+            return ""
+        return super().default(o)
+
+
+def json_dumps(obj: Any, **kwargs) -> str:
+    """Convert an object to a JSON string."""
+    return json.dumps(obj, cls=DatetimeJSONEncoder, **kwargs)
+
+
 OptionalDatetime: TypeAlias = Optional[datetime | str | DatetimeWithSafeNone | _NoTime]
 """Type alias for a datetime, ISO-format string or None."""
 
@@ -144,7 +161,7 @@ def recurse_nodes(workflow, prefix=""):
 def log_nodes_initial(workflow):
     logger = getLogger("callback")
     for node in recurse_nodes(workflow):
-        logger.debug(json.dumps(node))
+        logger.debug(json_dumps(node))
 
 
 def log_nodes_cb(node, status):
@@ -242,7 +259,7 @@ def log_nodes_cb(node, status):
     ):
         status_dict["error"] = True
 
-    logger.debug(json.dumps(status_dict))
+    logger.debug(json_dumps(status_dict))
 
 
 log_nodes_cb.__doc__ = f"""{_nipype_log_nodes_cb.__doc__}
@@ -299,7 +316,7 @@ class LoggingRequestHandler(socketserver.BaseRequestHandler):
                 tree = {s: t for s, t in tree.items() if t}
 
         headers = "HTTP/1.1 200 OK\nConnection: close\n\n"
-        self.request.sendall(headers + json.dumps(tree) + "\n")
+        self.request.sendall(headers + json_dumps(tree) + "\n")
 
 
 class LoggingHTTPServer(socketserver.ThreadingTCPServer, object):
