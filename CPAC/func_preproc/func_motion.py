@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -365,7 +365,7 @@ def get_mcflirt_rms_abs(rms_files):
         "motion_correction_reference",
     ],
     option_val=["mean", "median", "selected_volume", "fmriprep_reference"],
-    inputs=["desc-preproc_bold", "desc-reorient_bold"],
+    inputs=[("desc-preproc_bold", "desc-reorient_bold")],
     outputs=["motion-basefile"],
 )
 def get_motion_ref(wf, cfg, strat_pool, pipe_num, opt=None):
