@@ -1,5 +1,22 @@
+# Copyright (C) 2018-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Tests of CPAC utility functions."""
 
+from datetime import datetime, timedelta
 import multiprocessing
 from unittest import mock
 
@@ -10,6 +27,7 @@ from CPAC.func_preproc import get_motion_ref
 from CPAC.pipeline.nodeblock import NodeBlockFunction
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring.custom_logging import log_subprocess
+from CPAC.utils.monitoring.monitoring import DatetimeWithSafeNone, OptionalDatetime
 from CPAC.utils.tests import old_functions
 from CPAC.utils.utils import (
     check_config_resources,
@@ -168,3 +186,19 @@ def test_system_deps():
     Raises an exception if dependencies are not met.
     """
     check_system_deps(*([True] * 4))
+
+
+@pytest.mark.parametrize(
+    "t1", [datetime.now(), datetime.isoformat(datetime.now()), None]
+)
+@pytest.mark.parametrize(
+    "t2", [datetime.now(), datetime.isoformat(datetime.now()), None]
+)
+def test_datetime_with_safe_none(t1: OptionalDatetime, t2: OptionalDatetime):
+    """Test DatetimeWithSafeNone class works with datetime and None."""
+    t1 = DatetimeWithSafeNone(t1)
+    t2 = DatetimeWithSafeNone(t2)
+    if t1 and t2:
+        assert isinstance(t2 - t1, timedelta)
+    else:
+        assert t2 - t1 == timedelta(0)
