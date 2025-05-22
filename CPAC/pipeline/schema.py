@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2024  C-PAC Developers
+# Copyright (C) 2022-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -21,7 +21,7 @@
 from itertools import chain, permutations
 import re
 from subprocess import CalledProcessError
-from typing import Literal, TypeAlias
+from typing import Literal, Optional as OptionalType, TypeAlias, TypedDict
 
 import numpy as np
 from pathvalidate import sanitize_filename
@@ -273,6 +273,21 @@ ANTs_parameters = [
         dict,  # TODO: specify other valid ANTs parameters
     )
 ]
+
+
+class MotionEstimateFilter(TypedDict):
+    """Type for motion estimate filter."""
+
+    filter_type: Literal["notch", "lowpass"]
+    filter_order: int
+    breathing_rate_min: OptionalType[float]
+    breathing_rate_max: OptionalType[float]
+    center_frequency: OptionalType[float]
+    filter_bandwidth: OptionalType[float]
+    lowpass_cutoff: OptionalType[float]
+    Name: OptionalType[str]
+
+
 motion_estimate_filter = Any(
     {  # notch filter with breathing_rate_* set
         Required("filter_type"): "notch",

@@ -510,9 +510,7 @@ class ResourcePool:
         json_data = self.get_json(resource, strat)
         return json_data["CpacProvenance"]
 
-    def motion_tool(
-        self, resource, strat=None
-    ) -> Optional[Literal["3dvolreg", "mcflirt"]]:
+    def motion_tool(self, resource: str, strat=None) -> Literal["3dvolreg", "mcflirt"]:
         """Check provenance for motion correction tool."""
         prov = self.get_cpac_provenance(resource, strat)
         last_entry = get_last_prov_entry(prov)
@@ -526,7 +524,12 @@ class ResourcePool:
             return "3dvolreg"
         if "mcflirt" in str(prov):
             return "mcflirt"
-        return None
+        msg = (
+            "\n[!] Developer info: the motion correction "
+            f"tool for {resource} is not in the "
+            "CpacProvenance.\n"
+        )
+        raise LookupError(msg)
 
     def reg_tool(self, resource, strat=None) -> Optional[Literal["ants", "fsl"]]:
         """Check provenance for registration tool."""

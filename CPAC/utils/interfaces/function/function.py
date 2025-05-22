@@ -5,6 +5,7 @@
 #     * Adds `as_module` argument and property
 #     * Adds `sig_imports` decorator
 #     * Automatically imports global Nipype loggers in function nodes
+#     * Specify type of `output_names` as `str | list[str]` instead of `str`
 
 # ORIGINAL WORK'S ATTRIBUTION NOTICE:
 #     Copyright (c) 2009-2016, Nipype developers
@@ -23,7 +24,7 @@
 
 #     Prior to release 0.12, Nipype was licensed under a BSD license.
 
-# Modifications Copyright (C) 2018-2024 C-PAC Developers
+# Modifications Copyright (C) 2018-2025 C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -157,7 +158,7 @@ class Function(NipypeFunction):
     def __init__(
         self,
         input_names=None,
-        output_names="out",
+        output_names: str | list[str] = "out",
         function=None,
         imports=None,
         as_module=False,

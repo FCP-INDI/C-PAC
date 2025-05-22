@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2024  C-PAC Developers
+# Copyright (C) 2021-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -19,10 +19,13 @@
 from itertools import chain
 import os
 import subprocess
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
+
+if TYPE_CHECKING:
+    from CPAC.pipeline.nodeblock import POOL_RESOURCE
 
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
@@ -108,7 +111,7 @@ def name_fork(resource_idx, cfg, json_info, out_dct):
     return resource_idx, out_dct
 
 
-def present_outputs(outputs: dict, keys: list) -> dict:
+def present_outputs(outputs: "POOL_RESOURCE", keys: list[str]) -> "POOL_RESOURCE":
     """
     Return the subset of ``outputs`` including only that are present in ``keys``.
 
@@ -121,12 +124,6 @@ def present_outputs(outputs: dict, keys: list) -> dict:
     provided ``outputs`` dictionary, eliminating the need for multiple
     NodeBlocks that differ only by configuration options and relevant
     output keys.
-
-    Parameters
-    ----------
-    outputs : dict
-
-    keys : list of str
 
     Returns
     -------

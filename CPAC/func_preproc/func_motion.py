@@ -20,6 +20,7 @@ from typing import Literal, TYPE_CHECKING
 
 from nipype.interfaces import afni, fsl, utility as util
 from nipype.interfaces.afni import preprocess, utils as afni_utils
+from nipype.pipeline.engine import Workflow
 
 from CPAC.func_preproc.utils import (
     chunk_ts,
@@ -32,13 +33,14 @@ from CPAC.generate_motion_statistics import (
     motion_power_statistics,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.nodeblock import nodeblock, NODEBLOCK_RETURN
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.interfaces.function import Function
 
 if TYPE_CHECKING:
     from CPAC.pipeline.engine import ResourcePool
+    from CPAC.pipeline.schema import MotionEstimateFilter
 
 
 @nodeblock(
@@ -70,7 +72,13 @@ if TYPE_CHECKING:
         "desc-summary_motion",
     ],
 )
-def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
+def calc_motion_stats(
+    wf: Workflow,
+    cfg: Configuration,
+    strat_pool: "ResourcePool",
+    pipe_num: int,
+    opt: None = None,
+) -> NODEBLOCK_RETURN:
     """Calculate motion statistics for motion parameters."""
     motion_correct_tool = strat_pool.motion_tool("desc-movementParameters_motion")
     coordinate_transformation = [
@@ -132,7 +140,7 @@ def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     return wf, outputs
 
 
-def estimate_reference_image(in_file):
+def estimate_reference_image(in_file: str) -> str:
     """fMRIPrep-style BOLD reference.
 
         Generate a reference 3D map from BOLD and SBRef EPI images for BOLD datasets.
@@ -198,7 +206,7 @@ def estimate_reference_image(in_file):
     #    See the License for the specific language governing permissions and
     #    limitations under the License.
 
-    # Modifications copyright (C) 2021 - 2024  C-PAC Developers
+    # Modifications copyright (C) 2021 - 2025  C-PAC Developers
     import os
 
     import numpy as np
@@ -283,10 +291,17 @@ _MOTION_PARAM_OUTPUTS = {
         "using",
     ],
     option_val=["3dvolreg", "mcflirt"],
-    inputs=[("desc-preproc_bold", "motion-basefile")],
+    inputs=[("desc-preproc_bold", "motion-basefile", *_MOTION_PARAM_OUTPUTS)],
     outputs={**_MOTION_CORRECTED_OUTPUTS, **_MOTION_PARAM_OUTPUTS},
 )
-def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
+def func_motion_correct(
+    wf: Workflow,
+    cfg: Configuration,
+    strat_pool: "ResourcePool",
+    pipe_num: int,
+    opt: Literal["3dvolreg", "mcflirt"],
+) -> NODEBLOCK_RETURN:
+    """Perform motion estimation and correction using 3dVolReg or MCFLIRT."""
     wf, outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt)
 
     return wf, outputs
@@ -305,7 +320,14 @@ def func_motion_correct(wf, cfg, strat_pool, pipe_num, opt=None):
     inputs=[("desc-preproc_bold", "motion-basefile")],
     outputs=_MOTION_CORRECTED_OUTPUTS,
 )
-def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
+def func_motion_correct_only(
+    wf: Workflow,
+    cfg: Configuration,
+    strat_pool: "ResourcePool",
+    pipe_num: int,
+    opt: Literal["3dvolreg", "mcflirt"],
+) -> NODEBLOCK_RETURN:
+    """Perform motion correction without estimating motion parameters."""
     wf, wf_outputs = motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt)
 
     outputs = {
@@ -329,7 +351,13 @@ def func_motion_correct_only(wf, cfg, strat_pool, pipe_num, opt=None):
     inputs=[("desc-preproc_bold", "motion-basefile")],
     outputs=_MOTION_PARAM_OUTPUTS,
 )
-def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
+def func_motion_estimates(
+    wf: Workflow,
+    cfg: Configuration,
+    strat_pool: "ResourcePool",
+    pipe_num: int,
+    opt: Literal["3dvolreg", "mcflirt"],
+) -> NODEBLOCK_RETURN:
     """Calculate motion estimates using 3dVolReg or MCFLIRT."""
     from CPAC.pipeline.utils import present_outputs
 
@@ -349,7 +377,9 @@ def func_motion_estimates(wf, cfg, strat_pool, pipe_num, opt=None):
     )
 
 
-def get_mcflirt_rms_abs(rms_files):
+def get_mcflirt_rms_abs(rms_files: list[str]) -> tuple[str, str]:
+    """Split the RMS files into absolute and relative."""
+    abs_file = rels_file = "not found"
     for path in rms_files:
         if "abs.rms" in path:
             abs_file = path
@@ -372,12 +402,12 @@ def get_mcflirt_rms_abs(rms_files):
     outputs=["motion-basefile"],
 )
 def get_motion_ref(
-    wf: pe.Workflow,
+    wf: Workflow,
     cfg: Configuration,
     strat_pool: "ResourcePool",
     pipe_num: int,
     opt: Literal["mean", "median", "selected_volume"],
-) -> tuple[pe.Workflow, dict[str, tuple[pe.Node, str]]]:
+) -> NODEBLOCK_RETURN:
     """Get the reference image for motion correction."""
     node, out = strat_pool.get_data("desc-preproc_bold")
     in_label = "in_file"
@@ -435,12 +465,12 @@ def get_motion_ref(
     outputs=["motion-basefile"],
 )
 def get_motion_ref_fmriprep(
-    wf: pe.Workflow,
+    wf: Workflow,
     cfg: Configuration,
     strat_pool: "ResourcePool",
     pipe_num: int,
     opt: Literal["fmriprep_reference"],
-) -> tuple[pe.Workflow, dict[str, tuple[pe.Node, str]]]:
+) -> NODEBLOCK_RETURN:
     """Get the fMRIPrep-style reference image for motion correction."""
     assert opt == "fmriprep_reference"
     func_get_RPI = pe.Node(
@@ -460,7 +490,7 @@ def get_motion_ref_fmriprep(
     return wf, outputs
 
 
-def motion_correct_3dvolreg(wf, cfg, strat_pool, pipe_num):
+def motion_correct_3dvolreg(wf, cfg, strat_pool, pipe_num) -> NODEBLOCK_RETURN:
     """Calculate motion parameters with 3dvolreg."""
     if int(cfg.pipeline_setup["system_config"]["max_cores_per_participant"]) > 1:
         chunk_imports = ["import nibabel as nib"]
@@ -690,7 +720,7 @@ def motion_correct_3dvolreg(wf, cfg, strat_pool, pipe_num):
     return wf, outputs
 
 
-def motion_correct_mcflirt(wf, cfg, strat_pool, pipe_num):
+def motion_correct_mcflirt(wf, cfg, strat_pool, pipe_num) -> NODEBLOCK_RETURN:
     """Calculate motion parameters with MCFLIRT."""
     func_motion_correct_A = pe.Node(
         interface=fsl.MCFLIRT(save_mats=True, save_plots=True),
@@ -749,7 +779,13 @@ motion_correct = {
 }
 
 
-def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
+def motion_correct_connections(
+    wf: Workflow,
+    cfg: Configuration,
+    strat_pool: "ResourcePool",
+    pipe_num: int,
+    opt: Literal["3dvolreg", "mcflirt"],
+) -> NODEBLOCK_RETURN:
     """Check opt for valid option, then connect that option."""
     motion_correct_options = valid_options["motion_correction"]
     if opt not in motion_correct_options:
@@ -807,7 +843,13 @@ def motion_correct_connections(wf, cfg, strat_pool, pipe_num, opt):
         "motion-filter-plot": {},
     },
 )
-def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
+def motion_estimate_filter(
+    wf: Workflow,
+    cfg: Configuration,
+    strat_pool: "ResourcePool",
+    pipe_num: int,
+    opt: MotionEstimateFilter,
+) -> NODEBLOCK_RETURN:
     """Filter motion parameters.
 
     .. versionchanged:: 1.8.6
@@ -889,10 +931,10 @@ def motion_estimate_filter(wf, cfg, strat_pool, pipe_num, opt=None):
             movement_parameters.out,
         )
 
-    return (wf, outputs)
+    return wf, outputs
 
 
-def normalize_motion_parameters(in_file):
+def normalize_motion_parameters(in_file: str) -> str:
     """Convert FSL mcflirt motion parameters to AFNI space."""
     import os
 
