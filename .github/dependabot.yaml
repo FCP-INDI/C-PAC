@@ -1,4 +1,10 @@
 version: 2
+registries:
+  ghcr:
+    type: docker-registry
+    url: ghcr.io
+    username: ChildMindInstituteCNL
+    password: ${{ secrets.GHCR_REGISTRY_TOKEN }}
 updates:
   - package-ecosystem: "github-actions"
     directory: /
@@ -8,6 +14,9 @@ updates:
     groups:
       all-actions:
         patterns: [ "*" ]
+    target-branch: develop
+    registries:
+    - ghcr
   - package-ecosystem: pip
     directory: /
     schedule:
@@ -18,3 +27,5 @@ updates:
       development dependencies:
         dependency-type: development
     target-branch: develop
+    registries:
+    - ghcr
