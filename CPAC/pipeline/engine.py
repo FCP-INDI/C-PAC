@@ -512,6 +512,9 @@ class ResourcePool:
 
     def motion_tool(self, resource: str, strat=None) -> Literal["3dvolreg", "mcflirt"]:
         """Check provenance for motion correction tool."""
+        for tool in ["3dvolreg", "mcflirt"]:
+            if self.check_rpool(f"motion-correct-{tool}"):
+                return tool
         prov = self.get_cpac_provenance(resource, strat)
         last_entry = get_last_prov_entry(prov)
         last_node = last_entry.split(":")[1]

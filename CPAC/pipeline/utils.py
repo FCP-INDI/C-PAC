@@ -25,7 +25,7 @@ from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
 
 if TYPE_CHECKING:
-    from CPAC.pipeline.nodeblock import POOL_RESOURCE
+    from CPAC.pipeline.nodeblock import POOL_RESOURCE_MAPPING
 
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
 
@@ -111,7 +111,9 @@ def name_fork(resource_idx, cfg, json_info, out_dct):
     return resource_idx, out_dct
 
 
-def present_outputs(outputs: "POOL_RESOURCE", keys: list[str]) -> "POOL_RESOURCE":
+def present_outputs(
+    outputs: "POOL_RESOURCE_MAPPING", keys: list[str]
+) -> "POOL_RESOURCE_MAPPING":
     """
     Return the subset of ``outputs`` including only that are present in ``keys``.
 

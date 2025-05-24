@@ -19,23 +19,20 @@
 from .func_motion import (
     calc_motion_stats,
     func_motion_correct,
-    func_motion_correct_only,
     func_motion_estimates,
-    get_motion_ref,
-    get_motion_ref_fmriprep,
+    get_motion_refs,
     motion_estimate_filter,
+    stack_motion_blocks,
 )
 from .func_preproc import get_idx, slice_timing_wf
-
-get_motion_refs = [get_motion_ref, get_motion_ref_fmriprep]
 
 __all__ = [
     "calc_motion_stats",
     "func_motion_correct",
-    "func_motion_correct_only",
     "func_motion_estimates",
     "get_idx",
     "get_motion_refs",
     "motion_estimate_filter",
     "slice_timing_wf",
+    "stack_motion_blocks",
 ]

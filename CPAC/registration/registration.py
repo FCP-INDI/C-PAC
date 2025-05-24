@@ -1458,7 +1458,7 @@ def create_wf_calculate_ants_warp(
 
 def FSL_registration_connector(
     wf_name: str,
-    cfg: Configuration,
+    cfg: "Configuration",
     orig: str = "T1w",
     opt: Literal["FSL", "FSL-linear"] = "FSL",
     symmetric: bool = False,

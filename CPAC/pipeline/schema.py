@@ -109,6 +109,7 @@ def str_to_bool1_1(x):  # pylint: disable=invalid-name
 
 bool1_1 = All(str_to_bool1_1, bool)
 forkable = All(Coerce(ListFromItem), [bool1_1], Length(max=2))
+MotionCorrection: TypeAlias = Literal["3dvolreg", "mcflirt"]
 valid_options = {
     "acpc": {"target": ["brain", "whole-head"]},
     "brain_extraction": {
