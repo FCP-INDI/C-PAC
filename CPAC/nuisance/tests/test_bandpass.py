@@ -20,13 +20,12 @@ from importlib.abc import Traversable
 from importlib.resources import files
 from pathlib import Path
 
+import numpy as np
 from numpy.typing import NDArray
 import pytest
-import numpy as np
-import scipy.fft import fft
+from scipy.fft import fft
 
-from CPAC.nuisance.bandpass import read_1D
-from CPAC.nuisance.bandpass import ideal_bandpass
+from CPAC.nuisance.bandpass import ideal_bandpass, read_1D
 
 RAW_ONE_D: Traversable = files("CPAC").joinpath("nuisance/tests/regressors.1D")
 
@@ -51,12 +50,16 @@ def test_read_1D(start_line: int, tmp_path: Path) -> None:
     assert len(header) == 5 - start_line
 
 
-@pytest.mark.parametrize("lowcut, highcut, in_freq, out_freq", [
-    (0.005, 0.05, 0.01, 0.2),
-    (0.01, 0.1, 0.02, 0.15),
-    (0.02, 0.08, 0.04, 0.12),
-])
+@pytest.mark.parametrize(
+    "lowcut, highcut, in_freq, out_freq",
+    [
+        (0.005, 0.05, 0.01, 0.2),
+        (0.01, 0.1, 0.02, 0.15),
+        (0.02, 0.08, 0.04, 0.12),
+    ],
+)
 def test_ideal_bandpass_with_various_cutoffs(lowcut, highcut, in_freq, out_freq):
+    """Test the ideal bandpass filter with various cutoff frequencies."""
     sample_period = 1.0
     t = np.arange(512) * sample_period
     signal = np.sin(2 * np.pi * in_freq * t) + np.sin(2 * np.pi * out_freq * t)
