@@ -146,7 +146,7 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
     cal_DVARS_strip = pe.Node(
         Function(
             input_names=["file_1D"],
-            output_names=["out_file"],
+            output_names=["out_file", "out_matrix"],
             function=DVARS_strip_t0,
             as_module=True,
         ),
@@ -168,7 +168,11 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
                 [(nodes["space-bold_desc-brain_mask"].out, "mask")],
             ),
             (cal_DVARS, cal_DVARS_strip, [("out_file", "file_1D")]),
-            (cal_DVARS_strip, qc_file, [("out_file", "dvars_after")]),
+            (
+                cal_DVARS_strip,
+                qc_file,
+                [("out_file", "dvars_after_path"), ("out_matrix", "dvars_after")],
+            ),
             (
                 nodes[motion_name].node,
                 qc_file,
@@ -200,83 +204,87 @@ def dvcorr(dvars, fdj):
 # This function is for a function node for which
 # Nipype will connect many other nodes as inputs
 def generate_xcp_qc(  # noqa: PLR0913
-    sub,
-    ses,
-    task,
-    run,
-    desc,
-    regressors,
-    bold2t1w_mask,
-    t1w_mask,
-    bold2template_mask,
-    template_mask,
-    original_func,
-    final_func,
-    movement_parameters,
-    dvars,
-    censor_indices,
-    framewise_displacement_jenkinson,
-    dvars_after,
-    template,
-):
+    sub: str,
+    ses: str,
+    task: str,
+    run: str | int,
+    desc: str,
+    regressors: str,
+    bold2t1w_mask: str,
+    t1w_mask: str,
+    bold2template_mask: str,
+    template_mask: str,
+    original_func: str,
+    final_func: str,
+    movement_parameters: str,
+    dvars: str,
+    censor_indices: list[int],
+    framewise_displacement_jenkinson: str,
+    dvars_after: np.ndarray,
+    dvars_after_path: str,
+    template: str,
+) -> str:
     """
     Generate an RBC-style QC CSV.
 
     Parameters
     ----------
-    sub : str
+    sub
         subject ID
 
-    ses : str
+    ses
         session ID
 
-    task : str
+    task
         task ID
 
-    run : str or int
+    run
         run ID
 
-    desc : str
+    desc
         description string
 
-    regressors : str
+    regressors
         'Name' of regressors in fork
 
-    original_func : str
+    original_func
         path to original 'bold' image
 
-    final_bold : str
+    final_bold
         path to 'space-template_desc-preproc_bold' image
 
-    bold2t1w_mask : str
+    bold2t1w_mask
         path to bold-to-T1w transform applied to space-bold_desc-brain_mask
         with space-T1w_desc-brain_mask reference
 
-    t1w_mask : str
+    t1w_mask
         path to space-T1w_desc-brain_mask
 
-    bold2template_mask : str
+    bold2template_mask
         path to space-template_desc-bold_mask
 
-    template_mask : str
+    template_mask
         path to T1w-brain-template-mask or EPI-template-mask
 
-    movement_parameters: str
+    movement_parameters
         path to movement parameters
 
-    dvars : str
+    dvars
         path to DVARS before motion correction
 
-    censor_indices : list
+    censor_indices
         list of indices of censored volumes
 
-    framewise_displacement_jenkinson : str
+    framewise_displacement_jenkinson
         path to framewise displacement (Jenkinson) before motion correction
 
-    dvars_after : str
-        path to DVARS on final 'bold' image
+    dvars_after
+        DVARS matrix for final 'bold' image
 
-    template : str
+    dvars_after_path
+        path to DVARS matrix for final 'bold' image
+
+    template
         path to registration template
 
     Returns
@@ -343,10 +351,10 @@ def generate_xcp_qc(  # noqa: PLR0913
         meanDV["motionDVCorrInit"] = dvcorr(dvars, framewise_displacement_jenkinson)
     except ValueError as value_error:
         meanDV["motionDVCorrInit"] = f"ValueError({value_error!s})"
-    meanDV["meanDVFinal"] = np.mean(np.loadtxt(dvars_after))
+    meanDV["meanDVFinal"] = np.mean(dvars_after)
     try:
         meanDV["motionDVCorrFinal"] = dvcorr(
-            dvars_after, framewise_displacement_jenkinson
+            dvars_after_path, framewise_displacement_jenkinson
         )
     except ValueError as value_error:
         meanDV["motionDVCorrFinal"] = f"ValueError({value_error!s})"
@@ -515,6 +523,7 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
                 "censor_indices",
                 "regressors",
                 "framewise_displacement_jenkinson",
+                "dvars_after_path",
                 "dvars_after",
             ],
             output_names=["qc_file"],
