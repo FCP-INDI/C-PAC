@@ -152,6 +152,9 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
         ),
         name=f"cal_DVARS_strip_{pipe_num}",
     )
+    motion_name = "desc-movementParametersUnfiltered_motion"
+    if motion_name not in nodes:
+        motion_name = "desc-movementParameters_motion"
     wf.connect(
         [
             (
@@ -166,10 +169,15 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
             ),
             (cal_DVARS, cal_DVARS_strip, [("out_file", "file_1D")]),
             (cal_DVARS_strip, qc_file, [("out_file", "dvars_after")]),
+            (
+                nodes[motion_name].node,
+                qc_file,
+                [(nodes[motion_name].out, "movement_parameters")],
+            ),
             *[
                 (nodes[node].node, qc_file, [(nodes[node].out, node.replace("-", "_"))])
                 for node in motion_params
-                if node in nodes
+                if not node.endswith("_motion") and node in nodes
             ],
         ]
     )
