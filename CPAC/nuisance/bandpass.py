@@ -1,3 +1,21 @@
+# Copyright (C) 2019-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Bandpass filtering utilities."""
+
 import os
 from pathlib import Path
 
@@ -8,41 +26,55 @@ from scipy.fftpack import fft, ifft
 
 
 def ideal_bandpass(data, sample_period, bandpass_freqs):
-    # Derived from YAN Chao-Gan 120504 based on REST.
+    """
+    Apply ideal bandpass filtering to a 1D time series data using FFT. Derived from YAN Chao-Gan 120504 based on REST.
+
+    Parameters
+    ----------
+    data : NDArray
+        1D time series data to be filtered.
+    sample_period : float
+        Length of sampling period in seconds.
+    bandpass_freqs : tuple
+        Tuple containing the bandpass frequencies (LowCutoff, HighCutoff).
+
+    Returns
+    -------
+    NDArray
+        Filtered time series data.
+
+    """
     sample_freq = 1.0 / sample_period
     sample_length = data.shape[0]
+    nyquist_freq = sample_freq / 2.0
 
-    data_p = np.zeros(int(2 ** np.ceil(np.log2(sample_length))))
+    # Length of zero-padded data for efficient FFT
+    N = int(2 ** np.ceil(np.log2(len(data))))
+    data_p = np.zeros(N)
     data_p[:sample_length] = data
 
     LowCutoff, HighCutoff = bandpass_freqs
 
     if LowCutoff is None:  # No lower cutoff (low-pass filter)
         low_cutoff_i = 0
-    elif LowCutoff > sample_freq / 2.0:
+    elif LowCutoff > nyquist_freq:
         # Cutoff beyond fs/2 (all-stop filter)
-        low_cutoff_i = int(data_p.shape[0] / 2)
+        low_cutoff_i = int(N / 2)
     else:
-        low_cutoff_i = np.ceil(LowCutoff * data_p.shape[0] * sample_period).astype(
-            "int"
-        )
+        low_cutoff_i = np.ceil(LowCutoff * N * sample_period).astype("int")
 
-    if HighCutoff > sample_freq / 2.0 or HighCutoff is None:
+    if HighCutoff > nyquist_freq or HighCutoff is None:
         # Cutoff beyond fs/2 or unspecified (become a highpass filter)
-        high_cutoff_i = int(data_p.shape[0] / 2)
+        high_cutoff_i = int(N / 2)
     else:
-        high_cutoff_i = np.fix(HighCutoff * data_p.shape[0] * sample_period).astype(
-            "int"
-        )
+        high_cutoff_i = np.fix(HighCutoff * N * sample_period).astype("int")
 
     freq_mask = np.zeros_like(data_p, dtype="bool")
     freq_mask[low_cutoff_i : high_cutoff_i + 1] = True
-    freq_mask[data_p.shape[0] - high_cutoff_i : data_p.shape[0] + 1 - low_cutoff_i] = (
-        True
-    )
+    freq_mask[N - high_cutoff_i : N + 1 - low_cutoff_i] = True
 
     f_data = fft(data_p)
-    f_data[freq_mask is not True] = 0.0
+    f_data[~freq_mask] = 0.0
     return np.real_if_close(ifft(f_data)[:sample_length])
 
 
@@ -63,7 +95,7 @@ def read_1D(one_D: Path | str) -> tuple[list[str], NDArray]:
 
 
 def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs, sample_period=None):
-    """Performs ideal bandpass filtering on each voxel time-series.
+    """Perform ideal bandpass filtering on each voxel time-series.
 
     Parameters
     ----------
@@ -91,7 +123,7 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs, sample_perio
         hdr = nii.header
         sample_period = float(hdr.get_zooms()[3])
         # Sketchy check to convert TRs in millisecond units
-        if sample_period > 20.0:
+        if sample_period > 20.0:  # noqa: PLR2004
             sample_period /= 1000.0
 
     Y_bp = np.zeros_like(Y)
