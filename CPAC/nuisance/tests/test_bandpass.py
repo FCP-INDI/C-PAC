@@ -1,4 +1,4 @@
-# Copyright (C) 2022 - 2024  C-PAC Developers
+# Copyright (C) 2022-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -20,10 +20,12 @@ from importlib.abc import Traversable
 from importlib.resources import files
 from pathlib import Path
 
+import numpy as np
 from numpy.typing import NDArray
 import pytest
+from scipy.fft import fft
 
-from CPAC.nuisance.bandpass import read_1D
+from CPAC.nuisance.bandpass import ideal_bandpass, read_1D
 
 RAW_ONE_D: Traversable = files("CPAC").joinpath("nuisance/tests/regressors.1D")
 
@@ -46,3 +48,32 @@ def test_read_1D(start_line: int, tmp_path: Path) -> None:
     assert data.shape == (10, 29)
     # all header lines should be captured
     assert len(header) == 5 - start_line
+
+
+@pytest.mark.parametrize(
+    "lowcut, highcut, in_freq, out_freq",
+    [
+        (0.005, 0.05, 0.01, 0.2),
+        (0.01, 0.1, 0.02, 0.15),
+        (0.02, 0.08, 0.04, 0.12),
+    ],
+)
+def test_ideal_bandpass_with_various_cutoffs(
+    lowcut: float, highcut: float, in_freq: float, out_freq: float
+) -> None:
+    """Test ideal bandpass filtering with various cutoff frequencies."""
+    sample_period = 1.0
+    t = np.arange(512) * sample_period
+    signal = np.sin(2 * np.pi * in_freq * t) + np.sin(2 * np.pi * out_freq * t)
+
+    filtered = ideal_bandpass(signal, sample_period, (lowcut, highcut))
+
+    freqs = np.fft.fftfreq(len(signal), d=sample_period)
+    orig_fft = np.abs(fft(signal))
+    filt_fft = np.abs(fft(filtered))
+
+    idx_in = np.argmin(np.abs(freqs - in_freq))
+    idx_out = np.argmin(np.abs(freqs - out_freq))
+
+    assert filt_fft[idx_in] > 0.5 * orig_fft[idx_in]
+    assert filt_fft[idx_out] < 0.1 * orig_fft[idx_out]
