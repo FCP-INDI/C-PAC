@@ -635,7 +635,7 @@ def _timing(nodes_list):
             for node in nodes_list
             if "start" in node and "finish" in node
         ]
-    except ValueError:
+    except (TypeError, ValueError):
         # Drop any problematic nodes
         new_node_list = []
         for node in nodes_list:
@@ -669,5 +669,7 @@ def _timing_timestamp(node):
         )
         if (k in {"start", "finish"} and isinstance(v, str))
         else DatetimeWithSafeNone(v)
+        if k in {"start", "finish"}
+        else v
         for k, v in node.items()
     }
