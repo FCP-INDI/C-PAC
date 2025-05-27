@@ -6,6 +6,8 @@ from numpy.typing import NDArray
 import nibabel as nib
 from scipy.fftpack import fft, ifft
 
+from CPAC.utils.monitoring import IFLOGGER
+
 
 def ideal_bandpass(data, sample_period, bandpass_freqs):
     """
@@ -106,6 +108,8 @@ def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs, sample_perio
         sample_period = float(hdr.get_zooms()[3])
         # Sketchy check to convert TRs in millisecond units
         if sample_period > 20.0:
+            message = f"Sample period ({sample_period}) is very large. Assuming milliseconds and converting to seconds."
+            IFLOGGER.warning(message)
             sample_period /= 1000.0
 
     Y_bp = np.zeros_like(Y)
