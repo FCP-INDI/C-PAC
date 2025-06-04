@@ -53,10 +53,9 @@ from voluptuous import (
     Range,
     Required,
     Schema,
-    Schemable,
     Title,
-    UNDEFINED,
 )
+from voluptuous.schema_builder import Schemable, UNDEFINED
 
 from CPAC.utils.datatypes import ItemFromList, ListFromItem
 from CPAC.utils.docs import DOCS_URL_PREFIX
