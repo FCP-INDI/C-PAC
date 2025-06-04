@@ -36,7 +36,7 @@ scipy==1.11.1
 sdcflows==2.4.0
 semver==3.0.1
 traits==6.3.2
-voluptuous==0.13.1
+voluptuous==0.15.2
 # the below are pinned specifically to match what the FSL installer installs
 botocore==1.31.4
 charset-normalizer==3.1.0

@@ -57,6 +57,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Lingering calls to `cpac_outputs.csv` (was changed to `cpac_outputs.tsv` in v1.8.1).
 - A bug in the `freesurfer_abcd_preproc` nodeblock where the `Template` image was incorrectly used as `reference` during the `inverse_warp` step. Replacing it with the subject-specific `T1w` image resolved the issue of the `desc-restoreBrain_T1w` being chipped off.
 
+### Upgraded dependencies
+
+- `voluptuous` 0.13.1 → 0.15.2
+
 ### Removed
 
 - Variant image recipes.
