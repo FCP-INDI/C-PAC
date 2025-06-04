@@ -18,10 +18,18 @@
 """Validation schema for C-PAC pipeline configurations."""
 
 # pylint: disable=too-many-lines
+from dataclasses import dataclass
 from itertools import chain, permutations
 import re
 from subprocess import CalledProcessError
-from typing import Literal, Optional as OptionalType, TypeAlias, TypedDict
+from typing import (
+    Any as AnyType,
+    Literal,
+    Optional as OptionalType,
+    TypeAlias,
+    TypedDict,
+)
+import warnings
 
 import numpy as np
 from pathvalidate import sanitize_filename
@@ -45,11 +53,14 @@ from voluptuous import (
     Range,
     Required,
     Schema,
+    Schemable,
     Title,
+    UNDEFINED,
 )
 
 from CPAC.utils.datatypes import ItemFromList, ListFromItem
 from CPAC.utils.docs import DOCS_URL_PREFIX
+from CPAC.utils.monitoring import UTLOGGER
 from CPAC.utils.utils import YAML_BOOLS
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
@@ -68,6 +79,65 @@ Organism: TypeAlias = Literal[
     "rodent",
 ]
 ORGANISMS: list[Organism] = ["human", "non-human primate", "rodent"]
+
+
+def deprecated_option(option: Schemable, version: str, message: str) -> None:
+    """Mark an option as deprecated.
+
+    Parameters
+    ----------
+    option
+        The deprecated option.
+    version
+        The version in which the option was deprecated.
+    message
+        A message explaining the deprecation.
+    """
+    UTLOGGER.warning(
+        f"Option '{option}' is deprecated as of version {version}: {message}"
+    )
+    warnings.warn(
+        f"Option '{option}' is deprecated as of version {version}: {message}",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+
+@dataclass
+class DeprecatedOption:
+    """A version and message for a deprecated option."""
+
+    version: str
+    message: str
+
+
+class Deprecated(Optional):
+    """Mark an option as deprecated.
+
+    This class is used to mark options that are deprecated in the schema.
+    It inherits from `Optional` to allow the option to be omitted.
+    """
+
+    def __init__(
+        self,
+        schema: Schemable,
+        version: str,
+        msg: str = "This option is deprecated and will be removed in a future release.",
+        default: AnyType = UNDEFINED,
+        description: AnyType | None = None,
+    ) -> None:
+        """Initialize the Deprecated option."""
+        super().__init__(schema, msg, default, description)
+        setattr(self, "deprecated", DeprecatedOption(version, msg))
+
+    def __call__(self, v: AnyType) -> AnyType:
+        """Call the Deprecated option."""
+        if v is not None:
+            info = getattr(self, "deprecated", None)
+            if info:
+                deprecated_option(self._schema, info.version, info.message)
+            return super().__call__(v)
+        return v
 
 
 def str_to_bool1_1(x):  # pylint: disable=invalid-name
@@ -911,7 +981,11 @@ latest_schema = Schema(
             },
             "motion_estimates_and_correction": {
                 "run": bool1_1,
-                "motion_estimates": {
+                Deprecated(
+                    "motion_estimates",
+                    version="v1.8.8",
+                    msg="The option to choose whether to calculate motion estimates before or after slice-timing correction was removed in v1.8.8 and will have no effect. This configuration option will be removed in a future release.",
+                ): {
                     "calculate_motion_first": bool1_1,
                     "calculate_motion_after": bool1_1,
                 },
@@ -1291,20 +1365,12 @@ latest_schema = Schema(
 )
 
 
-def schema(config_dict):
+def schema(config_dict: dict) -> dict:
     """Validate a participant-analysis pipeline configuration.
 
     Validate against the latest validation schema by first applying backwards-
     compatibility patches, then applying Voluptuous validation, then handling complex
     configuration interaction checks before returning validated config_dict.
-
-    Parameters
-    ----------
-    config_dict : dict
-
-    Returns
-    -------
-    dict
     """
     from CPAC.utils.utils import _changes_1_8_0_to_1_8_1
 
@@ -1475,4 +1541,4 @@ def schema(config_dict):
     return partially_validated
 
 
-schema.schema = latest_schema.schema
+schema.schema = latest_schema.schema  # type: ignore[reportFunctionMemberAccess]

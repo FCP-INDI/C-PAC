@@ -322,11 +322,9 @@ def func_motion_correct(
     opt: MotionCorrection,
 ) -> NODEBLOCK_RETURN:
     """Perform motion estimation and correction using 3dVolReg or MCFLIRT."""
-    wf, outputs = motion_correct_connections(
+    return motion_correct_connections(
         wf, cfg, strat_pool, pipe_num, opt, estimate=False, correct=True
     )
-
-    return wf, outputs
 
 
 @nodeblock(
@@ -1007,35 +1005,21 @@ def stack_motion_blocks(
     rpool: "ResourcePool",
 ) -> list[NodeBlockFunction | list[NodeBlockFunction]]:
     """Create a stack of motion correction nodeblocks."""
-    func_motion_blocks: list[NodeBlockFunction | list[NodeBlockFunction]] = [
-        motion_estimate_filter
-    ]
-    correct_after: list[NodeBlockFunction | list[NodeBlockFunction]] = []
-    calc_motion: list[NodeBlockFunction | list[NodeBlockFunction]] = []
-    if not rpool.check_rpool("desc-movementParameters_motion"):
-        calc_motion = [calc_motion_stats]
-        if cfg["functional_preproc"]["motion_estimates_and_correction"][
-            "motion_estimates"
-        ]["calculate_motion_first"]:
-            func_motion_blocks = [
-                *get_motion_refs,
-                func_motion_estimates,
-                motion_estimate_filter,
-            ]
-            correct_after = [func_motion_correct]
-        else:
-            func_motion_blocks = [
-                *get_motion_refs,
-                func_motion_estimates,
-                func_motion_correct,
-                motion_estimate_filter,
-            ]
+    func_motion_blocks: list[NodeBlockFunction | list[NodeBlockFunction]] = (
+        [motion_estimate_filter]
+        if rpool.check_rpool("desc-movementParameters_motion")
+        else [
+            *get_motion_refs,
+            func_motion_estimates,
+            motion_estimate_filter,
+            calc_motion_stats,
+            func_motion_correct,
+        ]
+    )
     return [
         *func_blocks["init"],
         *func_motion_blocks,
         *func_blocks["preproc"],
-        *correct_after,
         *func_blocks["mask"],
-        *calc_motion,
         *func_blocks["prep"],
     ]

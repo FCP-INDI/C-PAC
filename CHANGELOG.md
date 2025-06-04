@@ -72,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `input` field from `coregistration` in blank and default config.
 - `reg_with_skull` swtich from `func_input_prep` in blank and default config.
 - Support for AFNI 3dECM < v21.1.1.
+- `calculate_motion_before` and `calculate_motion_after` configuration options.
 
 #### Removed CI dependency
 

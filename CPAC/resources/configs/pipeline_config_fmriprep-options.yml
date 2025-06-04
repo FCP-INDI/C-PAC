@@ -345,11 +345,6 @@ functional_preproc:
 
   motion_estimates_and_correction:
     run: On
-    motion_estimates:
-
-      # calculate motion statistics BEFORE slice-timing correction
-      calculate_motion_first: On
-
     motion_correction:
 
       # using: ['3dvolreg', 'mcflirt']

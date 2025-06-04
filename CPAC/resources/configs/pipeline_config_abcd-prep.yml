@@ -215,12 +215,6 @@ registration_workflows:
         interpolation: Linear
 
 functional_preproc:
-  motion_estimates_and_correction:
-    motion_estimates:
-
-      # calculate motion statistics AFTER motion correction
-      calculate_motion_after: Off
-
   distortion_correction:
 
     # using: ['PhaseDiff', 'Blip', 'Blip-FSL-TOPUP']

@@ -1594,16 +1594,6 @@ def _changes_1_8_0_to_1_8_1(config_dict: dict) -> dict:
         del config_dict["functional_preproc"]["motion_estimates_and_correction"][
             "calculate_motion_first"
         ]
-        config_dict = set_nested_value(
-            config_dict,
-            [
-                "functional_preproc",
-                "motion_estimates_and_correction",
-                "motion_estimates",
-                "calculate_motion_first",
-            ],
-            calculate_motion_first,
-        )
 
     return config_dict
 

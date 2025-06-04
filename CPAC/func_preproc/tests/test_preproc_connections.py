@@ -135,10 +135,6 @@ def test_motion_filter_connections(
             "functional_preproc": {
                 "motion_estimates_and_correction": {
                     "motion_correction": {"using": motion_correction},
-                    "motion_estimates": {
-                        "calculate_motion_after": not calculate_motion_first,
-                        "calculate_motion_first": calculate_motion_first,
-                    },
                     "motion_estimate_filter": {"run": run, "filters": filters},
                     "run": True,
                 },
