@@ -1018,8 +1018,8 @@ def stack_motion_blocks(
     )
     return [
         *func_blocks["init"],
-        *func_motion_blocks,
         *func_blocks["preproc"],
         *func_blocks["mask"],
+        *func_motion_blocks,
         *func_blocks["prep"],
     ]
