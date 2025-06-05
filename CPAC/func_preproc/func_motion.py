@@ -306,7 +306,6 @@ _MOTION_PARAM_OUTPUTS: dict[str, dict[str, str]] = {
             "motion-correct-mcflirt",
             "desc-preproc_bold",
             "motion-basefile",
-            *_MOTION_PARAM_OUTPUTS,
         )
     ],
     outputs={
