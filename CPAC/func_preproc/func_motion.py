@@ -1005,19 +1005,17 @@ def stack_motion_blocks(
     rpool: "ResourcePool",
 ) -> list[NodeBlockFunction | list[NodeBlockFunction]]:
     """Create a stack of motion correction nodeblocks."""
-    func_motion_blocks: list[NodeBlockFunction | list[NodeBlockFunction]] = (
-        [motion_estimate_filter]
-        if rpool.check_rpool("desc-movementParameters_motion")
-        else [
-            *get_motion_refs,
-            func_motion_estimates,
-            motion_estimate_filter,
-        ]
-    )
+    func_blocks["motion"] = []
+    if not rpool.check_rpool("motion-basefile"):
+        func_blocks["motion"].extend(get_motion_refs)
+    assert calc_motion_stats.inputs
+    if not all(rpool.check_rpool(resource) for resource in calc_motion_stats.inputs):
+        func_blocks["motion"].append(func_motion_estimates)
+    func_blocks["motion"].append(motion_estimate_filter)
     return [
         *func_blocks["init"],
         *func_blocks["preproc"],
-        *func_motion_blocks,
+        *func_blocks["motion"],
         func_motion_correct,
         *func_blocks["mask"],
         calc_motion_stats,
