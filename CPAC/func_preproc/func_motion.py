@@ -392,7 +392,6 @@ def get_motion_ref(
     opt: Literal["mean", "median", "selected_volume"],
 ) -> NODEBLOCK_RETURN:
     """Get the reference image for motion correction."""
-    node, out = strat_pool.get_data("desc-preproc_bold")
     in_label = "in_file"
     match opt:
         case "mean":
@@ -428,6 +427,7 @@ def get_motion_ref(
                 )
             )
             raise ValueError(msg)
+    node, out = strat_pool.get_data("desc-preproc_bold")
     func_get_RPI.inputs.outputtype = "NIFTI_GZ"
     wf.connect(node, out, func_get_RPI, in_label)
     outputs = {"motion-basefile": (func_get_RPI, "out_file")}

@@ -23,7 +23,7 @@ from unittest import mock
 from _pytest.logging import LogCaptureFixture
 import pytest
 
-from CPAC.func_preproc import get_motion_refs
+from CPAC.func_preproc.func_motion import get_motion_ref
 from CPAC.pipeline.nodeblock import NodeBlockFunction
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring.custom_logging import log_subprocess
@@ -169,13 +169,13 @@ def test_executable(executable):
     _installation_check(executable, "-help")
 
 
-@pytest.mark.parametrize("get_motion_ref", get_motion_refs)
-def test_NodeBlock_option_SSOT(get_motion_ref: NodeBlockFunction):  # pylint: disable=invalid-name
+def test_NodeBlock_option_SSOT():  # pylint: disable=invalid-name
     """Test using NodeBlock dictionaries for SSOT for options."""
     assert isinstance(get_motion_ref, NodeBlockFunction)
     with pytest.raises(ValueError) as value_error:
         get_motion_ref(None, None, None, None, opt="chaos")
     error_message = str(value_error.value).rstrip()
+    assert get_motion_ref.option_val
     for opt in get_motion_ref.option_val:
         assert f"'{opt}'" in error_message
     assert error_message.endswith("Tool input: 'chaos'")
