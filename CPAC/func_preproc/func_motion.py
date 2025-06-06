@@ -342,6 +342,7 @@ def func_motion_correct(
             "motion-basefile",
             "motion-correct-3dvolreg",
             "motion-correct-mcflirt",
+            "space-bold_desc-brain_mask",
         )
     ],
     outputs=_MOTION_PARAM_OUTPUTS,
@@ -1011,14 +1012,14 @@ def stack_motion_blocks(
             *get_motion_refs,
             func_motion_estimates,
             motion_estimate_filter,
-            calc_motion_stats,
-            func_motion_correct,
         ]
     )
     return [
         *func_blocks["init"],
         *func_blocks["preproc"],
-        *func_blocks["mask"],
         *func_motion_blocks,
+        func_motion_correct,
+        *func_blocks["mask"],
+        calc_motion_stats,
         *func_blocks["prep"],
     ]
