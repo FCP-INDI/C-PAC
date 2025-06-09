@@ -1011,12 +1011,11 @@ def stack_motion_blocks(
     assert calc_motion_stats.inputs
     if not all(rpool.check_rpool(resource) for resource in calc_motion_stats.inputs):
         func_blocks["motion"].append(func_motion_estimates)
-    func_blocks["motion"].append(motion_estimate_filter)
+    func_blocks["motion"].extend([func_motion_correct, motion_estimate_filter])
     return [
         *func_blocks["init"],
         *func_blocks["preproc"],
         *func_blocks["motion"],
-        func_motion_correct,
         *func_blocks["mask"],
         calc_motion_stats,
         *func_blocks["prep"],
