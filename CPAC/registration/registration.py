@@ -1552,6 +1552,20 @@ def FSL_registration_connector(
             ),
         }
 
+        if cfg.registration_workflows["sink_native_transforms"]:
+            outputs.update(
+                {
+                    f"from-{orig}_to-{sym}{tmpl}template_mode-image_desc-linear_xfm": (
+                        flirt_reg_anat_mni,
+                        "outputspec.linear_xfm",
+                    ),
+                    f"from-{sym}{tmpl}template_to-{orig}_mode-image_desc-linear_xfm": (
+                        flirt_reg_anat_mni,
+                        "outputspec.invlinear_xfm",
+                    ),
+                }
+            )
+
     if opt == "FSL":
         fnirt_reg_anat_mni = create_fsl_fnirt_nonlinear_reg_nhp(
             f"anat_mni_fnirt_register{symm}"
@@ -2048,6 +2062,24 @@ def ANTs_registration_connector(
         ),
     }
 
+    if cfg.registration_workflows["sink_native_transforms"]:
+        outputs.update(
+            {
+                f"from-{orig}_to-{sym}{tmpl}template_mode-image_desc-initial_xfm": (
+                    ants_reg_anat_mni,
+                    "outputspec.ants_initial_xfm",
+                ),
+                f"from-{orig}_to-{sym}{tmpl}template_mode-image_desc-rigid_xfm": (
+                    ants_reg_anat_mni,
+                    "outputspec.ants_rigid_xfm",
+                ),
+                f"from-{orig}_to-{sym}{tmpl}template_mode-image_desc-affine_xfm": (
+                    ants_reg_anat_mni,
+                    "outputspec.ants_affine_xfm",
+                ),
+            }
+        )
+
     return (wf, outputs)
 
 
@@ -2482,75 +2514,76 @@ def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         "label-lesion_mask",
     ],
     outputs={
-        "space-template_desc-preproc_T1w": {
-            "Description": "The preprocessed T1w brain transformed to "
-            "template space.",
-            "Template": "T1w-template",
+        **{
+            k: {"Description": v, "Template": "T1w-template"}
+            for k, v in [
+                (
+                    "space-template_desc-preproc_T1w",
+                    "The preprocessed T1w brain transformed to template space.",
+                ),
+                (
+                    "from-T1w_to-template_mode-image_desc-linear_xfm",
+                    "Linear (affine) transform from T1w native space to T1w-template space.",
+                ),
+                (
+                    "from-template_to-T1w_mode-image_desc-linear_xfm",
+                    "Linear (affine) transform from T1w-template space to T1w native space.",
+                ),
+                (
+                    "from-T1w_to-template_mode-image_desc-nonlinear_xfm",
+                    "Nonlinear (warp field) transform from T1w native space to T1w-template space.",
+                ),
+                (
+                    "from-template_to-T1w_mode-image_desc-nonlinear_xfm",
+                    "Nonlinear (warp field) transform from T1w-template space to T1w native space.",
+                ),
+                (
+                    "from-T1w_to-template_mode-image_xfm",
+                    "Composite (affine + warp field) transform from T1w native space to T1w-template space.",
+                ),
+                (
+                    "from-template_to-T1w_mode-image_xfm",
+                    "Composite (affine + warp field) transform from T1w-template space to T1w native space.",
+                ),
+                (
+                    "from-longitudinal_to-template_mode-image_desc-linear_xfm",
+                    "Linear (affine) transform from longitudinal-template space to T1w-template space.",
+                ),
+                (
+                    "from-template_to-longitudinal_mode-image_desc-linear_xfm",
+                    "Linear (affine) transform from T1w-template space to longitudinal-template space.",
+                ),
+                (
+                    "from-longitudinal_to-template_mode-image_desc-nonlinear_xfm",
+                    "Nonlinear (warp field) transform from longitudinal-template space to T1w-template space.",
+                ),
+                (
+                    "from-template_to-longitudinal_mode-image_desc-nonlinear_xfm",
+                    "Nonlinear (warp field) transform from T1w-template space to longitudinal-template space.",
+                ),
+                (
+                    "from-longitudinal_to-template_mode-image_xfm",
+                    "Composite (affine + warp field) transform from longitudinal-template space to T1w-template space.",
+                ),
+                (
+                    "from-template_to-longitudinal_mode-image_xfm",
+                    "Composite (affine + warp field) transform from T1w-template space to longitudinal-template space.",
+                ),
+            ]
         },
-        "from-T1w_to-template_mode-image_desc-linear_xfm": {
-            "Description": "Linear (affine) transform from T1w native space "
-            "to T1w-template space.",
-            "Template": "T1w-template",
-        },
-        "from-template_to-T1w_mode-image_desc-linear_xfm": {
-            "Description": "Linear (affine) transform from T1w-template space "
-            "to T1w native space.",
-            "Template": "T1w-template",
-        },
-        "from-T1w_to-template_mode-image_desc-nonlinear_xfm": {
-            "Description": "Nonlinear (warp field) transform from T1w native "
-            "space to T1w-template space.",
-            "Template": "T1w-template",
-        },
-        "from-template_to-T1w_mode-image_desc-nonlinear_xfm": {
-            "Description": "Nonlinear (warp field) transform from "
-            "T1w-template space to T1w native space.",
-            "Template": "T1w-template",
-        },
-        "from-T1w_to-template_mode-image_xfm": {
-            "Description": "Composite (affine + warp field) transform from "
-            "T1w native space to T1w-template space.",
-            "Template": "T1w-template",
-        },
-        "from-template_to-T1w_mode-image_xfm": {
-            "Description": "Composite (affine + warp field) transform from "
-            "T1w-template space to T1w native space.",
-            "Template": "T1w-template",
-        },
-        "from-longitudinal_to-template_mode-image_desc-linear_xfm": {
-            "Description": "Linear (affine) transform from "
-            "longitudinal-template space to T1w-template "
-            "space.",
-            "Template": "T1w-template",
-        },
-        "from-template_to-longitudinal_mode-image_desc-linear_xfm": {
-            "Description": "Linear (affine) transform from T1w-template "
-            "space to longitudinal-template space.",
-            "Template": "T1w-template",
-        },
-        "from-longitudinal_to-template_mode-image_desc-nonlinear_xfm": {
-            "Description": "Nonlinear (warp field) transform from "
-            "longitudinal-template space to T1w-template "
-            "space.",
-            "Template": "T1w-template",
-        },
-        "from-template_to-longitudinal_mode-image_desc-nonlinear_xfm": {
-            "Description": "Nonlinear (warp field) transform from "
-            "T1w-template space to longitudinal-template "
-            "space.",
-            "Template": "T1w-template",
-        },
-        "from-longitudinal_to-template_mode-image_xfm": {
-            "Description": "Composite (affine + warp field) transform from "
-            "longitudinal-template space to T1w-template "
-            "space.",
-            "Template": "T1w-template",
-        },
-        "from-template_to-longitudinal_mode-image_xfm": {
-            "Description": "Composite (affine + warp field) transform from "
-            "T1w-template space to longitudinal-template "
-            "space.",
-            "Template": "T1w-template",
+        **{
+            f"from-{src}_to-{dst}_mode-image_desc-{xfm}_xfm": {
+                "Description": f"{desc} transform from {src.replace('longitudinal', 'longitudinal-template') if src == 'longitudinal' else src} native space to {dst.replace('longitudinal', 'longitudinal-template') if dst == 'longitudinal' else dst}-template space.",
+                "Template": "T1w-template",
+            }
+            for src in ["T1w", "longitudinal"]
+            for dst in ["template", "longitudinal"]
+            for xfm, desc in [
+                ("initial", "Initial"),
+                ("rigid", "Rigid"),
+                ("affine", "Affine"),
+            ]
+            if src != dst
         },
     },
 )
@@ -2648,44 +2681,37 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
         "label-lesion_mask",
     ],
     outputs={
-        "space-symtemplate_desc-preproc_T1w": {
-            "Template": "T1w-brain-template-symmetric"
+        **{
+            k: {"Template": "T1w-template-symmetric"}
+            for k in [
+                "space-symtemplate_desc-preproc_T1w",
+                "from-T1w_to-symtemplate_mode-image_desc-linear_xfm",
+                "from-symtemplate_to-T1w_mode-image_desc-linear_xfm",
+                "from-T1w_to-symtemplate_mode-image_desc-nonlinear_xfm",
+                "from-symtemplate_to-T1w_mode-image_desc-nonlinear_xfm",
+                "from-T1w_to-symtemplate_mode-image_xfm",
+                "from-symtemplate_to-T1w_mode-image_xfm",
+                "from-longitudinal_to-symtemplate_mode-image_desc-linear_xfm",
+                "from-symtemplate_to-longitudinal_mode-image_desc-linear_xfm",
+                "from-longitudinal_to-symtemplate_mode-image_desc-nonlinear_xfm",
+                "from-symtemplate_to-longitudinal_mode-image_desc-nonlinear_xfm",
+                "from-longitudinal_to-symtemplate_mode-image_xfm",
+                "from-symtemplate_to-longitudinal_mode-image_xfm",
+            ]
         },
-        "from-T1w_to-symtemplate_mode-image_desc-linear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-symtemplate_to-T1w_mode-image_desc-linear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-T1w_to-symtemplate_mode-image_desc-nonlinear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-symtemplate_to-T1w_mode-image_desc-nonlinear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-T1w_to-symtemplate_mode-image_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-symtemplate_to-T1w_mode-image_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-longitudinal_to-symtemplate_mode-image_desc-linear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-symtemplate_to-longitudinal_mode-image_desc-linear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-longitudinal_to-symtemplate_mode-image_desc-nonlinear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-symtemplate_to-longitudinal_mode-image_desc-nonlinear_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-longitudinal_to-symtemplate_mode-image_xfm": {
-            "Template": "T1w-template-symmetric"
-        },
-        "from-symtemplate_to-longitudinal_mode-image_xfm": {
-            "Template": "T1w-template-symmetric"
+        **{
+            f"from-{src}_to-{dst}_mode-image_desc-{xfm}_xfm": {
+                "Description": f"{desc} transform from {src.replace('longitudinal', 'longitudinal-template') if src == 'longitudinal' else src} native space to {dst.replace('longitudinal', 'longitudinal-template') if dst == 'longitudinal' else dst}-template-symmetric space.",
+                "Template": "T1w-template-symmetric",
+            }
+            for src in ["T1w", "longitudinal", "symtemplate"]
+            for dst in ["symtemplate", "T1w", "longitudinal"]
+            for xfm, desc in [
+                ("initial", "Initial"),
+                ("rigid", "Rigid"),
+                ("affine", "Affine"),
+            ]
+            if src != dst
         },
     },
 )
@@ -2762,21 +2788,32 @@ def register_symmetric_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=
         "EPI-template-mask",
     ],
     outputs={
-        "space-template_desc-preproc_bold": {"Template": "EPI-template"},
-        "from-bold_to-EPItemplate_mode-image_desc-linear_xfm": {
-            "Template": "EPI-template"
+        **{
+            k: {"Template": "EPI-template"}
+            for k in [
+                "space-template_desc-preproc_bold",
+                "from-bold_to-EPItemplate_mode-image_desc-linear_xfm",
+                "from-EPItemplate_to-bold_mode-image_desc-linear_xfm",
+                "from-bold_to-EPItemplate_mode-image_desc-nonlinear_xfm",
+                "from-EPItemplate_to-bold_mode-image_desc-nonlinear_xfm",
+                "from-bold_to-EPItemplate_mode-image_xfm",
+                "from-EPItemplate_to-bold_mode-image_xfm",
+            ]
         },
-        "from-EPItemplate_to-bold_mode-image_desc-linear_xfm": {
-            "Template": "EPI-template"
+        **{
+            f"from-{src}_to-{dst}_mode-image_desc-{xfm}_xfm": {
+                "Description": f"{desc} transform from {src} native space to {dst} template space.",
+                "Template": "EPI-template",
+            }
+            for src in ["bold", "EPItemplate"]
+            for dst in ["EPItemplate", "bold"]
+            for xfm, desc in [
+                ("initial", "Initial"),
+                ("rigid", "Rigid"),
+                ("affine", "Affine"),
+            ]
+            if src != dst
         },
-        "from-bold_to-EPItemplate_mode-image_desc-nonlinear_xfm": {
-            "Template": "EPI-template"
-        },
-        "from-EPItemplate_to-bold_mode-image_desc-nonlinear_xfm": {
-            "Template": "EPI-template"
-        },
-        "from-bold_to-EPItemplate_mode-image_xfm": {"Template": "EPI-template"},
-        "from-EPItemplate_to-bold_mode-image_xfm": {"Template": "EPI-template"},
     },
 )
 def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
