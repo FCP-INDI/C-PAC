@@ -1,6 +1,6 @@
 import pytest
 from types import SimpleNamespace
-import CPAC.registration.ants_registration_connector as ants_registration_connector
+import CPAC.registration.ANTs_registration_connector as ants_registration_connector
 
 @pytest.fixture
 def dummy_module(monkeypatch):
@@ -12,7 +12,7 @@ def dummy_module(monkeypatch):
                 ants_rigid_xfm="rigid.mat",
                 ants_affine_xfm="affine.mat",
             )
-    def dummy_create_wf(name):
+    def dummy_create_wf(name, num_threads, reg_ants_skull):
         return DummyNode()
     monkeypatch.setattr(ants_registration_connector, 'create_wf_calculate_ants_warp', dummy_create_wf)
     monkeypatch.setattr(ants_registration_connector, 'check_transforms', lambda x: (x, len(x)))
@@ -30,8 +30,9 @@ def build_cfg(sink_native_transforms=True):
 def test_sink_native_transforms_outputs(dummy_module):
     connector = dummy_module
     cfg = build_cfg(sink_native_transforms=True)
+    params = {'metric': 'MI'}
     _, outputs = connector.ANTs_registration_connector(
-        wf_name='test', cfg=cfg
+        wf_name='test', cfg=cfg, params=params
     )
     expected_keys = [
         'from-T1w_to-template_mode-image_desc-initial_xfm',
@@ -45,7 +46,7 @@ def test_no_sink_native_transforms(dummy_module):
     connector = dummy_module
     cfg = build_cfg(sink_native_transforms=False)
     _, outputs = connector.ANTs_registration_connector(
-        wf_name='test', cfg=cfg
+        wf_name='test', cfg=cfg, params=params
     )
     for key in [
         'from-T1w_to-template_mode-image_desc-initial_xfm',
