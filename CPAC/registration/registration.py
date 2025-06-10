@@ -2704,8 +2704,8 @@ def register_ANTs_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                 "Description": f"{desc} transform from {src.replace('longitudinal', 'longitudinal-template') if src == 'longitudinal' else src} native space to {dst.replace('longitudinal', 'longitudinal-template') if dst == 'longitudinal' else dst}-template-symmetric space.",
                 "Template": "T1w-template-symmetric",
             }
-            for src in ["T1w", "longitudinal", "symtemplate"]
-            for dst in ["symtemplate", "T1w", "longitudinal"]
+            for src in ["T1w", "longitudinal"]
+            for dst in ["symtemplate"]
             for xfm, desc in [
                 ("initial", "Initial"),
                 ("rigid", "Rigid"),

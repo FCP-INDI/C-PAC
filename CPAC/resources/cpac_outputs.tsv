@@ -225,9 +225,6 @@ from-T1w_to-longitudinal_mode-image_desc-affine_xfm	xfm		anat	MAT
 from-longitudinal_to-template_mode-image_desc-initial_xfm	xfm		anat	MAT					
 from-longitudinal_to-template_mode-image_desc-rigid_xfm	xfm		anat	MAT					
 from-longitudinal_to-template_mode-image_desc-affine_xfm	xfm		anat	MAT					
-from-longitudinal_to-T1w_mode-image_desc-initial_xfm	xfm		anat	MAT					
-from-longitudinal_to-T1w_mode-image_desc-rigid_xfm	xfm		anat	MAT					
-from-longitudinal_to-T1w_mode-image_desc-affine_xfm	xfm		anat	MAT					
 from-T1w_to-symtemplate_mode-image_desc-initial_xfm	xfm		anat	MAT					
 from-T1w_to-symtemplate_mode-image_desc-rigid_xfm	xfm		anat	MAT					
 from-T1w_to-symtemplate_mode-image_desc-affine_xfm	xfm		anat	MAT					
@@ -240,18 +237,9 @@ from-longitudinal_to-symtemplate_mode-image_desc-affine_xfm	xfm		anat	MAT
 from-longitudinal_to-T1w_mode-image_desc-initial_xfm	xfm		anat	MAT					
 from-longitudinal_to-T1w_mode-image_desc-rigid_xfm	xfm		anat	MAT					
 from-longitudinal_to-T1w_mode-image_desc-affine_xfm	xfm		anat	MAT					
-from-symtemplate_to-T1w_mode-image_desc-initial_xfm	xfm		anat	MAT					
-from-symtemplate_to-T1w_mode-image_desc-rigid_xfm	xfm		anat	MAT					
-from-symtemplate_to-T1w_mode-image_desc-affine_xfm	xfm		anat	MAT					
-from-symtemplate_to-longitudinal_mode-image_desc-initial_xfm	xfm		anat	MAT					
-from-symtemplate_to-longitudinal_mode-image_desc-rigid_xfm	xfm		anat	MAT					
-from-symtemplate_to-longitudinal_mode-image_desc-affine_xfm	xfm		anat	MAT					
 from-bold_to-EPItemplate_mode-image_desc-initial_xfm	xfm		func	MAT					
 from-bold_to-EPItemplate_mode-image_desc-rigid_xfm	xfm		func	MAT					
 from-bold_to-EPItemplate_mode-image_desc-affine_xfm	xfm		func	MAT					
-from-EPItemplate_to-bold_mode-image_desc-initial_xfm	xfm		func	MAT					
-from-EPItemplate_to-bold_mode-image_desc-rigid_xfm	xfm		func	MAT					
-from-EPItemplate_to-bold_mode-image_desc-affine_xfm	xfm		func	MAT					
 from-bold_to-EPItemplate_mode-image_desc-linear_xfm	xfm		func	MAT					
 from-bold_to-EPItemplate_mode-image_desc-invlinear_xfm	xfm		func	MAT					
 space-template_label-CSF_mask	mask	template	anat	NIfTI					
