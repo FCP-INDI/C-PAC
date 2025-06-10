@@ -1,44 +1,27 @@
 import pytest
-from types import SimpleNamespace
 from CPAC.registration.registration import FSL_registration_connector
 
-@pytest.fixture
-def dummy_module(monkeypatch):
-    class DummyNode:
-        def __init__(self):
-            self.inputs = SimpleNamespace(inputspec=SimpleNamespace())
-            self.outputspec = SimpleNamespace(
-                linear_xfm="linear.mat",
-                invlinear_xfm="invlinear.mat",
-            )
-    def dummy_create_linear(name):
-        return DummyNode()
-    def dummy_create_nonlinear(name):
-        return DummyNode()
-    monkeypatch.setattr(
-        "CPAC.registration.registration.create_fsl_flirt_linear_reg", dummy_create_linear
-    )
-    monkeypatch.setattr(
-        "CPAC.registration.registration.create_fsl_fnirt_nonlinear_reg_nhp", dummy_create_nonlinear
-    )
-    return FSL_registration_connector
-
-def build_cfg(sink_native_transforms=True):
-    cfg = SimpleNamespace()
-    cfg.registration_workflows = {
-        'sink_native_transforms': sink_native_transforms
+@pytest.mark.parametrize("sink_native_transforms", ['On', 'Off'])
+def test_fsl_registration_connector(sink_native_transforms):
+    wf_name = 'test_fsl_registration_connector'
+    cfg = {
+        'registration-workflows': {'sink_native_transforms': sink_native_transforms},
     }
-    return cfg
-
-def test_sink_native_transforms_outputs(dummy_module):
-    connector = dummy_module
-    cfg = build_cfg(sink_native_transforms=True)
-    _, outputs = connector(
-        wf_name='test', cfg=cfg, orig="T1w", opt="FSL"
-    )
-    expected_keys = [
-        'from-T1w_to-template_mode-image_desc-linear_xfm',
-        'from-template_to-T1w_mode-image_desc-linear_xfm',
-    ]
-    for key in expected_keys:
-        assert key in outputs
+    _, outputs = FSL_registration_connector(wf_name, cfg)
+    if sink_native_transforms == 'On':
+        expected_outputs = {
+            'from-T1w_to-template_mode-image_desc-linear_xfm',
+            'from-template_to-T1w_mode-image_desc-linear_xfm'
+        }
+        assert expected_outputs.issubset(outputs.keys()), (
+            f"Expected outputs {expected_outputs} not found in {outputs.keys()}"
+        )
+    else:
+        # Adjust this set based on what outputs should be present when 'Off'
+        not_expected_outputs = {
+            'from-T1w_to-template_mode-image_desc-linear_xfm',
+            'from-template_to-T1w_mode-image_desc-linear_xfm'
+        }
+        assert not not_expected_outputs.intersection(outputs.keys()), (
+            f"Outputs {not_expected_outputs} should not be present when sink_native_transforms is Off"
+        )
