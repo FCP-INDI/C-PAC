@@ -1,6 +1,6 @@
 import pytest
 from types import SimpleNamespace
-import CPAC.registration.ANTs_registration_connector as ants_registration_connector
+from CPAC.registration.registration import ANTs_registration_connector as ants_registration_connector
 
 @pytest.fixture
 def dummy_module(monkeypatch):
@@ -45,6 +45,7 @@ def test_sink_native_transforms_outputs(dummy_module):
 def test_no_sink_native_transforms(dummy_module):
     connector = dummy_module
     cfg = build_cfg(sink_native_transforms=False)
+    params = {'metric': 'MI'}
     _, outputs = connector.ANTs_registration_connector(
         wf_name='test', cfg=cfg, params=params
     )
