@@ -30,7 +30,7 @@ pybids==0.15.6
 PyPEER @ git+https://git@github.com/ChildMindInstitute/PyPEER.git@6965d2b2bea0fef824e885fec33a8e0e6bd50a97
 python-dateutil==2.8.2
 PyYAML==6.0
-requests==2.31.0
+requests==2.32.4
 scikit-learn==1.2.2
 scipy==1.11.1
 sdcflows==2.4.0
@@ -45,7 +45,7 @@ h5py==3.8.0
 importlib-metadata==6.8.0
 lxml==4.9.2
 pip==23.3
-setuptools==68.0.0
+setuptools==78.1.1
 urllib3==1.26.18
 wheel==0.40.0
 zipp==3.16.0
