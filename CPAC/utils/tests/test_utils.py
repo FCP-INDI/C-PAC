@@ -170,7 +170,9 @@ def test_system_deps():
     check_system_deps(*([True] * 4))
 
 
-def check_expected_keys(sink_native_transforms: bool, outputs: dict, expected_keys: set) -> None:
+def check_expected_keys(
+    sink_native_transforms: bool, outputs: dict, expected_keys: set
+) -> None:
     if sink_native_transforms:
         assert expected_keys.issubset(
             outputs.keys()

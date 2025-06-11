@@ -2268,7 +2268,7 @@ def bold_to_T1template_xfm_connector(
         "FNIRT-T1w-brain-template",
         "template-ref-mask",
     ],
-     outputs = {
+    outputs={
         **{
             key: {"Template": "T1w-template"}
             for key in [
@@ -2289,7 +2289,7 @@ def bold_to_T1template_xfm_connector(
             ]
         },
         "space-template_desc-preproc_T1w": {"Template": "T1w-brain-template"},
-    }
+    },
 )
 def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Register T1w to template with FSL."""
@@ -2447,7 +2447,7 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=N
         "EPI-template",
         "EPI-template-mask",
     ],
-    outputs = {
+    outputs={
         **{
             key: {"Template": "EPI-template"}
             for key in [
@@ -2459,7 +2459,7 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=N
                 "from-EPItemplate_to-bold_mode-image_desc-flirt_xfm",
             ]
         }
-    }
+    },
 )
 def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Directly register the mean functional to an EPI template. No T1w involved."""
