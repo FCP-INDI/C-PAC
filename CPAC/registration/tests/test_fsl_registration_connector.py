@@ -13,7 +13,7 @@ class AttrDict(dict):
 @pytest.mark.parametrize("sink_native_transforms", [True, False])
 def test_fsl_registration_connector(sink_native_transforms):
     wf_name = "test_fsl_registration_connector"
-    cfg = AttrDict(
+    cfg = Configuration(
         {"registration_workflows": {"sink_native_transforms": sink_native_transforms}}
     )
     _, outputs = FSL_registration_connector(wf_name, cfg, opt="FSL")
