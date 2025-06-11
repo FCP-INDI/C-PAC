@@ -13,11 +13,8 @@ class AttrDict(dict):
 @pytest.mark.parametrize("sink_native_transforms", [True, False])
 def test_ants_registration_connector(sink_native_transforms):
     wf_name = "test_ants_registration_connector"
-    cfg = AttrDict(
+    cfg = Configuration(
         {
-            "registration-workflows": {
-                "sink_native_transforms": sink_native_transforms
-            },
             "pipeline_setup": {"system_config": {"num_ants_threads": 1}},
             "registration_workflows": {
                 "sink_native_transforms": sink_native_transforms,
