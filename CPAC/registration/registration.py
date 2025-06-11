@@ -1555,11 +1555,11 @@ def FSL_registration_connector(
         if cfg.registration_workflows["sink_native_transforms"]:
             outputs.update(
                 {
-                    f"from-{orig}_to-{sym}{tmpl}template_mode-image_desc-linear_xfm": (
+                    f"from-{orig}_to-{sym}{tmpl}template_mode-image_desc-flirt_xfm": (
                         flirt_reg_anat_mni,
                         "outputspec.linear_xfm",
                     ),
-                    f"from-{sym}{tmpl}template_to-{orig}_mode-image_desc-linear_xfm": (
+                    f"from-{sym}{tmpl}template_to-{orig}_mode-image_desc-flirt_xfm": (
                         flirt_reg_anat_mni,
                         "outputspec.invlinear_xfm",
                     ),
