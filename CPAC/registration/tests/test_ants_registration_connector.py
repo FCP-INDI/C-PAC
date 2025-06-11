@@ -1,6 +1,7 @@
 import pytest
 from CPAC.registration.registration import ANTs_registration_connector
 
+
 class AttrDict(dict):
     def __getattr__(self, item):
         value = self[item]
@@ -8,28 +9,25 @@ class AttrDict(dict):
             return AttrDict(value)
         return value
 
+
 @pytest.mark.parametrize("sink_native_transforms", [True, False])
 def test_ants_registration_connector(sink_native_transforms):
     wf_name = "test_ants_registration_connector"
-    cfg = AttrDict({
-        "registration-workflows": {"sink_native_transforms": sink_native_transforms},
-        "pipeline_setup": {
-            "system_config": {
-                "num_ants_threads": 1
-            }
-        },
-        "registration_workflows": {
-            "sink_native_transforms": sink_native_transforms,  
-            "anatomical_registration": {
-                "reg_with_skull": True,
-                "registration": {
-                    "ANTs": {
-                        "use_lesion_mask": False
-                    }
-                }
-            }
+    cfg = AttrDict(
+        {
+            "registration-workflows": {
+                "sink_native_transforms": sink_native_transforms
+            },
+            "pipeline_setup": {"system_config": {"num_ants_threads": 1}},
+            "registration_workflows": {
+                "sink_native_transforms": sink_native_transforms,
+                "anatomical_registration": {
+                    "reg_with_skull": True,
+                    "registration": {"ANTs": {"use_lesion_mask": False}},
+                },
+            },
         }
-    })
+    )
     params = {"metric": "MI"}
     _, outputs = ANTs_registration_connector(wf_name, cfg=cfg, params=params)
     expected_keys = {
