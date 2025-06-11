@@ -1,6 +1,7 @@
 import pytest
 from CPAC.registration.registration import FSL_registration_connector
 from CPAC.utils.configuration import Configuration
+from CPAC.utils.tests.test_utils import check_expected_keys
 
 
 @pytest.mark.parametrize("sink_native_transforms", [True, False])
@@ -14,11 +15,4 @@ def test_fsl_registration_connector(sink_native_transforms):
         "from-T1w_to-template_mode-image_desc-flirt_xfm",
         "from-template_to-T1w_mode-image_desc-flirt_xfm",
     }
-    if sink_native_transforms == True:
-        assert expected_keys.issubset(
-            outputs.keys()
-        ), f"Expected outputs {expected_keys} not found in {outputs.keys()}"
-    else:
-        assert not expected_keys.intersection(
-            outputs.keys()
-        ), f"Outputs {expected_keys} should not be present when sink_native_transforms is Off"
+    check_expected_keys(sink_native_transforms, outputs, expected_keys)

@@ -2268,23 +2268,28 @@ def bold_to_T1template_xfm_connector(
         "FNIRT-T1w-brain-template",
         "template-ref-mask",
     ],
-    outputs={
+     outputs = {
+        **{
+            key: {"Template": "T1w-template"}
+            for key in [
+                "space-template_desc-head_T1w",
+                "space-template_desc-brain_mask",
+                "space-template_desc-T1wT2w_biasfield",
+                "from-T1w_to-template_mode-image_desc-linear_xfm",
+                "from-template_to-T1w_mode-image_desc-linear_xfm",
+                "from-T1w_to-template_mode-image_xfm",
+                "from-T1w_to-template_mode-image_warp",
+                "from-longitudinal_to-template_mode-image_desc-linear_xfm",
+                "from-template_to-longitudinal_mode-image_desc-linear_xfm",
+                "from-longitudinal_to-template_mode-image_xfm",
+                "from-T1w_to-template_mode-image_desc-flirt_xfm",
+                "from-template_to-T1w_mode-image_desc-flirt_xfm",
+                "from-longitudinal_to-template_mode-image_desc-flirt_xfm",
+                "from-template_to-longitudinal_mode-image_desc-flirt_xfm",
+            ]
+        },
         "space-template_desc-preproc_T1w": {"Template": "T1w-brain-template"},
-        "space-template_desc-head_T1w": {"Template": "T1w-template"},
-        "space-template_desc-brain_mask": {"Template": "T1w-template"},
-        "space-template_desc-T1wT2w_biasfield": {"Template": "T1w-template"},
-        "from-T1w_to-template_mode-image_desc-linear_xfm": {"Template": "T1w-template"},
-        "from-template_to-T1w_mode-image_desc-linear_xfm": {"Template": "T1w-template"},
-        "from-T1w_to-template_mode-image_xfm": {"Template": "T1w-template"},
-        "from-T1w_to-template_mode-image_warp": {"Template": "T1w-template"},
-        "from-longitudinal_to-template_mode-image_desc-linear_xfm": {
-            "Template": "T1w-template"
-        },
-        "from-template_to-longitudinal_mode-image_desc-linear_xfm": {
-            "Template": "T1w-template"
-        },
-        "from-longitudinal_to-template_mode-image_xfm": {"Template": "T1w-template"},
-    },
+    }
 )
 def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Register T1w to template with FSL."""
@@ -2371,6 +2376,10 @@ def register_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
                 "from-symtemplate_to-longitudinal_mode-image_desc-linear_xfm",
                 "from-longitudinal_to-symtemplate_mode-image_xfm",
                 "space-symtemplate_desc-T1wT2w_biasfield",
+                "from-T1w_to-symtemplate_mode-image_desc-flirt_xfm",
+                "from-symtemplate_to-T1w_mode-image_desc-flirt_xfm",
+                "from-longitudinal_to-symtemplate_mode-image_desc-flirt_xfm",
+                "from-symtemplate_to-longitudinal_mode-image_desc-flirt_xfm",
             ]
         },
     },
@@ -2438,16 +2447,19 @@ def register_symmetric_FSL_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=N
         "EPI-template",
         "EPI-template-mask",
     ],
-    outputs={
-        "space-template_desc-preproc_bold": {"Template": "EPI-template"},
-        "from-bold_to-EPItemplate_mode-image_desc-linear_xfm": {
-            "Template": "EPI-template"
-        },
-        "from-EPItemplate_to-bold_mode-image_desc-linear_xfm": {
-            "Template": "EPI-template"
-        },
-        "from-bold_to-EPItemplate_mode-image_xfm": {"Template": "EPI-template"},
-    },
+    outputs = {
+        **{
+            key: {"Template": "EPI-template"}
+            for key in [
+                "space-template_desc-preproc_bold",
+                "from-bold_to-EPItemplate_mode-image_desc-linear_xfm",
+                "from-EPItemplate_to-bold_mode-image_desc-linear_xfm",
+                "from-bold_to-EPItemplate_mode-image_xfm",
+                "from-bold_to-EPItemplate_mode-image_desc-flirt_xfm",
+                "from-EPItemplate_to-bold_mode-image_desc-flirt_xfm",
+            ]
+        }
+    }
 )
 def register_FSL_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Directly register the mean functional to an EPI template. No T1w involved."""
