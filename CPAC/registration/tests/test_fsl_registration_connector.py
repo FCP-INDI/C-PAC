@@ -1,13 +1,6 @@
 import pytest
 from CPAC.registration.registration import FSL_registration_connector
-
-
-class AttrDict(dict):
-    def __getattr__(self, item):
-        value = self[item]
-        if isinstance(value, dict):
-            return AttrDict(value)
-        return value
+from CPAC.utils.configuration import Configuration
 
 
 @pytest.mark.parametrize("sink_native_transforms", [True, False])
