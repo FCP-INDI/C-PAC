@@ -168,3 +168,16 @@ def test_system_deps():
     Raises an exception if dependencies are not met.
     """
     check_system_deps(*([True] * 4))
+
+
+def check_expected_keys(
+    sink_native_transforms: bool, outputs: dict, expected_keys: set
+) -> None:
+    if sink_native_transforms:
+        assert expected_keys.issubset(
+            outputs.keys()
+        ), f"Expected outputs {expected_keys} not found in {outputs.keys()}"
+    else:
+        assert not expected_keys.intersection(
+            outputs.keys()
+        ), f"Outputs {expected_keys} should not be present when sink_native_transforms is Off"

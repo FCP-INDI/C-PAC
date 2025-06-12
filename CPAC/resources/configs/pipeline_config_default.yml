@@ -618,6 +618,8 @@ segmentation:
 
 
 registration_workflows:
+  # sink native transform files to the output directory
+  sink_native_transforms: Off
 
   anatomical_registration:
 

@@ -58,7 +58,7 @@ from typing import Any, ClassVar, Optional
 
 from numpy import prod
 from traits.trait_base import Undefined
-from traits.trait_handlers import TraitListObject
+from traits.api import List as TraitListObject
 from nibabel import load
 from nipype.interfaces.utility import Function
 from nipype.pipeline import engine as pe

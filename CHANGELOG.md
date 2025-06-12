@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New switch `mask_sbref` under `func_input_prep` in functional registration and set to default `on`.
 - New resource `desc-head_bold` as non skull-stripped bold from nodeblock `bold_masking`.
 - `censor_file_path` from `offending_timepoints_connector` in the `build_nuisance_regressor` node.
+- Switch `sink_native_transforms` under `registration_workflows` to output all `.mat` files in ANTs and FSL Transforms.
 
 ### Changed
 
@@ -46,6 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Turned `generate_xcpqc_files` on for all preconfigurations except `blank`.
 - Introduced specific switch `restore_t1w_intensity` for `correct_restore_brain_intensity_abcd` nodeblock, enabling it by default only in `abcd-options` pre-config.
 - Updated GitHub Actions to run automated integration and regression tests on HPC.
+
+### Upgraded
+
+- `requests` 2.32.0 → 2.32.3
 
 ### Fixed
 
