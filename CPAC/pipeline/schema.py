@@ -692,6 +692,7 @@ latest_schema = Schema(
             },
         },
         "registration_workflows": {
+            "sink_native_transforms": bool1_1,
             "anatomical_registration": {
                 "run": bool1_1,
                 "resolution_for_anat": All(str, Match(RESOLUTION_REGEX)),

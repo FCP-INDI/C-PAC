@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New switch `mask_sbref` under `func_input_prep` in functional registration and set to default `on`.
 - New resource `desc-head_bold` as non skull-stripped bold from nodeblock `bold_masking`.
 - `censor_file_path` from `offending_timepoints_connector` in the `build_nuisance_regressor` node.
+- Switch `sink_native_transforms` under `registration_workflows` to output all `.mat` files in ANTs and FSL Transforms.
 
 ### Changed
 
@@ -51,6 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed broken support for native-space masking.
   - Introduced a new `template_space_func_masking` section in the pipeline config for template-space-only methods.
   - Moved `Anatomical_Resampled` masking method from `func_masking` to the `template_space_func_masking`.
+
+### Upgraded
+
+- `requests` 2.32.0 → 2.32.3
 
 ### Fixed
 

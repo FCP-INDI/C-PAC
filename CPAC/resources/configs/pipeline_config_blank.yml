@@ -570,6 +570,9 @@ segmentation:
       WM_label: [2, 41]
 
 registration_workflows:
+  # sink native transform files to the output directory
+  sink_native_transforms: Off
+
   anatomical_registration:
     run: Off
     registration:

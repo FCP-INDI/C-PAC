@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2024  C-PAC Developers
+# Copyright (C) 2019-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -21,6 +21,7 @@ import os
 import re
 from typing import Optional
 
+import numpy as np
 from nipype.interfaces import afni, ants, fsl
 import nipype.interfaces.utility as util
 from nipype.pipeline.engine import Workflow
@@ -139,7 +140,7 @@ def find_offending_time_points(
     censor_vector[extended_censors] = 0
 
     out_file_path = os.path.join(os.getcwd(), "censors.tsv")
-    np.savetxt(out_file_path, censor_vector, fmt="%d", comments="")
+    np.savetxt(out_file_path, censor_vector, fmt="%d", header="censor", comments="")
 
     return out_file_path
 
@@ -860,3 +861,19 @@ class NuisanceRegressor(object):
     def __repr__(self) -> str:
         """Return a string representation of the nuisance regressor."""
         return NuisanceRegressor.encode(self.selector)
+
+
+def load_censor_tsv(filepath: str, expected_length: int) -> np.ndarray:
+    """Load censor TSV and verify length."""
+    header = False
+    censor = np.empty((0))
+    try:
+        censor = np.loadtxt(filepath)
+    except ValueError:
+        header = True
+    if header or censor.shape[0] == expected_length + 1:
+        censor = np.loadtxt(filepath, skiprows=1)
+    if censor.shape[0] == expected_length:
+        return censor
+    msg = f"Censor file length ({censor.shape[0]}) does not match expected length ({expected_length})."
+    raise ValueError(msg)

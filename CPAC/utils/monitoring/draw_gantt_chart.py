@@ -401,7 +401,7 @@ def generate_gantt_chart(
         return
 
     for node in nodes_list:
-        if "duration" not in node:
+        if "duration" not in node and (node["start"] and node["finish"]):
             node["duration"] = (node["finish"] - node["start"]).total_seconds()
 
     # Create the header of the report with useful information

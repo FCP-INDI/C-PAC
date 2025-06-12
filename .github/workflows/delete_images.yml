@@ -1,5 +1,9 @@
 name: Delete development images
 
+permissions:
+  contents: read
+  packages: write
+
 on:
   delete:
 
@@ -14,12 +18,14 @@ jobs:
           - ''
           - lite
     env:
+      DELETED_BRANCH: ${{ github.event.ref }}
       GITHUB_TOKEN: ${{ secrets.API_PACKAGE_READ_DELETE }}
       IMAGE: c-pac
     steps:
       - name: Check out C-PAC
         uses: actions/checkout@v4
       - name: 'Delete branch image'
+        continue-on-error: true
         run: |
           OWNER=$(echo ${GITHUB_REPOSITORY} | cut -d '/' -f 1)
           if [[ $(curl -u ${GITHUB_TOKEN}: https://api.github.com/users/${OWNER} | jq '.type') == '"User"' ]]
@@ -28,11 +34,12 @@ jobs:
           else
             OWNER_TYPE=org
           fi
-          if [[ "${{ inputs.variant }}" != "" ]]
+          echo "OWNER_TYPE=${OWNER_TYPE:0:4}" >> $GITHUB_ENV
+          if [[ "${{ matrix.variant }}" != "" ]]
           then
-            VARIANT=-${{ inputs.variant }}
+            VARIANT="-${{ matrix.variant }}"
           fi
-          TAG=${GITHUB_REF_NAME}
+          TAG=${DELETED_BRANCH//\//_}
           TAG=$TAG$VARIANT
 
           VERSION_ID=$(python .github/scripts/get_package_id.py $OWNER $IMAGE $TAG)
@@ -41,10 +48,14 @@ jobs:
             -X DELETE \
             https://api.github.com/${OWNER_TYPE}/${OWNER}/packages/container/c-pac/versions/${VERSION_ID}
       - name: Delete all containers from repository without tags
+        if: matrix.variant == ''
+        env:
+          OWNER_TYPE: ${{ env.OWNER_TYPE }}
         uses: Chizkiyahu/delete-untagged-ghcr-action@v6
         with:
-          token: ${GITHUB_TOKEN}
+          token: ${{ secrets.API_PACKAGE_READ_DELETE }}
           repository_owner: ${{ github.repository_owner }}
           repository: ${{ github.repository }}
           untagged_only: true
-          owner_type: org
+          except_untagged_multiplatform: false
+          owner_type: ${{ env.OWNER_TYPE }}

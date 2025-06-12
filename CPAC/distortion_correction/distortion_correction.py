@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Copyright (C) 2017-2022  C-PAC Developers
+# Copyright (C) 2017-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -16,6 +16,8 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Distortion correction in C-PAC."""
+
 import os
 import subprocess
 
@@ -663,7 +665,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
         "import os",
         "import subprocess",
         "import numpy as np",
-        "import nibabel",
+        "import nibabel as nib",
         "import sys",
     ]
     phase_encoding = pe.Node(

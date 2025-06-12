@@ -18,3 +18,22 @@
 [build-system]
 requires = ["nipype==1.8.6", "numpy==1.25.1", "pyyaml==6.0", "setuptools<60.0", "voluptuous==0.13.1"]
 build-backend = "setuptools.build_meta"
+
+[tool.coverage.paths]
+source = [
+  "/code",
+  "/home/circleci/project"
+]
+
+[tool.coverage.report]
+ignore_errors = true
+include_namespace_packages = true
+skip_empty = true
+
+[tool.coverage.run]
+branch = true
+relative_files = true
+source = [
+  "CPAC",
+  "dev/circleci_data"
+]
