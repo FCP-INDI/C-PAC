@@ -18,6 +18,7 @@
 
 from importlib.abc import Traversable
 from importlib.resources import files
+from os import getenv
 from pathlib import Path
 
 from networkx import DiGraph
@@ -65,6 +66,10 @@ def test_read_1D(start_line: int, tmp_path: Path) -> None:
     assert len(header) == 5 - start_line
 
 
+@pytest.mark.skipif(
+    not getenv("OSF_DATA"),
+    reason="OSF API key not set in OSF_DATA environment variable",
+)
 def test_frequency_filter(tmp_path: Path) -> None:
     """Test that the bandpass filter works as expected."""
     cfg = Preconfiguration("benchmark-FNIRT")
