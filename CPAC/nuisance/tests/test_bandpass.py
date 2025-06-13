@@ -50,6 +50,7 @@ def test_read_1D(start_line: int, tmp_path: Path) -> None:
     assert len(header) == 5 - start_line
 
 
+@pytest.mark.parametrize("sample_period", [1.0, 1000.0])
 @pytest.mark.parametrize(
     "lowcut, highcut, in_freq, out_freq",
     [
@@ -59,10 +60,9 @@ def test_read_1D(start_line: int, tmp_path: Path) -> None:
     ],
 )
 def test_ideal_bandpass_with_various_cutoffs(
-    lowcut: float, highcut: float, in_freq: float, out_freq: float
+    lowcut: float, highcut: float, in_freq: float, out_freq: float, sample_period: float
 ) -> None:
     """Test the ideal bandpass filter with various cutoff frequencies."""
-    sample_period = 1.0
     t = np.arange(512) * sample_period
     signal = np.sin(2 * np.pi * in_freq * t) + np.sin(2 * np.pi * out_freq * t)
 
