@@ -19,7 +19,7 @@
 from argparse import Namespace
 import os
 from pathlib import Path
-from typing import cast
+from typing import cast, Protocol
 
 from _pytest.logging import LogCaptureFixture
 import pytest
@@ -39,6 +39,7 @@ from CPAC.pipeline.engine import (
     ResourcePool,
 )
 from CPAC.utils.bids_utils import create_cpac_data_config
+from CPAC.utils.test_mocks import file_node
 
 
 @pytest.mark.skip(reason="not a pytest test")
@@ -270,6 +271,27 @@ def test_missing_resource(
     )
 
     assert "can be output from" in caplog.text
+
+
+class ResourceDownload(Protocol):
+    """Protocol for a callable that downloads a resource file."""
+
+    def __call__(self, file: str, destination: Path | str) -> Path:
+        """Return the path to the downloaded resource file."""
+        ...
+
+
+def _download(
+    self: ResourcePool,
+    resource: str,
+    source: ResourceDownload,
+    file: str,
+    destination: Path,
+    index: int = -1,
+) -> None:
+    """Download a file from OSF into a ResourcePool."""
+    node = file_node(source(file, destination), index, f"osf_{resource}")
+    self.set_data(resource, node[0], node[1], {}, -1, source.__module__)
 
 
 # bids_dir = "/Users/steven.giavasis/data/HBN-SI_dataset/rawdata"

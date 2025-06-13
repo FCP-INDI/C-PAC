@@ -1880,9 +1880,59 @@ def create_nuisance_regression_workflow(nuisance_selectors, name="nuisance_regre
     return nuisance_wf
 
 
+def _default_frequency_filter(
+    filtering_wf: pe.Workflow,
+    bandpass_selector: dict,
+    inputspec: pe.Node,
+    outputspec: pe.Node,
+) -> pe.Node:
+    """Return a frequency filter node."""
+    frequency_filter = pe.Node(
+        Function(
+            input_names=[
+                "realigned_file",
+                "regressor_file",
+                "bandpass_freqs",
+                "sample_period",
+            ],
+            output_names=["bandpassed_file", "regressor_file"],
+            function=bandpass_voxels,
+            as_module=True,
+        ),
+        name="frequency_filter",
+        mem_gb=0.5,
+        mem_x=(3811976743057169 / 151115727451828646838272, "realigned_file"),
+    )
+    frequency_filter.inputs.bandpass_freqs = [
+        bandpass_selector.get("bottom_frequency"),
+        bandpass_selector.get("top_frequency"),
+    ]
+    filtering_wf.connect(
+        [
+            (
+                inputspec,
+                frequency_filter,
+                [
+                    ("functional_file_path", "realigned_file"),
+                    ("regressors_file_path", "regressor_file"),
+                ],
+            ),
+            (
+                frequency_filter,
+                outputspec,
+                [
+                    ("bandpassed_file", "residual_file_path"),
+                    ("regressor_file", "residual_regressor"),
+                ],
+            ),
+        ]
+    )
+    return frequency_filter
+
+
 def filtering_bold_and_regressors(
     nuisance_selectors, name="filtering_bold_and_regressors"
-):
+) -> pe.Workflow:
     inputspec = pe.Node(
         util.IdentityInterface(
             fields=[
@@ -1895,6 +1945,7 @@ def filtering_bold_and_regressors(
         ),
         name="inputspec",
     )
+    inputspec.inputs.nuisance_selectors = nuisance_selectors
 
     outputspec = pe.Node(
         util.IdentityInterface(fields=["residual_file_path", "residual_regressor"]),
@@ -1910,42 +1961,8 @@ def filtering_bold_and_regressors(
         bandpass_method = "default"
 
     if bandpass_method == "default":
-        frequency_filter = pe.Node(
-            Function(
-                input_names=[
-                    "realigned_file",
-                    "regressor_file",
-                    "bandpass_freqs",
-                    "sample_period",
-                ],
-                output_names=["bandpassed_file", "regressor_file"],
-                function=bandpass_voxels,
-                as_module=True,
-            ),
-            name="frequency_filter",
-            mem_gb=0.5,
-            mem_x=(3811976743057169 / 151115727451828646838272, "realigned_file"),
-        )
-
-        frequency_filter.inputs.bandpass_freqs = [
-            bandpass_selector.get("bottom_frequency"),
-            bandpass_selector.get("top_frequency"),
-        ]
-
-        filtering_wf.connect(
-            inputspec, "functional_file_path", frequency_filter, "realigned_file"
-        )
-
-        filtering_wf.connect(
-            inputspec, "regressors_file_path", frequency_filter, "regressor_file"
-        )
-
-        filtering_wf.connect(
-            frequency_filter, "bandpassed_file", outputspec, "residual_file_path"
-        )
-
-        filtering_wf.connect(
-            frequency_filter, "regressor_file", outputspec, "residual_regressor"
+        frequency_filter = _default_frequency_filter(
+            filtering_wf, bandpass_selector, inputspec, outputspec
         )
 
     elif bandpass_method == "AFNI":
@@ -2831,7 +2848,6 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
         filt = filtering_bold_and_regressors(
             opt, name=f"filtering_bold_and_regressors_{name_suff}"
         )
-        filt.inputs.inputspec.nuisance_selectors = opt
 
         node, out = strat_pool.get_data(
             ["desc-confounds_timeseries", "parsed_regressors"]
