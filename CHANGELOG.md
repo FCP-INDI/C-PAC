@@ -67,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed an erroneous connection to AFNI 3dTProject in nuisance denoising that would unnecessarily send a spike regressor as a censor. This would sometimes cause TRs to unnecessarily be dropped from the timeseries as if scrubbing were being performed.
 - Lingering calls to `cpac_outputs.csv` (was changed to `cpac_outputs.tsv` in v1.8.1).
 - A bug in the `freesurfer_abcd_preproc` nodeblock where the `Template` image was incorrectly used as `reference` during the `inverse_warp` step. Replacing it with the subject-specific `T1w` image resolved the issue of the `desc-restoreBrain_T1w` being chipped off.
+- A bug in `ideal_bandpass` where the frequency mask was incorrectly applied, which caused filter to fail in certain cases.
 
 ### Removed
 
