@@ -181,6 +181,7 @@ forkable = All(Coerce(ListFromItem), [bool1_1], Length(max=2))
 MotionCorrection: TypeAlias = Literal["3dvolreg", "mcflirt"]
 valid_options = {
     "acpc": {"target": ["brain", "whole-head"]},
+    "deoblique": ["warp", "refit"],
     "brain_extraction": {
         "using": [
             "3dSkullStrip",
@@ -612,6 +613,7 @@ latest_schema = Schema(
         "anatomical_preproc": {
             "run": bool1_1,
             "run_t2": bool1_1,
+            "deoblique": [In(valid_options["deoblique"])],
             "non_local_means_filtering": {
                 "run": forkable,
                 "noise_model": Maybe(str),
@@ -971,6 +973,7 @@ latest_schema = Schema(
             },
             "update_header": {
                 "run": bool1_1,
+                "deoblique": [In(valid_options["deoblique"])],
             },
             "scaling": {"run": bool1_1, "scaling_factor": Number},
             "despiking": {"run": forkable, "space": In({"native", "template"})},
@@ -1058,7 +1061,6 @@ latest_schema = Schema(
                             "FSL_AFNI",
                             "Anatomical_Refined",
                             "Anatomical_Based",
-                            "Anatomical_Resampled",
                             "CCS_Anatomical_Refined",
                         ]
                     )
@@ -1108,6 +1110,10 @@ latest_schema = Schema(
                     "anatomical_mask_dilation": Maybe(bool1_1),
                 },
                 "apply_func_mask_in_native_space": bool1_1,
+            },
+            "template_space_func_masking": {
+                "run": bool1_1,
+                "using": [In({"Anatomical_Resampled"})],
             },
             "generate_func_mean": {
                 "run": bool1_1,

@@ -37,6 +37,7 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.fsl import Merge as fslMerge
+from CPAC.utils.utils import afni_3dwarp
 
 
 def acpc_alignment(
@@ -1442,17 +1443,32 @@ def mask_T2(wf_name="mask_T2"):
 
 @nodeblock(
     name="anatomical_init",
-    config=["anatomical_preproc"],
-    switch=["run"],
+    switch=["anatomical_preproc", "run"],
+    option_key=["anatomical_preproc", "deoblique"],
+    option_val=["warp", "refit"],
     inputs=["T1w"],
     outputs=["desc-preproc_T1w", "desc-reorient_T1w", "desc-head_T1w"],
 )
 def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
-    anat_deoblique = pe.Node(interface=afni.Refit(), name=f"anat_deoblique_{pipe_num}")
-    anat_deoblique.inputs.deoblique = True
+    if opt not in anatomical_init.option_val:
+        raise ValueError(
+            f"\n[!] Error: Invalid option for deoblique: {opt}. \nExpected one of {anatomical_init.option_val}"
+        )
 
-    node, out = strat_pool.get_data("T1w")
-    wf.connect(node, out, anat_deoblique, "in_file")
+    if opt == "warp":
+        anat_deoblique = pe.Node(
+            Function(
+                input_names=["in_file", "deoblique"],
+                output_names=["out_file"],
+                function=afni_3dwarp,
+            ),
+            name=f"anat_deoblique_warp_{pipe_num}",
+        )
+
+    elif opt == "refit":
+        anat_deoblique = pe.Node(
+            interface=afni.Refit(), name=f"anat_deoblique_refit_{pipe_num}"
+        )
 
     anat_reorient = pe.Node(
         interface=afni.Resample(),
@@ -1460,10 +1476,14 @@ def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
         mem_gb=0,
         mem_x=(0.0115, "in_file", "t"),
     )
+
+    node, out = strat_pool.get_data("T1w")
+    anat_deoblique.inputs.deoblique = True
+    wf.connect(node, out, anat_deoblique, "in_file")
+    wf.connect(anat_deoblique, "out_file", anat_reorient, "in_file")
+
     anat_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     anat_reorient.inputs.outputtype = "NIFTI_GZ"
-
-    wf.connect(anat_deoblique, "out_file", anat_reorient, "in_file")
 
     outputs = {
         "desc-preproc_T1w": (anat_reorient, "out_file"),
@@ -2250,17 +2270,32 @@ def brain_extraction_temp(wf, cfg, strat_pool, pipe_num, opt=None):
 
 @nodeblock(
     name="anatomical_init_T2",
-    config=["anatomical_preproc"],
-    switch=["run_t2"],
+    switch=["anatomical_preproc", "run_t2"],
+    option_key=["anatomical_preproc", "deoblique"],
+    option_val=["warp", "refit"],
     inputs=["T2w"],
     outputs=["desc-preproc_T2w", "desc-reorient_T2w", "desc-head_T2w"],
 )
 def anatomical_init_T2(wf, cfg, strat_pool, pipe_num, opt=None):
-    T2_deoblique = pe.Node(interface=afni.Refit(), name=f"T2_deoblique_{pipe_num}")
-    T2_deoblique.inputs.deoblique = True
+    if opt not in anatomical_init_T2.option_val:
+        raise ValueError(
+            f"\n[!] Error: Invalid option for deoblique: {opt}. \nExpected one of {anatomical_init_T2.option_val}"
+        )
 
-    node, out = strat_pool.get_data("T2w")
-    wf.connect(node, out, T2_deoblique, "in_file")
+    if opt == "warp":
+        T2_deoblique = pe.Node(
+            Function(
+                input_names=["in_file", "deoblique"],
+                output_names=["out_file"],
+                function=afni_3dwarp,
+            ),
+            name=f"T2_deoblique_warp_{pipe_num}",
+        )
+
+    elif opt == "refit":
+        T2_deoblique = pe.Node(
+            interface=afni.Refit(), name=f"T2_deoblique_refit_{pipe_num}"
+        )
 
     T2_reorient = pe.Node(
         interface=afni.Resample(),
@@ -2268,10 +2303,14 @@ def anatomical_init_T2(wf, cfg, strat_pool, pipe_num, opt=None):
         mem_gb=0,
         mem_x=(0.0115, "in_file", "t"),
     )
+
+    node, out = strat_pool.get_data("T2w")
+    T2_deoblique.inputs.deoblique = True
+    wf.connect(node, out, T2_deoblique, "in_file")
+    wf.connect(T2_deoblique, "out_file", T2_reorient, "in_file")
+
     T2_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
     T2_reorient.inputs.outputtype = "NIFTI_GZ"
-
-    wf.connect(T2_deoblique, "out_file", T2_reorient, "in_file")
 
     outputs = {
         "desc-preproc_T2w": (T2_reorient, "out_file"),

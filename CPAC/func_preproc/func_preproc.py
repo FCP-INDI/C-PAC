@@ -20,7 +20,7 @@
 from nipype.interfaces import afni, ants, fsl, utility as util
 from nipype.interfaces.afni import preprocess, utils as afni_utils
 
-from CPAC.func_preproc.utils import nullify
+from CPAC.func_preproc.utils import get_num_slices, interpolate_slice_timing, nullify
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.utils.interfaces import Function
@@ -29,7 +29,7 @@ from CPAC.utils.interfaces.ants import (
     PrintHeader,
     SetDirectionByMatrix,
 )
-from CPAC.utils.utils import add_afni_prefix
+from CPAC.utils.utils import add_afni_prefix, afni_3dwarp
 
 
 def collect_arguments(*args):
@@ -700,40 +700,85 @@ def fsl_afni_subworkflow(cfg, pipe_num, opt=None):
 
 @nodeblock(
     name="func_reorient",
-    config=["functional_preproc", "update_header"],
-    switch=["run"],
-    inputs=["bold"],
-    outputs=["desc-preproc_bold", "desc-reorient_bold"],
+    switch=["functional_preproc", "update_header", "run"],
+    option_key=["functional_preproc", "update_header", "deoblique"],
+    option_val=["warp", "refit"],
+    inputs=["bold", "tpattern", "tr"],
+    outputs=["desc-preproc_bold", "desc-reorient_bold", "tpattern"],
 )
 def func_reorient(wf, cfg, strat_pool, pipe_num, opt=None):
-    """Reorient functional timeseries."""
-    func_deoblique = pe.Node(
-        interface=afni_utils.Refit(),
-        name=f"func_deoblique_{pipe_num}",
-        mem_gb=0.68,
-        mem_x=(4664065662093477 / 1208925819614629174706176, "in_file"),
-    )
-    func_deoblique.inputs.deoblique = True
+    """Deoblique and Reorient functional timeseries."""
+    outputs = {}
+    if opt not in func_reorient.option_val:
+        raise ValueError(
+            f"\n[!] Error: Invalid option {opt} for func_reorient. \n"
+            f"Expected one of {func_reorient.option_val}"
+        )
 
-    node, out = strat_pool.get_data("bold")
-    wf.connect(node, out, func_deoblique, "in_file")
+    if opt == "warp":
+        func_deoblique = pe.Node(
+            Function(
+                input_names=["in_file", "deoblique"],
+                output_names=["out_file"],
+                function=afni_3dwarp,
+            ),
+            name=f"func_deoblique_warp_{pipe_num}",
+        )
 
-    func_reorient = pe.Node(
+        interpolate_node = pe.Node(
+            Function(
+                input_names=["timing_file", "target_slices", "00000000000000000"],
+                output_names=["out_file"],
+                function=interpolate_slice_timing,
+            ),
+            name=f"interpolate_slice_timing_{pipe_num}",
+        )
+
+        get_slices_node = pe.Node(
+            Function(
+                input_names=["nifti_file"],
+                output_names=["num_slices"],
+                function=get_num_slices,
+            ),
+            name=f"get_num_slices_{pipe_num}",
+        )
+        wf.connect(func_deoblique, "out_file", get_slices_node, "nifti_file")
+        wf.connect(get_slices_node, "num_slices", interpolate_node, "target_slices")
+
+        tpattern_node, tpattern = strat_pool.get_data("tpattern")
+        wf.connect(tpattern_node, tpattern, interpolate_node, "timing_file")
+
+        outputs = {"tpattern": (interpolate_node, "out_file")}
+
+    elif opt == "refit":
+        func_deoblique = pe.Node(
+            interface=afni_utils.Refit(),
+            name=f"func_deoblique_refit_{pipe_num}",
+            mem_gb=0.68,
+            mem_x=(4664065662093477 / 1208925819614629174706176, "in_file"),
+        )
+
+    func_reorient_node = pe.Node(
         interface=afni_utils.Resample(),
         name=f"func_reorient_{pipe_num}",
         mem_gb=0,
         mem_x=(0.0115, "in_file", "t"),
     )
 
-    func_reorient.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
-    func_reorient.inputs.outputtype = "NIFTI_GZ"
+    node, out = strat_pool.get_data("bold")
+    func_deoblique.inputs.deoblique = True
+    wf.connect(node, out, func_deoblique, "in_file")
+    wf.connect(func_deoblique, "out_file", func_reorient_node, "in_file")
 
-    wf.connect(func_deoblique, "out_file", func_reorient, "in_file")
+    func_reorient_node.inputs.orientation = cfg.pipeline_setup["desired_orientation"]
+    func_reorient_node.inputs.outputtype = "NIFTI_GZ"
 
-    outputs = {
-        "desc-preproc_bold": (func_reorient, "out_file"),
-        "desc-reorient_bold": (func_reorient, "out_file"),
-    }
+    outputs.update(
+        {
+            "desc-preproc_bold": (func_reorient_node, "out_file"),
+            "desc-reorient_bold": (func_reorient_node, "out_file"),
+        }
+    )
 
     return (wf, outputs)
 
@@ -1592,12 +1637,11 @@ def anat_brain_mask_to_bold_res(wf_name, cfg, pipe_num):
     name="bold_mask_anatomical_resampled",
     switch=[
         ["functional_preproc", "run"],
-        ["functional_preproc", "func_masking", "run"],
+        ["functional_preproc", "template_space_func_masking", "run"],
     ],
-    option_key=["functional_preproc", "func_masking", "using"],
+    option_key=["functional_preproc", "template_space_func_masking", "using"],
     option_val="Anatomical_Resampled",
     inputs=[
-        "desc-preproc_bold",
         "T1w-template-funcreg",
         "space-template_desc-preproc_T1w",
         "space-template_desc-brain_mask",
@@ -1605,7 +1649,6 @@ def anat_brain_mask_to_bold_res(wf_name, cfg, pipe_num):
     outputs=[
         "space-template_res-bold_desc-brain_T1w",
         "space-template_desc-bold_mask",
-        "space-bold_desc-brain_mask",
     ],
 )
 def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -1613,7 +1656,9 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
 
     Adapted from `DCAN Lab's BOLD mask method from the ABCD pipeline <https://github.com/DCAN-Labs/DCAN-HCP/blob/1d90814/fMRIVolume/scripts/OneStepResampling.sh#L121-L132>`_.
     """
-    anat_brain_to_func_res = anat_brain_to_bold_res(wf, cfg, pipe_num)
+    anat_brain_to_func_res = anat_brain_to_bold_res(
+        wf_name="anat_brain_to_bold_res", cfg=cfg, pipe_num=pipe_num
+    )
 
     node, out = strat_pool.get_data("space-template_desc-preproc_T1w")
     wf.connect(
@@ -1644,26 +1689,6 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
         "inputspec.space-template_desc-preproc_T1w",
     )
 
-    # Resample func mask in template space back to native space
-    func_mask_template_to_native = pe.Node(
-        interface=afni.Resample(),
-        name=f"resample_func_mask_to_native_{pipe_num}",
-        mem_gb=0,
-        mem_x=(0.0115, "in_file", "t"),
-    )
-    func_mask_template_to_native.inputs.resample_mode = "NN"
-    func_mask_template_to_native.inputs.outputtype = "NIFTI_GZ"
-
-    wf.connect(
-        anat_brain_mask_to_func_res,
-        "outputspec.space-template_desc-bold_mask",
-        func_mask_template_to_native,
-        "in_file",
-    )
-
-    node, out = strat_pool.get_data("desc-preproc_bold")
-    wf.connect(node, out, func_mask_template_to_native, "master")
-
     outputs = {
         "space-template_res-bold_desc-brain_T1w": (
             anat_brain_to_func_res,
@@ -1673,7 +1698,6 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
             anat_brain_mask_to_func_res,
             "outputspec.space-template_desc-bold_mask",
         ),
-        "space-bold_desc-brain_mask": (func_mask_template_to_native, "out_file"),
     }
 
     return (wf, outputs)
@@ -1855,6 +1879,55 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
         "desc-preproc_bold": (func_edge_detect, "out_file"),
         "desc-brain_bold": (func_edge_detect, "out_file"),
         "desc-head_bold": (node_head_bold, out_head_bold),
+    }
+
+    return (wf, outputs)
+
+
+@nodeblock(
+    name="template_space_bold_masking",
+    switch=[
+        ["functional_preproc", "run"],
+        ["functional_preproc", "template_space_func_masking", "run"],
+    ],
+    inputs=[("space-template_desc-preproc_bold", "space-template_desc-bold_mask")],
+    outputs={
+        "space-template_desc-preproc_bold": {
+            "Description": "The skull-stripped BOLD time-series.",
+            "SkullStripped": True,
+        },
+        "space-template_desc-brain_bold": {
+            "Description": "The skull-stripped BOLD time-series.",
+            "SkullStripped": True,
+        },
+        "space-template_desc-head_bold": {
+            "Description": "The non skull-stripped BOLD time-series.",
+            "SkullStripped": False,
+        },
+    },
+)
+def template_space_bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
+    """Mask the bold in template space."""
+    func_apply_mask = pe.Node(
+        interface=afni_utils.Calc(),
+        name=f"template_space_func_extract_brain_{pipe_num}",
+    )
+
+    func_apply_mask.inputs.expr = "a*b"
+    func_apply_mask.inputs.outputtype = "NIFTI_GZ"
+
+    node_head_bold, out_head_bold = strat_pool.get_data(
+        "space-template_desc-preproc_bold"
+    )
+    wf.connect(node_head_bold, out_head_bold, func_apply_mask, "in_file_a")
+
+    node, out = strat_pool.get_data("space-template_desc-bold_mask")
+    wf.connect(node, out, func_apply_mask, "in_file_b")
+
+    outputs = {
+        "space-template_desc-preproc_bold": (func_apply_mask, "out_file"),
+        "space-template_desc-brain_bold": (func_apply_mask, "out_file"),
+        "space-template_desc-head_bold": (node_head_bold, out_head_bold),
     }
 
     return (wf, outputs)
