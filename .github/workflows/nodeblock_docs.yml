@@ -1,0 +1,61 @@
+name: Update NodeBlock documentation
+on:
+  push:
+    branches: [main]
+
+jobs:
+  update-nodeblock-docs:
+    name: Update NodeBlock Documentation
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the source repo
+      - name: Check out source repository (C-PAC)
+        uses: actions/checkout@v3
+        with:
+          path: source-repo
+
+      # Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # Run the documentation extraction script
+      - name: Generate documentation JSON
+        run: |
+          cd source-repo
+          python scripts/nodeblock_docs.py
+
+      # Check out the target repo where we want to commit the JSON file
+      - name: Check out target repository
+        uses: actions/checkout@v3
+        with:
+          repository: FCP-INDI/cpac-docs
+          path: target-repo
+          token: ${{ secrets.CPAC_DOC_REPO_ACCESS }}
+
+      # Install cpac dependencies
+      - name: Install dependencies
+        run: |
+          cd source-repo
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Run the config extraction script
+      - name: Generate documentation JSON
+        run: |
+          cd source-repo
+          python scripts/config_extractor.py
+
+      # Copy the JSON file to the target repo and commit it
+      - name: Commit documentation to target repo
+        run: |
+          cp source-repo/nodeblock_index.json target-repo/
+          cd target-repo
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add nodeblock_index.json
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update NodeBlock documentation"
+          git push
+
+
