@@ -103,7 +103,7 @@ def test_frequency_filter(tmp_path: Path) -> None:
     """Test that the bandpass filter works as expected."""
     cfg = Preconfiguration("benchmark-FNIRT")
     rpool = TestResourcePool(cfg)
-    wf = Workflow("bandpass_filtering")
+    wf = Workflow("bandpass_filtering", base_dir=str(tmp_path))
     index = 0
     for resource, file in {
         "realigned_file": "residuals.nii.gz",
