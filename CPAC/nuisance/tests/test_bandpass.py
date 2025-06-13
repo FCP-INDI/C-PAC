@@ -50,19 +50,19 @@ def test_read_1D(start_line: int, tmp_path: Path) -> None:
     assert len(header) == 5 - start_line
 
 
-@pytest.mark.parametrize("sample_period", [1.0, 1000.0])
 @pytest.mark.parametrize(
     "lowcut, highcut, in_freq, out_freq",
     [
         (0.005, 0.05, 0.01, 0.2),
         (0.01, 0.1, 0.02, 0.15),
         (0.02, 0.08, 0.04, 0.12),
+        (None, 0.1, 0.02, 0.15),
+        (0.2, None, 0.22, 0.1),
     ],
 )
-def test_ideal_bandpass_with_various_cutoffs(
-    lowcut, highcut, in_freq, out_freq, sample_period
-):
+def test_ideal_bandpass_with_various_cutoffs(lowcut, highcut, in_freq, out_freq):
     """Test the ideal bandpass filter with various cutoff frequencies."""
+    sample_period = 1.0
     t = np.arange(512) * sample_period
     signal = np.sin(2 * np.pi * in_freq * t) + np.sin(2 * np.pi * out_freq * t)
 
@@ -77,3 +77,30 @@ def test_ideal_bandpass_with_various_cutoffs(
 
     assert filt_fft[idx_in] > 0.5 * orig_fft[idx_in]
     assert filt_fft[idx_out] < 0.1 * orig_fft[idx_out]
+
+
+@pytest.mark.parametrize("sample_period", [1.0, 1000.0])
+def test_ideal_bandpass_cutoffs_clamped_to_nyquist(sample_period):
+    """Test that ideal_bandpass clamps cutoffs to Nyquist frequency."""
+    N = 512
+    t = np.arange(N) * sample_period
+    nyquist = 0.5 / sample_period
+
+    freq_below = nyquist * 0.95
+    freq_above = nyquist * 1.05
+
+    signal = np.sin(2 * np.pi * freq_below * t) + np.sin(2 * np.pi * freq_above * t)
+
+    lowcut = nyquist + 0.01
+    highcut = nyquist + 0.1
+
+    filtered = ideal_bandpass(signal, sample_period, (lowcut, highcut))
+
+    freqs = np.fft.fftfreq(N, d=sample_period)
+    filt_fft = np.abs(fft(filtered))
+
+    idx_below = np.argmin(np.abs(freqs - freq_below))
+    idx_above = np.argmin(np.abs(freqs - freq_above))
+
+    assert filt_fft[idx_below] < 1e-3
+    assert filt_fft[idx_above] < 1e-3
