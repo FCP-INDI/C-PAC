@@ -476,6 +476,16 @@ def get_motion_ref_fmriprep(
 get_motion_refs = [get_motion_ref, get_motion_ref_fmriprep]
 
 
+def _pipe_suffix(estimate: bool, correct: bool, pipe_num: int) -> str:
+    """Generate a suffix for the pipeline name based on estimate and correct flags."""
+    suffix = ""
+    if estimate:
+        suffix += "-estimate"
+    if correct:
+        suffix += "-correct"
+    return f"{suffix}_{pipe_num}"
+
+
 def motion_correct_3dvolreg(
     wf: Workflow,
     cfg: Configuration,
@@ -486,6 +496,7 @@ def motion_correct_3dvolreg(
 ) -> NODEBLOCK_RETURN:
     """Calculate motion parameters with 3dvolreg."""
     outputs: POOL_RESOURCE_DICT = {}
+    pipe_suffix = _pipe_suffix(estimate, correct, pipe_num)
     if strat_pool.check_rpool("motion-correct-3dvolreg"):
         out_motion_A, _ = strat_pool.get_data("motion-correct-3dvolreg")
     else:
@@ -498,7 +509,7 @@ def motion_correct_3dvolreg(
                     function=chunk_ts,
                     imports=chunk_imports,
                 ),
-                name=f"chunk_{pipe_num}",
+                name=f"chunk{pipe_suffix}",
             )
 
             # chunk.inputs.n_chunks = int(cfg.pipeline_setup['system_config'][
@@ -518,7 +529,7 @@ def motion_correct_3dvolreg(
                     function=split_ts_chunks,
                     imports=split_imports,
                 ),
-                name=f"split_{pipe_num}",
+                name=f"split{pipe_suffix}",
             )
 
             node, out = strat_pool.get_data("desc-preproc_bold")
@@ -527,21 +538,21 @@ def motion_correct_3dvolreg(
 
             out_split_func = pe.Node(
                 interface=util.IdentityInterface(fields=["out_file"]),
-                name=f"out_split_func_{pipe_num}",
+                name=f"out_split_func{pipe_suffix}",
             )
 
             wf.connect(split, "split_funcs", out_split_func, "out_file")
 
             func_motion_correct = pe.MapNode(
                 interface=preprocess.Volreg(),
-                name=f"func_generate_ref_{pipe_num}",
+                name=f"func_generate_ref{pipe_suffix}",
                 iterfield=["in_file"],
             )
 
             wf.connect(out_split_func, "out_file", func_motion_correct, "in_file")
 
             func_concat = pe.Node(
-                interface=afni_utils.TCat(), name=f"func_concat_{pipe_num}"
+                interface=afni_utils.TCat(), name=f"func_concat{pipe_suffix}"
             )
             func_concat.inputs.outputtype = "NIFTI_GZ"
 
@@ -549,7 +560,7 @@ def motion_correct_3dvolreg(
 
             out_motion = pe.Node(
                 interface=util.IdentityInterface(fields=["out_file"]),
-                name=f"out_motion_{pipe_num}",
+                name=f"out_motion{pipe_suffix}",
             )
 
             wf.connect(func_concat, "out_file", out_motion, "out_file")
@@ -557,21 +568,21 @@ def motion_correct_3dvolreg(
         else:
             out_split_func = pe.Node(
                 interface=util.IdentityInterface(fields=["out_file"]),
-                name=f"out_split_func_{pipe_num}",
+                name=f"out_split_func{pipe_suffix}",
             )
 
             node, out = strat_pool.get_data("desc-preproc_bold")
             wf.connect(node, out, out_split_func, "out_file")
 
             func_motion_correct = pe.Node(
-                interface=preprocess.Volreg(), name=f"func_generate_ref_{pipe_num}"
+                interface=preprocess.Volreg(), name=f"func_generate_ref{pipe_suffix}"
             )
 
             wf.connect(out_split_func, "out_file", func_motion_correct, "in_file")
 
             out_motion = pe.Node(
                 interface=util.IdentityInterface(fields=["out_file"]),
-                name=f"out_motion_{pipe_num}",
+                name=f"out_motion{pipe_suffix}",
             )
 
             wf.connect(func_motion_correct, "out_file", out_motion, "out_file")
@@ -589,7 +600,7 @@ def motion_correct_3dvolreg(
 
         # Calculate motion parameters
         func_motion_correct_A = func_motion_correct.clone(
-            f"func_motion_correct_3dvolreg_{pipe_num}"
+            f"func_motion_correct_3dvolreg{pipe_suffix}"
         )
         func_motion_correct_A.inputs.md1d_file = "max_displacement.1D"
         func_motion_correct_A.inputs.args = args
@@ -601,7 +612,7 @@ def motion_correct_3dvolreg(
 
         if int(cfg.pipeline_setup["system_config"]["max_cores_per_participant"]) > 1:
             motion_concat = pe.Node(
-                interface=afni_utils.TCat(), name=f"motion_concat_{pipe_num}"
+                interface=afni_utils.TCat(), name=f"motion_concat{pipe_suffix}"
             )
             motion_concat.inputs.outputtype = "NIFTI_GZ"
 
@@ -609,7 +620,7 @@ def motion_correct_3dvolreg(
 
             out_motion_A = pe.Node(
                 interface=util.IdentityInterface(fields=["out_file"]),
-                name=f"out_motion_A_{pipe_num}",
+                name=f"out_motion_A{pipe_suffix}",
             )
 
             wf.connect(motion_concat, "out_file", out_motion_A, "out_file")
@@ -622,7 +633,7 @@ def motion_correct_3dvolreg(
                     function=oned_text_concat,
                     imports=concat_imports,
                 ),
-                name=f"md1d_concat_{pipe_num}",
+                name=f"md1d_concat{pipe_suffix}",
             )
 
             wf.connect(func_motion_correct_A, "md1d_file", md1d_concat, "in_files")
@@ -634,7 +645,7 @@ def motion_correct_3dvolreg(
                     function=oned_text_concat,
                     imports=concat_imports,
                 ),
-                name=f"oned_concat_{pipe_num}",
+                name=f"oned_concat{pipe_suffix}",
             )
 
             wf.connect(func_motion_correct_A, "oned_file", oned_concat, "in_files")
@@ -646,7 +657,7 @@ def motion_correct_3dvolreg(
                     function=oned_text_concat,
                     imports=concat_imports,
                 ),
-                name=f"oned_matrix_concat_{pipe_num}",
+                name=f"oned_matrix_concat{pipe_suffix}",
             )
 
             wf.connect(
@@ -658,21 +669,21 @@ def motion_correct_3dvolreg(
 
             out_md1d = pe.Node(
                 interface=util.IdentityInterface(fields=["out_file"]),
-                name=f"out_md1d_{pipe_num}",
+                name=f"out_md1d{pipe_suffix}",
             )
 
             wf.connect(md1d_concat, "out_file", out_md1d, "out_file")
 
             out_oned = pe.Node(
                 interface=util.IdentityInterface(fields=["out_file"]),
-                name=f"out_oned_{pipe_num}",
+                name=f"out_oned{pipe_suffix}",
             )
 
             wf.connect(oned_concat, "out_file", out_oned, "out_file")
 
             out_oned_matrix = pe.Node(
                 interface=util.IdentityInterface(fields=["out_file"]),
-                name=f"out_oned_matrix_{pipe_num}",
+                name=f"out_oned_matrix{pipe_suffix}",
             )
 
             wf.connect(oned_matrix_concat, "out_file", out_oned_matrix, "out_file")
@@ -680,28 +691,28 @@ def motion_correct_3dvolreg(
         else:
             out_motion_A = pe.Node(
                 interface=util.IdentityInterface(fields=["out_file"]),
-                name=f"out_motion_A_{pipe_num}",
+                name=f"out_motion_A{pipe_suffix}",
             )
 
             wf.connect(func_motion_correct_A, "out_file", out_motion_A, "out_file")
 
             out_md1d = pe.Node(
                 interface=util.IdentityInterface(fields=["out_file"]),
-                name=f"out_md1d_{pipe_num}",
+                name=f"out_md1d{pipe_suffix}",
             )
 
             wf.connect(func_motion_correct_A, "md1d_file", out_md1d, "out_file")
 
             out_oned = pe.Node(
                 interface=util.IdentityInterface(fields=["out_file"]),
-                name=f"out_oned_{pipe_num}",
+                name=f"out_oned{pipe_suffix}",
             )
 
             wf.connect(func_motion_correct_A, "oned_file", out_oned, "out_file")
 
             out_oned_matrix = pe.Node(
                 interface=util.IdentityInterface(fields=["out_file"]),
-                name=f"out_oned_matrix_{pipe_num}",
+                name=f"out_oned_matrix{pipe_suffix}",
             )
 
             wf.connect(
@@ -737,13 +748,14 @@ def motion_correct_mcflirt(
     correct: bool,
 ) -> NODEBLOCK_RETURN:
     """Calculate motion parameters with MCFLIRT."""
+    pipe_suffix = _pipe_suffix(estimate, correct, pipe_num)
     outputs: POOL_RESOURCE_DICT = {}
     if strat_pool.check_rpool("motion-correct-mcflirt"):
         func_motion_correct_A, _ = strat_pool.get_data("motion-correct-mcflirt")
     else:
         func_motion_correct_A = pe.Node(
             interface=fsl.MCFLIRT(save_mats=True, save_plots=True),
-            name=f"func_motion_correct_mcflirt_{pipe_num}",
+            name=f"func_motion_correct_mcflirt{pipe_suffix}",
             mem_gb=2.5,
         )
 
@@ -763,7 +775,7 @@ def motion_correct_mcflirt(
                 output_names=["out_file"],
                 function=normalize_motion_parameters,
             ),
-            name=f"norm_motion_params_{pipe_num}",
+            name=f"norm_motion_params{pipe_suffix}",
         )
 
         wf.connect(
@@ -776,7 +788,7 @@ def motion_correct_mcflirt(
                 output_names=["abs_file", "rels_file"],
                 function=get_mcflirt_rms_abs,
             ),
-            name=f"get_mcflirt_rms_abs_{pipe_num}",
+            name=f"get_mcflirt_rms_abs{pipe_suffix}",
         )
 
         wf.connect(func_motion_correct_A, "rms_files", get_rms_abs, "rms_files")
