@@ -26,7 +26,7 @@
 
 #     Prior to release 0.12, Nipype was licensed under a BSD license.
 
-# Modifications Copyright (C) 2022-2024 C-PAC Developers
+# Modifications Copyright (C) 2022-2025 C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -57,8 +57,8 @@ import re
 from typing import Any, ClassVar, Optional
 
 from numpy import prod
+from traits.api import List as TraitListObject
 from traits.trait_base import Undefined
-from traits.trait_handlers import TraitListObject
 from nibabel import load
 from nipype.interfaces.utility import Function
 from nipype.pipeline import engine as pe

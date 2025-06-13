@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New switch `mask_sbref` under `func_input_prep` in functional registration and set to default `on`.
 - New resource `desc-head_bold` as non skull-stripped bold from nodeblock `bold_masking`.
 - `censor_file_path` from `offending_timepoints_connector` in the `build_nuisance_regressor` node.
+- Switch `sink_native_transforms` under `registration_workflows` to output all `.mat` files in ANTs and FSL Transforms.
 
 ### Changed
 
@@ -47,6 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introduced specific switch `restore_t1w_intensity` for `correct_restore_brain_intensity_abcd` nodeblock, enabling it by default only in `abcd-options` pre-config.
 - Updated GitHub Actions to run automated integration and regression tests on HPC.
 
+### Upgraded
+
+- `requests` 2.32.0 → 2.32.3
+
 ### Fixed
 
 - A bug in which AWS S3 encryption was looked for in Nipype config instead of pipeline config (only affected uploading logs).
@@ -56,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed an erroneous connection to AFNI 3dTProject in nuisance denoising that would unnecessarily send a spike regressor as a censor. This would sometimes cause TRs to unnecessarily be dropped from the timeseries as if scrubbing were being performed.
 - Lingering calls to `cpac_outputs.csv` (was changed to `cpac_outputs.tsv` in v1.8.1).
 - A bug in the `freesurfer_abcd_preproc` nodeblock where the `Template` image was incorrectly used as `reference` during the `inverse_warp` step. Replacing it with the subject-specific `T1w` image resolved the issue of the `desc-restoreBrain_T1w` being chipped off.
+- A bug in `ideal_bandpass` where the frequency mask was incorrectly applied, which caused filter to fail in certain cases.
 
 ### Upgraded dependencies
 

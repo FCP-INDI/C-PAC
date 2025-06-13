@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2023  C-PAC Developers
+# Copyright (C) 2018-2025  C-PAC Developers
 # This file is part of C-PAC.
 # C-PAC is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 # C-PAC is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
@@ -30,7 +30,7 @@ pybids==0.15.6
 PyPEER @ git+https://git@github.com/ChildMindInstitute/PyPEER.git@6965d2b2bea0fef824e885fec33a8e0e6bd50a97
 python-dateutil==2.8.2
 PyYAML==6.0
-requests==2.32.0
+requests==2.32.3
 scikit-learn==1.5.0
 scipy==1.11.1
 sdcflows==2.4.0
@@ -45,7 +45,7 @@ h5py==3.8.0
 importlib-metadata==6.8.0
 lxml==4.9.2
 pip==23.3
-setuptools==70.0.0
+setuptools==78.1.1
 urllib3==1.26.19
 wheel==0.40.0
 zipp==3.19.1
