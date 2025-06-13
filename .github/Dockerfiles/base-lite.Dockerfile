@@ -23,7 +23,7 @@ FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.4-beta-jammy as ICA-AROMA
 
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free
 LABEL org.opencontainers.image.description="NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
-Standard software dependencies for C-PAC standard and lite images"
+    Standard software dependencies for C-PAC standard and lite images"
 LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
 USER root
 
@@ -56,10 +56,10 @@ COPY --from=FSL /usr/share/fsl /usr/share/fsl
 # Installing C-PAC dependencies
 COPY requirements.txt /opt/requirements.txt
 RUN mamba install git -y \
-  && pip install -r /opt/requirements.txt \
-  && rm -rf /opt/requirements.txt \
-  && yes | mamba clean --all \
-  && rm -rf /usr/share/fsl/6.0/pkgs/cache/*
+    && pip install -r /opt/requirements.txt \
+    && rm -rf /opt/requirements.txt \
+    && yes | mamba clean --all \
+    && rm -rf /usr/share/fsl/6.0/pkgs/cache/*
 
 # Installing and setting up c3d
 COPY --from=c3d /opt/c3d/ opt/c3d/

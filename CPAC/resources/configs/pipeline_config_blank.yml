@@ -251,6 +251,12 @@ surface_analysis:
 
 anatomical_preproc:
   run: Off
+
+  # [warp] - Deoblique the input image using AFNI 3dWarp. Changes header and the image data.
+  # [refit] - Clear the header of the input image using AFNI 3drefit. Changes only the header.
+  # applies for both T1w and T2w images
+  deoblique: ["refit"]
+
   acpc_alignment:
     T1w_brain_ACPC_template:
 
@@ -955,6 +961,10 @@ functional_preproc:
 
     # Convert raw data from LPI to RPI
     run: On
+
+    # [warp] - Deoblique the input image using AFNI 3dWarp. Changes header and the image data. Applies interpolation to the slice-timing metadata.
+    # [refit] - Clear the header of the input image using AFNI 3drefit. Changes only the header.
+    deoblique: ["refit"]
 
   slice_timing_correction:
 
