@@ -59,7 +59,9 @@ def test_read_1D(start_line: int, tmp_path: Path) -> None:
         (0.02, 0.08, 0.04, 0.12),
     ],
 )
-def test_ideal_bandpass_with_various_cutoffs(lowcut, highcut, in_freq, out_freq, sample_period):
+def test_ideal_bandpass_with_various_cutoffs(
+    lowcut, highcut, in_freq, out_freq, sample_period
+):
     """Test the ideal bandpass filter with various cutoff frequencies."""
     t = np.arange(512) * sample_period
     signal = np.sin(2 * np.pi * in_freq * t) + np.sin(2 * np.pi * out_freq * t)
