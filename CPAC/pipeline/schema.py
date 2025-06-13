@@ -961,7 +961,6 @@ latest_schema = Schema(
                             "FSL_AFNI",
                             "Anatomical_Refined",
                             "Anatomical_Based",
-                            "Anatomical_Resampled",
                             "CCS_Anatomical_Refined",
                         ]
                     )
@@ -1011,6 +1010,10 @@ latest_schema = Schema(
                     "anatomical_mask_dilation": Maybe(bool1_1),
                 },
                 "apply_func_mask_in_native_space": bool1_1,
+            },
+            "template_space_func_masking": {
+                "run": bool1_1,
+                "using": [In({"Anatomical_Resampled"})],
             },
             "generate_func_mean": {
                 "run": bool1_1,
