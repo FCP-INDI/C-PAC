@@ -41,7 +41,7 @@ RAW_ONE_D: Traversable = files("CPAC").joinpath("nuisance/tests/regressors.1D")
 
 
 class TestResourcePool(ResourcePool):
-    """Test ResourcePool to override the OSF download function."""
+    """ResourcePool with OSF download function."""
 
     def osf(self, resource: str, file: str, destination: Path, index: int) -> None:
         """Download a file from the Open Science Framework."""
