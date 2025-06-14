@@ -23,7 +23,7 @@
 
 #     Prior to release 0.12, Nipype was licensed under a BSD license.
 
-# Modifications Copyright (C) 2021-2023 C-PAC Developers
+# Modifications Copyright (C) 2021-2025 C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -51,6 +51,8 @@ import random
 from warnings import warn
 
 from nipype.utils.draw_gantt_chart import draw_lines, draw_resource_bar, log_to_dict
+
+from CPAC.utils.monitoring.monitoring import DatetimeWithSafeNone
 
 
 def create_event_dict(start_time, nodes_list):
@@ -407,7 +409,11 @@ def generate_gantt_chart(
     # Create the header of the report with useful information
     start_node = nodes_list[0]
     last_node = nodes_list[-1]
-    duration = (last_node["finish"] - start_node["start"]).total_seconds()
+    try:
+        duration = (last_node["finish"] - start_node["start"]).total_seconds()
+    except TypeError:
+        # no duration
+        return
 
     # Get events based dictionary of node run stats
     events = create_event_dict(start_node["start"], nodes_list)
@@ -656,12 +662,12 @@ def _timing_timestamp(node):
         msg = "No logged nodes have timing information."
         raise ProcessLookupError(msg)
     return {
-        k: (
+        k: DatetimeWithSafeNone(
             datetime.strptime(v, "%Y-%m-%dT%H:%M:%S.%f")
             if "." in v
             else datetime.fromisoformat(v)
         )
         if (k in {"start", "finish"} and isinstance(v, str))
-        else v
+        else DatetimeWithSafeNone(v)
         for k, v in node.items()
     }
