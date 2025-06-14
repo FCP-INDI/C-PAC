@@ -65,7 +65,7 @@ def ideal_bandpass(data, sample_period, bandpass_freqs):
     else:
         low_cutoff_i = np.ceil(LowCutoff * N * sample_period).astype("int")
 
-    if HighCutoff > nyquist_freq or HighCutoff is None:
+    if HighCutoff is None or HighCutoff > nyquist_freq:
         # Cutoff beyond fs/2 or unspecified (become a highpass filter)
         high_cutoff_i = int(N / 2)
     else:
