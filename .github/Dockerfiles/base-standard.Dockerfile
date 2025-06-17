@@ -48,6 +48,7 @@ RUN apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
     && find / -type f -print0 | sort -t/ -k2 | xargs -0 rdfind -makehardlinks true \
     && rm -rf results.txt \
+    && cp -l /lib/x86_64-linux-gnu/libcrypt.so.1.1.0 /lib/x86_64-linux-gnu/libcrypt.so.2 \
     && ldconfig \
     && chmod 777 / /home/c-pac_user \
     && chmod 777 $(ls / | grep -v sys | grep -v proc)
