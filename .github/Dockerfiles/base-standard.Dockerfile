@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2023  C-PAC Developers
+# Copyright (C) 2022-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-jammy as FreeSurfer
+FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-jammy AS freesurfer
 
 FROM ghcr.io/fcp-indi/c-pac/stage-base:lite-v1.8.8.dev1
 LABEL org.opencontainers.image.description="NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
@@ -37,9 +37,9 @@ ENV PATH="$FREESURFER_HOME/bin:$PATH" \
     SUBJECTS_DIR="$FREESURFER_HOME/subjects" \
     MNI_DIR="$FREESURFER_HOME/mni"
 ENV MINC_BIN_DIR="$MNI_DIR/bin" \
-    MINC_LIB_DIR="$MNI_DIR/lib" \
-    PATH="$PATH:$MINC_BIN_DIR"
-COPY --from=FreeSurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
+    MINC_LIB_DIR="$MNI_DIR/lib"
+ENV PATH="$PATH:$MINC_BIN_DIR"
+COPY --from=freesurfer /usr/lib/freesurfer/ /usr/lib/freesurfer/
 COPY dev/docker_data/license.txt $FREESURFER_HOME/license.txt
 
 # link libraries & clean up
