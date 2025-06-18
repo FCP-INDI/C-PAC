@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2024  C-PAC Developers
+# Copyright (C) 2019-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,9 +14,10 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-import json
+"""Test datasource utilities."""
 
-import pytest
+import json
+from pathlib import Path
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.datasource import match_epi_fmaps
@@ -24,8 +25,8 @@ from CPAC.utils.interfaces import Function
 from CPAC.utils.test_resources import setup_test_wf
 
 
-@pytest.mark.skip(reason="needs refactoring")
-def test_match_epi_fmaps():
+def test_match_epi_fmaps(tmp_path: Path) -> None:
+    """Test `~CPAC.utils.datasource.match_epi_fmaps`."""
     # good data to use
     s3_prefix = "s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB708LM5"
     s3_paths = [
@@ -36,7 +37,9 @@ def test_match_epi_fmaps():
         "fmap/sub-NDARAB708LM5_dir-AP_acq-fMRI_epi.json",
     ]
 
-    wf, ds, local_paths = setup_test_wf(s3_prefix, s3_paths, "test_match_epi_fmaps")
+    wf, ds, local_paths = setup_test_wf(
+        s3_prefix, s3_paths, "test_match_epi_fmaps", test_dir=str(tmp_path)
+    )
 
     opposite_pe_json = local_paths["fmap/sub-NDARAB708LM5_dir-PA_acq-fMRI_epi.json"]
     same_pe_json = local_paths["fmap/sub-NDARAB708LM5_dir-AP_acq-fMRI_epi.json"]
@@ -65,15 +68,24 @@ def test_match_epi_fmaps():
 
     match_fmaps = pe.Node(
         Function(
-            input_names=["fmap_dct", "bold_pedir"],
+            input_names=[
+                "bold_pedir",
+                "epi_fmap_one",
+                "epi_fmap_params_one",
+                "epi_fmap_two",
+                "epi_fmap_params_two",
+            ],
             output_names=["opposite_pe_epi", "same_pe_epi"],
             function=match_epi_fmaps,
             as_module=True,
         ),
         name="match_epi_fmaps",
     )
-    match_fmaps.inputs.fmap_dct = fmap_paths_dct
     match_fmaps.inputs.bold_pedir = bold_pedir
+    match_fmaps.inputs.epi_fmap_one = fmap_paths_dct["epi_PA"]["scan"]
+    match_fmaps.inputs.epi_fmap_params_one = fmap_paths_dct["epi_PA"]["scan_parameters"]
+    match_fmaps.inputs.epi_fmap_two = fmap_paths_dct["epi_AP"]["scan"]
+    match_fmaps.inputs.epi_fmap_params_two = fmap_paths_dct["epi_AP"]["scan_parameters"]
 
     ds.inputs.func_json = func_json
     ds.inputs.opposite_pe_json = opposite_pe_json
