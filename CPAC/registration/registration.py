@@ -4885,7 +4885,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     },
 )
 def single_step_resample_timeseries_to_T1template(
-    wf, cfg, strat_pool: ResourcePool, pipe_num, opt=None
+    wf, cfg, strat_pool: "ResourcePool", pipe_num, opt=None
 ):
     """Apply motion correction, coreg, anat-to-template transforms...
 
