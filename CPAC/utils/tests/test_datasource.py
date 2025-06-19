@@ -25,8 +25,7 @@ from networkx.classes.digraph import DiGraph
 import pytest
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.utils.datasource import match_epi_fmaps
-from CPAC.utils.interfaces import Function
+from CPAC.utils.datasource import match_epi_fmaps_function_node
 from CPAC.utils.test_resources import setup_test_wf
 from CPAC.utils.utils import PE_DIRECTION
 
@@ -342,21 +341,7 @@ def test_match_epi_fmaps(generate: bool, tmp_path: Path) -> None:
     """Test `~CPAC.utils.datasource.match_epi_fmaps`."""
     wf, data = match_epi_fmaps_inputs(generate, tmp_path)
 
-    match_fmaps = pe.Node(
-        Function(
-            input_names=[
-                "bold_pedir",
-                "epi_fmap_one",
-                "epi_fmap_params_one",
-                "epi_fmap_two",
-                "epi_fmap_params_two",
-            ],
-            output_names=["opposite_pe_epi", "same_pe_epi"],
-            function=match_epi_fmaps,
-            as_module=True,
-        ),
-        name="match_epi_fmaps",
-    )
+    match_fmaps = match_epi_fmaps_function_node()
     match_fmaps.inputs.bold_pedir = data.bold_pedir
     match_fmaps.inputs.epi_fmap_one = data.epi_fmaps[0][0]
     match_fmaps.inputs.epi_fmap_params_one = data.epi_fmaps[0][1]

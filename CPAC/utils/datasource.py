@@ -523,6 +523,25 @@ def match_epi_fmaps(
     return opposite_pe_epi, same_pe_epi
 
 
+def match_epi_fmaps_function_node(name: str = "match_epi_fmaps"):
+    """Return a Function node for `~CPAC.utils.datasource.match_epi_fmaps`."""
+    return pe.Node(
+        Function(
+            input_names=[
+                "bold_pedir",
+                "epi_fmap_one",
+                "epi_fmap_params_one",
+                "epi_fmap_two",
+                "epi_fmap_params_two",
+            ],
+            output_names=["opposite_pe_epi", "same_pe_epi"],
+            function=match_epi_fmaps,
+            as_module=True,
+        ),
+        name=name,
+    )
+
+
 def ingress_func_metadata(
     wf,
     cfg,
