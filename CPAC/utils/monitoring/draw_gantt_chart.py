@@ -429,12 +429,9 @@ def generate_gantt_chart(
     html_string += "<p>Cores: " + str(cores) + "</p>"
     html_string += close_header
     # Draw nipype nodes Gantt chart and runtimes
-    try:
-        html_string += draw_lines(
-            start_node["start"], duration, minute_scale, space_between_minutes
-        )
-    except:
-        breakpoint()
+    html_string += draw_lines(
+        start_node["start"], duration, minute_scale, space_between_minutes
+    )
     html_string += draw_nodes(
         start_node["start"],
         nodes_list,
