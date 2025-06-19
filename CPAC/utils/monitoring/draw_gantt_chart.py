@@ -39,8 +39,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Module to draw an html gantt chart from logfile produced by
-``CPAC.utils.monitoring.log_nodes_cb()``.
+"""Module to draw an html gantt chart from logfile produced by `~CPAC.utils.monitoring.log_nodes_cb`.
 
 See https://nipype.readthedocs.io/en/latest/api/generated/nipype.utils.draw_gantt_chart.html
 """
@@ -430,9 +429,12 @@ def generate_gantt_chart(
     html_string += "<p>Cores: " + str(cores) + "</p>"
     html_string += close_header
     # Draw nipype nodes Gantt chart and runtimes
-    html_string += draw_lines(
-        start_node["start"], duration, minute_scale, space_between_minutes
-    )
+    try:
+        html_string += draw_lines(
+            start_node["start"], duration, minute_scale, space_between_minutes
+        )
+    except:
+        breakpoint()
     html_string += draw_nodes(
         start_node["start"],
         nodes_list,

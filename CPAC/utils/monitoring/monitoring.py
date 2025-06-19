@@ -16,14 +16,16 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Monitoring utilities for C-PAC."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import glob
 import json
 import math
 import os
 import socketserver
+import struct
 import threading
-from typing import Any, Optional, TypeAlias
+from typing import Any, Optional, overload, TypeAlias
+from zoneinfo import available_timezones, ZoneInfo
 
 import networkx as nx
 from traits.trait_base import Undefined
@@ -72,16 +74,104 @@ class _NoTime:
         """Subtract between None and a datetime or timedelta or None."""
         return _safe_none_diff(self, other)
 
+    def isoformat(self) -> str:
+        """Return an ISO 8601-like string of 0s for display."""
+        return "0000-00-00"
+
 
 NoTime = _NoTime()
 """A singleton None that can be used in place of a datetime object."""
 
 
 class DatetimeWithSafeNone(datetime, _NoTime):
-    """Time class that can be None or a time value."""
+    """Time class that can be None or a time value.
 
-    def __new__(cls, dt: "OptionalDatetime") -> "DatetimeWithSafeNone | _NoTime":
+    Examples
+    --------
+    >>> from datetime import datetime
+    >>> DatetimeWithSafeNone(datetime(2025, 6, 18, 21, 6, 43, 730004)).isoformat()
+    '2025-06-18T21:06:43.730004'
+    >>> DatetimeWithSafeNone("2025-06-18T21:06:43.730004").isoformat()
+    '2025-06-18T21:06:43.730004'
+    >>> DatetimeWithSafeNone(b"\\x07\\xe9\\x06\\x12\\x10\\x18\\x1c\\x88\\x6d\\x01").isoformat()
+    '2025-06-18T16:24:28.028040+00:00'
+    >>> DatetimeWithSafeNone(b'\\x07\\xe9\\x06\\x12\\x10\\x18\\x1c\\x88m\\x00').isoformat()
+    '2025-06-18T16:24:28.028040'
+    >>> DatetimeWithSafeNone(DatetimeWithSafeNone("2025-06-18")).isoformat()
+    '2025-06-18T00:00:00'
+    >>> DatetimeWithSafeNone(None)
+    NoTime
+    >>> DatetimeWithSafeNone(None).isoformat()
+    '0000-00-00'
+    """
+
+    @overload
+    def __new__(
+        cls,
+        year: "OptionalDatetime",
+        month: None = None,
+        day: None = None,
+        hour: None = None,
+        minute: None = None,
+        second: None = None,
+        microsecond: None = None,
+        tzinfo: None = None,
+        *,
+        fold: None = None,
+    ) -> "DatetimeWithSafeNone | _NoTime": ...
+    @overload
+    def __new__(
+        cls,
+        year: int,
+        month: Optional[int] = None,
+        day: Optional[int] = None,
+        hour: int = 0,
+        minute: int = 0,
+        second: int = 0,
+        microsecond: int = 0,
+        tzinfo: Optional[timezone | ZoneInfo] = None,
+        *,
+        fold: int = 0,
+    ) -> "DatetimeWithSafeNone": ...
+
+    def __new__(
+        cls,
+        year: "int | OptionalDatetime",
+        month: Optional[int] = None,
+        day: Optional[int] = None,
+        hour: Optional[int] = 0,
+        minute: Optional[int] = 0,
+        second: Optional[int] = 0,
+        microsecond: Optional[int] = 0,
+        tzinfo: Optional[timezone | ZoneInfo] = None,
+        *,
+        fold: Optional[int] = 0,
+    ) -> "DatetimeWithSafeNone | _NoTime":
         """Create a new instance of the class."""
+        if (
+            isinstance(year, int)
+            and isinstance(month, int)
+            and isinstance(day, int)
+            and isinstance(hour, int)
+            and isinstance(minute, int)
+            and isinstance(second, int)
+            and isinstance(microsecond, int)
+            and isinstance(fold, int)
+        ):
+            return datetime.__new__(
+                cls,
+                year,
+                month,
+                day,
+                hour,
+                minute,
+                second,
+                microsecond,
+                tzinfo,
+                fold=fold,
+            )
+        else:
+            dt = year
         if dt is None:
             return NoTime
         if isinstance(dt, datetime):
@@ -98,9 +188,43 @@ class DatetimeWithSafeNone(datetime, _NoTime):
             )
         if isinstance(dt, bytes):
             try:
-                dt = dt.decode("utf-8")
+                tzflag: Optional[int]
+                year, month, day, hour, minute, second = struct.unpack(">H5B", dt[:7])
+                microsecond, tzflag = struct.unpack("<HB", dt[7:])
+                match tzflag:
+                    case 1:
+                        tzinfo = timezone.utc
+                    case 2:  # pragma: no cover
+                        try:
+                            tzinfo = ZoneInfo(
+                                next(
+                                    zone
+                                    for zone in available_timezones()
+                                    if "localtime" in zone
+                                )
+                            )
+                        except StopIteration:
+                            tzinfo = None
+                    case 0 | _:
+                        tzinfo = None
+                if (
+                    isinstance(year, int)
+                    and isinstance(month, int)
+                    and isinstance(day, int)
+                    and isinstance(hour, int)
+                    and isinstance(minute, int)
+                    and isinstance(second, int)
+                    and isinstance(microsecond, int)
+                ):
+                    return datetime.__new__(
+                        cls, year, month, day, hour, minute, second, microsecond, tzinfo
+                    )
+                else:
+                    msg = f"Unexpected type: {[type(part) for part in [year, month, day, hour, minute, second, microsecond]]}"
+                    raise TypeError(msg)
             except UnicodeDecodeError:
-                error = f"Cannot decode bytes to string: {dt}"
+                error = f"Cannot decode bytes to string: {dt!r}"
+                raise TypeError(error)
         if isinstance(dt, str):
             try:
                 return DatetimeWithSafeNone(datetime.fromisoformat(dt))
@@ -114,7 +238,7 @@ class DatetimeWithSafeNone(datetime, _NoTime):
         """Return True if not NoTime."""
         return self is not NoTime
 
-    def __sub__(self, other: "DatetimeWithSafeNone | _NoTime") -> datetime | timedelta:
+    def __sub__(self, other: "DatetimeWithSafeNone | _NoTime") -> datetime | timedelta:  # type: ignore[reportIncompatibleMethodOverride]
         """Subtract between a datetime or timedelta or None."""
         return _safe_none_diff(self, other)
 
@@ -146,7 +270,9 @@ def json_dumps(obj: Any, **kwargs) -> str:
     return json.dumps(obj, cls=DatetimeJSONEncoder, **kwargs)
 
 
-OptionalDatetime: TypeAlias = Optional[datetime | str | DatetimeWithSafeNone | _NoTime]
+OptionalDatetime: TypeAlias = Optional[
+    datetime | str | bytes | DatetimeWithSafeNone | _NoTime
+]
 """Type alias for a datetime, ISO-format string or None."""
 
 
