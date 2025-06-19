@@ -16,55 +16,331 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Test datasource utilities."""
 
+from dataclasses import dataclass
 import json
 from pathlib import Path
+from typing import Any
+
+from networkx.classes.digraph import DiGraph
+import pytest
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.datasource import match_epi_fmaps
 from CPAC.utils.interfaces import Function
 from CPAC.utils.test_resources import setup_test_wf
+from CPAC.utils.utils import PE_DIRECTION
 
 
-def test_match_epi_fmaps(tmp_path: Path) -> None:
-    """Test `~CPAC.utils.datasource.match_epi_fmaps`."""
-    # good data to use
-    s3_prefix = "s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB708LM5"
-    s3_paths = [
-        "func/sub-NDARAB708LM5_task-rest_run-1_bold.json",
-        "fmap/sub-NDARAB708LM5_dir-PA_acq-fMRI_epi.nii.gz",
-        "fmap/sub-NDARAB708LM5_dir-PA_acq-fMRI_epi.json",
-        "fmap/sub-NDARAB708LM5_dir-AP_acq-fMRI_epi.nii.gz",
-        "fmap/sub-NDARAB708LM5_dir-AP_acq-fMRI_epi.json",
+@dataclass
+class MatchEpiFmapsInputs:
+    """Store test data for `match_epi_fmaps`."""
+
+    bold_pedir: PE_DIRECTION
+    epi_fmaps: list[tuple[str, dict[str, Any]]]
+
+
+def match_epi_fmaps_inputs(
+    generate: bool, path: Path
+) -> tuple[pe.Workflow, MatchEpiFmapsInputs]:
+    """Return inputs for `~CPAC.utils.datasource.match_epi_fmaps`."""
+    if generate:
+        # good data to use
+        s3_prefix = "s3://fcp-indi/data/Projects/HBN/MRI/Site-CBIC/sub-NDARAB708LM5"
+        s3_paths = [
+            "func/sub-NDARAB708LM5_task-rest_run-1_bold.json",
+            "fmap/sub-NDARAB708LM5_dir-PA_acq-fMRI_epi.nii.gz",
+            "fmap/sub-NDARAB708LM5_dir-PA_acq-fMRI_epi.json",
+            "fmap/sub-NDARAB708LM5_dir-AP_acq-fMRI_epi.nii.gz",
+            "fmap/sub-NDARAB708LM5_dir-AP_acq-fMRI_epi.json",
+        ]
+
+        wf, ds, local_paths = setup_test_wf(
+            s3_prefix, s3_paths, "test_match_epi_fmaps", test_dir=str(path)
+        )
+
+        opposite_pe_json = local_paths["fmap/sub-NDARAB708LM5_dir-PA_acq-fMRI_epi.json"]
+        same_pe_json = local_paths["fmap/sub-NDARAB708LM5_dir-AP_acq-fMRI_epi.json"]
+        func_json = local_paths["func/sub-NDARAB708LM5_task-rest_run-1_bold.json"]
+
+        with open(opposite_pe_json, "r") as f:
+            opposite_pe_params = json.load(f)
+
+        with open(same_pe_json, "r") as f:
+            same_pe_params = json.load(f)
+
+        with open(func_json, "r") as f:
+            func_params = json.load(f)
+            bold_pedir = func_params["PhaseEncodingDirection"]
+
+        fmap_paths_dct = {
+            "epi_PA": {
+                "scan": local_paths["fmap/sub-NDARAB708LM5_dir-PA_acq-fMRI_epi.nii.gz"],
+                "scan_parameters": opposite_pe_params,
+            },
+            "epi_AP": {
+                "scan": local_paths["fmap/sub-NDARAB708LM5_dir-AP_acq-fMRI_epi.nii.gz"],
+                "scan_parameters": same_pe_params,
+            },
+        }
+        ds.inputs.func_json = func_json
+        ds.inputs.opposite_pe_json = opposite_pe_json
+        ds.inputs.same_pe_json = same_pe_json
+        return wf, MatchEpiFmapsInputs(
+            bold_pedir,
+            [
+                (scan["scan"], scan["scan_parameters"])
+                for scan in fmap_paths_dct.values()
+            ],
+        )
+    _paths = [
+        f"{path}/sub-NDARAB514MAJ_dir-AP_acq-fMRI_epi.nii.gz",
+        f"{path}/sub-NDARAB514MAJ_dir-PA_acq-fMRI_epi.nii.gz",
     ]
-
-    wf, ds, local_paths = setup_test_wf(
-        s3_prefix, s3_paths, "test_match_epi_fmaps", test_dir=str(tmp_path)
+    for _ in _paths:
+        Path(_).touch(exist_ok=True)
+    return pe.Workflow("test_match_epi_fmaps", path), MatchEpiFmapsInputs(
+        "j-",
+        [
+            (
+                _paths[0],
+                {
+                    "AcquisitionMatrixPE": 84,
+                    "BandwidthPerPixelPhaseEncode": 23.81,
+                    "BaseResolution": 84,
+                    "BodyPartExamined": b"BRAIN",
+                    "ConsistencyInfo": b"N4_VE11B_LATEST_20150530",
+                    "ConversionSoftware": b"dcm2niix",
+                    "ConversionSoftwareVersion": b"v1.0.20171215 GCC4.8.4",
+                    "DerivedVendorReportedEchoSpacing": 0.00049999,
+                    "DeviceSerialNumber": b"67080",
+                    "DwellTime": 2.6e-06,
+                    "EchoTime": 0.0512,
+                    "EchoTrainLength": 84,
+                    "EffectiveEchoSpacing": 0.00049999,
+                    "FlipAngle": 90,
+                    "ImageOrientationPatientDICOM": [1, 0, 0, 0, 1, 0],
+                    "ImageType": ["ORIGINAL", "PRIMARY", "M", "ND", "MOSAIC"],
+                    "InPlanePhaseEncodingDirectionDICOM": b"COL",
+                    "MRAcquisitionType": b"2D",
+                    "MagneticFieldStrength": 3,
+                    "Manufacturer": b"Siemens",
+                    "ManufacturersModelName": b"Prisma_fit",
+                    "Modality": b"MR",
+                    "PartialFourier": 1,
+                    "PatientPosition": b"HFS",
+                    "PercentPhaseFOV": 100,
+                    "PhaseEncodingDirection": b"j-",
+                    "PhaseEncodingSteps": 84,
+                    "PhaseResolution": 1,
+                    "PixelBandwidth": 2290,
+                    "ProcedureStepDescription": b"CMI_HBN-CBIC",
+                    "ProtocolName": b"cmrr_fMRI_DistortionMap_AP",
+                    "PulseSequenceDetails": b"%CustomerSeq%_cmrr_mbep2d_se",
+                    "ReceiveCoilActiveElements": b"HEA;HEP",
+                    "ReceiveCoilName": b"Head_32",
+                    "ReconMatrixPE": 84,
+                    "RepetitionTime": 5.301,
+                    "SAR": 0.364379,
+                    "ScanOptions": b"FS",
+                    "ScanningSequence": b"EP",
+                    "SequenceName": b"epse2d1_84",
+                    "SequenceVariant": b"SK",
+                    "SeriesDescription": b"cmrr_fMRI_DistortionMap_AP",
+                    "ShimSetting": [208, -10464, -5533, 615, -83, -88, 55, 30],
+                    "SliceThickness": 2.4,
+                    "SliceTiming": [
+                        2.64,
+                        0,
+                        2.7275,
+                        0.0875,
+                        2.815,
+                        0.175,
+                        2.9025,
+                        0.2625,
+                        2.9925,
+                        0.3525,
+                        3.08,
+                        0.44,
+                        3.1675,
+                        0.5275,
+                        3.255,
+                        0.615,
+                        3.3425,
+                        0.7025,
+                        3.4325,
+                        0.7925,
+                        3.52,
+                        0.88,
+                        3.6075,
+                        0.9675,
+                        3.695,
+                        1.055,
+                        3.785,
+                        1.1425,
+                        3.8725,
+                        1.2325,
+                        3.96,
+                        1.32,
+                        4.0475,
+                        1.4075,
+                        4.135,
+                        1.495,
+                        4.225,
+                        1.5825,
+                        4.3125,
+                        1.6725,
+                        4.4,
+                        1.76,
+                        4.4875,
+                        1.8475,
+                        4.575,
+                        1.935,
+                        4.665,
+                        2.0225,
+                        4.7525,
+                        2.1125,
+                        4.84,
+                        2.2,
+                        4.9275,
+                        2.2875,
+                        5.015,
+                        2.375,
+                        5.105,
+                        2.4625,
+                        5.1925,
+                        2.5525,
+                    ],
+                    "SoftwareVersions": b"syngo_MR_E11",
+                    "SpacingBetweenSlices": 2.4,
+                    "StationName": b"MRTRIO3TX72",
+                    "TotalReadoutTime": 0.0414992,
+                    "TxRefAmp": 209.923,
+                },
+            ),
+            (
+                _paths[1],
+                {
+                    "AcquisitionMatrixPE": 84,
+                    "BandwidthPerPixelPhaseEncode": 23.81,
+                    "BaseResolution": 84,
+                    "BodyPartExamined": b"BRAIN",
+                    "ConsistencyInfo": b"N4_VE11B_LATEST_20150530",
+                    "ConversionSoftware": b"dcm2niix",
+                    "ConversionSoftwareVersion": b"v1.0.20171215 GCC4.8.4",
+                    "DerivedVendorReportedEchoSpacing": 0.00049999,
+                    "DeviceSerialNumber": b"67080",
+                    "DwellTime": 2.6e-06,
+                    "EchoTime": 0.0512,
+                    "EchoTrainLength": 84,
+                    "EffectiveEchoSpacing": 0.00049999,
+                    "FlipAngle": 90,
+                    "ImageOrientationPatientDICOM": [1, 0, 0, 0, 1, 0],
+                    "ImageType": ["ORIGINAL", "PRIMARY", "M", "ND", "MOSAIC"],
+                    "InPlanePhaseEncodingDirectionDICOM": b"COL",
+                    "MRAcquisitionType": b"2D",
+                    "MagneticFieldStrength": 3,
+                    "Manufacturer": b"Siemens",
+                    "ManufacturersModelName": b"Prisma_fit",
+                    "Modality": b"MR",
+                    "PartialFourier": 1,
+                    "PatientPosition": b"HFS",
+                    "PercentPhaseFOV": 100,
+                    "PhaseEncodingDirection": b"j",
+                    "PhaseEncodingSteps": 84,
+                    "PhaseResolution": 1,
+                    "PixelBandwidth": 2290,
+                    "ProcedureStepDescription": b"CMI_HBN-CBIC",
+                    "ProtocolName": b"cmrr_fMRI_DistortionMap_PA",
+                    "PulseSequenceDetails": b"%CustomerSeq%_cmrr_mbep2d_se",
+                    "ReceiveCoilActiveElements": b"HEA;HEP",
+                    "ReceiveCoilName": b"Head_32",
+                    "ReconMatrixPE": 84,
+                    "RepetitionTime": 5.301,
+                    "SAR": 0.364379,
+                    "ScanOptions": b"FS",
+                    "ScanningSequence": b"EP",
+                    "SequenceName": b"epse2d1_84",
+                    "SequenceVariant": b"SK",
+                    "SeriesDescription": b"cmrr_fMRI_DistortionMap_PA",
+                    "ShimSetting": [208, -10464, -5533, 615, -83, -88, 55, 30],
+                    "SliceThickness": 2.4,
+                    "SliceTiming": [
+                        2.64,
+                        0,
+                        2.73,
+                        0.09,
+                        2.8175,
+                        0.1775,
+                        2.905,
+                        0.265,
+                        2.9925,
+                        0.3525,
+                        3.08,
+                        0.44,
+                        3.17,
+                        0.53,
+                        3.2575,
+                        0.6175,
+                        3.345,
+                        0.705,
+                        3.4325,
+                        0.7925,
+                        3.52,
+                        0.88,
+                        3.61,
+                        0.97,
+                        3.6975,
+                        1.0575,
+                        3.785,
+                        1.145,
+                        3.8725,
+                        1.2325,
+                        3.9625,
+                        1.32,
+                        4.05,
+                        1.41,
+                        4.1375,
+                        1.4975,
+                        4.225,
+                        1.585,
+                        4.3125,
+                        1.6725,
+                        4.4025,
+                        1.76,
+                        4.49,
+                        1.85,
+                        4.5775,
+                        1.9375,
+                        4.665,
+                        2.025,
+                        4.7525,
+                        2.1125,
+                        4.8425,
+                        2.2,
+                        4.93,
+                        2.29,
+                        5.0175,
+                        2.3775,
+                        5.105,
+                        2.465,
+                        5.1925,
+                        2.5525,
+                    ],
+                    "SoftwareVersions": b"syngo_MR_E11",
+                    "SpacingBetweenSlices": 2.4,
+                    "StationName": b"MRTRIO3TX72",
+                    "TotalReadoutTime": 0.0414992,
+                    "TxRefAmp": 209.923,
+                },
+            ),
+        ],
     )
 
-    opposite_pe_json = local_paths["fmap/sub-NDARAB708LM5_dir-PA_acq-fMRI_epi.json"]
-    same_pe_json = local_paths["fmap/sub-NDARAB708LM5_dir-AP_acq-fMRI_epi.json"]
-    func_json = local_paths["func/sub-NDARAB708LM5_task-rest_run-1_bold.json"]
 
-    with open(opposite_pe_json, "r") as f:
-        opposite_pe_params = json.load(f)
-
-    with open(same_pe_json, "r") as f:
-        same_pe_params = json.load(f)
-
-    with open(func_json, "r") as f:
-        func_params = json.load(f)
-        bold_pedir = func_params["PhaseEncodingDirection"]
-
-    fmap_paths_dct = {
-        "epi_PA": {
-            "scan": local_paths["fmap/sub-NDARAB708LM5_dir-PA_acq-fMRI_epi.nii.gz"],
-            "scan_parameters": opposite_pe_params,
-        },
-        "epi_AP": {
-            "scan": local_paths["fmap/sub-NDARAB708LM5_dir-AP_acq-fMRI_epi.nii.gz"],
-            "scan_parameters": same_pe_params,
-        },
-    }
+@pytest.mark.parametrize("generate", [True, False])
+def test_match_epi_fmaps(generate: bool, tmp_path: Path) -> None:
+    """Test `~CPAC.utils.datasource.match_epi_fmaps`."""
+    wf, data = match_epi_fmaps_inputs(generate, tmp_path)
 
     match_fmaps = pe.Node(
         Function(
@@ -81,17 +357,15 @@ def test_match_epi_fmaps(tmp_path: Path) -> None:
         ),
         name="match_epi_fmaps",
     )
-    match_fmaps.inputs.bold_pedir = bold_pedir
-    match_fmaps.inputs.epi_fmap_one = fmap_paths_dct["epi_PA"]["scan"]
-    match_fmaps.inputs.epi_fmap_params_one = fmap_paths_dct["epi_PA"]["scan_parameters"]
-    match_fmaps.inputs.epi_fmap_two = fmap_paths_dct["epi_AP"]["scan"]
-    match_fmaps.inputs.epi_fmap_params_two = fmap_paths_dct["epi_AP"]["scan_parameters"]
+    match_fmaps.inputs.bold_pedir = data.bold_pedir
+    match_fmaps.inputs.epi_fmap_one = data.epi_fmaps[0][0]
+    match_fmaps.inputs.epi_fmap_params_one = data.epi_fmaps[0][1]
+    match_fmaps.inputs.epi_fmap_two = data.epi_fmaps[1][0]
+    match_fmaps.inputs.epi_fmap_params_two = data.epi_fmaps[1][1]
 
-    ds.inputs.func_json = func_json
-    ds.inputs.opposite_pe_json = opposite_pe_json
-    ds.inputs.same_pe_json = same_pe_json
+    wf.add_nodes([match_fmaps])
 
-    wf.connect(match_fmaps, "opposite_pe_epi", ds, "should_be_dir-PA")
-    wf.connect(match_fmaps, "same_pe_epi", ds, "should_be_dir-AP")
-
-    wf.run()
+    graph: DiGraph = wf.run()
+    result = list(graph.nodes)[-1].run()
+    assert Path(result.outputs.opposite_pe_epi).exists()
+    assert Path(result.outputs.same_pe_epi).exists()
