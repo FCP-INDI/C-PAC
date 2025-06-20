@@ -19,13 +19,13 @@
 from dataclasses import dataclass
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, TypeAlias
 
 from networkx.classes.digraph import DiGraph
 import pytest
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.utils.datasource import match_epi_fmaps_function_node
+from CPAC.utils.datasource import match_epi_fmaps, match_epi_fmaps_function_node
 from CPAC.utils.test_resources import setup_test_wf
 from CPAC.utils.utils import PE_DIRECTION
 
@@ -336,6 +336,10 @@ def match_epi_fmaps_inputs(
     )
 
 
+RunType: TypeAlias = Literal["nipype"] | Literal["direct"]
+Direction: TypeAlias = Literal["opposite"] | Literal["same"]
+
+
 @pytest.mark.parametrize("generate", [True, False])
 def test_match_epi_fmaps(generate: bool, tmp_path: Path) -> None:
     """Test `~CPAC.utils.datasource.match_epi_fmaps`."""
@@ -352,5 +356,28 @@ def test_match_epi_fmaps(generate: bool, tmp_path: Path) -> None:
 
     graph: DiGraph = wf.run()
     result = list(graph.nodes)[-1].run()
-    assert Path(result.outputs.opposite_pe_epi).exists()
-    assert Path(result.outputs.same_pe_epi).exists()
+    str_outputs: dict[RunType, dict[Direction, str]] = {
+        "nipype": {
+            "opposite": result.outputs.opposite_pe_epi,
+            "same": result.outputs.same_pe_epi,
+        },
+        "direct": {},
+    }
+    path_outputs: dict[RunType, dict[Direction, Path]] = {"nipype": {}, "direct": {}}
+    str_outputs["direct"]["opposite"], str_outputs["direct"]["same"] = match_epi_fmaps(
+        data.bold_pedir,
+        data.epi_fmaps[0][0],
+        data.epi_fmaps[0][1],
+        data.epi_fmaps[1][0],
+        data.epi_fmaps[1][1],
+    )
+    directions: list[Direction] = ["opposite", "same"]
+    runtypes: list[RunType] = ["nipype", "direct"]
+    for direction in directions:
+        for runtype in runtypes:
+            path_outputs[runtype][direction] = Path(str_outputs[runtype][direction])
+            assert path_outputs[runtype][direction].exists()
+        assert (
+            path_outputs["nipype"][direction].name
+            == path_outputs["direct"][direction].name
+        )
