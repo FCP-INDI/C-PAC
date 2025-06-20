@@ -23,8 +23,8 @@ from unittest import mock
 from _pytest.logging import LogCaptureFixture
 import pytest
 
-from CPAC.func_preproc import get_motion_ref
-from CPAC.pipeline.nodeblock import NodeBlockFunction
+from CPAC.func_preproc.func_motion import get_motion_ref
+from CPAC.pipeline.nodeblock import NodeBlockFunction, POOL_RESOURCE_MAPPING
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring.custom_logging import log_subprocess
 from CPAC.utils.monitoring.monitoring import DatetimeWithSafeNone, OptionalDatetime
@@ -175,6 +175,7 @@ def test_NodeBlock_option_SSOT():  # pylint: disable=invalid-name
     with pytest.raises(ValueError) as value_error:
         get_motion_ref(None, None, None, None, opt="chaos")
     error_message = str(value_error.value).rstrip()
+    assert get_motion_ref.option_val
     for opt in get_motion_ref.option_val:
         assert f"'{opt}'" in error_message
     assert error_message.endswith("Tool input: 'chaos'")
@@ -189,7 +190,7 @@ def test_system_deps():
 
 
 def check_expected_keys(
-    sink_native_transforms: bool, outputs: dict, expected_keys: set
+    sink_native_transforms: bool, outputs: POOL_RESOURCE_MAPPING, expected_keys: set
 ) -> None:
     """Check if expected keys are present in outputs based on sink_native_transforms."""
     if sink_native_transforms:

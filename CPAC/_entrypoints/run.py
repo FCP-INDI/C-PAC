@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2018-2024  C-PAC Developers
+# Copyright (C) 2018-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -728,16 +728,6 @@ def run_main():
             c["pipeline_setup", "system_config", "fail_fast"] = str_to_bool1_1(
                 args.fail_fast
             )
-
-        if c["pipeline_setup"]["output_directory"]["quality_control"][
-            "generate_xcpqc_files"
-        ]:
-            c["functional_preproc"]["motion_estimates_and_correction"][
-                "motion_estimates"
-            ]["calculate_motion_first"] = True
-            c["functional_preproc"]["motion_estimates_and_correction"][
-                "motion_estimates"
-            ]["calculate_motion_after"] = True
 
         if args.participant_label:
             WFLOGGER.info(

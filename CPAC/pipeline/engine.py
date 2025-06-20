@@ -14,6 +14,8 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""C-PAC pipeline engine."""
+
 import ast
 import copy
 import hashlib
@@ -22,7 +24,7 @@ from itertools import chain
 import json
 import os
 import re
-from typing import Optional
+from typing import Literal, Optional
 import warnings
 
 import pandas as pd
@@ -307,7 +309,7 @@ class ResourcePool:
             "ingress_regressors."
         )
         _nr = cfg["nuisance_corrections", "2-nuisance_regression"]
-        if not hasattr(self, "timeseries"):
+        if not hasattr(self, "desc-confounds_timeseries"):
             if _nr["Regressors"]:
                 self.regressors = {reg["Name"]: reg for reg in _nr["Regressors"]}
             else:
@@ -507,6 +509,34 @@ class ResourcePool:
                     continue
         json_data = self.get_json(resource, strat)
         return json_data["CpacProvenance"]
+
+    def motion_tool(self, resource: str, strat=None) -> Literal["3dvolreg", "mcflirt"]:
+        """Check provenance for motion correction tool."""
+        for tool in ["3dvolreg", "mcflirt"]:
+            if self.check_rpool(f"motion-correct-{tool}"):
+                return tool
+        prov = self.get_cpac_provenance(resource, strat)
+        last_entry = get_last_prov_entry(prov)
+        last_node = last_entry.split(":")[1]
+        if "3dvolreg" in last_node.lower():
+            return "3dvolreg"
+        if "mcflirt" in last_node.lower():
+            return "mcflirt"
+        # check entire prov
+        if "3dvolreg" in str(prov):
+            return "3dvolreg"
+        if "mcflirt" in str(prov):
+            return "mcflirt"
+        msg = (
+            "\n[!] Developer info: the motion correction "
+            f"tool for {resource} is not in the "
+            "CpacProvenance.\n"
+        )
+        raise LookupError(msg)
+
+    def reg_tool(self, resource, strat=None) -> Optional[Literal["ants", "fsl"]]:
+        """Check provenance for registration tool."""
+        return check_prov_for_regtool(self.get_cpac_provenance(resource, strat))
 
     @staticmethod
     def generate_prov_string(prov):

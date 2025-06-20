@@ -1,3 +1,21 @@
+# Copyright (C) 2019 - 2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Bandpass filtering utilities for C-PAC."""
+
 import os
 from pathlib import Path
 
@@ -79,7 +97,7 @@ def read_1D(one_D: Path | str) -> tuple[list[str], NDArray]:
 
 
 def bandpass_voxels(realigned_file, regressor_file, bandpass_freqs, sample_period=None):
-    """Performs ideal bandpass filtering on each voxel time-series.
+    """Perform ideal bandpass filtering on each voxel time-series.
 
     Parameters
     ----------

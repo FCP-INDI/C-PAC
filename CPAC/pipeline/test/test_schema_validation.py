@@ -1,6 +1,7 @@
 """Tests for schema.py."""
 
 from itertools import combinations
+import warnings
 
 import pytest
 from voluptuous.error import ExclusiveInvalid, Invalid
@@ -12,7 +13,9 @@ from CPAC.utils.configuration import Configuration
     "run_value", [True, False, [True], [False], [True, False], [False, True]]
 )
 def test_motion_estimates_and_correction(run_value):
-    """Test that any truthy forkable option for 'run' throws the custom
+    """Test for human-readable exception for invalid motion_estimate_filter.
+
+    Test that any truthy forkable option for 'run' throws the custom
     human-readable exception for an invalid motion_estimate_filter.
     """
     # pylint: disable=invalid-name
@@ -143,3 +146,31 @@ def test_overwrite_transform(registration_using):
         with pytest.raises(ExclusiveInvalid) as e:
             Configuration(d)
         assert "Overwrite transform method is the same" in str(e.value)
+
+
+@pytest.mark.parametrize(
+    "configuration",
+    [
+        {},
+        {
+            "functional_preproc": {
+                "motion_estimates_and_correction": {
+                    "motion_estimates": {
+                        "calculate_motion_first": False,
+                        "calculate_motion_after": False,
+                    }
+                }
+            }
+        },
+    ],
+)
+def test_deprecation(configuration: dict) -> None:
+    """Test that deprecated options warn and non-deprecated options do not."""
+    if configuration:
+        with pytest.warns(DeprecationWarning) as record:
+            Configuration(configuration)
+        assert any("motion_estimates" in str(w.message) for w in record)
+    else:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            Configuration(configuration)

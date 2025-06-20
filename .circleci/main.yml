@@ -119,7 +119,7 @@ commands:
           coverage-file: .coverage.docker${VARIANT}
       - run:
           name: Running pytest in Docker image
-          command: docker exec --user $(id -u) docker_test /bin/bash /code/dev/circleci_data/test_in_image.sh
+          command: docker exec -e OSF_DATA --user $(id -u) docker_test /bin/bash /code/dev/circleci_data/test_in_image.sh
   set-python-version:
     steps:
       - restore_cache:
