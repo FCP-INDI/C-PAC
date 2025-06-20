@@ -83,7 +83,7 @@ COPY --from=ants /usr/lib/ants/ /usr/lib/ants/
 COPY --from=ants /ants_template/ /ants_template/
 
 # Installing ICA-AROMA
-COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/
+COPY --from=ica-aroma /opt/ICA-AROMA/ /opt/ICA-AROMA/
 ENV PATH=/opt/ICA-AROMA:$PATH
 
 # link libraries & clean up

@@ -13,6 +13,9 @@ pipeline_setup:
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac-default-pipeline
 
+  # Human, non-human primate, or rodent data?
+  organism: human
+
   # Desired orientation for the output data. "RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"
   desired_orientation: RPI
 
@@ -1079,14 +1082,6 @@ functional_preproc:
   motion_estimates_and_correction:
 
     run: On
-
-    motion_estimates:
-
-      # calculate motion statistics BEFORE slice-timing correction
-      calculate_motion_first: Off
-
-      # calculate motion statistics AFTER motion correction
-      calculate_motion_after: On
 
     motion_correction:
 

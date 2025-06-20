@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2024  C-PAC Developers
+# Copyright (C) 2023-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -26,14 +26,7 @@ from voluptuous.error import Invalid
 from nipype.interfaces.utility import Function as NipypeFunction
 from nipype.pipeline.engine import Workflow as NipypeWorkflow
 
-from CPAC.func_preproc.func_motion import (
-    calc_motion_stats,
-    func_motion_correct,
-    func_motion_correct_only,
-    func_motion_estimates,
-    get_motion_ref,
-    motion_estimate_filter,
-)
+from CPAC.func_preproc import stack_motion_blocks
 from CPAC.func_preproc.func_preproc import func_normalize
 from CPAC.nuisance.nuisance import choose_nuisance_blocks
 from CPAC.pipeline.cpac_pipeline import connect_pipeline
@@ -142,10 +135,6 @@ def test_motion_filter_connections(
             "functional_preproc": {
                 "motion_estimates_and_correction": {
                     "motion_correction": {"using": motion_correction},
-                    "motion_estimates": {
-                        "calculate_motion_after": not calculate_motion_first,
-                        "calculate_motion_first": calculate_motion_first,
-                    },
                     "motion_estimate_filter": {"run": run, "filters": filters},
                     "run": True,
                 },
@@ -183,26 +172,16 @@ def test_motion_filter_connections(
     rpool = ResourcePool(cfg=c)
     for resource in pre_resources:
         if resource.endswith("xfm"):
-            rpool.set_data(
-                resource,
-                before_this_test,
-                resource,
-                {},
-                "",
-                f"created_before_this_test_{regtool}",
-            )
+            node_name = f"created_before_this_test_{regtool}"
+        elif resource == "desc-movementParameters_motion":
+            node_name = f"created_before_this_test_{motion_correction}"
         else:
-            rpool.set_data(
-                resource, before_this_test, resource, {}, "", "created_before_this_test"
-            )
+            node_name = "created_before_this_test"
+        rpool.set_data(resource, before_this_test, resource, {}, "", node_name)
     # set up blocks
     pipeline_blocks = []
-    func_init_blocks = []
-    func_motion_blocks = []
-    func_preproc_blocks = []
-    func_mask_blocks = []
-    func_prep_blocks = [
-        calc_motion_stats,
+    func_blocks = {key: [] for key in ["init", "preproc", "mask"]}
+    func_blocks["prep"] = [
         func_normalize,
         [
             coregistration_prep_vol,
@@ -210,57 +189,8 @@ def test_motion_filter_connections(
             coregistration_prep_fmriprep,
         ],
     ]
-    # Motion Correction
-    func_motion_blocks = []
-    if c[
-        "functional_preproc",
-        "motion_estimates_and_correction",
-        "motion_estimates",
-        "calculate_motion_first",
-    ]:
-        func_motion_blocks = [
-            get_motion_ref,
-            func_motion_estimates,
-            motion_estimate_filter,
-        ]
-    else:
-        func_motion_blocks = [
-            get_motion_ref,
-            func_motion_correct,
-            motion_estimate_filter,
-        ]
-    if not rpool.check_rpool("desc-movementParameters_motion"):
-        if c[
-            "functional_preproc",
-            "motion_estimates_and_correction",
-            "motion_estimates",
-            "calculate_motion_first",
-        ]:
-            func_blocks = (
-                func_init_blocks
-                + func_motion_blocks
-                + func_preproc_blocks
-                + [func_motion_correct_only]
-                + func_mask_blocks
-                + func_prep_blocks
-            )
-        else:
-            func_blocks = (
-                func_init_blocks
-                + func_preproc_blocks
-                + func_motion_blocks
-                + func_mask_blocks
-                + func_prep_blocks
-            )
-    else:
-        func_blocks = (
-            func_init_blocks
-            + func_preproc_blocks
-            + func_motion_blocks
-            + func_mask_blocks
-            + func_prep_blocks
-        )
-    pipeline_blocks += func_blocks
+
+    pipeline_blocks += stack_motion_blocks(func_blocks, c, rpool)
     # Nuisance Correction
     generate_only = (
         True not in c["nuisance_corrections", "2-nuisance_regression", "run"]
@@ -299,6 +229,7 @@ def test_motion_filter_connections(
                 "motion_correction",
                 "using",
             ]
+            and "desc-movementParameters_motion" not in pre_resources
         ):
             # Only for [On, Off] + mcflirt, we should have at least one of each
             assert {

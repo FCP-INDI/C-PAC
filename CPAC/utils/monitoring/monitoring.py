@@ -96,6 +96,11 @@ class DatetimeWithSafeNone(datetime, _NoTime):
                 dt.microsecond,
                 dt.tzinfo,
             )
+        if isinstance(dt, bytes):
+            try:
+                dt = dt.decode("utf-8")
+            except UnicodeDecodeError:
+                error = f"Cannot decode bytes to string: {dt}"
         if isinstance(dt, str):
             try:
                 return DatetimeWithSafeNone(datetime.fromisoformat(dt))

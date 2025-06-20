@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -73,7 +73,7 @@ def get_last_prov_entry(prov):
     return prov[-1]
 
 
-def check_prov_for_regtool(prov):
+def check_prov_for_regtool(prov) -> Optional[Literal["ants", "fsl"]]:
     """Check provenance for registration tool."""
     last_entry = get_last_prov_entry(prov)
     last_node = last_entry.split(":")[1]
@@ -98,22 +98,6 @@ def check_prov_for_regtool(prov):
             if "FSL" in node_name:
                 return "fsl"
             return None
-    return None
-
-
-def check_prov_for_motion_tool(prov):
-    """Check provenance for motion correction tool."""
-    last_entry = get_last_prov_entry(prov)
-    last_node = last_entry.split(":")[1]
-    if "3dvolreg" in last_node.lower():
-        return "3dvolreg"
-    if "mcflirt" in last_node.lower():
-        return "mcflirt"
-    # check entire prov
-    if "3dvolreg" in str(prov):
-        return "3dvolreg"
-    if "mcflirt" in str(prov):
-        return "mcflirt"
     return None
 
 
@@ -964,7 +948,7 @@ def add_afni_prefix(tpattern):
 
 def afni_3dwarp(in_file, out_file=None, deoblique=False):
     """
-    Runs AFNI's 3dWarp command with optional deobliquing.
+    Run AFNI's 3dWarp command with optional deobliquing.
 
     Parameters
     ----------
@@ -1651,16 +1635,6 @@ def _changes_1_8_0_to_1_8_1(config_dict: dict) -> dict:
         del config_dict["functional_preproc"]["motion_estimates_and_correction"][
             "calculate_motion_first"
         ]
-        config_dict = set_nested_value(
-            config_dict,
-            [
-                "functional_preproc",
-                "motion_estimates_and_correction",
-                "motion_estimates",
-                "calculate_motion_first",
-            ],
-            calculate_motion_first,
-        )
 
     return config_dict
 

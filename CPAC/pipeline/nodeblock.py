@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2024  C-PAC Developers
+# Copyright (C) 2023-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -16,7 +16,13 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Class and decorator for NodeBlock functions."""
 
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Mapping, Optional, TypeAlias
+
+from nipype.pipeline import engine as pe
+
+POOL_RESOURCE_DICT: TypeAlias = dict[str, tuple[pe.Node | pe.Workflow, str]]
+POOL_RESOURCE_MAPPING: TypeAlias = Mapping[str, tuple[pe.Node | pe.Workflow, str]]
+NODEBLOCK_RETURN: TypeAlias = tuple[pe.Workflow, POOL_RESOURCE_MAPPING]
 
 
 class NodeBlockFunction:
@@ -77,9 +83,9 @@ class NodeBlockFunction:
             ]
         ).rstrip()
 
-    # all node block functions have this signature
     def __call__(self, wf, cfg, strat_pool, pipe_num, opt=None):
         """
+        All node block functions have this signature.
 
         Parameters
         ----------

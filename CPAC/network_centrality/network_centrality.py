@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2024  C-PAC Developers
+# Copyright (C) 2015-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,6 +14,8 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Network centrality."""
+
 from pathlib import Path
 from typing import Optional
 
@@ -23,7 +25,7 @@ from nipype.pipeline.engine import Workflow
 from CPAC.network_centrality.utils import ThresholdOptionError
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.docs import docstring_parameter
-from CPAC.utils.interfaces.afni import AFNI_GTE_21_1_1, ECM
+from CPAC.utils.interfaces.afni import ECM
 
 
 @docstring_parameter(
@@ -107,8 +109,6 @@ def create_centrality_wf(
     method_option, threshold_option = utils.check_centrality_params(
         method_option, threshold_option, test_thresh
     )
-    # Eigenvector centrality and AFNI ≥ 21.1.1?
-    ecm_gte_21_1_01 = (method_option == "eigenvector_centrality") and AFNI_GTE_21_1_1
     out_names = tuple(f"{method_option}_{x}" for x in weight_options)
     if base_dir is None:
         centrality_wf = pe.Workflow(name=wf_name)
@@ -135,32 +135,21 @@ def create_centrality_wf(
 
     # Eigenvector centrality
     elif method_option == "eigenvector_centrality":
-        if ecm_gte_21_1_01:
-            afni_centrality_node = pe.MapNode(
-                ECM(environ={"OMP_NUM_THREADS": str(num_threads)}),
-                name="afni_centrality",
-                mem_gb=memory_gb,
-                iterfield=["do_binary", "out_file"],
-            )
-            afni_centrality_node.inputs.out_file = [
-                f"eigenvector_centrality_{w_option}.nii.gz"
-                for w_option in weight_options
-            ]
-            afni_centrality_node.inputs.do_binary = [
-                w_option == "Binarized" for w_option in weight_options
-            ]
-            centrality_wf.connect(
-                afni_centrality_node, "out_file", output_node, "outfile_list"
-            )
-        else:
-            afni_centrality_node = pe.Node(
-                ECM(environ={"OMP_NUM_THREADS": str(num_threads)}),
-                name="afni_centrality",
-                mem_gb=memory_gb,
-            )
-            afni_centrality_node.inputs.out_file = (
-                "eigenvector_centrality_merged.nii.gz"
-            )
+        afni_centrality_node = pe.MapNode(
+            ECM(environ={"OMP_NUM_THREADS": str(num_threads)}),
+            name="afni_centrality",
+            mem_gb=memory_gb,
+            iterfield=["do_binary", "out_file"],
+        )
+        afni_centrality_node.inputs.out_file = [
+            f"eigenvector_centrality_{w_option}.nii.gz" for w_option in weight_options
+        ]
+        afni_centrality_node.inputs.do_binary = [
+            w_option == "Binarized" for w_option in weight_options
+        ]
+        centrality_wf.connect(
+            afni_centrality_node, "out_file", output_node, "outfile_list"
+        )
         afni_centrality_node.inputs.memory = memory_gb  # 3dECM input only
 
     # lFCD
@@ -172,8 +161,8 @@ def create_centrality_wf(
         )
         afni_centrality_node.inputs.out_file = "lfcd_merged.nii.gz"
 
-    if not ecm_gte_21_1_01:
-        # Need to separate sub-briks except for 3dECM if AFNI > 21.1.01
+    if method_option != "eigenvector_centrality":
+        # Need to separate sub-briks except for 3dECM
         sep_subbriks_node = pe.Node(
             Function(
                 input_names=["nifti_file", "out_names"],

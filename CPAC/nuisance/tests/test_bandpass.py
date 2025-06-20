@@ -1,4 +1,4 @@
-# Copyright (C) 2022 - 2024  C-PAC Developers
+# Copyright (C) 2022 - 2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -18,16 +18,34 @@
 
 from importlib.abc import Traversable
 from importlib.resources import files
+from os import getenv
 from pathlib import Path
 
+from networkx import DiGraph
 import numpy as np
 from numpy.typing import NDArray
 import pytest
+import nibabel as nib
 from scipy.fft import fft
 
 from CPAC.nuisance.bandpass import ideal_bandpass, read_1D
+from CPAC.nuisance.nuisance import filtering_bold_and_regressors
+from CPAC.nuisance.utils.utils import load_censor_tsv
+from CPAC.pipeline.engine import ResourcePool
+from CPAC.pipeline.nipype_pipeline_engine import Workflow
+from CPAC.pipeline.test.test_engine import _download
+from CPAC.utils.configuration import Preconfiguration
+from CPAC.utils.tests.osf import download_file
 
 RAW_ONE_D: Traversable = files("CPAC").joinpath("nuisance/tests/regressors.1D")
+
+
+class TestResourcePool(ResourcePool):
+    """ResourcePool with OSF download function."""
+
+    def osf(self, resource: str, file: str, destination: Path, index: int) -> None:
+        """Download a file from the Open Science Framework."""
+        _download(self, resource, download_file, file, destination, index)
 
 
 @pytest.mark.parametrize("start_line", list(range(6)))
@@ -104,3 +122,45 @@ def test_ideal_bandpass_cutoffs_clamped_to_nyquist(sample_period):
 
     assert filt_fft[idx_below] < 1e-3
     assert filt_fft[idx_above] < 1e-3
+
+
+@pytest.mark.skipif(
+    not getenv("OSF_DATA"),
+    reason="OSF API key not set in OSF_DATA environment variable",
+)
+def test_frequency_filter(tmp_path: Path) -> None:
+    """Test that the bandpass filter works as expected."""
+    cfg = Preconfiguration("benchmark-FNIRT")
+    rpool = TestResourcePool(cfg)
+    wf = Workflow("bandpass_filtering", base_dir=str(tmp_path))
+    index = 0
+    for resource, file in {
+        "realigned_file": "residuals.nii.gz",
+        "regressor_file": "regressors.1D",
+    }.items():
+        rpool.osf(resource, file, tmp_path, index)
+        index += 1
+
+    filt = filtering_bold_and_regressors(
+        cfg["nuisance_corrections", "2-nuisance_regression", "Regressors"][0]
+    )
+    residuals = rpool.node_data("realigned_file")
+    regressors = rpool.node_data("regressor_file")
+    wf.connect(
+        [
+            (residuals.node, filt, [(residuals.out, "inputspec.functional_file_path")]),
+            (
+                regressors.node,
+                filt,
+                [(regressors.out, "inputspec.regressors_file_path")],
+            ),
+        ]
+    )
+    res: DiGraph = wf.run()
+    out_node = next(iter(res.nodes))
+    output = out_node.run()
+    trs = nib.load(output.outputs.bandpassed_file).header["dim"][4]  # type: ignore[reportPrivateImportUsage]
+    array = load_censor_tsv(output.outputs.regressor_file, trs)
+    assert not all(
+        [array.min() == 0, array.max() == 0, array.sum() == 0]
+    ), "Bandpass filter filtered all signals."

@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `censor_file_path` from `offending_timepoints_connector` in the `build_nuisance_regressor` node.
 - Switch `sink_native_transforms` under `registration_workflows` to output all `.mat` files in ANTs and FSL Transforms.
 - `deoblique` field in pipeline config with `warp` and `refit` options to apply `3dWarp` or `3drefit` during data initialization.
+- `organism` configuration option.
 
 ### Changed
 
@@ -70,6 +71,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A bug in `ideal_bandpass` where the frequency mask was incorrectly applied, which caused filter to fail in certain cases.
 - A bug where `$ANTSPATH` was unset in C-PAC with FreeSurfer images.
 
+### Upgraded dependencies
+
+- `voluptuous` 0.13.1 → 0.15.2
+
 ### Removed
 
 - Variant image recipes.
@@ -84,6 +89,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Inputs `[desc-motion_bold, bold]` from `coregistration_prep_vol` nodeblock.
 - `input` field from `coregistration` in blank and default config.
 - `reg_with_skull` swtich from `func_input_prep` in blank and default config.
+- Support for AFNI 3dECM < v21.1.1.
+- `calculate_motion_before` and `calculate_motion_after` configuration options.
 
 #### Removed CI dependency
 

@@ -1,3 +1,21 @@
+# Copyright (C) 2012-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Voxel-Mirrored Homotopic Connectivity."""
+
 from nipype.interfaces import fsl
 from nipype.interfaces.afni import preprocess
 
@@ -5,7 +23,6 @@ from CPAC.image_utils import spatial_smoothing
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.registration.registration import apply_transform
-from CPAC.utils.utils import check_prov_for_regtool
 from CPAC.vmhc import *
 from .utils import *
 
@@ -60,8 +77,7 @@ def smooth_func_vmhc(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["space-symtemplate_desc-sm_bold"],
 )
 def warp_timeseries_to_sym_template(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance("from-bold_to-symtemplate_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-bold_to-symtemplate_mode-image_xfm")
 
     num_cpus = cfg.pipeline_setup["system_config"]["max_cores_per_participant"]
 
