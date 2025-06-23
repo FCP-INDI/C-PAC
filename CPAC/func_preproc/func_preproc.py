@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -16,13 +16,15 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functional preprocessing."""
 
+from typing import TYPE_CHECKING
+
 # pylint: disable=ungrouped-imports,wrong-import-order,wrong-import-position
 from nipype.interfaces import afni, ants, fsl, utility as util
 from nipype.interfaces.afni import preprocess, utils as afni_utils
 
 from CPAC.func_preproc.utils import get_num_slices, interpolate_slice_timing, nullify
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.nodeblock import nodeblock, NODEBLOCK_RETURN, POOL_RESOURCE_DICT
 from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.ants import (
     AI,  # niworkflows
@@ -30,6 +32,10 @@ from CPAC.utils.interfaces.ants import (
     SetDirectionByMatrix,
 )
 from CPAC.utils.utils import add_afni_prefix, afni_3dwarp
+
+if TYPE_CHECKING:
+    from CPAC.pipeline.engine import ResourcePool
+    from CPAC.utils.configuration import Configuration
 
 
 def collect_arguments(*args):
@@ -1890,7 +1896,10 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
         ["functional_preproc", "run"],
         ["functional_preproc", "template_space_func_masking", "run"],
     ],
-    inputs=[("space-template_desc-preproc_bold", "space-template_desc-bold_mask")],
+    inputs=[
+        ("space-template_desc-preproc_bold", "space-template_desc-bold_mask"),
+        ("from-template_to-bold_mode-image_xfm", "desc-preproc_bold"),
+    ],
     outputs={
         "space-template_desc-preproc_bold": {
             "Description": "The skull-stripped BOLD time-series.",
@@ -1904,10 +1913,21 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
             "Description": "The non skull-stripped BOLD time-series.",
             "SkullStripped": False,
         },
+        "space-bold_desc-brain_mask": {
+            "Description": "Binary brain mask of the BOLD functional time-series, transformed from template space."
+        },
     },
 )
-def template_space_bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
+def template_space_bold_masking(
+    wf: pe.Workflow,
+    cfg: "Configuration",
+    strat_pool: "ResourcePool",
+    pipe_num: int,
+    opt: None = None,
+) -> NODEBLOCK_RETURN:
     """Mask the bold in template space."""
+    from CPAC.registration.registration import apply_transform
+
     func_apply_mask = pe.Node(
         interface=afni_utils.Calc(),
         name=f"template_space_func_extract_brain_{pipe_num}",
@@ -1921,16 +1941,45 @@ def template_space_bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     )
     wf.connect(node_head_bold, out_head_bold, func_apply_mask, "in_file_a")
 
-    node, out = strat_pool.get_data("space-template_desc-bold_mask")
-    wf.connect(node, out, func_apply_mask, "in_file_b")
+    reg_tool = strat_pool.reg_tool("from-template_to-bold_mode-image_xfm")
+    num_cpus: int = cfg.pipeline_setup["system_config"]["max_cores_per_participant"]
+    num_ants_cores: int = cfg.pipeline_setup["system_config"]["num_ants_threads"]
+    apply_xfm = apply_transform(
+        f"xfm_from-template_to-bold_mask_{pipe_num}",
+        reg_tool,
+        time_series=True,
+        num_cpus=num_cpus,
+        num_ants_cores=num_ants_cores,
+    )
+    if reg_tool == "ants":
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            "functional_registration"
+        ]["func_registration_to_template"]["ANTs_pipelines"]["interpolation"]
+    elif reg_tool == "fsl":
+        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
+            "functional_registration"
+        ]["func_registration_to_template"]["FNIRT_pipelines"]["interpolation"]
 
-    outputs = {
+    node, out = strat_pool.get_data("space-template_desc-bold_mask")
+    wf.connect(
+        [
+            (node, func_apply_mask, [(out, "in_file_b")]),
+            (node, apply_xfm, [(out, "inputspec.input_image")]),
+        ]
+    )
+    node, out = strat_pool.get_data("desc-preproc_bold")
+    wf.connect(node, out, apply_xfm, "inputspec.reference")
+    node, out = strat_pool.get_data("from-template_to-bold_mode-image_xfm")
+    wf.connect(node, out, apply_xfm, "inputspec.transform")
+
+    outputs: POOL_RESOURCE_DICT = {
+        "space-bold_desc-brain_mask": (apply_xfm, "outputspec.output_image"),
         "space-template_desc-preproc_bold": (func_apply_mask, "out_file"),
         "space-template_desc-brain_bold": (func_apply_mask, "out_file"),
         "space-template_desc-head_bold": (node_head_bold, out_head_bold),
     }
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 @nodeblock(
