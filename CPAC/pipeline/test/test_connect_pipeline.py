@@ -18,6 +18,7 @@
 """Test pipeline connections."""
 
 from logging import INFO
+import multiprocessing.resource_tracker
 from pathlib import Path
 from typing import Callable
 
@@ -25,8 +26,22 @@ import pytest
 import yaml
 
 from CPAC.pipeline.cpac_runner import run
-from CPAC.utils.configuration import preconfig_yaml
+from CPAC.utils.configuration.configuration import Preconfiguration
+from CPAC.utils.configuration.yaml_template import create_yaml_from_template
 from CPAC.utils.monitoring import log_nodes_cb
+
+_unregister = multiprocessing.resource_tracker.unregister
+
+
+def safe_unregister(name, rtype) -> None:
+    """Suppress unregister warnings."""
+    try:
+        _unregister(name, rtype)
+    except KeyError:
+        pass
+
+
+multiprocessing.resource_tracker.unregister = safe_unregister
 
 
 @pytest.mark.parametrize("preconfig", ["abcd-options"])
@@ -54,6 +69,20 @@ def test_config(
             ],
             _f,
         )
+
+    # output in tmp_path/outputs
+    pipeline = Preconfiguration(preconfig)
+    output_dir = tmp_path / "outputs"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    pipeline["pipeline_setup", "log_directory", "path"] = str(output_dir / "log")
+    pipeline["pipeline_setup", "output_directory", "path"] = str(output_dir / "out")
+    pipeline["pipeline_setup", "working_directory", "path"] = str(
+        output_dir / "working"
+    )
+    pipeline_file = tmp_path / "pipe_config.yaml"
+    with pipeline_file.open("w") as _f:
+        _f.write(create_yaml_from_template(pipeline, preconfig, preconfig, True))
+
     plugin = "MultiProc"
     plugin_args: dict[str, int | bool | Callable] = {
         "n_procs": 2,
@@ -64,7 +93,7 @@ def test_config(
     tracking = False
     exitcode = run(
         str(data_config_file),
-        preconfig_yaml(preconfig),
+        str(pipeline_file),
         plugin=plugin,
         plugin_args=plugin_args,
         tracking=tracking,
