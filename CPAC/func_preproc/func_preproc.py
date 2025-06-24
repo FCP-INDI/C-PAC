@@ -1898,7 +1898,6 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
     inputs=[
         ("space-template_desc-preproc_bold", "space-template_desc-bold_mask"),
-        ("from-template_to-bold_mode-image_xfm", "desc-preproc_bold"),
     ],
     outputs={
         "space-template_desc-preproc_bold": {
@@ -1913,9 +1912,6 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
             "Description": "The non skull-stripped BOLD time-series.",
             "SkullStripped": False,
         },
-        "space-bold_desc-brain_mask": {
-            "Description": "Binary brain mask of the BOLD functional time-series, transformed from template space."
-        },
     },
 )
 def template_space_bold_masking(
@@ -1926,8 +1922,6 @@ def template_space_bold_masking(
     opt: None = None,
 ) -> NODEBLOCK_RETURN:
     """Mask the bold in template space."""
-    from CPAC.registration.registration import apply_transform
-
     func_apply_mask = pe.Node(
         interface=afni_utils.Calc(),
         name=f"template_space_func_extract_brain_{pipe_num}",
@@ -1941,39 +1935,10 @@ def template_space_bold_masking(
     )
     wf.connect(node_head_bold, out_head_bold, func_apply_mask, "in_file_a")
 
-    reg_tool = strat_pool.reg_tool("from-template_to-bold_mode-image_xfm")
-    num_cpus: int = cfg.pipeline_setup["system_config"]["max_cores_per_participant"]
-    num_ants_cores: int = cfg.pipeline_setup["system_config"]["num_ants_threads"]
-    apply_xfm = apply_transform(
-        f"xfm_from-template_to-bold_mask_{pipe_num}",
-        reg_tool,
-        time_series=True,
-        num_cpus=num_cpus,
-        num_ants_cores=num_ants_cores,
-    )
-    if reg_tool == "ants":
-        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
-            "functional_registration"
-        ]["func_registration_to_template"]["ANTs_pipelines"]["interpolation"]
-    elif reg_tool == "fsl":
-        apply_xfm.inputs.inputspec.interpolation = cfg.registration_workflows[
-            "functional_registration"
-        ]["func_registration_to_template"]["FNIRT_pipelines"]["interpolation"]
-
     node, out = strat_pool.get_data("space-template_desc-bold_mask")
-    wf.connect(
-        [
-            (node, func_apply_mask, [(out, "in_file_b")]),
-            (node, apply_xfm, [(out, "inputspec.input_image")]),
-        ]
-    )
-    node, out = strat_pool.get_data("desc-preproc_bold")
-    wf.connect(node, out, apply_xfm, "inputspec.reference")
-    node, out = strat_pool.get_data("from-template_to-bold_mode-image_xfm")
-    wf.connect(node, out, apply_xfm, "inputspec.transform")
+    wf.connect(node, out, func_apply_mask, "in_file_b")
 
     outputs: POOL_RESOURCE_DICT = {
-        "space-bold_desc-brain_mask": (apply_xfm, "outputspec.output_image"),
         "space-template_desc-preproc_bold": (func_apply_mask, "out_file"),
         "space-template_desc-brain_bold": (func_apply_mask, "out_file"),
         "space-template_desc-head_bold": (node_head_bold, out_head_bold),
