@@ -29,10 +29,11 @@ def accept_all(object, name, value):
 
 @pytest.mark.skip(reason="needs refactored")
 def test_trimmer():
-    from importlib.resources import as_file, files
+    """Test The Trimmer."""
     import os
 
     from CPAC.pipeline.cpac_pipeline import build_workflow
+    from CPAC.resources.configs import CONFIGS_PATH
     from CPAC.utils.configuration import Configuration
     from CPAC.utils.trimmer import (
         compute_datasink_dirs,
@@ -41,14 +42,13 @@ def test_trimmer():
         the_trimmer,
     )
 
-    with as_file(files("CPAC").joinpath("resources/configs")) as configs:
-        pipe_config = configs / "pipeline_config_template.yml"
-        data_config = configs / "data_config_S3-BIDS-ABIDE.yml"
+    pipe_config = CONFIGS_PATH / "pipeline_config_template.yml"
+    data_config = CONFIGS_PATH / "data_config_S3-BIDS-ABIDE.yml"
 
-    data_config = yaml.safe_load(open(data_config, "r"))
+    data_config = yaml.safe_load(data_config.open("r"))
     sub_dict = data_config[0]
 
-    c = Configuration(yaml.safe_load(open(pipe_config, "r")))
+    c = Configuration(yaml.safe_load(pipe_config.open("r")))
     temp_dir = tempfile.mkdtemp()
     c.logDirectory = temp_dir
     c.workingDirectory = temp_dir

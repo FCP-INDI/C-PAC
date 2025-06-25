@@ -15,3 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Configurations for C-PAC."""
+
+from importlib.resources import as_file, files
+
+with as_file(files("CPAC").joinpath("resources/configs")) as _configs:
+    CONFIGS_PATH = _configs
+    """Path to pre-built C-PAC configurations."""

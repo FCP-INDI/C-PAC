@@ -16,7 +16,6 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Run C-PAC in a container."""
 
-from importlib.resources import as_file, files
 import os
 from pathlib import Path
 
@@ -25,6 +24,7 @@ import pytest
 from CPAC.pipeline.cpac_pipeline import load_cpac_pipe_config
 from CPAC.pipeline.cpac_runner import run_T1w_longitudinal
 from CPAC.pipeline.utils import get_shell
+from CPAC.resources.configs import CONFIGS_PATH
 from CPAC.utils.bids_utils import create_cpac_data_config
 
 
@@ -53,7 +53,5 @@ if __name__ == "__main__":
     bids_dir = "/Users/steven.giavasis/data/neurodata_hnu"
     test_dir = "/test_dir"
     part_id = "0025427"
-    with as_file(
-        files("CPAC").joinpath("resources/configs/pipeline_config_default.yml")
-    ) as cfg:
-        test_run_T1w_longitudinal(bids_dir, cfg, test_dir, part_id)
+    cfg = str(CONFIGS_PATH / "pipeline_config_default.yml")
+    test_run_T1w_longitudinal(bids_dir, cfg, test_dir, part_id)

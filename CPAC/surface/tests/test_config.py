@@ -16,30 +16,26 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Tests for surface configuration."""
 
-from importlib.resources import as_file, files
-import os
+from pathlib import Path
+from typing import cast
 
 import pytest
 import yaml
 
 from CPAC.pipeline.cpac_pipeline import run_workflow
+from CPAC.resources.configs import CONFIGS_PATH
 from CPAC.utils.configuration import Configuration
 
 
 @pytest.mark.skip(reason="timing out for unrelated reasons")
 @pytest.mark.timeout(60)
-def test_duplicate_freesurfer(tmp_path):
+def test_duplicate_freesurfer(tmp_path: Path) -> None:
     """The pipeline should build fast if freesurfer is not self-duplicating."""
     config = Configuration(yaml.safe_load("FROM: abcd-options"))
-    with as_file(
-        files("CPAC").joinpath("resources/configs/data_config_S3-BIDS-ABIDE.yml")
-    ) as _f:
-        with _f.open("r") as data_config:
-            sub_dict = yaml.safe_load(data_config)[0]
+    with (CONFIGS_PATH / "data_config_S3-BIDS-ABIDE.yml").open("r") as data_config:
+        sub_dict = yaml.safe_load(data_config)[0]
     for directory in ["output", "working", "log", "crash_log"]:
         directory_key = ["pipeline_setup", f"{directory}_directory", "path"]
-        assert isinstance(config[directory_key], str)
-        config[directory_key] = os.path.join(
-            tmp_path, config[directory_key].lstrip("/")
-        )
+        item = cast(str, config[directory_key])
+        config[directory_key] = str(tmp_path / item.lstrip("/"))
     run_workflow(sub_dict, config, False, test_config=True)

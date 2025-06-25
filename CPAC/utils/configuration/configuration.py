@@ -16,7 +16,6 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """C-PAC Configuration class and related functions."""
 
-from importlib.resources import as_file, files
 import os
 import re
 from typing import Optional
@@ -25,6 +24,7 @@ from warnings import warn
 from click import BadParameter
 import yaml
 
+from CPAC.resources.configs import CONFIGS_PATH
 from .diff import dct_diff
 
 CONFIG_KEY_TYPE = str | list[str]
@@ -737,12 +737,7 @@ def preconfig_yaml(preconfig_name="default", load=False):
     if load:
         with open(preconfig_yaml(preconfig_name), "r", encoding="utf-8") as _f:
             return yaml.safe_load(_f)
-    with as_file(
-        files("CPAC").joinpath(
-            f"resources/configs/pipeline_config_{preconfig_name}.yml"
-        )
-    ) as _f:
-        return str(_f)
+    return str(CONFIGS_PATH / f"/pipeline_config_{preconfig_name}.yml")
 
 
 class Preconfiguration(Configuration):

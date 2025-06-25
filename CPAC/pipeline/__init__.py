@@ -16,18 +16,16 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """The C-PAC pipeline and its underlying infrastructure."""
 
-from importlib.resources import as_file, files
-
 from CPAC.pipeline.nipype_pipeline_engine.monkeypatch import patch_base_interface
+from CPAC.resources.configs import CONFIGS_PATH
 
 patch_base_interface()  # Monkeypatch Nipypes BaseInterface class
 
-with as_file(files("CPAC").joinpath("resources/configs")) as _f:
-    ALL_PIPELINE_CONFIGS = [
-        x.split("_")[2].replace(".yml", "")
-        for x in [str(_) for _ in _f.iterdir()]
-        if "pipeline_config" in x
-    ]
+ALL_PIPELINE_CONFIGS = [
+    x.split("_")[2].replace(".yml", "")
+    for x in [str(_) for _ in CONFIGS_PATH.iterdir()]
+    if "pipeline_config" in x
+]
 ALL_PIPELINE_CONFIGS.sort()
 AVAILABLE_PIPELINE_CONFIGS = [
     preconfig

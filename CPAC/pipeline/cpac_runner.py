@@ -288,12 +288,9 @@ def run(  # noqa: PLR0915
         plugin_args = {"status_callback": log_nodes_cb}
 
     if not config_file:
-        from importlib.resources import as_file, files
+        from CPAC.resources.configs import CONFIGS_PATH
 
-        with as_file(
-            files("CPAC").joinpath("resources/configs/pipeline_config_template.yml")
-        ) as _f:
-            config_file = str(_f)
+        config_file = str(CONFIGS_PATH / "pipeline_config_template.yml")
 
     # Init variables
     sublist = None

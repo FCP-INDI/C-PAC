@@ -17,12 +17,12 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """C-PAC CLI."""
 
-from importlib.resources import as_file, files
 import os
 
 import click
 from click_aliases import ClickAliasedGroup
 
+from CPAC.resources.configs import CONFIGS_PATH
 from CPAC.utils.docs import version_report
 from CPAC.utils.monitoring.custom_logging import getLogger
 
@@ -73,8 +73,7 @@ def version():
 
 def _config_path(filename: str) -> str:
     """Given a base filename, return full config path."""
-    with as_file(files("CPAC").joinpath("resources/configs")) as configs:
-        return str(configs / f"{filename}")
+    return str(CONFIGS_PATH / f"{filename}")
 
 
 @main.command()
@@ -541,11 +540,10 @@ def test():
 def run_suite(show_list: bool | str = False, pipeline_filter=""):
     from CPAC.pipeline import cpac_runner
 
-    with as_file(files("CPAC").joinpath("resources/configs")) as configs:
-        test_config_dir = configs / "test_configs"
-        data_test = test_config_dir / "data-test_S3-ADHD200_1"
-        data_test_no_scan_param = test_config_dir / "data-test_S3-ADHD200_no-params"
-        data_test_fmap = test_config_dir / "data-test_S3-NKI-RS_fmap"
+    test_config_dir = CONFIGS_PATH / "test_configs"
+    data_test = test_config_dir / "data-test_S3-ADHD200_1"
+    data_test_no_scan_param = test_config_dir / "data-test_S3-ADHD200_no-params"
+    data_test_fmap = test_config_dir / "data-test_S3-NKI-RS_fmap"
 
     if show_list:
         show_list = "\nAvailables pipelines:"
