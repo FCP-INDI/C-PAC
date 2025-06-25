@@ -223,8 +223,6 @@ registration_workflows:
       # Choose coregistration degree of freedom
       dof: 12
 
-
-
     func_registration_to_template:
 
       # these options modify the application (to the functional data), not the calculation, of the
@@ -290,13 +288,8 @@ functional_preproc:
     #   Blip-FSL-TOPUP - Uses FSL TOPUP to calculate the distortion unwarp for EPI field maps of opposite/same phase encoding direction.
     using: [PhaseDiff, Blip-FSL-TOPUP]
 
-  func_masking:
-    run: Off
-
   template_space_func_masking:
     run: On
-      # Anatomical_Resampled: Resample anatomical brain mask in standard space to get BOLD brain mask in standard space. Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline. ("Create fMRI resolution standard space files for T1w image, wmparc, and brain mask […] don't use FLIRT to do spline interpolation with -applyisoxfm for the 2mm and 1mm cases because it doesn't know the peculiarities of the MNI template FOVs")
-    using: [Anatomical_Resampled]
 
   generate_func_mean:
 
@@ -310,6 +303,7 @@ functional_preproc:
 
 nuisance_corrections:
   2-nuisance_regression:
+
     # Select which nuisance signal corrections to apply
     Regressors:
       - Name: default
