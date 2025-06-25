@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2018-2024  C-PAC Developers
+# Copyright (C) 2018-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -15,11 +15,13 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""C-PAC CLI."""
+
+from importlib.resources import as_file, files
 import os
 
 import click
 from click_aliases import ClickAliasedGroup
-import pkg_resources as p
 
 from CPAC.utils.docs import version_report
 from CPAC.utils.monitoring.custom_logging import getLogger
@@ -69,71 +71,45 @@ def version():
     )
 
 
+def _config_path(filename: str) -> str:
+    """Given a base filename, return full config path."""
+    with as_file(files("CPAC").joinpath("resources/configs")) as configs:
+        return str(configs / f"{filename}")
+
+
 @main.command()
 @click.argument("data_config")
 @click.option("--pipe-config", "--pipe_config")
 @click.option("--num-cores", "--num_cores")
 @click.option("--ndmg-mode", "--ndmg_mode", is_flag=True)
 @click.option("--debug", is_flag=True)
-def run(data_config, pipe_config=None, num_cores=None, ndmg_mode=False, debug=False):
-    if not pipe_config:
-        pipe_config = p.resource_filename(
-            "CPAC", os.path.join("resources", "configs", "pipeline_config_template.yml")
-        )
-
-    if pipe_config == "benchmark-ants":
-        pipe_config = p.resource_filename(
-            "CPAC",
-            os.path.join("resources", "configs", "pipeline_config_benchmark-ANTS.yml"),
-        )
-
-    if pipe_config == "benchmark-fnirt":
-        pipe_config = p.resource_filename(
-            "CPAC",
-            os.path.join("resources", "configs", "pipeline_config_benchmark-FNIRT.yml"),
-        )
-
-    if pipe_config == "anat-only":
-        pipe_config = p.resource_filename(
-            "CPAC",
-            os.path.join("resources", "configs", "pipeline_config_anat-only.yml"),
-        )
-
-    if data_config == "benchmark-data":
-        data_config = p.resource_filename(
-            "CPAC",
-            os.path.join("resources", "configs", "data_config_cpac_benchmark.yml"),
-        )
-
-    if data_config == "ADHD200":
-        data_config = p.resource_filename(
-            "CPAC",
-            os.path.join("resources", "configs", "data_config_S3-BIDS-ADHD200.yml"),
-        )
-    if data_config == "ADHD200_2":
-        data_config = p.resource_filename(
-            "CPAC",
-            os.path.join(
-                "resources", "configs", "data_config_S3-BIDS-ADHD200_only2.yml"
-            ),
-        )
-    if data_config == "ABIDE":
-        data_config = p.resource_filename(
-            "CPAC",
-            os.path.join("resources", "configs", "data_config_S3-BIDS-ABIDE.yml"),
-        )
-    if data_config == "NKI-RS":
-        data_config = p.resource_filename(
-            "CPAC",
-            os.path.join(
-                "resources", "configs", "data_config_S3-BIDS-NKI-RocklandSample.yml"
-            ),
-        )
-
+def run(
+    data_config, pipe_config=None, num_cores=None, ndmg_mode=False, debug=False
+) -> None:
+    """Run C-PAC."""
     if ndmg_mode:
-        pipe_config = p.resource_filename(
-            "CPAC", os.path.join("resources", "configs", "pipeline_config_ndmg.yml")
-        )
+        pipe_config = _config_path("pipeline_config_ndmg")
+    else:
+        match pipe_config:
+            case None:
+                pipe_config = _config_path("pipeline_config_template")
+            case "benchmark-ants":
+                pipe_config = _config_path("pipeline_config_benchmark-ANTS")
+            case "benchmark-fnirt":
+                pipe_config = _config_path("pipeline_config_benchmark-FNIRT")
+            case "anat-only":
+                pipe_config = _config_path("pipeline_config_anat-only")
+    match data_config:
+        case "benchmark-data":
+            data_config = _config_path("data_config_cpac_benchmark")
+        case "ADHD200":
+            data_config = _config_path("data_config_S3-BIDS-ADHD200")
+        case "ADHD200_2":
+            data_config = _config_path("data_config_S3-BIDS-ADHD200_only2")
+        case "ABIDE":
+            data_config = _config_path("data_config_S3-BIDS-ABIDE")
+        case "NKI-RS":
+            data_config = _config_path("data_config_S3-BIDS-NKI-RocklandSample")
 
     from CPAC.pipeline import cpac_runner
 
@@ -565,36 +541,17 @@ def test():
 def run_suite(show_list: bool | str = False, pipeline_filter=""):
     from CPAC.pipeline import cpac_runner
 
-    test_config_dir = p.resource_filename(
-        "CPAC", os.path.join("resources", "configs", "test_configs")
-    )
-
-    data_test = p.resource_filename(
-        "CPAC",
-        os.path.join(
-            "resources", "configs", "test_configs", "data-test_S3-ADHD200_1.yml"
-        ),
-    )
-
-    data_test_no_scan_param = p.resource_filename(
-        "CPAC",
-        os.path.join(
-            "resources", "configs", "test_configs", "data-test_S3-ADHD200_no-params.yml"
-        ),
-    )
-
-    data_test_fmap = p.resource_filename(
-        "CPAC",
-        os.path.join(
-            "resources", "configs", "test_configs", "data-test_S3-NKI-RS_fmap.yml"
-        ),
-    )
+    with as_file(files("CPAC").joinpath("resources/configs")) as configs:
+        test_config_dir = configs / "test_configs"
+        data_test = test_config_dir / "data-test_S3-ADHD200_1"
+        data_test_no_scan_param = test_config_dir / "data-test_S3-ADHD200_no-params"
+        data_test_fmap = test_config_dir / "data-test_S3-NKI-RS_fmap"
 
     if show_list:
         show_list = "\nAvailables pipelines:"
 
     no_params = False
-    for config_file in os.listdir(test_config_dir):
+    for config_file in [str(_) for _ in test_config_dir.iterdir()]:
         if config_file.startswith("pipe-test_"):
             if pipeline_filter not in config_file:
                 continue
@@ -603,7 +560,7 @@ def run_suite(show_list: bool | str = False, pipeline_filter=""):
                 show_list += f"\n- {config_file[len('pipe-test_'):]}"
                 continue
 
-            pipe = os.path.join(test_config_dir, config_file)
+            pipe = str(test_config_dir / config_file)
 
             if "DistCorr" in pipe:
                 data = data_test_fmap

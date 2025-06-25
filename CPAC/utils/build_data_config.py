@@ -1823,23 +1823,20 @@ def get_nonBIDS_data(
 
 def util_copy_template(template_type=None):
     """Copy the data settings YAML file template to the current directory."""
+    from importlib.resources import as_file, files
     import os
     import shutil
-
-    import pkg_resources as p
 
     from CPAC.utils.configuration import preconfig_yaml
 
     template_type = "data_settings" if not template_type else template_type
 
-    settings_template = (
-        preconfig_yaml("default")
-        if (template_type == "pipeline_config")
-        else p.resource_filename(
-            "CPAC",
-            os.path.join("resources", "configs", f"{template_type}_template.yml"),
+    with as_file(files("CPAC").joinpath("resources/configs")) as configs:
+        settings_template = (
+            preconfig_yaml("default")
+            if (template_type == "pipeline_config")
+            else str(configs / f"{template_type}_template.yml")
         )
-    )
 
     settings_file = os.path.join(os.getcwd(), f"{template_type}.yml")
 

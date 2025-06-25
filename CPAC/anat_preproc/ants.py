@@ -15,6 +15,7 @@
 #     * Docstrings updated accordingly
 #     * Style modifications
 #     * Removed comments from import blocks
+#     * Updated to `importlib.resources` from `pkg_resources`
 
 # ORIGINAL WORK'S ATTRIBUTION NOTICE:
 #    Copyright 2020 The NiPreps Developers
@@ -30,7 +31,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-# Modifications copyright (C) 2019 - 2024  C-PAC Developers
+# Modifications copyright (C) 2019 - 2025  C-PAC Developers
 # This file is part of C-PAC.
 """Nipype translation of ANTs workflows.
 
@@ -42,10 +43,11 @@ We are temporarily maintaining our own copy for more granular control.
 """
 
 from collections import OrderedDict
+from importlib.resources import as_file, files
 from logging import getLogger
+from typing import Literal
 
 from packaging.version import parse as parseversion, Version
-from pkg_resources import resource_filename as pkgr_fn
 from nipype.interfaces import utility as niu
 from nipype.interfaces.ants import Atropos, MultiplyImages, N4BiasFieldCorrection
 from nipype.interfaces.fsl.maths import ApplyMask
@@ -98,7 +100,7 @@ def init_brain_extraction_wf(  # noqa: PLR0913
     name="brain_extraction_wf",
     template_spec=None,
     use_float=True,
-    normalization_quality="precise",
+    normalization_quality: Literal["precise", "testing"] = "precise",
     omp_nthreads=None,
     mem_gb=3.0,
     bids_suffix="T1w",
@@ -298,17 +300,18 @@ def init_brain_extraction_wf(  # noqa: PLR0913
         if use_laplacian
         else "antsBrainExtractionNoLaplacian_%s.json"
     )
-    norm = pe.Node(
-        Registration(
-            from_file=pkgr_fn(
-                "CPAC.anat_preproc", "data/" + settings_file % normalization_quality
-            )
-        ),
-        name="norm",
-        n_procs=omp_nthreads,
-        mem_gb=1.7,
-        mem_x=(1233286593342025 / 151115727451828646838272, "moving_image"),
-    )
+    with as_file(
+        files("CPAC").joinpath(
+            f"anat_preproc/data/{settings_file}{normalization_quality}"
+        )
+    ) as _f:
+        norm = pe.Node(
+            Registration(from_file=str(_f)),
+            name="norm",
+            n_procs=omp_nthreads,
+            mem_gb=1.7,
+            mem_x=(1233286593342025 / 151115727451828646838272, "moving_image"),
+        )
     norm.inputs.float = use_float
     fixed_mask_trait = "fixed_image_mask"
     if _ants_version and parseversion(_ants_version) >= Version("2.2.0"):

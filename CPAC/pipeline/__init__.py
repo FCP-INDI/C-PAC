@@ -1,4 +1,4 @@
-# Copyright (C) 2022 - 2024  C-PAC Developers
+# Copyright (C) 2022 - 2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -16,22 +16,18 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """The C-PAC pipeline and its underlying infrastructure."""
 
-import os
-
-import pkg_resources as p
+from importlib.resources import as_file, files
 
 from CPAC.pipeline.nipype_pipeline_engine.monkeypatch import patch_base_interface
 
 patch_base_interface()  # Monkeypatch Nipypes BaseInterface class
 
-ALL_PIPELINE_CONFIGS = os.listdir(
-    p.resource_filename("CPAC", os.path.join("resources", "configs"))
-)
-ALL_PIPELINE_CONFIGS = [
-    x.split("_")[2].replace(".yml", "")
-    for x in ALL_PIPELINE_CONFIGS
-    if "pipeline_config" in x
-]
+with as_file(files("CPAC").joinpath("resources/configs")) as _f:
+    ALL_PIPELINE_CONFIGS = [
+        x.split("_")[2].replace(".yml", "")
+        for x in [str(_) for _ in _f.iterdir()]
+        if "pipeline_config" in x
+    ]
 ALL_PIPELINE_CONFIGS.sort()
 AVAILABLE_PIPELINE_CONFIGS = [
     preconfig

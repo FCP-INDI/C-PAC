@@ -1,3 +1,21 @@
+# Copyright (C) 2020-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Test The Trimmer."""
+
 from copy import copy
 import tempfile
 
@@ -11,9 +29,8 @@ def accept_all(object, name, value):
 
 @pytest.mark.skip(reason="needs refactored")
 def test_trimmer():
+    from importlib.resources import as_file, files
     import os
-
-    import pkg_resources as p
 
     from CPAC.pipeline.cpac_pipeline import build_workflow
     from CPAC.utils.configuration import Configuration
@@ -24,13 +41,9 @@ def test_trimmer():
         the_trimmer,
     )
 
-    pipe_config = p.resource_filename(
-        "CPAC", os.path.join("resources", "configs", "pipeline_config_template.yml")
-    )
-
-    data_config = p.resource_filename(
-        "CPAC", os.path.join("resources", "configs", "data_config_S3-BIDS-ABIDE.yml")
-    )
+    with as_file(files("CPAC").joinpath("resources/configs")) as configs:
+        pipe_config = configs / "pipeline_config_template.yml"
+        data_config = configs / "data_config_S3-BIDS-ABIDE.yml"
 
     data_config = yaml.safe_load(open(data_config, "r"))
     sub_dict = data_config[0]

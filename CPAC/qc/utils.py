@@ -1,4 +1,4 @@
-# Copyright (C) 2013-2024  C-PAC Developers
+# Copyright (C) 2013-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,14 +14,15 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Quality control utilities for C-PAC."""
+
+from importlib.resources import as_file, files
 import os
 import subprocess
 
 import matplotlib as mpl
-import numpy
 import numpy as np
 from numpy import ma
-import pkg_resources as p
 import nibabel as nib
 
 from CPAC.utils.monitoring import IFLOGGER
@@ -32,8 +33,7 @@ from matplotlib.colors import ListedColormap
 
 
 def generate_qc_pages(qc_dir):
-    """Generates the QC HTML files populated with the QC images that were
-    created during the CPAC pipeline run.
+    """Generate the QC HTML files populated with the QC images that were created during the CPAC pipeline run.
 
     This function runs after the pipeline is over.
 
@@ -59,18 +59,19 @@ def generate_qc_pages(qc_dir):
         )
         raise OSError(msg) from os_error
 
-    files = []
-    for root, _, fs in os.walk(qc_dir):
-        root = root[len(qc_dir) + 1 :]
-        files += [os.path.join(root, f) for f in fs]
+    _files = []
+    for _root, _, fs in os.walk(qc_dir):
+        root = _root[len(qc_dir) + 1 :]
+        _files += [os.path.join(root, f) for f in fs]
 
-    with open(p.resource_filename("CPAC.qc", "data/index.html"), "rb") as f:
-        qc_content = f.read()
-        qc_content = qc_content.replace(
-            b"/*CPAC*/``/*CPAC*/", ("`" + "\n".join(files) + "`").encode()
-        )
-        with open(os.path.join(qc_dir, "index.html"), "wb") as f:
-            f.write(qc_content)
+    with as_file(files("CPAC").joinpath("qc/data/index.html")) as _f:
+        with _f.open("rb") as f:
+            qc_content = f.read()
+            qc_content = qc_content.replace(
+                b"/*CPAC*/``/*CPAC*/", ("`" + "\n".join(_files) + "`").encode()
+            )
+            with open(os.path.join(qc_dir, "index.html"), "wb") as f2:
+                f2.write(qc_content)
 
 
 def cal_snr_val(measure_file):
@@ -229,8 +230,8 @@ def gen_carpet_plt(gm_mask, wm_mask, csf_mask, functional_to_standard, output):
 
 
 def gen_motion_plt(motion_parameters):
-    """
-    Function to Generate Matplotlib plot for motion.
+    """Generate Matplotlib plot for motion.
+
     Separate plots for Translation and Rotation are generated.
 
     Parameters
@@ -276,7 +277,7 @@ def gen_motion_plt(motion_parameters):
 
 
 def gen_histogram(measure_file, measure):
-    """Generates Histogram Image of intensities for a given input nifti file.
+    """Generate Histogram Image of intensities for a given input nifti file.
 
     Parameters
     ----------
@@ -355,9 +356,7 @@ def gen_histogram(measure_file, measure):
 
 
 def make_histogram(measure_file, measure):
-    """
-    Generates Histogram Image of intensities for a given input
-    nifti file.
+    """Generate Histogram Image of intensities for a given input nifti file.
 
     Parameters
     ----------
@@ -416,9 +415,7 @@ def make_histogram(measure_file, measure):
 
 
 def drop_percent(measure_file, percent):
-    """
-    Zeros out voxels in measure files whose intensity doesnt fall in percent
-    of voxel intensities.
+    """Zero out voxels in whose intensity doesn't fall in percent of voxel intensities.
 
     Parameters
     ----------
@@ -459,9 +456,7 @@ def drop_percent(measure_file, percent):
 
 
 def get_spacing(across, down, dimension):
-    """
-    Get Spacing in slices to be selected for montage
-    display varying in given dimension.
+    """Get spacing in slices for montage display varying in given dimension.
 
     Parameters
     ----------
@@ -493,9 +488,9 @@ def get_spacing(across, down, dimension):
 
 
 def determine_start_and_end(data, direction, percent):
-    """
-    Determine start slice and end slice in data file in
-    given direction with at least threshold percent of voxels
+    """Determine start slice and end slice in data file...
+
+    ...in given direction with at least threshold percent of voxels
     at start and end slices.
 
     Parameters
@@ -569,7 +564,7 @@ def determine_start_and_end(data, direction, percent):
     return start, end
 
 
-def _log_graphing_error(which_montagee: str, image_name: str, error: Exception):
+def _log_graphing_error(which_montage: str, image_name: str, error: Exception):
     IFLOGGER.error(
         "\n[!] QC Interface: Had a problem with creating the %s montage for %s"
         "\n\nDetails:%s. This error might occur because of a registration error"
@@ -582,8 +577,9 @@ def _log_graphing_error(which_montagee: str, image_name: str, error: Exception):
 
 
 def montage_axial(overlay, underlay, png_name, cbar_name):
-    """Draws Montage using overlay on Anatomical brain in Axial Direction,
-    calls make_montage_axial.
+    """Draw montage using overlay on anatomical brain in axial direction.
+
+    calls :py:func:`make_montage_axial`.
 
     Parameters
     ----------
@@ -775,9 +771,9 @@ def make_montage_axial(overlay, underlay, png_name, cbar_name):
 
 
 def montage_sagittal(overlay, underlay, png_name, cbar_name):
-    """
-    Draws Montage using overlay on Anatomical brain in Sagittal Direction
-    calls make_montage_sagittal.
+    """Draw montage using overlay on anatomical brain in sagittal direction.
+
+    calls :py:func:`make_montage_sagittal`.
 
     Parameters
     ----------
@@ -1243,8 +1239,7 @@ def montage_gm_wm_csf_sagittal(overlay_csf, overlay_wm, overlay_gm, underlay, pn
 
 
 def register_pallete(colors_file, cbar_name):
-    """
-    Registers color pallete to matplotlib.
+    """Register color pallete to matplotlib.
 
     Parameters
     ----------
@@ -1270,8 +1265,7 @@ def register_pallete(colors_file, cbar_name):
 
 
 def resample_1mm(file_):
-    """
-    Calls make_resample_1mm which resamples file to 1mm space.
+    """Call make_resample_1mm which resamples file to 1mm space.
 
     Parameters
     ----------
@@ -1362,13 +1356,13 @@ def dc(input1, input2):
     -----
     This is a real metric.
     """
-    input1 = numpy.atleast_1d(input1.astype(bool))
-    input2 = numpy.atleast_1d(input2.astype(bool))
+    input1 = np.atleast_1d(input1.astype(bool))
+    input2 = np.atleast_1d(input2.astype(bool))
 
-    intersection = numpy.count_nonzero(input1 & input2)
+    intersection = np.count_nonzero(input1 & input2)
 
-    size_i1 = numpy.count_nonzero(input1)
-    size_i2 = numpy.count_nonzero(input2)
+    size_i1 = np.count_nonzero(input1)
+    size_i2 = np.count_nonzero(input2)
 
     try:
         dc = 2.0 * intersection / float(size_i1 + size_i2)
@@ -1403,22 +1397,19 @@ def jc(input1, input2):
     -----
     This is a real metric.
     """
-    input1 = numpy.atleast_1d(input1.astype(bool))
-    input2 = numpy.atleast_1d(input2.astype(bool))
+    input1 = np.atleast_1d(input1.astype(bool))
+    input2 = np.atleast_1d(input2.astype(bool))
 
-    intersection = numpy.count_nonzero(input1 & input2)
-    union = numpy.count_nonzero(input1 | input2)
+    intersection = np.count_nonzero(input1 & input2)
+    union = np.count_nonzero(input1 | input2)
 
     return float(intersection) / float(union)
 
 
 def crosscorr(input1, input2):
-    """
-    cross correlation
-    computer compute cross correction bewteen input mask.
-    """
-    input1 = numpy.atleast_1d(input1.astype(bool))
-    input2 = numpy.atleast_1d(input2.astype(bool))
+    """Compute cross correction bewteen input masks."""
+    input1 = np.atleast_1d(input1.astype(bool))
+    input2 = np.atleast_1d(input2.astype(bool))
 
     from scipy.stats.stats import pearsonr
 
@@ -1427,12 +1418,12 @@ def crosscorr(input1, input2):
 
 def coverage(input1, input2):
     """Estimate the coverage between  two mask."""
-    input1 = numpy.atleast_1d(input1.astype(bool))
-    input2 = numpy.atleast_1d(input2.astype(bool))
+    input1 = np.atleast_1d(input1.astype(bool))
+    input2 = np.atleast_1d(input2.astype(bool))
 
-    intsec = numpy.count_nonzero(input1 & input2)
-    if numpy.sum(input1) > numpy.sum(input2):
-        smallv = numpy.sum(input2)
+    intsec = np.count_nonzero(input1 & input2)
+    if np.sum(input1) > np.sum(input2):
+        smallv = np.sum(input2)
     else:
-        smallv = numpy.sum(input1)
+        smallv = np.sum(input1)
     return float(intsec) / float(smallv)

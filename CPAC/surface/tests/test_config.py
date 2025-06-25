@@ -1,8 +1,24 @@
+# Copyright (C) 2022-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Tests for surface configuration."""
 
+from importlib.resources import as_file, files
 import os
 
-import pkg_resources as p
 import pytest
 import yaml
 
@@ -15,16 +31,14 @@ from CPAC.utils.configuration import Configuration
 def test_duplicate_freesurfer(tmp_path):
     """The pipeline should build fast if freesurfer is not self-duplicating."""
     config = Configuration(yaml.safe_load("FROM: abcd-options"))
-    with open(
-        p.resource_filename(
-            "CPAC",
-            os.path.join("resources", "configs", "data_config_S3-BIDS-ABIDE.yml"),
-        ),
-        "r",
-    ) as data_config:
-        sub_dict = yaml.safe_load(data_config)[0]
+    with as_file(
+        files("CPAC").joinpath("resources/configs/data_config_S3-BIDS-ABIDE.yml")
+    ) as _f:
+        with _f.open("r") as data_config:
+            sub_dict = yaml.safe_load(data_config)[0]
     for directory in ["output", "working", "log", "crash_log"]:
         directory_key = ["pipeline_setup", f"{directory}_directory", "path"]
+        assert isinstance(config[directory_key], str)
         config[directory_key] = os.path.join(
             tmp_path, config[directory_key].lstrip("/")
         )

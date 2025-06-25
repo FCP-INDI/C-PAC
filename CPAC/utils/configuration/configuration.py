@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2024  C-PAC Developers
+# Copyright (C) 2022-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -16,13 +16,13 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """C-PAC Configuration class and related functions."""
 
+from importlib.resources import as_file, files
 import os
 import re
 from typing import Optional
 from warnings import warn
 
 from click import BadParameter
-import pkg_resources as p
 import yaml
 
 from .diff import dct_diff
@@ -737,10 +737,12 @@ def preconfig_yaml(preconfig_name="default", load=False):
     if load:
         with open(preconfig_yaml(preconfig_name), "r", encoding="utf-8") as _f:
             return yaml.safe_load(_f)
-    return p.resource_filename(
-        "CPAC",
-        os.path.join("resources", "configs", f"pipeline_config_{preconfig_name}.yml"),
-    )
+    with as_file(
+        files("CPAC").joinpath(
+            f"resources/configs/pipeline_config_{preconfig_name}.yml"
+        )
+    ) as _f:
+        return str(_f)
 
 
 class Preconfiguration(Configuration):

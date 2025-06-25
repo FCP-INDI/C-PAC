@@ -16,7 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """C-PAC quality control pipeline."""
 
-import pkg_resources as p
+from importlib.resources import as_file, files
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
@@ -38,7 +38,8 @@ from CPAC.utils.interfaces.function import Function
 # register color palettes
 palletes = ["red", "green", "blue", "red_to_blue", "cyan_to_yellow"]
 for pallete in palletes:
-    register_pallete(p.resource_filename("CPAC", "qc/colors/%s.txt" % pallete), pallete)
+    with as_file(files("CPAC").joinpath(f"qc/colors/{pallete}.txt")) as _pallete:
+        register_pallete(str(_pallete), pallete)
 
 
 @nodeblock(
