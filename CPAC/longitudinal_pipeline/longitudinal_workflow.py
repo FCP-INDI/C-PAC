@@ -437,6 +437,7 @@ def anat_longitudinal_wf(subject_id, sub_list, config):
 
         session_wfs[unique_id] = rpool
 
+        config.update("subject_id", subject_id)
         rpool.gather_pipes(workflow, config)
 
         workflow.run()
