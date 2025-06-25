@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -885,12 +885,13 @@ def check_for_s3(
 ):
     """Check if passed-in file is on S3."""
     # Import packages
+    from importlib.resources import files
     import os
 
     import botocore.exceptions
     import nibabel as nib
     from indi_aws import fetch_creds
-    import importlib.resources as resources
+
     from CPAC.resources import templates
 
     # Init variables
@@ -976,7 +977,9 @@ def check_for_s3(
     if not os.path.exists(local_path):
         # alert users to 2020-07-20 Neuroparc atlas update (v0 to v1)
         ndmg_atlases = {}
-        with resources.files(templates).joinpath("ndmg_atlases.csv").open("r") as ndmg_atlases_file:
+        with (
+            files(templates).joinpath("ndmg_atlases.csv").open("r") as ndmg_atlases_file
+        ):
             ndmg_atlases["v0"], ndmg_atlases["v1"] = zip(
                 *[
                     (

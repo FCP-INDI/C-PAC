@@ -1,4 +1,4 @@
-# Copyright (C) 2013-2025  C-PAC Developers
+# Copyright (C) 2017-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,4 +14,4 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-"""Resources for C-PAC."""
+"""Configurations for C-PAC."""

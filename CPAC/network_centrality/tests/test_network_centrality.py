@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2024  C-PAC Developers
+# Copyright (C) 2015-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,6 +14,9 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Tests for network centrality."""
+
+from importlib.resources import as_file, files
 from itertools import combinations
 from pathlib import Path
 
@@ -23,8 +26,9 @@ from CPAC.network_centrality.network_centrality import create_centrality_wf
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.interfaces.afni import AFNI_SEMVER
 
-_DATA_DIR = Path(__file__).parent / "data"
-"""Path to test data directory"""
+with as_file(files("CPAC").joinpath("network_centrality/tests/data")) as _data:
+    _DATA_DIR = _data
+    """Path to test data directory"""
 
 
 @pytest.mark.parametrize("method_option", valid_options["centrality"]["method_options"])
