@@ -2456,7 +2456,8 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
     option_val="USER-DEFINED",
     inputs=[
         (
-            ["desc-preproc_bold", "desc-reorient_bold"],
+            "desc-preproc_bold",
+            "desc-reorient_bold",
             [
                 "space-bold_desc-brain_mask",
                 "space-template_desc-bold_mask",
