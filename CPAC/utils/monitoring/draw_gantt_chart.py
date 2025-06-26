@@ -45,13 +45,13 @@ See https://nipype.readthedocs.io/en/latest/api/generated/nipype.utils.draw_gant
 """
 
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 from warnings import warn
 
 from nipype.utils.draw_gantt_chart import draw_lines, draw_resource_bar, log_to_dict
 
-from CPAC.utils.monitoring.monitoring import DatetimeWithSafeNone
+from CPAC.utils.monitoring.monitoring import _NoTime, DatetimeWithSafeNone
 
 
 def create_event_dict(start_time, nodes_list):
@@ -403,37 +403,38 @@ def generate_gantt_chart(
 
     for node in nodes_list:
         if "duration" not in node and (node["start"] and node["finish"]):
-            node["duration"] = (node["finish"] - node["start"]).total_seconds()
+            _duration = node["finish"] - node["start"]
+            assert isinstance(_duration, timedelta)
+            node["duration"] = _duration.total_seconds()
 
     # Create the header of the report with useful information
     start_node = nodes_list[0]
     last_node = nodes_list[-1]
+    start = DatetimeWithSafeNone(start_node["start"])
+    finish = DatetimeWithSafeNone(last_node["finish"])
+    if isinstance(start, _NoTime) or isinstance(finish, _NoTime):
+        return
+    start, finish = DatetimeWithSafeNone.sync_tz(start, finish)
     try:
-        duration = (last_node["finish"] - start_node["start"]).total_seconds()
+        duration = (finish - start).total_seconds()
     except TypeError:
         # no duration
         return
 
     # Get events based dictionary of node run stats
-    events = create_event_dict(start_node["start"], nodes_list)
+    events = create_event_dict(start, nodes_list)
 
     # Summary strings of workflow at top
-    html_string += (
-        "<p>Start: " + start_node["start"].strftime("%Y-%m-%d %H:%M:%S") + "</p>"
-    )
-    html_string += (
-        "<p>Finish: " + last_node["finish"].strftime("%Y-%m-%d %H:%M:%S") + "</p>"
-    )
+    html_string += "<p>Start: " + start.strftime("%Y-%m-%d %H:%M:%S") + "</p>"
+    html_string += "<p>Finish: " + finish.strftime("%Y-%m-%d %H:%M:%S") + "</p>"
     html_string += "<p>Duration: " + f"{duration / 60:.2f}" + " minutes</p>"
     html_string += "<p>Nodes: " + str(len(nodes_list)) + "</p>"
     html_string += "<p>Cores: " + str(cores) + "</p>"
     html_string += close_header
     # Draw nipype nodes Gantt chart and runtimes
-    html_string += draw_lines(
-        start_node["start"], duration, minute_scale, space_between_minutes
-    )
+    html_string += draw_lines(start, duration, minute_scale, space_between_minutes)
     html_string += draw_nodes(
-        start_node["start"],
+        start,
         nodes_list,
         cores,
         minute_scale,
@@ -447,8 +448,8 @@ def generate_gantt_chart(
     # Plot gantt chart
     resource_offset = 120 + 30 * cores
     html_string += draw_resource_bar(
-        start_node["start"],
-        last_node["finish"],
+        start,
+        finish,
         estimated_mem_ts,
         space_between_minutes,
         minute_scale,
@@ -457,8 +458,8 @@ def generate_gantt_chart(
         "Memory",
     )
     html_string += draw_resource_bar(
-        start_node["start"],
-        last_node["finish"],
+        start,
+        finish,
         runtime_mem_ts,
         space_between_minutes,
         minute_scale,
@@ -472,8 +473,8 @@ def generate_gantt_chart(
     runtime_threads_ts = calculate_resource_timeseries(events, "runtime_threads")
     # Plot gantt chart
     html_string += draw_resource_bar(
-        start_node["start"],
-        last_node["finish"],
+        start,
+        finish,
         estimated_threads_ts,
         space_between_minutes,
         minute_scale,
@@ -482,8 +483,8 @@ def generate_gantt_chart(
         "Threads",
     )
     html_string += draw_resource_bar(
-        start_node["start"],
-        last_node["finish"],
+        start,
+        finish,
         runtime_threads_ts,
         space_between_minutes,
         minute_scale,

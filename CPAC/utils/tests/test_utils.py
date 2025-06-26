@@ -204,10 +204,22 @@ def check_expected_keys(
 
 
 @pytest.mark.parametrize(
-    "t1", [datetime.now(), datetime.isoformat(datetime.now()), None]
+    "t1",
+    [
+        datetime.now(),
+        datetime.now().astimezone(),
+        datetime.isoformat(datetime.now()),
+        None,
+    ],
 )
 @pytest.mark.parametrize(
-    "t2", [datetime.now(), datetime.isoformat(datetime.now()), None]
+    "t2",
+    [
+        datetime.now(),
+        datetime.now().astimezone(),
+        datetime.isoformat(datetime.now()),
+        None,
+    ],
 )
 def test_datetime_with_safe_none(t1: OptionalDatetime, t2: OptionalDatetime):
     """Test DatetimeWithSafeNone class works with datetime and None."""
