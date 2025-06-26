@@ -24,8 +24,6 @@ from CPAC.pipeline.engine import ResourcePool
 from CPAC.registration.registration import apply_transform
 from CPAC.utils.configuration import Configuration
 
-# ("from-template_to-bold_mode-image_xfm", "desc-preproc_bold"),
-
 
 def transform_bold_mask_to_native(
     wf: Workflow,
