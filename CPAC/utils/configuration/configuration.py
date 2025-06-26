@@ -737,7 +737,7 @@ def preconfig_yaml(preconfig_name="default", load=False):
     if load:
         with open(preconfig_yaml(preconfig_name), "r", encoding="utf-8") as _f:
             return yaml.safe_load(_f)
-    return str(CONFIGS_PATH / f"/pipeline_config_{preconfig_name}.yml")
+    return str(CONFIGS_PATH / f"pipeline_config_{preconfig_name}.yml")
 
 
 class Preconfiguration(Configuration):
