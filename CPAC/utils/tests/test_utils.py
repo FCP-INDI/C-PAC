@@ -223,9 +223,20 @@ def check_expected_keys(
 )
 def test_datetime_with_safe_none(t1: OptionalDatetime, t2: OptionalDatetime):
     """Test DatetimeWithSafeNone class works with datetime and None."""
+    originals = t1, t2
     t1 = DatetimeWithSafeNone(t1)
     t2 = DatetimeWithSafeNone(t2)
     if t1 and t2:
+        _tzinfos = [getattr(_, "tzinfo", None) for _ in originals]
+        if (
+            all(isinstance(_, datetime) for _ in originals)
+            and any(_tzinfos)
+            and not all(_tzinfos)
+        ):
+            with pytest.raises(TypeError):
+                originals[1] - originals[0]  # type: ignore[reportOperatorIssue]
+            _t1, _t2 = DatetimeWithSafeNone.sync_tz(*originals)  # type: ignore[reportArgumentType]
+            assert isinstance(_t2 - _t1, timedelta)
         assert isinstance(t2 - t1, timedelta)
     else:
         assert t2 - t1 == timedelta(0)
