@@ -55,7 +55,7 @@ def transform_bold_mask_to_native(
         f"{'ANTs' if reg_tool == 'ants' else 'FNIRT'}_pipelines",
         "interpolation",
     ]
-    bold = strat_pool.node_data("desc-preproc_bold")
+    sbref = strat_pool.node_data("sbref")
     bold_mask = strat_pool.node_data(
         ["space-template_desc-bold_mask", "space-template_desc-brain_mask"]
     )
@@ -63,7 +63,7 @@ def transform_bold_mask_to_native(
     wf.connect(
         [
             (bold_mask.node, apply_xfm, [(bold_mask.out, "inputspec.input_image")]),
-            (bold.node, apply_xfm, [(bold.out, "inputspec.reference")]),
+            (sbref.node, apply_xfm, [(sbref.out, "inputspec.reference")]),
             (xfm.node, apply_xfm, [(xfm.out, "inputspec.transform")]),
         ]
     )
