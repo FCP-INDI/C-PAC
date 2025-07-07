@@ -296,7 +296,7 @@ def init_brain_extraction_wf(  # noqa: PLR0913
 
     # Set up spatial normalization
     settings_file = (f'antsBrainExtraction_{normalization_quality}.json' if use_laplacian else f'antsBrainExtractionNoLaplacian_{normalization_quality}.json')
-    norm = pe.Node(Registration(from_file=as_file(files('CPAC.anat_preproc').joinpath('data').joinpath(settings_file))),
+    norm = pe.Node(Registration(from_file=str(files('CPAC.anat_preproc').joinpath('data').joinpath(settings_file))),
         name='norm',
         n_procs=omp_nthreads,
         mem_gb=1.7,
