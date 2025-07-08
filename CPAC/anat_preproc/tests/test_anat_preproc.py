@@ -6,7 +6,11 @@ import nibabel as nib
 
 from .. import anat_preproc
 from unittest.mock import Mock, patch
-from ..anat_preproc import brain_mask_freesurfer_fsl_loose, brain_mask_freesurfer_fsl_tight
+from ..anat_preproc import (
+    brain_mask_freesurfer_fsl_loose,
+    brain_mask_freesurfer_fsl_tight,
+)
+
 
 class TestAnatPreproc:
     def __init__(self):
@@ -272,10 +276,10 @@ class TestAnatPreproc:
             assert correlation[0, 1] >= 0.97
 
 
-@patch('CPAC.anat_preproc.anat_preproc.freesurfer_fsl_brain_connector')
+@patch("CPAC.anat_preproc.anat_preproc.freesurfer_fsl_brain_connector")
 def test_brain_mask_freesurfer_fsl_loose(mock_connector):
     """Test that brain_mask_freesurfer_fsl_loose correctly renames output key."""
-    
+
     mock_wf = Mock()
     mock_cfg = Mock()
     mock_strat_pool = Mock()
@@ -283,20 +287,22 @@ def test_brain_mask_freesurfer_fsl_loose(mock_connector):
 
     mock_outputs = {
         "space-T1w_desc-loose_brain_mask": "brain_mask_data",
-        "other_output": "other_data"
+        "other_output": "other_data",
     }
-    
+
     mock_connector.return_value = (mock_wf, mock_outputs)
-    
+
     result_wf, result_outputs = brain_mask_freesurfer_fsl_loose(
         mock_wf, mock_cfg, mock_strat_pool, pipe_num
     )
-    
-    mock_connector.assert_called_once_with(mock_wf, mock_cfg, mock_strat_pool, pipe_num, None)
-    
+
+    mock_connector.assert_called_once_with(
+        mock_wf, mock_cfg, mock_strat_pool, pipe_num, None
+    )
+
     # Assert workflow returned unchanged
     assert result_wf == mock_wf
-    
+
     # Assert output key was renamed correctly
     assert "space-T1w_desc-brain_mask" in result_outputs
     assert "space-T1w_desc-loose_brain_mask" not in result_outputs
@@ -304,10 +310,10 @@ def test_brain_mask_freesurfer_fsl_loose(mock_connector):
     assert result_outputs["other_output"] == "other_data"
 
 
-@patch('CPAC.anat_preproc.anat_preproc.freesurfer_fsl_brain_connector')
+@patch("CPAC.anat_preproc.anat_preproc.freesurfer_fsl_brain_connector")
 def test_brain_mask_freesurfer_fsl_tight(mock_connector):
     """Test that brain_mask_freesurfer_fsl_tight correctly renames output key."""
-    
+
     mock_wf = Mock()
     mock_cfg = Mock()
     mock_strat_pool = Mock()
@@ -315,20 +321,22 @@ def test_brain_mask_freesurfer_fsl_tight(mock_connector):
 
     mock_outputs = {
         "space-T1w_desc-tight_brain_mask": "brain_mask_data",
-        "other_output": "other_data"
+        "other_output": "other_data",
     }
-    
+
     mock_connector.return_value = (mock_wf, mock_outputs)
-    
+
     result_wf, result_outputs = brain_mask_freesurfer_fsl_tight(
         mock_wf, mock_cfg, mock_strat_pool, pipe_num
     )
-    
-    mock_connector.assert_called_once_with(mock_wf, mock_cfg, mock_strat_pool, pipe_num, None)
-    
+
+    mock_connector.assert_called_once_with(
+        mock_wf, mock_cfg, mock_strat_pool, pipe_num, None
+    )
+
     # Assert workflow returned unchanged
     assert result_wf == mock_wf
-    
+
     # Assert output key was renamed correctly
     assert "space-T1w_desc-brain_mask" in result_outputs
     assert "space-T1w_desc-tight_brain_mask" not in result_outputs
