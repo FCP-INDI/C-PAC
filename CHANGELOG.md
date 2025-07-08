@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Switch `sink_native_transforms` under `registration_workflows` to output all `.mat` files in ANTs and FSL Transforms.
 - `deoblique` field in pipeline config with `warp` and `refit` options to apply `3dWarp` or `3drefit` during data initialization.
 - `organism` configuration option.
+- Functionality to convert `space-T1w_desc-loose_brain_mask` and `space-T1w_desc-tight_brain_mask` into generic brain mask `space-T1w_desc-brain_mask` to use in brain extraction nodeblock downstream.
 
 ### Changed
 
