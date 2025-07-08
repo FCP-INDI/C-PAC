@@ -1303,7 +1303,7 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
     # fslmaths tmp_mask.nii.gz -mas ${CCSDIR}/templates/MNI152_T1_1mm_first_brain_mask.nii.gz tmp_mask.nii.gz
     apply_mask = pe.Node(interface=fsl.maths.ApplyMask(), name=f"apply_mask_{node_id}")
 
-    wf.connect(skullstrip, "out_file", apply_mask, "in_file")
+    wf.connect(skullstrip, "mask_file", apply_mask, "in_file")
 
     node, out = strat_pool.get_data("T1w-brain-template-mask-ccs")
     wf.connect(node, out, apply_mask, "mask_file")
@@ -1347,36 +1347,18 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     wf.connect(combine_mask, "out_file", binarize_combined_mask, "in_file")
 
-    # CCS brain mask is in FS space, transfer it back to native T1 space
-    fs_fsl_brain_mask_to_native = pe.Node(
-        interface=freesurfer.ApplyVolTransform(),
-        name=f"fs_fsl_brain_mask_to_native_{node_id}",
-    )
-    fs_fsl_brain_mask_to_native.inputs.reg_header = True
-    fs_fsl_brain_mask_to_native.inputs.interp = "nearest"
-
-    wf.connect(
-        binarize_combined_mask, "out_file", fs_fsl_brain_mask_to_native, "source_file"
-    )
-
-    node, out = strat_pool.get_data("pipeline-fs_raw-average")
-    wf.connect(node, out, fs_fsl_brain_mask_to_native, "target_file")
-
-    node, out = strat_pool.get_data("freesurfer-subject-dir")
-    wf.connect(node, out, fs_fsl_brain_mask_to_native, "subjects_dir")
-
     if opt == "FreeSurfer-BET-Tight":
         outputs = {
             "space-T1w_desc-tight_brain_mask": (
-                fs_fsl_brain_mask_to_native,
-                "transformed_file",
+                binarize_combined_mask,
+                "out_file",
             )
         }
     elif opt == "FreeSurfer-BET-Loose":
         outputs = {
             "space-T1w_desc-loose_brain_mask": (
-                fs_fsl_brain_mask_to_native,
-                "transformed_file",
+                binarize_combined_mask,
+                "out_file",
             )
         }
 
@@ -2062,7 +2044,7 @@ def brain_mask_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         "space-T1w_desc-brain_mask": {
             "Description": "Brain mask extracted using FreeSurfer-BET-Tight method",
             "Method": "FreeSurfer-BET-Tight",
-            "Threshold": "tight",
+            "Threshold": "tight"
         }
     },
 )
@@ -2070,9 +2052,7 @@ def brain_mask_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None):
     wf, outputs = freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     # Convert the tight brain mask to generic brain mask
-    outputs["space-T1w_desc-brain_mask"] = outputs.pop(
-        "space-T1w_desc-tight_brain_mask"
-    )
+    outputs["space-T1w_desc-brain_mask"] = outputs.pop("space-T1w_desc-tight_brain_mask")
     return (wf, outputs)
 
 
@@ -2121,7 +2101,7 @@ def brain_mask_acpc_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         "space-T1w_desc-brain_mask": {
             "Description": "Brain mask extracted using FreeSurfer-BET-Loose method",
             "Method": "FreeSurfer-BET-Loose",
-            "Threshold": "loose",
+            "Threshold": "loose"
         }
     },
 )
@@ -2129,9 +2109,7 @@ def brain_mask_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None):
     wf, outputs = freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
 
     # Convert the loose brain mask to generic brain mask
-    outputs["space-T1w_desc-brain_mask"] = outputs.pop(
-        "space-T1w_desc-loose_brain_mask"
-    )
+    outputs["space-T1w_desc-brain_mask"] = outputs.pop("space-T1w_desc-loose_brain_mask")
     return (wf, outputs)
 
 
