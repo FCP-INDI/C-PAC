@@ -4143,7 +4143,7 @@ def warp_timeseries_to_T1template_dcan_nhp(wf, cfg, strat_pool, pipe_num, opt=No
     },
 )
 def single_step_resample_timeseries_to_T1template(
-    wf, cfg, strat_pool, pipe_num, opt=None
+    wf, cfg, strat_pool: "ResourcePool", pipe_num, opt=None
 ):
     """Apply motion correction, coreg, anat-to-template transforms...
 
@@ -4241,7 +4241,7 @@ def single_step_resample_timeseries_to_T1template(
     wf.connect(node, out, motionxfm2itk, "source_file")
 
     node, out = strat_pool.get_data("coordinate-transformation")
-    motion_correct_tool = strat_pool.motion_correct_tool("coordinate-transformation")
+    motion_correct_tool = strat_pool.motion_tool("coordinate-transformation")
     if motion_correct_tool == "mcflirt":
         wf.connect(node, out, motionxfm2itk, "transform_file")
     elif motion_correct_tool == "3dvolreg":
