@@ -1189,6 +1189,13 @@ functional_preproc:
           # the frequency cutoff of the filter
           lowpass_cutoff:
 
+    # Motion estimation timing relative to slice timing correction.
+    # Options: 'before_stc', 'after_stc'
+    # 'before_stc' - motion estimation is performed before slice timing correction.
+    # 'after_stc' - motion estimation is performed after slice timing correction.
+    motion_estimation_timing: after_stc
+
+
   distortion_correction:
 
     # this is a fork point

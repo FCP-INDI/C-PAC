@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed broken support for native-space masking.
   - Introduced a new `template_space_func_masking` section in the pipeline config for template-space-only methods.
   - Moved `Anatomical_Resampled` masking method from `func_masking` to the `template_space_func_masking`.
+- `"motion_estimates": {"calculate_motion_first": << bool >>, "calculate_motion_after": << bool >>}` configuration options to `"motion_estimation_timing: << one of ["before_stc", "after_stc"] >>`.
 
 ### Upgraded
 
@@ -89,7 +90,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `input` field from `coregistration` in blank and default config.
 - `reg_with_skull` swtich from `func_input_prep` in blank and default config.
 - Support for AFNI 3dECM < v21.1.1.
-- `calculate_motion_before` and `calculate_motion_after` configuration options.
 
 #### Removed CI dependency
 

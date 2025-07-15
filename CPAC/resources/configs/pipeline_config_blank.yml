@@ -258,8 +258,7 @@ anatomical_preproc:
   # [warp] - Deoblique the input image using AFNI 3dWarp. Changes header and the image data.
   # [refit] - Clear the header of the input image using AFNI 3drefit. Changes only the header.
   # applies for both T1w and T2w images
-  deoblique: ["refit"]
-
+  deoblique: [refit]
   acpc_alignment:
     T1w_brain_ACPC_template:
 
@@ -967,7 +966,7 @@ functional_preproc:
 
     # [warp] - Deoblique the input image using AFNI 3dWarp. Changes header and the image data. Applies interpolation to the slice-timing metadata.
     # [refit] - Clear the header of the input image using AFNI 3drefit. Changes only the header.
-    deoblique: ["refit"]
+    deoblique: [refit]
 
   slice_timing_correction:
 
@@ -1015,6 +1014,12 @@ functional_preproc:
       #   run: [On, Off] - this will run both and fork the pipeline
       run: [Off]
       filters: []
+
+    # Motion estimation timing relative to slice timing correction.
+    # Options: 'before_stc', 'after_stc'
+    # 'before_stc' - motion estimation is performed before slice timing correction.
+    # 'after_stc' - motion estimation is performed after slice timing correction.
+    motion_estimation_timing: before_stc
 
   distortion_correction:
 
@@ -1161,7 +1166,8 @@ functional_preproc:
 
   template_space_func_masking:
     run: Off
-      # Anatomical_Resampled: Resample anatomical brain mask in standard space to get BOLD brain mask in standard space. Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline. ("Create fMRI resolution standard space files for T1w image, wmparc, and brain mask […] don't use FLIRT to do spline interpolation with -applyisoxfm for the 2mm and 1mm cases because it doesn't know the peculiarities of the MNI template FOVs")
+
+    # Anatomical_Resampled: Resample anatomical brain mask in standard space to get BOLD brain mask in standard space. Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline. ("Create fMRI resolution standard space files for T1w image, wmparc, and brain mask […] don't use FLIRT to do spline interpolation with -applyisoxfm for the 2mm and 1mm cases because it doesn't know the peculiarities of the MNI template FOVs")
     using: [Anatomical_Resampled]
 
   generate_func_mean:

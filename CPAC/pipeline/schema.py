@@ -984,10 +984,11 @@ latest_schema = Schema(
             },
             "motion_estimates_and_correction": {
                 "run": bool1_1,
+                "motion_estimation_timing": In(["before_stc", "after_stc"]),
                 Deprecated(
                     "motion_estimates",
                     version="v1.8.8",
-                    msg="The option to choose whether to calculate motion estimates before or after slice-timing correction was removed in v1.8.8 and will have no effect. This configuration option will be removed in a future release.",
+                    msg='The option to choose whether to calculate motion estimates before or after slice-timing correction was renamed to "motion_estimation_timing" in v1.8.8. If "motion_estimation_timing" and "motion_estimates" are both provided, the latter will be ignored. If both "calculate_motion_first" and "calculate_motion_after" are true, motion will be calculated before slice-timing correction. The "motion_estimates" option will be removed in a future release.',
                 ): {
                     "calculate_motion_first": bool1_1,
                     "calculate_motion_after": bool1_1,
@@ -1514,6 +1515,33 @@ def schema(config_dict: dict) -> dict:
                 "registration method."
             )
             raise ExclusiveInvalid(msg)
+
+        # Deprecated 1.8.8: motion_estimates
+        if (
+            "motion_estimation_timing"
+            not in partially_validated["functional_preproc"][
+                "motion_estimates_and_correction"
+            ].keys()
+            and "motion_estimates"
+            in partially_validated["functional_preproc"][
+                "motion_estimates_and_correction"
+            ].keys()
+        ):
+            if partially_validated["functional_preproc"][
+                "motion_estimates_and_correction"
+            ]["motion_estimates"]["calculate_motion_first"]:
+                partially_validated["functional_preproc"][
+                    "motion_estimates_and_correction"
+                ]["motion_estimation_timing"] = "before_stc"
+            elif partially_validated["functional_preproc"][
+                "motion_estimates_and_correction"
+            ]["motion_estimates"]["calculate_motion_after"]:
+                partially_validated["functional_preproc"][
+                    "motion_estimates_and_correction"
+                ]["motion_estimation_timing"] = "after_stc"
+            del partially_validated["functional_preproc"][
+                "motion_estimates_and_correction"
+            ]["motion_estimates"]
     except KeyError:
         pass
     try:
