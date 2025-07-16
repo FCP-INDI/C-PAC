@@ -1039,7 +1039,11 @@ def stack_motion_blocks(
                 if func_slice_time in func_blocks["preproc"]:
                     func_blocks["preproc"].insert(
                         func_blocks["preproc"].index(func_slice_time),
-                        [func_motion_estimates, motion_estimate_filter],
+                        func_motion_estimates,
+                    )
+                    func_blocks["preproc"].insert(
+                        func_blocks["preproc"].index(func_slice_time),
+                        motion_estimate_filter,
                     )
                 else:
                     func_blocks["preproc"].extend(
