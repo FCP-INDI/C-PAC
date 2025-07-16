@@ -19,24 +19,19 @@
 from itertools import product
 from random import sample
 import re
+from typing import Literal, Optional
 
 import pytest
 from traits.trait_base import Undefined
-from voluptuous.error import Invalid
+from voluptuous.error import Invalid, RequiredFieldInvalid
 from nipype.interfaces.utility import Function as NipypeFunction
-from nipype.pipeline.engine import Workflow as NipypeWorkflow
+from nipype.pipeline.engine import Node, Workflow as NipypeWorkflow
 
-from CPAC.func_preproc import stack_motion_blocks
-from CPAC.func_preproc.func_preproc import func_normalize
+from CPAC.func_preproc.pipeline import stack_func_preproc_blocks
 from CPAC.nuisance.nuisance import choose_nuisance_blocks
 from CPAC.pipeline.cpac_pipeline import connect_pipeline
 from CPAC.pipeline.engine import ResourcePool
 from CPAC.pipeline.nipype_pipeline_engine import Workflow
-from CPAC.registration.registration import (
-    coregistration_prep_fmriprep,
-    coregistration_prep_mean,
-    coregistration_prep_vol,
-)
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.interfaces.function import Function as CpacFunction
 from CPAC.utils.test_init import create_dummy_node
@@ -51,7 +46,7 @@ _FILTERS = [
     {"filter_type": "lowpass", "filter_order": 4, "lowpass_cutoff": 0.0032},
 ]
 _PRE_RESOURCES = [
-    "desc-preproc_bold",
+    "bold",
     "label-CSF_desc-eroded_mask",
     "label-CSF_desc-preproc_mask",
     "label-CSF_mask",
@@ -66,31 +61,33 @@ _PRE_RESOURCES = [
     "space-T1w_desc-eroded_mask",
     "space-bold_desc-brain_mask",
     "TR",
-    "scan",
-    "subject",
-    "desc-brain_T1w",
-    "from-T1w_to-template_mode-image_desc-linear_xfm",
-    "from-bold_to-T1w_mode-image_desc-linear_xfm",
-    "from-template_to-T1w_mode-image_desc-linear_xfm",
+    # "tr",
+    # "tpattern",
+    # "scan",
+    # "subject",
+    # "desc-brain_T1w",
+    # "from-T1w_to-template_mode-image_desc-linear_xfm",
+    # "from-bold_to-T1w_mode-image_desc-linear_xfm",
+    # "from-template_to-T1w_mode-image_desc-linear_xfm",
 ]
 
 NUM_TESTS = 48  # number of parameterizations to run for many-parameter tests
 
 
 def _filter_assertion_message(
-    subwf: NipypeWorkflow, is_filtered: bool, should_be_filtered: bool
+    subwf: NipypeWorkflow, is_filtered: list[Node], should_be_filtered: bool
 ) -> str:
     if is_filtered and not should_be_filtered:
         return (
             f'{subwf.name} is filtered by '
-            f'{" & ".join([node.name for node in is_filtered])} and should '
+            f'{" & ".join([str(node.name) for node in is_filtered])} and should '
             'not be'
         )
     return f"{subwf.name} is not filtered and should be"
 
 
 _PARAMS = {  # for test_motion_filter_connections
-    "calculate_motion_first": [True, False],
+    "motion_estimation_timing": ["before_stc", "after_stc", None],
     "filters": [[_FILTERS[0]], [_FILTERS[1]], _FILTERS],
     "motion_correction": [["mcflirt"], ["3dvolreg"], ["mcflirt", "3dvolreg"]],
     "pre_resources": [
@@ -99,7 +96,7 @@ _PARAMS = {  # for test_motion_filter_connections
     ],
     "regtool": ["ANTs", "FSL"],
     "run": [True, False, [True, False]],
-}  # product == 216
+}
 
 
 @pytest.mark.parametrize(
@@ -110,24 +107,40 @@ def test_motion_filter_connections(
     run: bool | list[bool],
     filters: list[dict],
     regtool: list[str],
-    calculate_motion_first: bool,
+    motion_estimation_timing: Optional[Literal["before_stc", "after_stc"]],
     pre_resources: list[str],
     motion_correction: list[list[str]],
 ) -> None:
     """Test that appropriate connections occur vis-à-vis motion filters."""
     if isinstance(motion_correction, list) and len(motion_correction) != 1:
         # Until https://github.com/FCP-INDI/C-PAC/issues/1935 is resolved
-        with pytest.raises(Invalid) as invalid:
+        with pytest.raises(Invalid, match="FCP-INDI/C-PAC/issues/1935"):
             c = Configuration(
                 {
                     "functional_preproc": {
                         "motion_estimates_and_correction": {
-                            "motion_correction": {"using": motion_correction}
+                            "motion_correction": {"using": motion_correction},
+                            "motion_estimation_timing": motion_estimation_timing,
                         }
                     }
                 }
             )
-            assert "FCP-INDI/C-PAC/issues/1935" in invalid
+        return
+    if motion_estimation_timing is None:
+        with pytest.raises(
+            RequiredFieldInvalid, match="motion_estimates_and_correction"
+        ):
+            c = Configuration(
+                {
+                    "functional_preproc": {
+                        "motion_estimates_and_correction": {
+                            "run": True,
+                            "motion_correction": {"using": motion_correction},
+                            "motion_estimation_timing": motion_estimation_timing,
+                        }
+                    }
+                }
+            )
         return
     # parameterized Configuration
     c = Configuration(
@@ -135,6 +148,7 @@ def test_motion_filter_connections(
             "functional_preproc": {
                 "motion_estimates_and_correction": {
                     "motion_correction": {"using": motion_correction},
+                    "motion_estimation_timing": motion_estimation_timing,
                     "motion_estimate_filter": {"run": run, "filters": filters},
                     "run": True,
                 },
@@ -179,18 +193,7 @@ def test_motion_filter_connections(
             node_name = "created_before_this_test"
         rpool.set_data(resource, before_this_test, resource, {}, "", node_name)
     # set up blocks
-    pipeline_blocks = []
-    func_blocks = {key: [] for key in ["init", "preproc", "mask"]}
-    func_blocks["prep"] = [
-        func_normalize,
-        [
-            coregistration_prep_vol,
-            coregistration_prep_mean,
-            coregistration_prep_fmriprep,
-        ],
-    ]
-
-    pipeline_blocks += stack_motion_blocks(func_blocks, c, rpool)
+    pipeline_blocks = stack_func_preproc_blocks({}, c, rpool)
     # Nuisance Correction
     generate_only = (
         True not in c["nuisance_corrections", "2-nuisance_regression", "run"]

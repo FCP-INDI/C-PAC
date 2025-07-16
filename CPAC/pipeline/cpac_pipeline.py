@@ -78,32 +78,13 @@ from CPAC.anat_preproc.anat_preproc import (
     registration_T2w_to_T1w,
     t1t2_bias_correction,
 )
-from CPAC.distortion_correction.distortion_correction import (
-    distcor_blip_afni_qwarp,
-    distcor_blip_fsl_topup,
-    distcor_phasediff_fsl_fugue,
-)
-from CPAC.func_preproc import (
-    stack_motion_blocks,
-)
 from CPAC.func_preproc.func_preproc import (
-    bold_mask_afni,
-    bold_mask_anatomical_based,
-    bold_mask_anatomical_refined,
     bold_mask_anatomical_resampled,
-    bold_mask_ccs,
-    bold_mask_fsl,
-    bold_mask_fsl_afni,
-    bold_masking,
-    func_despike,
     func_despike_template,
-    func_mean,
-    func_normalize,
-    func_reorient,
-    func_scaling,
-    func_slice_time,
-    func_truncate,
     template_space_bold_masking,
+)
+from CPAC.func_preproc.pipeline import (
+    stack_func_preproc_blocks,
 )
 from CPAC.network_centrality.pipeline import network_centrality
 from CPAC.nuisance.nuisance import (
@@ -140,12 +121,10 @@ from CPAC.registration.registration import (
     apply_blip_to_timeseries_separately,
     apply_phasediff_to_timeseries_separately,
     coregistration,
-    coregistration_prep_fmriprep,
     coregistration_prep_mean,
     coregistration_prep_vol,
     create_func_to_T1template_symmetric_xfm,
     create_func_to_T1template_xfm,
-    mask_sbref,
     overwrite_transform_anat_to_template,
     register_ANTs_anat_to_template,
     register_ANTs_EPI_to_template,
@@ -214,7 +193,7 @@ from CPAC.utils.workflow_serialization import cpac_flowdump_serializer
 from CPAC.vmhc.vmhc import smooth_func_vmhc, vmhc, warp_timeseries_to_sym_template
 
 if TYPE_CHECKING:
-    from CPAC.pipeline.nodeblock import NodeBlockFunction
+    pass
 
 faulthandler.enable()
 
@@ -1260,58 +1239,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
 
     # Functional Preprocessing, including motion correction and BOLD masking
     if cfg.functional_preproc["run"]:
-        func_blocks: dict[str, list[NodeBlockFunction | list[NodeBlockFunction]]] = {}
-        func_blocks["init"] = [func_reorient, func_scaling, func_truncate]
-        func_blocks["preproc"] = [func_despike, func_slice_time]
-
-        if not rpool.check_rpool("desc-mean_bold"):
-            func_blocks["preproc"].append(func_mean)
-
-        func_blocks["mask"] = []
-        if not rpool.check_rpool("space-bold_desc-brain_mask"):
-            func_blocks["mask"] = [
-                [
-                    bold_mask_afni,
-                    bold_mask_fsl,
-                    bold_mask_fsl_afni,
-                    bold_mask_anatomical_refined,
-                    bold_mask_anatomical_based,
-                    bold_mask_ccs,
-                ],
-                bold_masking,
-            ]
-
-        func_blocks["prep"] = [
-            func_normalize,
-            [
-                coregistration_prep_vol,
-                coregistration_prep_mean,
-                coregistration_prep_fmriprep,
-            ],
-            mask_sbref,
-        ]
-
-        # Distortion/Susceptibility Correction
-        distcor_blocks = []
-        if "fmap" in sub_dict:
-            fmap_keys = sub_dict["fmap"]
-            if "phasediff" in fmap_keys or "phase1" in fmap_keys:
-                if "magnitude" in fmap_keys or "magnitude1" in fmap_keys:
-                    distcor_blocks.append(distcor_phasediff_fsl_fugue)
-            if len(fmap_keys) == 2:  # noqa: PLR2004
-                for key in fmap_keys:
-                    if "epi_" not in key:
-                        break
-                else:
-                    distcor_blocks.append(distcor_blip_afni_qwarp)
-                    distcor_blocks.append(distcor_blip_fsl_topup)
-
-        if distcor_blocks:
-            if len(distcor_blocks) > 1:
-                distcor_blocks = [distcor_blocks]
-            func_blocks["prep"] += distcor_blocks
-
-        pipeline_blocks += stack_motion_blocks(func_blocks, cfg, rpool)
+        pipeline_blocks += stack_func_preproc_blocks(sub_dict, cfg, rpool)
 
     # BOLD to T1 coregistration
     if cfg.registration_workflows["functional_registration"]["coregistration"][

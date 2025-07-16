@@ -52,6 +52,7 @@ from voluptuous import (
     Optional,
     Range,
     Required,
+    RequiredFieldInvalid,
     Schema,
     Title,
 )
@@ -984,7 +985,7 @@ latest_schema = Schema(
             },
             "motion_estimates_and_correction": {
                 "run": bool1_1,
-                "motion_estimation_timing": In(["before_stc", "after_stc"]),
+                "motion_estimation_timing": Maybe(In(["before_stc", "after_stc"])),
                 Deprecated(
                     "motion_estimates",
                     version="v1.8.8",
@@ -1570,6 +1571,23 @@ def schema(config_dict: dict) -> dict:
                     f'"{site.USER_BASE}" in the container to use U-Net.'
                 )
                 raise OSError(msg) from error
+    except KeyError:
+        pass
+    try:
+        if (
+            partially_validated["functional_preproc"][
+                "motion_estimates_and_correction"
+            ]["run"]
+            and partially_validated["functional_preproc"][
+                "motion_estimates_and_correction"
+            ].get("motion_estimation_timing")
+            is None
+        ):
+            msg = (
+                "motion_estimation_timing ('before_stc' or 'after_stc') is required for "
+                "motion_estimates_and_correction to run."
+            )
+            raise RequiredFieldInvalid(msg)
     except KeyError:
         pass
     return partially_validated

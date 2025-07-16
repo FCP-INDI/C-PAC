@@ -22,6 +22,7 @@ from nipype.interfaces import afni, fsl, utility as util
 from nipype.interfaces.afni import preprocess, utils as afni_utils
 from nipype.pipeline.engine import Workflow
 
+from CPAC.func_preproc.func_preproc import func_slice_time
 from CPAC.func_preproc.utils import (
     chunk_ts,
     notch_filter_motion,
@@ -1026,19 +1027,53 @@ def stack_motion_blocks(
     rpool: "ResourcePool",
 ) -> list[NodeBlockFunction | list[NodeBlockFunction]]:
     """Create a stack of motion correction nodeblocks."""
-    func_blocks["motion"] = []
-    if not rpool.check_rpool("motion-basefile"):
-        func_blocks["motion"].extend(get_motion_refs)
-    assert calc_motion_stats.inputs
-    if not all(rpool.check_rpool(resource) for resource in calc_motion_stats.inputs):
-        func_blocks["motion"].append(func_motion_estimates)
-    func_blocks["motion"].append(motion_estimate_filter)
+    if cfg["functional_preproc", "motion_estimates_and_correction", "run"]:
+        func_blocks["prep"] = [calc_motion_stats, *func_blocks["prep"]]
+
+        match cfg[
+            "functional_preproc",
+            "motion_estimates_and_correction",
+            "motion_estimation_timing",
+        ]:
+            case "before_stc":
+                if func_slice_time in func_blocks["preproc"]:
+                    func_blocks["preproc"].insert(
+                        func_blocks["preproc"].index(func_slice_time),
+                        [func_motion_estimates, motion_estimate_filter],
+                    )
+                else:
+                    func_blocks["preproc"].extend(
+                        [func_motion_estimates, motion_estimate_filter]
+                    )
+                return [
+                    *func_blocks["init"],
+                    *get_motion_refs,
+                    *func_blocks["preproc"],
+                    func_motion_correct,
+                    *func_blocks["mask"],
+                    *func_blocks["prep"],
+                ]
+            case "after_stc":
+                return [
+                    *func_blocks["init"],
+                    *func_blocks["preproc"],
+                    *get_motion_refs,
+                    func_motion_estimates,
+                    func_motion_correct,
+                    motion_estimate_filter,
+                    *func_blocks["mask"],
+                    *func_blocks["prep"],
+                ]
+            case _:
+                return [
+                    *func_blocks["init"],
+                    *func_blocks["preproc"],
+                    *func_blocks["mask"],
+                    *func_blocks["prep"],
+                ]
     return [
         *func_blocks["init"],
-        *func_blocks["motion"],
         *func_blocks["preproc"],
-        func_motion_correct,
         *func_blocks["mask"],
-        calc_motion_stats,
         *func_blocks["prep"],
     ]

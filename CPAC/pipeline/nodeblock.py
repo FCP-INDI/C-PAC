@@ -23,6 +23,7 @@ from nipype.pipeline import engine as pe
 POOL_RESOURCE_DICT: TypeAlias = dict[str, tuple[pe.Node | pe.Workflow, str]]
 POOL_RESOURCE_MAPPING: TypeAlias = Mapping[str, tuple[pe.Node | pe.Workflow, str]]
 NODEBLOCK_RETURN: TypeAlias = tuple[pe.Workflow, POOL_RESOURCE_MAPPING]
+NODEBLOCK_STACK: TypeAlias = "list[NodeBlockFunction | list[NodeBlockFunction]]"
 
 
 class NodeBlockFunction:
