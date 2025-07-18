@@ -60,7 +60,7 @@ pipeline_setup:
       generate_quality_control_images: On
 
       # Generate eXtensible Connectivity Pipeline-style quality control files
-      generate_xcpqc_files: On
+      generate_xcpqc_files: Off
 
   working_directory:
 
