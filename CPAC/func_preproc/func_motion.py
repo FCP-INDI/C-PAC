@@ -22,7 +22,6 @@ from nipype.interfaces import afni, fsl, utility as util
 from nipype.interfaces.afni import preprocess, utils as afni_utils
 from nipype.pipeline.engine import Workflow
 
-from CPAC.func_preproc.func_preproc import func_slice_time
 from CPAC.func_preproc.utils import (
     chunk_ts,
     notch_filter_motion,
@@ -1035,29 +1034,18 @@ def stack_motion_blocks(
             "motion_estimates_and_correction",
             "motion_estimation_timing",
         ]:
-            case "before_stc":
-                if func_slice_time in func_blocks["preproc"]:
-                    func_blocks["preproc"].insert(
-                        func_blocks["preproc"].index(func_slice_time),
-                        func_motion_estimates,
-                    )
-                    func_blocks["preproc"].insert(
-                        func_blocks["preproc"].index(func_slice_time),
-                        motion_estimate_filter,
-                    )
-                else:
-                    func_blocks["preproc"].extend(
-                        [func_motion_estimates, motion_estimate_filter]
-                    )
+            case "before":
                 return [
                     *func_blocks["init"],
                     *get_motion_refs,
+                    func_motion_estimates,
+                    motion_estimate_filter,
                     *func_blocks["preproc"],
                     func_motion_correct,
                     *func_blocks["mask"],
                     *func_blocks["prep"],
                 ]
-            case "after_stc":
+            case "after":
                 return [
                     *func_blocks["init"],
                     *func_blocks["preproc"],

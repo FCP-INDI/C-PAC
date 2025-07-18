@@ -985,7 +985,7 @@ latest_schema = Schema(
             },
             "motion_estimates_and_correction": {
                 "run": bool1_1,
-                "motion_estimation_timing": Maybe(In(["before_stc", "after_stc"])),
+                "motion_estimation_timing": Maybe(In(["before", "after"])),
                 Deprecated(
                     "motion_estimates",
                     version="v1.8.8",
@@ -1533,13 +1533,13 @@ def schema(config_dict: dict) -> dict:
             ]["motion_estimates"]["calculate_motion_first"]:
                 partially_validated["functional_preproc"][
                     "motion_estimates_and_correction"
-                ]["motion_estimation_timing"] = "before_stc"
+                ]["motion_estimation_timing"] = "before"
             elif partially_validated["functional_preproc"][
                 "motion_estimates_and_correction"
             ]["motion_estimates"]["calculate_motion_after"]:
                 partially_validated["functional_preproc"][
                     "motion_estimates_and_correction"
-                ]["motion_estimation_timing"] = "after_stc"
+                ]["motion_estimation_timing"] = "after"
             del partially_validated["functional_preproc"][
                 "motion_estimates_and_correction"
             ]["motion_estimates"]
@@ -1584,7 +1584,7 @@ def schema(config_dict: dict) -> dict:
             is None
         ):
             msg = (
-                "motion_estimation_timing ('before_stc' or 'after_stc') is required for "
+                "motion_estimation_timing ('before' or 'after') is required for "
                 "motion_estimates_and_correction to run."
             )
             raise RequiredFieldInvalid(msg)

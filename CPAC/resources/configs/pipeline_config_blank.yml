@@ -1015,11 +1015,11 @@ functional_preproc:
       run: [Off]
       filters: []
 
-    # Motion estimation timing relative to slice timing correction.
-    # Options: 'before_stc', 'after_stc'
-    # 'before_stc' - motion estimation is performed before slice timing correction.
-    # 'after_stc' - motion estimation is performed after slice timing correction.
-    motion_estimation_timing: before_stc
+    # Motion estimation timing relative to despiking and slice timing correction.
+    # Options: 'before', 'after'
+    # 'before' - motion estimation is performed before despiking and slice timing correction.
+    # 'after' - motion estimation is performed after despiking and slice timing correction.
+    motion_estimation_timing: before
 
   distortion_correction:
 

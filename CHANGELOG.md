@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed broken support for native-space masking.
   - Introduced a new `template_space_func_masking` section in the pipeline config for template-space-only methods.
   - Moved `Anatomical_Resampled` masking method from `func_masking` to the `template_space_func_masking`.
-- `"motion_estimates": {"calculate_motion_first": << bool >>, "calculate_motion_after": << bool >>}` configuration options to `"motion_estimation_timing: << one of ["before_stc", "after_stc"] >>`.
+- `"motion_estimates": {"calculate_motion_first": << bool >>, "calculate_motion_after": << bool >>}` configuration options to `"motion_estimation_timing: << one of ["before", "after"] >>`.
 
 ### Upgraded
 

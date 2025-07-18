@@ -87,7 +87,7 @@ def _filter_assertion_message(
 
 
 _PARAMS = {  # for test_motion_filter_connections
-    "motion_estimation_timing": ["before_stc", "after_stc", None],
+    "motion_estimation_timing": ["before", "after", None],
     "filters": [[_FILTERS[0]], [_FILTERS[1]], _FILTERS],
     "motion_correction": [["mcflirt"], ["3dvolreg"], ["mcflirt", "3dvolreg"]],
     "pre_resources": [
@@ -107,7 +107,7 @@ def test_motion_filter_connections(
     run: bool | list[bool],
     filters: list[dict],
     regtool: list[str],
-    motion_estimation_timing: Optional[Literal["before_stc", "after_stc"]],
+    motion_estimation_timing: Optional[Literal["before", "after"]],
     pre_resources: list[str],
     motion_correction: list[list[str]],
 ) -> None:

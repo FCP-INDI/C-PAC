@@ -180,8 +180,8 @@ class Strategy:
                 if "frequency_filter" in fork:
                     fork_label = "freq-filter"
 
-                if "gen_motion_stats_before_stc" in fork:
-                    fork_label = "motion_stats_before_stc"
+                if "gen_motion_stats_before" in fork:
+                    fork_label = "motion_stats_before"
                 if "despike" in fork:
                     fork_label = "despike"
                 if "slice" in fork:
