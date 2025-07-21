@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -73,7 +73,7 @@ def get_last_prov_entry(prov):
     return prov[-1]
 
 
-def check_prov_for_regtool(prov):
+def check_prov_for_regtool(prov) -> Optional[Literal["ants", "fsl"]]:
     """Check provenance for registration tool."""
     last_entry = get_last_prov_entry(prov)
     last_node = last_entry.split(":")[1]
@@ -98,22 +98,6 @@ def check_prov_for_regtool(prov):
             if "FSL" in node_name:
                 return "fsl"
             return None
-    return None
-
-
-def check_prov_for_motion_tool(prov):
-    """Check provenance for motion correction tool."""
-    last_entry = get_last_prov_entry(prov)
-    last_node = last_entry.split(":")[1]
-    if "3dvolreg" in last_node.lower():
-        return "3dvolreg"
-    if "mcflirt" in last_node.lower():
-        return "mcflirt"
-    # check entire prov
-    if "3dvolreg" in str(prov):
-        return "3dvolreg"
-    if "mcflirt" in str(prov):
-        return "mcflirt"
     return None
 
 
@@ -159,6 +143,7 @@ def create_id_string(
     fwhm=None,
     subdir=None,
     extension=None,
+    subject_level: bool = False,
 ):
     """Create the unique key-value identifier string for BIDS-Derivatives file names.
 
@@ -177,6 +162,9 @@ def create_id_string(
 
     from CPAC.utils.bids_utils import combine_multiple_entity_instances, res_in_filename
 
+    if "longitudinal-template" in resource:
+        resource = resource.replace("longitudinal-template", "").replace("__", "")
+
     if atlas_id:
         if "_desc-" in atlas_id:
             atlas, desc = atlas_id.split("_desc-")
@@ -186,16 +174,23 @@ def create_id_string(
                 atlas_id = atlas_id.replace("_desc-", "")
         resource = f"atlas-{atlas_id}_{resource}"
 
-    part_id = unique_id.split("_")[0]
-    ses_id = unique_id.split("_")[1]
+    id_parts = []
+    if "_" in unique_id:
+        part_id, ses_id = unique_id.split("_", 1)
+        if "ses-" not in ses_id:
+            ses_id = f"ses-{ses_id}"
+        id_parts.append(ses_id)
+    else:
+        part_id = unique_id
     if "sub-" not in part_id:
         part_id = f"sub-{part_id}"
-    if "ses-" not in ses_id:
-        ses_id = f"ses-{ses_id}"
+    id_parts.insert(0, part_id)
     if scan_id:
-        out_filename = f"{part_id}_{ses_id}_task-{scan_id}_{resource}"
-    else:
-        out_filename = f"{part_id}_{ses_id}_{resource}"
+        if "task-" not in scan_id:
+            scan_id = f"task-{scan_id}"
+        id_parts.append(scan_id)
+    id_parts.append(resource)
+    out_filename = "_".join(id_parts)
 
     template_tag = template_desc.split(" -")[0] if template_desc else "*"
     for prefix in ["space-", "from-", "to-"]:

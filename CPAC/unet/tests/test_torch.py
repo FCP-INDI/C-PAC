@@ -45,13 +45,11 @@ def test_import_torch(monkeypatch, readonly, tmp_path, workdir):
 
 @pytest.mark.parametrize("error", [ImportError, ModuleNotFoundError, None])
 def test_validate_unet(error):
-    """Test that pipeline validation throws error if torch is not
-    installable.
-    """
+    """Test that pipeline validation throws error if torch is not installable."""
     if error:
         import_module = MagicMock(side_effect=error())
-        with patch("importlib.import_module", import_module):
-            with pytest.raises(OSError) as os_error:
+        with pytest.raises((OSError, error)) as os_error:
+            with patch("importlib.import_module", import_module):
                 from CPAC.utils.configuration import Preconfiguration
 
                 monkey = Preconfiguration("monkey")

@@ -1,4 +1,4 @@
-# Copyright (C) 2014-2024  C-PAC Developers
+# Copyright (C) 2014-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -18,9 +18,367 @@
 
 import os
 import subprocess
+from typing import Literal, NamedTuple, Optional, overload, TYPE_CHECKING, TypeAlias
 
 import numpy as np
 from voluptuous import RequiredFieldInvalid
+from nipype.interfaces.afni.utils import TCat
+from nipype.interfaces.ants import ApplyTransforms as AntsApplyTransforms
+from nipype.interfaces.fsl import ApplyWarp
+from nipype.interfaces.utility import IdentityInterface, Merge
+from nipype.pipeline.engine import Node as NipypeNode, Workflow
+
+from CPAC.func_preproc.utils import chunk_ts, split_ts_chunks
+from CPAC.pipeline.nipype_pipeline_engine import MapNode, Node
+from CPAC.utils.interfaces import Function
+
+if TYPE_CHECKING:
+    from CPAC.pipeline.engine import NodeData
+
+REGISTRATION_SPACE: TypeAlias = Literal[
+    "bold", "EPI", "T1", "T1w", "longitudinal", "template"
+]
+
+
+class CommonRegistrationInputs(NamedTuple):
+    """Input nodes registration methods take in common."""
+
+    orig: Literal["longitudinal", "T1w"]
+    has_longitudinal: bool
+    input_brain: "NodeData"
+    input_head: "NodeData"
+    reference_mask: Optional["NodeData"]
+    lesion_mask: Optional["NodeData"]
+    t1w_brain_template: "NodeData"
+    t1w_template: "NodeData"
+    brain_mask: "NodeData"
+
+
+class RegistrationTemplates(NamedTuple):
+    """Keys for registration templates in strat pool."""
+
+    reference_brain: list[str] | str = "T1w-brain-template"
+    reference_head: list[str] | str = "T1w-template"
+    reference_mask: list[str] | str = "T1w-brain-template-mask"
+
+
+@overload
+def convert_pedir(pedir: bytes | str, convert: Literal["xyz_to_int"]) -> int: ...
+@overload
+def convert_pedir(pedir: bytes | str, convert: Literal["ijk_to_xyz"]) -> str: ...
+def convert_pedir(
+    pedir: bytes | str, convert: Literal["xyz_to_int", "ijk_to_xyz"] = "xyz_to_int"
+) -> int | str:
+    """FSL Flirt requires pedir input encoded as an int."""
+    if convert == "xyz_to_int":
+        conv_dct = {
+            "x": 1,
+            "y": 2,
+            "z": 3,
+            "x-": -1,
+            "y-": -2,
+            "z-": -3,
+            "i": 1,
+            "j": 2,
+            "k": 3,
+            "i-": -1,
+            "j-": -2,
+            "k-": -3,
+            "-x": -1,
+            "-i": -1,
+            "-y": -2,
+            "-j": -2,
+            "-z": -3,
+            "-k": -3,
+        }
+    elif convert == "ijk_to_xyz":
+        conv_dct = {"i": "x", "j": "y", "k": "z", "i-": "x-", "j-": "y-", "k-": "z-"}
+
+    if isinstance(pedir, bytes):
+        pedir = pedir.decode()
+    if not isinstance(pedir, str):
+        msg = f"\n\nPhase-encoding direction must be a string value.\n\nValue: {pedir}\n\n"
+        raise ValueError(msg)
+    if pedir not in conv_dct.keys():
+        msg = f"\n\nInvalid phase-encoding direction entered: {pedir}\n\n"
+        raise ValueError(msg)
+    return conv_dct[pedir]
+
+
+def apply_transform(
+    wf_name: str,
+    reg_tool: str,
+    time_series: bool = False,
+    multi_input: bool = False,
+    num_cpus: int = 1,
+    num_ants_cores: int = 1,
+):
+    """Apply transform."""
+    if not reg_tool:
+        msg = (
+            "\n[!] Developer info: the 'reg_tool' parameter sent to the"
+            f" 'apply_transform' node for '{wf_name}' is empty.\n"
+        )
+        raise RequiredFieldInvalid(msg)
+
+    wf = Workflow(name=wf_name)
+
+    inputNode = Node(
+        IdentityInterface(
+            fields=["input_image", "reference", "transform", "interpolation"]
+        ),
+        name="inputspec",
+    )
+
+    outputNode = Node(IdentityInterface(fields=["output_image"]), name="outputspec")
+
+    if int(num_cpus) > 1 and time_series:
+        # parallelize time series warp application
+        # we need the node to be a MapNode to feed in the list of functional
+        # time series chunks
+        multi_input = True
+
+    if reg_tool == "ants":
+        if multi_input:
+            apply_warp = MapNode(
+                interface=AntsApplyTransforms(),
+                name=f"apply_warp_{wf_name}",
+                iterfield=["input_image"],
+                mem_gb=0.7,
+                mem_x=(1708448960473801 / 151115727451828646838272, "input_image"),
+            )
+        else:
+            apply_warp = Node(
+                interface=AntsApplyTransforms(),
+                name=f"apply_warp_{wf_name}",
+                mem_gb=0.7,
+                mem_x=(1708448960473801 / 151115727451828646838272, "input_image"),
+            )
+
+        apply_warp.inputs.dimension = 3
+        apply_warp.interface.num_threads = int(num_ants_cores)
+
+        if time_series:
+            apply_warp.inputs.input_image_type = 3
+
+        wf.connect(inputNode, "reference", apply_warp, "reference_image")
+
+        interp_string = Node(
+            Function(
+                input_names=["interpolation", "reg_tool"],
+                output_names=["interpolation"],
+                function=interpolation_string,
+            ),
+            name="interp_string",
+            mem_gb=2.5,
+        )
+        interp_string.inputs.reg_tool = reg_tool
+
+        wf.connect(inputNode, "interpolation", interp_string, "interpolation")
+        wf.connect(interp_string, "interpolation", apply_warp, "interpolation")
+
+        ants_xfm_list = Node(
+            Function(
+                input_names=["transform"],
+                output_names=["transform_list"],
+                function=single_ants_xfm_to_list,
+            ),
+            name="single_ants_xfm_to_list",
+            mem_gb=2.5,
+        )
+
+        wf.connect(inputNode, "transform", ants_xfm_list, "transform")
+        wf.connect(ants_xfm_list, "transform_list", apply_warp, "transforms")
+
+        # parallelize the apply warp, if multiple CPUs, and it's a time
+        # series!
+        if int(num_cpus) > 1 and time_series:
+            chunk_imports = ["import nibabel as nib"]
+            chunk = Node(
+                Function(
+                    input_names=["func_file", "n_chunks", "chunk_size"],
+                    output_names=["TR_ranges"],
+                    function=chunk_ts,
+                    imports=chunk_imports,
+                ),
+                name=f"chunk_{wf_name}",
+                mem_gb=2.5,
+            )
+
+            # chunk.inputs.n_chunks = int(num_cpus)
+
+            # 10-TR sized chunks
+            chunk.inputs.chunk_size = 10
+
+            wf.connect(inputNode, "input_image", chunk, "func_file")
+
+            split_imports = ["import os", "import subprocess"]
+            split = Node(
+                Function(
+                    input_names=["func_file", "tr_ranges"],
+                    output_names=["split_funcs"],
+                    function=split_ts_chunks,
+                    imports=split_imports,
+                ),
+                name=f"split_{wf_name}",
+                mem_gb=2.5,
+            )
+
+            wf.connect(inputNode, "input_image", split, "func_file")
+            wf.connect(chunk, "TR_ranges", split, "tr_ranges")
+
+            wf.connect(split, "split_funcs", apply_warp, "input_image")
+
+            func_concat = Node(
+                interface=TCat(), name=f"func_concat_{wf_name}", mem_gb=2.5
+            )
+            func_concat.inputs.outputtype = "NIFTI_GZ"
+
+            wf.connect(apply_warp, "output_image", func_concat, "in_files")
+
+            wf.connect(func_concat, "out_file", outputNode, "output_image")
+
+        else:
+            wf.connect(inputNode, "input_image", apply_warp, "input_image")
+            wf.connect(apply_warp, "output_image", outputNode, "output_image")
+
+    elif reg_tool == "fsl":
+        if multi_input:
+            apply_warp = MapNode(
+                interface=ApplyWarp(),
+                name="fsl_apply_warp",
+                iterfield=["in_file"],
+                mem_gb=2.5,
+            )
+        else:
+            apply_warp = Node(interface=ApplyWarp(), name="fsl_apply_warp", mem_gb=2.5)
+
+        interp_string = Node(
+            Function(
+                input_names=["interpolation", "reg_tool"],
+                output_names=["interpolation"],
+                function=interpolation_string,
+            ),
+            name="interp_string",
+            mem_gb=2.5,
+        )
+        interp_string.inputs.reg_tool = reg_tool
+
+        wf.connect(inputNode, "interpolation", interp_string, "interpolation")
+        wf.connect(interp_string, "interpolation", apply_warp, "interp")
+
+        # mni to t1
+        wf.connect(inputNode, "reference", apply_warp, "ref_file")
+
+        # NOTE: C-PAC now converts all FSL xfm's to .nii, so even if the
+        #       inputNode 'transform' is a linear xfm, it's a .nii and must
+        #       go in as a warpfield file
+        wf.connect(inputNode, "transform", apply_warp, "field_file")
+
+        # parallelize the apply warp, if multiple CPUs, and it's a time
+        # series!
+        if int(num_cpus) > 1 and time_series:
+            chunk_imports = ["import nibabel as nib"]
+            chunk = Node(
+                Function(
+                    input_names=["func_file", "n_chunks", "chunk_size"],
+                    output_names=["TR_ranges"],
+                    function=chunk_ts,
+                    imports=chunk_imports,
+                ),
+                name=f"chunk_{wf_name}",
+                mem_gb=2.5,
+            )
+
+            # chunk.inputs.n_chunks = int(num_cpus)
+
+            # 10-TR sized chunks
+            chunk.inputs.chunk_size = 10
+
+            wf.connect(inputNode, "input_image", chunk, "func_file")
+
+            split_imports = ["import os", "import subprocess"]
+            split = Node(
+                Function(
+                    input_names=["func_file", "tr_ranges"],
+                    output_names=["split_funcs"],
+                    function=split_ts_chunks,
+                    imports=split_imports,
+                ),
+                name=f"split_{wf_name}",
+                mem_gb=2.5,
+            )
+
+            wf.connect(inputNode, "input_image", split, "func_file")
+            wf.connect(chunk, "TR_ranges", split, "tr_ranges")
+
+            wf.connect(split, "split_funcs", apply_warp, "in_file")
+
+            func_concat = Node(interface=TCat(), name=f"func_concat{wf_name}")
+            func_concat.inputs.outputtype = "NIFTI_GZ"
+
+            wf.connect(apply_warp, "out_file", func_concat, "in_files")
+
+            wf.connect(func_concat, "out_file", outputNode, "output_image")
+
+        else:
+            wf.connect(inputNode, "input_image", apply_warp, "in_file")
+            wf.connect(apply_warp, "out_file", outputNode, "output_image")
+
+    return wf
+
+
+def transform_derivative(
+    wf_name: str,
+    label: str,
+    reg_tool: Optional[str],
+    num_cpus: int,
+    num_ants_cores: int,
+    ants_interp: Optional[str] = None,
+    fsl_interp: Optional[str] = None,
+):
+    """Transform output derivatives to template space.
+
+    This function is designed for use with the NodeBlock connection engine.
+    """
+    wf = Workflow(name=wf_name)
+
+    inputnode = Node(
+        IdentityInterface(fields=["in_file", "reference", "transform"]),
+        name="inputspec",
+    )
+
+    multi_input = False
+    if "statmap" in label:
+        multi_input = True
+
+    stack = False
+    if "correlations" in label:
+        stack = True
+
+    apply_xfm = apply_transform(
+        f"warp_{label}_to_template",
+        reg_tool,
+        time_series=stack,
+        multi_input=multi_input,
+        num_cpus=num_cpus,
+        num_ants_cores=num_ants_cores,
+    )
+
+    if reg_tool == "ants":
+        apply_xfm.inputs.inputspec.interpolation = ants_interp
+    elif reg_tool == "fsl":
+        apply_xfm.inputs.inputspec.interpolation = fsl_interp
+
+    wf.connect(inputnode, "in_file", apply_xfm, "inputspec.input_image")
+    wf.connect(inputnode, "reference", apply_xfm, "inputspec.reference")
+    wf.connect(inputnode, "transform", apply_xfm, "inputspec.transform")
+
+    outputnode = Node(IdentityInterface(fields=["out_file"]), name="outputspec")
+
+    wf.connect(apply_xfm, "outputspec.output_image", outputnode, "out_file")
+
+    return wf
 
 
 def single_ants_xfm_to_list(transform):
@@ -808,3 +1166,191 @@ def run_c4d(input_name, output_name):
     os.system(cmd)
 
     return output1, output2, output3
+
+
+@overload
+def prepend_space(resource: list[str], space: str) -> list[str]: ...
+@overload
+def prepend_space(resource: str, space: str) -> str: ...
+def prepend_space(resource: str | list[str], space: str) -> str | list[str]:
+    """Given a resource or list of resources, return same but with updated space."""
+    if isinstance(resource, list):
+        return [prepend_space(_, space) for _ in resource]
+    prefix = "longitudinal-template_" if space == "longitudinal" else ""
+    if "space" not in resource:
+        return f"{prefix}space-{space}_{resource}"
+    pre, post = resource.split("space-")
+    _old_space, post = post.split("_", 1)
+    return f"{prefix}space-{space}_".join([pre, post])
+
+
+def collect_xfms(
+    wf: Workflow,
+    name: str,
+    node_inputs: list[tuple[Node | Workflow, list[str]]],
+    *,
+    mem_gb: float = 0.8,
+    mem_x: tuple[float, str] = (263474863123069 / 37778931862957161709568, "in1"),
+) -> Node:
+    """Create a node to collect transforms to compose into one."""
+    if len(node_inputs) == 1:
+        input_node, inputs = node_inputs[0]
+    else:
+        msg = "Combining transforms from multiple nodes not yet implemented."
+        raise NotImplementedError(msg)
+    numinputs = len(inputs)
+    node = Node(interface=Merge(numinputs), name=name, mem_gb=mem_gb, mem_x=mem_x)
+    # check transform list to exclude Nonetype (missing) init/rig/affine
+    check_transform = Node(
+        Function(
+            input_names=["transform_list"],
+            output_names=["checked_transform_list", "list_length"],
+            function=check_transforms,
+        ),
+        name=f"check_transforms_{name}",
+        mem_gb=6,
+    )
+    wf.connect(
+        [
+            (
+                input_node,
+                node,
+                [(node_input, f"in{i + 1}") for i, node_input in enumerate(inputs)],
+            ),
+            (node, check_transform, [("out", "transform_list")]),
+        ]
+    )
+    return check_transform
+
+
+def compose_ants_warp(  # noqa: PLR0913
+    wf: Workflow,
+    name: str,
+    input_node: NipypeNode | Workflow,
+    warp_from: str,
+    warp_to: str,
+    inputs: list[tuple[Node | Workflow, list[str]]],
+    inv: bool = False,
+    *,
+    dimension: int = 3,
+    input_image_type: int = 0,
+    mem_gb: float = 1.155,
+    mem_x: tuple[float, str] = (
+        1708448960473801 / 1208925819614629174706176,
+        "input_image",
+    ),
+) -> Node:
+    """Create a Node to combine xfms."""
+    node = Node(
+        interface=AntsApplyTransforms(
+            dimension=dimension,
+            input_image_type=input_image_type,
+            print_out_composite_warp_file=True,
+            output_image=f"{name}.nii.gz",
+        ),
+        name=f"write_composite_{name}",
+        mem_gb=mem_gb,
+        mem_x=mem_x,
+    )
+    wf.connect(
+        [
+            (
+                input_node,
+                node,
+                [
+                    (warp_from, "input_image"),
+                    (warp_to, "reference_image"),
+                    ("interpolation", "interpolation"),
+                ],
+            )
+        ]
+    )
+    collect_transforms = collect_xfms(wf, f"collect_{name}", inputs)
+    wf.connect(collect_transforms, "checked_transform_list", node, "transforms")
+    if inv:
+        # generate inverse transform flags, which depends on the
+        # number of transforms
+        inverse_transform_flags = Node(
+            Function(
+                input_names=["transform_list"],
+                output_names=["inverse_transform_flags"],
+                function=generate_inverse_transform_flags,
+            ),
+            name=f"inverse_transform_flags_{name}",
+        )
+        wf.connect(
+            collect_transforms,
+            "checked_transform_list",
+            inverse_transform_flags,
+            "transform_list",
+        )
+        wf.connect(
+            inverse_transform_flags,
+            "inverse_transform_flags",
+            node,
+            "invert_transform_flags",
+        )
+    return node
+
+
+def prep_reg_connector(
+    symmetric: bool, template: REGISTRATION_SPACE
+) -> tuple[
+    Literal["", "sym"],
+    Literal["", "_symmetric"],
+    Literal["", "EPI"],
+    REGISTRATION_SPACE,
+]:
+    """Return some formatted strings.
+
+    Returns
+    -------
+    sym
+        String to indicate if symmetric in resource names
+
+    symm
+        String to indicate if symmetric in node names
+
+    tmpl
+        String to indicate EPI template space in resource names
+
+    template
+        String to indicate template space in resource names
+    """
+    sym = ""
+    symm = ""
+    if symmetric:
+        sym = "sym"
+        symm = "_symmetric"
+
+    tmpl = ""
+    match template:
+        case "EPI":
+            tmpl = "EPI"
+            template = "template"
+        case "longitudinal":
+            template = template  # noqa: PLW0127
+        case _:
+            template = "template"
+    return sym, symm, tmpl, template
+
+
+def xfm_outputs(spaces: dict[str, str], template: str) -> dict[str, dict[str, str]]:
+    """Build dictionary for XFM output specs."""
+    transform_types = {
+        "": "Composite (affine + warp field)",
+        "_desc-linear": "Linear (affine)",
+        "_desc-nonlinear": "Nonlinear (warp field)",
+    }
+    return {
+        f"from-{origin}_to-{destination}_mode-image{transform_type}_xfm": {
+            "Description": f"{transform_type_desc} transform from {origin_desc} space to {destination_desc} space.",
+            "Template": spaces.get(
+                template, destination_desc if destination != "T1w" else origin_desc
+            ),
+        }
+        for origin, origin_desc in spaces.items()
+        for destination, destination_desc in spaces.items()
+        for transform_type, transform_type_desc in transform_types.items()
+        if origin != destination
+    }

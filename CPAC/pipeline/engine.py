@@ -22,7 +22,8 @@ from itertools import chain
 import json
 import os
 import re
-from typing import Optional
+from types import NotImplementedType
+from typing import cast, Generator, Literal, Optional
 import warnings
 
 import pandas as pd
@@ -35,6 +36,7 @@ from CPAC.image_utils.statistical_transforms import (
     fisher_z_score_standardize,
     z_score_standardize,
 )
+from CPAC.longitudinal.wf.utils import LONGITUDINAL_TEMPLATE_PATTERN
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.pipeline.nodeblock import NodeBlockFunction
@@ -43,11 +45,12 @@ from CPAC.pipeline.utils import (
     name_fork,
     source_set,
 )
-from CPAC.registration.registration import transform_derivative
+from CPAC.registration.utils import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
 from CPAC.utils.bids_utils import res_in_filename
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.datasource import (
+    bidsier_prefix,
     create_anat_datasource,
     create_func_datasource,
     create_general_datasource,
@@ -62,6 +65,7 @@ from CPAC.utils.monitoring import (
     WARNING_FREESURFER_OFF_WITH_DATA,
     WFLOGGER,
 )
+from CPAC.utils.monitoring.custom_logging import MockLogger
 from CPAC.utils.outputs import Outputs
 from CPAC.utils.utils import (
     check_prov_for_regtool,
@@ -73,7 +77,9 @@ from CPAC.utils.utils import (
 
 
 class ResourcePool:
-    def __init__(self, rpool=None, name=None, cfg=None, pipe_list=None):
+    def __init__(
+        self, rpool=None, name: Optional[str] = None, cfg=None, pipe_list=None
+    ):
         if not rpool:
             self.rpool = {}
         else:
@@ -84,7 +90,7 @@ class ResourcePool:
         else:
             self.pipe_list = pipe_list
 
-        self.name = name
+        self.name = name or ""
         self.info = {}
 
         if cfg:
@@ -148,6 +154,32 @@ class ResourcePool:
             return f"ResourcePool({self.name}): {list(self.rpool)}"
         return f"ResourcePool: {list(self.rpool)}"
 
+    def _set_id_parts(self) -> None:
+        """Set part_id and ses_id."""
+        unique_id = self.name
+        setattr(self, "_part_id", unique_id.split("_")[0])
+        if "_" not in unique_id:
+            setattr(self, "_ses_id", None)
+            return
+        ses_id = unique_id.split("_")[1]
+        if "ses-" not in ses_id:
+            ses_id = f"ses-{ses_id}"
+        setattr(self, "_ses_id", ses_id)
+
+    @property
+    def part_id(self) -> str:
+        """Access participant ID."""
+        if not hasattr(self, "_part_id"):
+            self._set_id_parts()
+        return getattr(self, "_part_id")
+
+    @property
+    def ses_id(self) -> str:
+        """Access session ID."""
+        if not hasattr(self, "_part_id"):
+            self._set_id_parts()
+        return getattr(self, "_ses_id")
+
     def append_name(self, name):
         self.name.append(name)
 
@@ -196,7 +228,9 @@ class ResourcePool:
                         pass
         return
 
-    def get_name(self):
+    def get_name(self) -> str:
+        if not hasattr(self, "_part_id"):
+            self._set_id_parts()
         return self.name
 
     def check_rpool(self, resource):
@@ -505,6 +539,28 @@ class ResourcePool:
                     continue
         json_data = self.get_json(resource, strat)
         return json_data["CpacProvenance"]
+
+    def motion_tool(
+        self, resource, strat=None
+    ) -> Optional[Literal["3dvolreg", "mcflirt"]]:
+        """Check provenance for motion correction tool."""
+        prov = self.get_cpac_provenance(resource, strat)
+        last_entry = get_last_prov_entry(prov)
+        last_node = last_entry.split(":")[1]
+        if "3dvolreg" in last_node.lower():
+            return "3dvolreg"
+        if "mcflirt" in last_node.lower():
+            return "mcflirt"
+        # check entire prov
+        if "3dvolreg" in str(prov):
+            return "3dvolreg"
+        if "mcflirt" in str(prov):
+            return "mcflirt"
+        return None
+
+    def reg_tool(self, resource, strat=None) -> Optional[Literal["ants", "fsl"]]:
+        """Check provenance for registration tool."""
+        return check_prov_for_regtool(self.get_cpac_provenance(resource, strat))
 
     @staticmethod
     def generate_prov_string(prov):
@@ -855,7 +911,6 @@ class ResourcePool:
                     self.num_ants_cores,
                     ants_interp=self.ants_interp,
                     fsl_interp=self.fsl_interp,
-                    opt=None,
                 )
                 wf.connect(connection[0], connection[1], xfm, "inputspec.in_file")
 
@@ -1080,10 +1135,20 @@ class ResourcePool:
     def gather_pipes(self, wf, cfg, all=False, add_incl=None, add_excl=None):
         excl = []
         substring_excl = []
-        outputs_logger = getLogger(
-            f'{cfg.get("subject_id", getattr(wf, "name", ""))}_expectedOutputs'
-        )
-        expected_outputs = ExpectedOutputs()
+        try:
+            unique_id = re.match(r"(.*_)(sub-.*)", wf.name).group(2)  # pyright: ignore[reportOptionalMemberAccess]
+        except (AttributeError, IndexError):
+            unique_id = cfg.get("subject_id", getattr(wf, "name", ""))
+        unique_id = bidsier_prefix(unique_id)
+        outputs_logger = getLogger(f"{unique_id}_expectedOutputs")
+        expected = {}
+        if isinstance(outputs_logger, MockLogger):
+            try:
+                # load already-expected outputs
+                expected = outputs_logger.yaml_contents()
+            except (FileNotFoundError, TypeError):
+                pass
+        expected_outputs = ExpectedOutputs(expected)
 
         if add_excl:
             excl += add_excl
@@ -1101,13 +1166,20 @@ class ResourcePool:
             excl += Outputs.debugging
 
         for resource in self.rpool.keys():
-            if resource not in Outputs.any:
+            output_resource: str = (
+                resource[22:]
+                if resource.startswith("longitudinal-template_")
+                else resource
+            )
+
+            if output_resource not in Outputs.any:
                 continue
 
             if resource in excl:
                 continue
 
             drop = False
+
             for substring_list in substring_excl:
                 bool_list = []
                 for substring in substring_list:
@@ -1134,22 +1206,26 @@ class ResourcePool:
                 # TODO: other stuff like acq- etc.
 
             for pipe_idx in self.rpool[resource]:
-                unique_id = self.get_name()
-                part_id = unique_id.split("_")[0]
-                ses_id = unique_id.split("_")[1]
-
-                if "ses-" not in ses_id:
-                    ses_id = f"ses-{ses_id}"
-
                 out_dir = cfg.pipeline_setup["output_directory"]["path"]
                 pipe_name = cfg.pipeline_setup["pipeline_name"]
-                container = os.path.join(f"pipeline_{pipe_name}", part_id, ses_id)
-                filename = f"{unique_id}_{res_in_filename(self.cfg, resource)}"
+                longitudinal_xfm = bool(
+                    re.search(LONGITUDINAL_TEMPLATE_PATTERN, resource)
+                )
+                if self.ses_id and not longitudinal_xfm:
+                    container = os.path.join(
+                        f"pipeline_{pipe_name}", self.part_id, self.ses_id
+                    )
+                else:
+                    container = os.path.join(f"pipeline_{pipe_name}", self.part_id)
+                resource_name = self.get_name()
+                if resource_name.startswith("longitudinal-template_"):
+                    resource_name = resource_name[22:]
+                filename = f"{resource_name}_{res_in_filename(self.cfg, resource)}"
 
                 out_path = os.path.join(out_dir, container, subdir, filename)
 
                 out_dct = {
-                    "unique_id": unique_id,
+                    "unique_id": self.part_id if longitudinal_xfm else self.get_name(),
                     "out_dir": out_dir,
                     "container": container,
                     "subdir": subdir,
@@ -1160,7 +1236,6 @@ class ResourcePool:
 
                 # TODO: have to link the pipe_idx's here. and call up 'desc-preproc_T1w' from a Sources in a json and replace. here.
                 # TODO: can do the pipeline_description.json variants here too!
-
         for resource in self.rpool.keys():
             if resource not in Outputs.any:
                 continue
@@ -1236,7 +1311,11 @@ class ResourcePool:
                     unlabelled.remove(key)
             # del all_forks
             for pipe_idx in self.rpool[resource]:
-                pipe_x = self.get_pipe_number(pipe_idx)
+                try:
+                    pipe_x = self.get_pipe_number(pipe_idx)
+                except ValueError:
+                    # already gone
+                    continue
                 json_info = self.rpool[resource][pipe_idx]["json"]
                 out_dct = self.rpool[resource][pipe_idx]["out"]
 
@@ -1293,7 +1372,7 @@ class ResourcePool:
                         output_names=["out_filename"],
                         function=create_id_string,
                     ),
-                    name=f"id_string_{resource_idx}_{pipe_x}",
+                    name=f"id_string_{unique_id}_{resource_idx}_{pipe_x}",
                 )
                 id_string.inputs.cfg = self.cfg
                 id_string.inputs.unique_id = unique_id
@@ -1347,7 +1426,9 @@ class ResourcePool:
                                     )
                                 )
                             )
-                nii_name = pe.Node(Rename(), name=f"nii_{resource_idx}_{pipe_x}")
+                nii_name = pe.Node(
+                    Rename(), name=f"nii_{unique_id}_{resource_idx}_{pipe_x}"
+                )
                 nii_name.inputs.keep_ext = True
 
                 if resource in Outputs.ciftis:
@@ -1366,14 +1447,7 @@ class ResourcePool:
                 wf.connect(id_string, "out_filename", nii_name, "format_string")
 
                 node, out = self.rpool[resource][pipe_idx]["data"]
-                if not node:
-                    msg = f"Resource {resource} not found in resource pool."
-                    raise FileNotFoundError(msg)
-                try:
-                    wf.connect(node, out, nii_name, "in_file")
-                except OSError as os_error:
-                    WFLOGGER.warning(os_error)
-                    continue
+                wf.connect(node, out, nii_name, "in_file")
 
                 write_json_imports = ["import os", "import json"]
                 write_json = pe.Node(
@@ -2635,7 +2709,14 @@ def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
     return wf, rpool
 
 
-def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
+def initiate_rpool(
+    wf: pe.Workflow,
+    cfg: Configuration,
+    data_paths=None,
+    part_id=None,
+    *,
+    rpool: Optional[ResourcePool] = None,
+) -> tuple[pe.Workflow, ResourcePool]:
     """
     Initialize a new ResourcePool.
 
@@ -2674,7 +2755,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
         unique_id = part_id
         creds_path = None
 
-    rpool = ResourcePool(name=unique_id, cfg=cfg)
+    rpool = ResourcePool(rpool=rpool.rpool if rpool else None, name=unique_id, cfg=cfg)
 
     if data_paths:
         # ingress outdir
@@ -2707,7 +2788,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
 
     # output files with 4 different scans
 
-    return (wf, rpool)
+    return wf, rpool
 
 
 def run_node_blocks(blocks, data_paths, cfg=None):
@@ -2768,13 +2849,13 @@ class NodeData:
     --------
     >>> rp = ResourcePool()
     >>> rp.node_data(None)
-    NotImplemented (NotImplemented)
+    NodeData(NotImplemented, NotImplemented)
 
     >>> rp.set_data('test',
     ...             pe.Node(Function(input_names=[]), 'test'),
     ...             'b', [], 0, 'test')
     >>> rp.node_data('test')
-    test (b)
+    NodeData(test, b)
     >>> rp.node_data('test').out
     'b'
 
@@ -2787,10 +2868,25 @@ class NodeData:
 
     # pylint: disable=too-few-public-methods
     def __init__(self, strat_pool=None, resource=None, **kwargs):
+        """Initialize NodeData."""
         self.node = NotImplemented
         self.out = NotImplemented
         if strat_pool is not None and resource is not None:
-            self.node, self.out = strat_pool.get_data(resource, **kwargs)
+            self.node, self.out = cast(
+                tuple[pe.Node, str], strat_pool.get_data(resource, **kwargs)
+            )
 
-    def __repr__(self):  # noqa: D105
+    def __iter__(
+        self,
+    ) -> Generator[pe.Node | NotImplementedType, str | NotImplementedType, None]:
+        """Expand NodeData into node, data."""
+        yield self.node
+        yield self.out
+
+    def __repr__(self) -> str:
+        """Return reproducible string representation of NodeData."""
+        return f"NodeData({getattr(self.node, 'name', str(self.node))}, {self.out})"
+
+    def __str__(self) -> str:
+        """Return string representation of NodeData."""
         return f'{getattr(self.node, "name", str(self.node))} ({self.out})'

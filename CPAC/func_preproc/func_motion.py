@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -34,7 +34,6 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.pipeline.schema import valid_options
 from CPAC.utils.interfaces.function import Function
-from CPAC.utils.utils import check_prov_for_motion_tool
 
 
 @nodeblock(
@@ -68,8 +67,7 @@ from CPAC.utils.utils import check_prov_for_motion_tool
 )
 def calc_motion_stats(wf, cfg, strat_pool, pipe_num, opt=None):
     """Calculate motion statistics for motion parameters."""
-    motion_prov = strat_pool.get_cpac_provenance("desc-movementParameters_motion")
-    motion_correct_tool = check_prov_for_motion_tool(motion_prov)
+    motion_correct_tool = strat_pool.motion_tool("desc-movementParameters_motion")
     coordinate_transformation = [
         "filtered-coordinate-transformation",
         "coordinate-transformation",

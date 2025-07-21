@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -20,8 +20,11 @@ from nipype.interfaces.utility import Function
 from CPAC.anat_preproc.utils import mri_convert
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
-from CPAC.registration.registration import apply_transform
-from CPAC.registration.utils import check_transforms, generate_inverse_transform_flags
+from CPAC.registration.utils import (
+    apply_transform,
+    check_transforms,
+    generate_inverse_transform_flags,
+)
 from CPAC.seg_preproc.utils import (
     check_if_file_is_empty,
     hardcoded_antsJointLabelFusion,
@@ -35,7 +38,6 @@ from CPAC.seg_preproc.utils import (
 from CPAC.utils.interfaces.function.seg_preproc import (
     pick_tissue_from_labels_file_interface,
 )
-from CPAC.utils.utils import check_prov_for_regtool
 
 
 def process_segment_map(wf_name, use_priors, use_custom_threshold, reg_tool):
@@ -495,8 +497,14 @@ def create_seg_preproc_antsJointLabel_method(wf_name="seg_preproc_templated_base
     option_val="FSL-FAST",
     inputs=[
         (
-            ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
-            ["space-T1w_desc-brain_mask", "space-longitudinal_desc-brain_mask"],
+            [
+                "desc-brain_T1w",
+                "space-longitudinal_desc-brain_T1w",
+            ],
+            [
+                "space-T1w_desc-brain_mask",
+                "longitudinal-template_space-longitudinal_desc-brain_mask",
+            ],
             [
                 "from-template_to-T1w_mode-image_desc-linear_xfm",
                 "from-template_to-longitudinal_mode-image_desc-linear_xfm",
@@ -507,27 +515,10 @@ def create_seg_preproc_antsJointLabel_method(wf_name="seg_preproc_templated_base
         "WM-path",
     ],
     outputs=[
-        "label-CSF_mask",
-        "label-GM_mask",
-        "label-WM_mask",
-        "label-CSF_desc-preproc_mask",
-        "label-GM_desc-preproc_mask",
-        "label-WM_desc-preproc_mask",
-        "label-CSF_probseg",
-        "label-GM_probseg",
-        "label-WM_probseg",
-        "label-CSF_pveseg",
-        "label-GM_pveseg",
-        "label-WM_pveseg",
-        "space-longitudinal_label-CSF_mask",
-        "space-longitudinal_label-GM_mask",
-        "space-longitudinal_label-WM_mask",
-        "space-longitudinal_label-CSF_desc-preproc_mask",
-        "space-longitudinal_label-GM_desc-preproc_mask",
-        "space-longitudinal_label-WM_desc-preproc_mask",
-        "space-longitudinal_label-CSF_probseg",
-        "space-longitudinal_label-GM_probseg",
-        "space-longitudinal_label-WM_probseg",
+        f"{long}label-{tissue}_{entity}"
+        for long in ["", "space-longitudinal_"]
+        for tissue in ["CSF", "GM", "WM"]
+        for entity in ["mask", "desc-preproc_mask", "probseg", "pveseg"]
     ],
 )
 def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -536,7 +527,6 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     #      triggered by 'segments' boolean input (-g or --segments)
     #  'probability_maps' output is a list of individual probability maps
     #      triggered by 'probability_maps' boolean input (-p)
-
     segment = pe.Node(
         interface=fsl.FAST(),
         name=f"segment_{pipe_num}",
@@ -574,7 +564,8 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     )
 
     connect, resource = strat_pool.get_data(
-        ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"], report_fetched=True
+        ["desc-brain_T1w", "space-longitudinal_desc-brain_T1w"],
+        report_fetched=True,
     )
     node, out = connect
     wf.connect(node, out, segment, "in_files")
@@ -596,10 +587,9 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
         xfm = "from-template_to-T1w_mode-image_desc-linear_xfm"
         if "space-longitudinal" in resource:
             xfm = "from-template_to-longitudinal_mode-image_desc-linear_xfm"
-        xfm_prov = strat_pool.get_cpac_provenance(xfm)
-        reg_tool = check_prov_for_regtool(xfm_prov)
+
+        reg_tool = strat_pool.reg_tool(xfm)
     else:
-        xfm_prov = None
         reg_tool = None
         xfm = None
 
@@ -662,7 +652,10 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, process_wm, "inputspec.brain")
 
     node, out = strat_pool.get_data(
-        ["space-T1w_desc-brain_mask", "space-longitudinal_desc-brain_mask"]
+        [
+            "space-T1w_desc-brain_mask",
+            "longitudinal-template_space-longitudinal_desc-brain_mask",
+        ]
     )
     wf.connect(node, out, process_csf, "inputspec.brain_mask")
     wf.connect(node, out, process_gm, "inputspec.brain_mask")
@@ -752,10 +745,7 @@ def tissue_seg_fsl_fast(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["label-CSF_mask", "label-GM_mask", "label-WM_mask"],
 )
 def tissue_seg_T1_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance(
-        "from-template_to-T1w_mode-image_desc-linear_xfm"
-    )
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-template_to-T1w_mode-image_desc-linear_xfm")
     use_ants = reg_tool == "ants"
 
     csf_template2t1 = tissue_mask_template_to_t1(f"CSF_{pipe_num}", use_ants)
@@ -806,10 +796,9 @@ def tissue_seg_T1_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
 )
 def tissue_seg_EPI_template_based(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance(
+    reg_tool = strat_pool.reg_tool(
         "from-EPItemplate_to-bold_mode-image_desc-linear_xfm"
     )
-    reg_tool = check_prov_for_regtool(xfm_prov)
     use_ants = reg_tool == "ants"
 
     csf_template2t1 = tissue_mask_template_to_t1("CSF", use_ants)

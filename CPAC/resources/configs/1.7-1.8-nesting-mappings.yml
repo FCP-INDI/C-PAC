@@ -322,12 +322,15 @@ longitudinal_template_dof:
    - dof
 longitudinal_template_interp:
    - longitudinal_template_generation
+   - legacy-specific
    - interp
 longitudinal_template_cost:
    - longitudinal_template_generation
+   - legacy-specific
    - cost
 longitudinal_template_thread_pool:
    - longitudinal_template_generation
+   - legacy-specific
    - thread_pool
 longitudinal_template_convergence_threshold:
    - longitudinal_template_generation
