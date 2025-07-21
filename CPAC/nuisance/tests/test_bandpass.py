@@ -51,7 +51,7 @@ def test_read_1D(start_line: int, tmp_path: Path) -> None:
     assert len(header) == 5 - start_line
 
 
-@pytest.mark.parametrize("sample_period", [1.0, 1000.0])
+@pytest.mark.parametrize("sample_period", [1.0, 0.1])
 @pytest.mark.parametrize(
     "lowcut, highcut, in_freq, out_freq",
     [
@@ -86,7 +86,7 @@ def test_ideal_bandpass_with_various_cutoffs(
     assert filt_fft[idx_out] < 0.1 * orig_fft[idx_out]
 
 
-@pytest.mark.parametrize("sample_period", [1.0, 1000.0])
+@pytest.mark.parametrize("sample_period", [1.0, 0.1])
 def test_ideal_bandpass_cutoffs_clamped_to_nyquist(sample_period):
     """Test that ideal_bandpass clamps cutoffs to Nyquist frequency."""
     N = 512
