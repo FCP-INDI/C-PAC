@@ -1,4 +1,4 @@
-coverage
+coverage >= 7.10.0
 GitPython
 pytest
 pytest_bdd
