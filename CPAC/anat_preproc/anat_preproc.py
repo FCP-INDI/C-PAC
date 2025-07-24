@@ -1133,7 +1133,10 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     wmparc_to_nifti.inputs.args = "-rt nearest"
 
-    node, out = strat_pool.get_data("desc-restore_T1w")
+    if strat_pool.check_rpool("desc-restore_T1w"):
+        node, out = strat_pool.get_data("desc-restore_T1w")
+    else:
+        node, out = strat_pool.get_data("desc-preproc_T1w")
     wf.connect(node, out, wmparc_to_nifti, "reslice_like")
 
     binary_mask = pe.Node(
@@ -1169,7 +1172,10 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     wf.connect(binary_filled_mask, "out_file", brain_mask_to_t1_restore, "in_file")
 
-    node, out = strat_pool.get_data("desc-restore_T1w")
+    if strat_pool.check_rpool("desc-restore_T1w"):
+        node, out = strat_pool.get_data("desc-restore_T1w")
+    else:
+        node, out = strat_pool.get_data("desc-preproc_T1w")
     wf.connect(node, out, brain_mask_to_t1_restore, "ref_file")
 
     outputs = {"space-T1w_desc-brain_mask": (brain_mask_to_t1_restore, "out_file")}
@@ -2003,7 +2009,7 @@ def brain_mask_acpc_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
     option_key=["anatomical_preproc", "brain_extraction", "using"],
     option_val="FreeSurfer-ABCD",
     inputs=[
-        "desc-restore_T1w",
+        ["desc-restore_T1w", "desc-preproc_T1w"],
         "pipeline-fs_wmparc",
         "pipeline-fs_raw-average",
         "freesurfer-subject-dir",
@@ -2049,7 +2055,7 @@ def brain_mask_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None):
     option_key=["anatomical_preproc", "brain_extraction", "using"],
     option_val="FreeSurfer-ABCD",
     inputs=[
-        "desc-preproc_T1w",
+        ["desc-restore_T1w", "desc-preproc_T1w"],
         "pipeline-fs_wmparc",
         "pipeline-fs_raw-average",
         "freesurfer-subject-dir",
