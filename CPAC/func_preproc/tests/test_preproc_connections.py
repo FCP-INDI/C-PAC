@@ -61,14 +61,6 @@ _PRE_RESOURCES = [
     "space-T1w_desc-eroded_mask",
     "space-bold_desc-brain_mask",
     "TR",
-    # "tr",
-    # "tpattern",
-    # "scan",
-    # "subject",
-    # "desc-brain_T1w",
-    # "from-T1w_to-template_mode-image_desc-linear_xfm",
-    # "from-bold_to-T1w_mode-image_desc-linear_xfm",
-    # "from-template_to-T1w_mode-image_desc-linear_xfm",
 ]
 
 NUM_TESTS = 48  # number of parameterizations to run for many-parameter tests

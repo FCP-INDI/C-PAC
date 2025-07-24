@@ -25,7 +25,6 @@ import shutil
 import sys
 import time
 from time import strftime
-from typing import TYPE_CHECKING
 
 import yaml
 import nipype
@@ -191,9 +190,6 @@ from CPAC.utils.utils import (
 from CPAC.utils.versioning import REQUIREMENTS
 from CPAC.utils.workflow_serialization import cpac_flowdump_serializer
 from CPAC.vmhc.vmhc import smooth_func_vmhc, vmhc, warp_timeseries_to_sym_template
-
-if TYPE_CHECKING:
-    pass
 
 faulthandler.enable()
 
