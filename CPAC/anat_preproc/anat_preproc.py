@@ -1172,10 +1172,7 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     wf.connect(binary_filled_mask, "out_file", brain_mask_to_t1_restore, "in_file")
 
-    if strat_pool.check_rpool("desc-restore_T1w"):
-        node, out = strat_pool.get_data("desc-restore_T1w")
-    else:
-        node, out = strat_pool.get_data("desc-preproc_T1w")
+    node, out = strat_pool.get_data(["desc-restore_T1w", "desc-preproc_T1w"])
     wf.connect(node, out, brain_mask_to_t1_restore, "ref_file")
 
     outputs = {"space-T1w_desc-brain_mask": (brain_mask_to_t1_restore, "out_file")}
