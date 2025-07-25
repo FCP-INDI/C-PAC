@@ -18,6 +18,7 @@ from base64 import b64decode
 from collections.abc import Iterable
 import json
 import os
+from pathlib import Path
 import re
 import sys
 from typing import Any, Callable, Optional
@@ -1013,7 +1014,7 @@ def apply_modifications(
 
 
 def load_yaml_config(
-    config_filename: str,
+    config_filename: str | Path,
     aws_input_creds,
     modifications: Optional[list[Callable[[str], str]]] = None,
 ) -> dict | list | str:
@@ -1021,6 +1022,8 @@ def load_yaml_config(
 
     `modifications` should be a list of functions that take a single string argument (the loaded YAML contents) and return a single string argument (the modified YAML contents).
     """
+    if isinstance(config_filename, Path):
+        config_filename = str(config_filename)
     if config_filename.lower().startswith("data:"):
         try:
             _header, encoded = config_filename.split(",", 1)
