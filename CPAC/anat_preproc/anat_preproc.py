@@ -1133,10 +1133,7 @@ def freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     wmparc_to_nifti.inputs.args = "-rt nearest"
 
-    if strat_pool.check_rpool("desc-restore_T1w"):
-        node, out = strat_pool.get_data("desc-restore_T1w")
-    else:
-        node, out = strat_pool.get_data("desc-preproc_T1w")
+    node, out = strat_pool.get_data(["desc-restore_T1w", "desc-preproc_T1w"])
     wf.connect(node, out, wmparc_to_nifti, "reslice_like")
 
     binary_mask = pe.Node(
