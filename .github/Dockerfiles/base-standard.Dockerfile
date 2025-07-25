@@ -22,6 +22,12 @@ Standard software dependencies for C-PAC standard images"
 LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
 USER root
 
+# Installing ANTs
+ENV LANG="en_US.UTF-8" \
+    LC_ALL="en_US.UTF-8" \
+    ANTSPATH=/usr/lib/ants/bin \
+    PATH=/usr/lib/ants/bin:$PATH
+
 # Installing FreeSurfer
 RUN apt-get update \
     && yes | mamba install tcsh \

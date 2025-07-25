@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2024  C-PAC Developers
+# Copyright (C) 2019-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,29 +14,32 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Resources for testing utilities."""
+
+import os
+import shutil
+from typing import Optional
+
+from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.utils.datasource import check_for_s3
+from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.monitoring import WFLOGGER
 
 
-def setup_test_wf(s3_prefix, paths_list, test_name, workdirs_to_keep=None):
-    """Set up a basic template Nipype workflow for testing single nodes or
-    small sub-workflows.
-    """
-    import os
-    import shutil
-
-    from CPAC.pipeline import nipype_pipeline_engine as pe
-    from CPAC.utils.datasource import check_for_s3
-    from CPAC.utils.interfaces.datasink import DataSink
-
-    test_dir = os.path.join(os.getcwd(), test_name)
+def setup_test_wf(
+    s3_prefix,
+    paths_list,
+    test_name,
+    workdirs_to_keep=None,
+    test_dir: Optional[str] = None,
+) -> tuple[pe.Workflow, pe.Node, dict[str, str]]:
+    """Set up a basic template Nipype workflow for testing small workflows."""
+    test_dir = os.path.join(test_dir if test_dir else os.getcwd(), test_name)
     work_dir = os.path.join(test_dir, "workdir")
     out_dir = os.path.join(test_dir, "output")
 
     if os.path.exists(out_dir):
-        try:
-            shutil.rmtree(out_dir)
-        except:
-            pass
+        shutil.rmtree(out_dir, ignore_errors=True)
 
     if os.path.exists(work_dir):
         for dirname in os.listdir(work_dir):
@@ -45,10 +48,7 @@ def setup_test_wf(s3_prefix, paths_list, test_name, workdirs_to_keep=None):
                     WFLOGGER.info("%s --- %s\n", dirname, keepdir)
                     if keepdir in dirname:
                         continue
-            try:
-                shutil.rmtree(os.path.join(work_dir, dirname))
-            except:
-                pass
+            shutil.rmtree(os.path.join(work_dir, dirname), ignore_errors=True)
 
     local_paths = {}
     for subpath in paths_list:
@@ -67,4 +67,4 @@ def setup_test_wf(s3_prefix, paths_list, test_name, workdirs_to_keep=None):
     ds.inputs.base_directory = out_dir
     ds.inputs.parameterization = True
 
-    return (wf, ds, local_paths)
+    return wf, ds, local_paths
