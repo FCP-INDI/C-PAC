@@ -30,7 +30,6 @@ ENV LANG="en_US.UTF-8" \
 
 # Installing FreeSurfer
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y bc \
     && yes | mamba install tcsh \
     && yes | mamba clean --all \
     && cp -l `which tcsh` /bin/tcsh \
