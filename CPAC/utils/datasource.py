@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -20,6 +20,7 @@ import csv
 import json
 from pathlib import Path
 import re
+from typing import Any, Optional
 
 from voluptuous import RequiredFieldInvalid
 from nipype.interfaces import utility as util
@@ -463,12 +464,12 @@ def gather_echo_times(echotime_1, echotime_2, echotime_3=None, echotime_4=None):
 
 
 def match_epi_fmaps(
-    bold_pedir,
-    epi_fmap_one,
-    epi_fmap_params_one,
-    epi_fmap_two=None,
-    epi_fmap_params_two=None,
-):
+    bold_pedir: str,
+    epi_fmap_one: str,
+    epi_fmap_params_one: dict[str, Any],
+    epi_fmap_two: Optional[str] = None,
+    epi_fmap_params_two: Optional[dict[str, Any]] = None,
+) -> tuple[str, str]:
     """Match EPI field maps to the BOLD scan.
 
     Parse the field map files in the data configuration and determine which
@@ -504,13 +505,41 @@ def match_epi_fmaps(
             with open(scan_params, "r") as f:
                 scan_params = json.load(f)
         if "PhaseEncodingDirection" in scan_params:
-            epi_pedir = scan_params["PhaseEncodingDirection"]
+            epi_pedir: str | bytes = scan_params["PhaseEncodingDirection"]
+            if isinstance(epi_pedir, bytes):
+                epi_pedir = epi_pedir.decode("utf-8")
             if epi_pedir == bold_pedir:
                 same_pe_epi = epi_scan
             elif epi_pedir[0] == bold_pedir[0]:
                 opposite_pe_epi = epi_scan
 
-    return (opposite_pe_epi, same_pe_epi)
+    if same_pe_epi is None:
+        msg = f"Same phase encoding EPI: {bold_pedir}"
+        raise FileNotFoundError(msg)
+    if opposite_pe_epi is None:
+        msg = f"Opposite phase encoding EPI: {bold_pedir}"
+        raise FileNotFoundError(msg)
+
+    return opposite_pe_epi, same_pe_epi
+
+
+def match_epi_fmaps_function_node(name: str = "match_epi_fmaps"):
+    """Return a Function node for `~CPAC.utils.datasource.match_epi_fmaps`."""
+    return pe.Node(
+        Function(
+            input_names=[
+                "bold_pedir",
+                "epi_fmap_one",
+                "epi_fmap_params_one",
+                "epi_fmap_two",
+                "epi_fmap_params_two",
+            ],
+            output_names=["opposite_pe_epi", "same_pe_epi"],
+            function=match_epi_fmaps,
+            as_module=True,
+        ),
+        name=name,
+    )
 
 
 def ingress_func_metadata(
