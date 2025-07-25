@@ -1023,7 +1023,6 @@ def normalize_motion_parameters(in_file: str) -> str:
 def stack_motion_blocks(
     func_blocks: dict[str, list[NodeBlockFunction | list[NodeBlockFunction]]],
     cfg: Configuration,
-    rpool: "ResourcePool",
 ) -> list[NodeBlockFunction | list[NodeBlockFunction]]:
     """Create a stack of motion correction nodeblocks."""
     if cfg["functional_preproc", "motion_estimates_and_correction", "run"]:

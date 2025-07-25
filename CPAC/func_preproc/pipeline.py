@@ -105,4 +105,4 @@ def stack_func_preproc_blocks(
             distcor_blocks = [cast(NodeBlockFunction, distcor_blocks)]
         func_blocks["prep"] += distcor_blocks
 
-    return stack_motion_blocks(func_blocks, cfg, rpool)
+    return stack_motion_blocks(func_blocks, cfg)
