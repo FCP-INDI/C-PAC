@@ -252,6 +252,17 @@ class DatetimeWithSafeNone(datetime, _NoTime):
         """Return the string representation of the datetime or NoTime."""
         return super().__str__()
 
+    @staticmethod
+    def sync_tz(
+        one: "DatetimeWithSafeNone", two: "DatetimeWithSafeNone"
+    ) -> tuple[datetime, datetime]:
+        """Add timezone to other if one datetime is aware and other isn't ."""
+        if one.tzinfo is None and two.tzinfo is not None:
+            return one.replace(tzinfo=two.tzinfo), two
+        if one.tzinfo is not None and two.tzinfo is None:
+            return one, two.replace(tzinfo=one.tzinfo)
+        return one, two
+
 
 class DatetimeJSONEncoder(json.JSONEncoder):
     """JSON encoder that handles DatetimeWithSafeNone instances."""
