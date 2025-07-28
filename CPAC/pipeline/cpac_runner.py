@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2024  C-PAC Developers
+# Copyright (C) 2022-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -19,10 +19,12 @@
 from multiprocessing import Process
 import os
 from time import strftime
+from typing import Optional
 import warnings
 
 from voluptuous.error import Invalid
 import yaml
+from nipype.pipeline.plugins.base import PluginBase as Plugin
 
 from CPAC.longitudinal_pipeline.longitudinal_workflow import anat_longitudinal_wf
 from CPAC.pipeline.utils import get_shell
@@ -257,15 +259,15 @@ def run_T1w_longitudinal(sublist, cfg):
 
 
 def run(  # noqa: PLR0915
-    subject_list_file,
-    config_file=None,
-    p_name=None,
-    plugin=None,
-    plugin_args=None,
-    tracking=True,
-    num_subs_at_once=None,
-    debug=False,
-    test_config=False,
+    subject_list_file: str,
+    config_file: Optional[str] = None,
+    p_name: Optional[str] = None,
+    plugin: Optional[str | Plugin] = None,
+    plugin_args: Optional[dict] = None,
+    tracking: bool = True,
+    num_subs_at_once: Optional[int] = None,
+    debug: bool = False,
+    test_config: bool = False,
 ) -> int:
     """Run C-PAC subjects via job queue.
 

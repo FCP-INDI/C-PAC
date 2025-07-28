@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -16,13 +16,15 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functional preprocessing."""
 
+from typing import TYPE_CHECKING
+
 # pylint: disable=ungrouped-imports,wrong-import-order,wrong-import-position
 from nipype.interfaces import afni, ants, fsl, utility as util
 from nipype.interfaces.afni import preprocess, utils as afni_utils
 
 from CPAC.func_preproc.utils import get_num_slices, interpolate_slice_timing, nullify
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.nodeblock import nodeblock, NODEBLOCK_RETURN, POOL_RESOURCE_DICT
 from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.ants import (
     AI,  # niworkflows
@@ -30,6 +32,10 @@ from CPAC.utils.interfaces.ants import (
     SetDirectionByMatrix,
 )
 from CPAC.utils.utils import add_afni_prefix, afni_3dwarp
+
+if TYPE_CHECKING:
+    from CPAC.pipeline.engine import ResourcePool
+    from CPAC.utils.configuration import Configuration
 
 
 def collect_arguments(*args):
@@ -1890,7 +1896,9 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
         ["functional_preproc", "run"],
         ["functional_preproc", "template_space_func_masking", "run"],
     ],
-    inputs=[("space-template_desc-preproc_bold", "space-template_desc-bold_mask")],
+    inputs=[
+        ("space-template_desc-preproc_bold", "space-template_desc-bold_mask"),
+    ],
     outputs={
         "space-template_desc-preproc_bold": {
             "Description": "The skull-stripped BOLD time-series.",
@@ -1906,7 +1914,13 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
         },
     },
 )
-def template_space_bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
+def template_space_bold_masking(
+    wf: pe.Workflow,
+    cfg: "Configuration",
+    strat_pool: "ResourcePool",
+    pipe_num: int,
+    opt: None = None,
+) -> NODEBLOCK_RETURN:
     """Mask the bold in template space."""
     func_apply_mask = pe.Node(
         interface=afni_utils.Calc(),
@@ -1924,13 +1938,13 @@ def template_space_bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("space-template_desc-bold_mask")
     wf.connect(node, out, func_apply_mask, "in_file_b")
 
-    outputs = {
+    outputs: POOL_RESOURCE_DICT = {
         "space-template_desc-preproc_bold": (func_apply_mask, "out_file"),
         "space-template_desc-brain_bold": (func_apply_mask, "out_file"),
         "space-template_desc-head_bold": (node_head_bold, out_head_bold),
     }
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 @nodeblock(

@@ -49,13 +49,13 @@ if TYPE_CHECKING:
 
 
 def apply_transform(
-    wf_name,
-    reg_tool,
-    time_series=False,
-    multi_input=False,
-    num_cpus=1,
-    num_ants_cores=1,
-):
+    wf_name: str,
+    reg_tool: Literal["ants", "fsl"],
+    time_series: bool = False,
+    multi_input: bool = False,
+    num_cpus: int = 1,
+    num_ants_cores: int = 1,
+) -> pe.Workflow:
     """Apply transform."""
     if not reg_tool:
         msg = (
@@ -101,7 +101,7 @@ def apply_transform(
             )
 
         apply_warp.inputs.dimension = 3
-        apply_warp.interface.num_threads = int(num_ants_cores)
+        apply_warp.inputs.num_threads = int(num_ants_cores)
 
         if time_series:
             apply_warp.inputs.input_image_type = 3

@@ -1,4 +1,4 @@
-# Copyright (C) 2023  C-PAC Developers
+# Copyright (C) 2023-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -17,18 +17,27 @@
 """Tests for requisite surface prerequisites."""
 
 import os
+from typing import Literal
 
 import pytest
 
 from CPAC.utils.tests.test_utils import _installation_check
 
 
-@pytest.mark.parametrize("executable", ["bc", "csh"])
-@pytest.mark.skipif(
-    "FREESURFER_HOME" not in os.environ
-    or not os.path.exists(os.environ["FREESURFER_HOME"]),
-    reason="We don't need these dependencies if we don't have FreeSurfer.",
+@pytest.mark.parametrize(
+    "executable",
+    [
+        "bc",
+        pytest.param(
+            "csh",
+            marks=pytest.mark.skipif(
+                "FREESURFER_HOME" not in os.environ
+                or not os.path.exists(os.environ["FREESURFER_HOME"]),
+                reason="We don't need this dependency if we don't have FreeSurfer.",
+            ),
+        ),
+    ],
 )
-def test_executable(executable):
+def test_executable(executable: Literal["bc"] | Literal["csh"]) -> None:
     """Make sure executable is installed."""
     _installation_check(executable, "--version")
