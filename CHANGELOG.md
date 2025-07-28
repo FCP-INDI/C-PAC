@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Switch `sink_native_transforms` under `registration_workflows` to output all `.mat` files in ANTs and FSL Transforms.
 - `deoblique` field in pipeline config with `warp` and `refit` options to apply `3dWarp` or `3drefit` during data initialization.
 - `organism` configuration option.
+- `desc-ABCDpreproc_T1w` to the outputs
 - `bc` to `lite` container images.
 
 ### Changed
