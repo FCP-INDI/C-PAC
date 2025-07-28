@@ -2189,7 +2189,6 @@ def brain_mask_acpc_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None
     outputs={
         "desc-preproc_T1w": {"SkullStripped": "True"},
         "desc-brain_T1w": {"SkullStripped": "True"},
-        "desc-head_T1w": {"SkullStripped": "False"},
     },
 )
 def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
@@ -2227,7 +2226,6 @@ def brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         "desc-preproc_T1w": (anat_skullstrip_orig_vol, "out_file"),
         "desc-brain_T1w": (anat_skullstrip_orig_vol, "out_file"),
-        "desc-head_T1w": (node_T1w, out_T1w),
     }
 
     return (wf, outputs)

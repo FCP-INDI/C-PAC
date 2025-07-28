@@ -40,8 +40,8 @@ from CPAC.nuisance.utils.compcor import (
     TR_string_to_float,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.engine import ResourcePool
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine import NodeData, ResourcePool
+from CPAC.pipeline.nodeblock import nodeblock, NODEBLOCK_RETURN, POOL_RESOURCE_DICT
 from CPAC.registration.registration import (
     apply_transform,
     warp_timeseries_to_EPItemplate,
@@ -2457,8 +2457,15 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
     inputs=[
         (
             "desc-preproc_bold",
-            "space-bold_desc-brain_mask",
+            "desc-reorient_bold",
+            "sbref",
+            [
+                "space-bold_desc-brain_mask",
+                "space-template_desc-bold_mask",
+                "space-template_desc-brain_mask",
+            ],
             "from-bold_to-T1w_mode-image_desc-linear_xfm",
+            "from-template_to-bold_mode-image_xfm",
             "desc-movementParameters_motion",
             "framewise-displacement-jenkinson",
             "framewise-displacement-power",
@@ -2486,7 +2493,13 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
         "lateral-ventricles-mask",
         "TR",
     ],
-    outputs=["desc-confounds_timeseries", "censor-indices"],
+    outputs={
+        "desc-confounds_timeseries": {},
+        "censor-indices": {},
+        "space-bold_desc-brain_mask": {
+            "Description": "Binary brain mask of the BOLD functional time-series, transformed from template space."
+        },
+    },
 )
 def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
     return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, "T1w")
@@ -2499,38 +2512,37 @@ def nuisance_regressors_generation(
     pipe_num: int,
     opt: dict,
     space: Literal["T1w", "bold"],
-) -> tuple[Workflow, dict]:
-    """Generate nuisance regressors.
+) -> NODEBLOCK_RETURN:
+    """Generate nuisance regressors."""
+    from CPAC.nuisance.utils.xfm import transform_bold_mask_to_native
 
-    Parameters
-    ----------
-    wf : ~nipype.pipeline.engine.workflows.Workflow
-
-    cfg : ~CPAC.utils.configuration.Configuration
-
-    strat_pool : ~CPAC.pipeline.engine.ResourcePool
-
-    pipe_num : int
-
-    opt : dict
-
-    space : str
-        T1w or bold
-
-    Returns
-    -------
-    wf : nipype.pipeline.engine.workflows.Workflow
-
-    outputs : dict
-    """
     prefixes = [f"space-{space}_"] * 2
     reg_tool = None
+    outputs: POOL_RESOURCE_DICT = {}
+
+    brain_mask = (
+        strat_pool.node_data("space-bold_desc-brain_mask")
+        if strat_pool.check_rpool("space-bold_desc-brain_mask")
+        else NodeData()
+    )
     if space == "T1w":
         prefixes[0] = ""
         if strat_pool.check_rpool("from-template_to-T1w_mode-image_desc-linear_xfm"):
             reg_tool = strat_pool.reg_tool(
                 "from-template_to-T1w_mode-image_desc-linear_xfm"
             )
+            if brain_mask.node is NotImplemented:
+                if reg_tool and strat_pool.check_rpool(
+                    ["space-template_desc-bold_mask", "space-template_desc-brain_mask"]
+                ):
+                    outputs["space-bold_desc-brain_mask"] = (
+                        transform_bold_mask_to_native(
+                            wf, strat_pool, cfg, pipe_num, reg_tool
+                        )
+                    )
+                    brain_mask.node, brain_mask.out = outputs[
+                        "space-bold_desc-brain_mask"
+                    ]
     elif space == "bold":
         reg_tool = strat_pool.reg_tool(
             "from-EPItemplate_to-bold_mode-image_desc-linear_xfm"
@@ -2575,8 +2587,12 @@ def nuisance_regressors_generation(
     node, out = strat_pool.get_data("desc-preproc_bold")
     wf.connect(node, out, regressors, "inputspec.functional_file_path")
 
-    node, out = strat_pool.get_data("space-bold_desc-brain_mask")
-    wf.connect(node, out, regressors, "inputspec.functional_brain_mask_file_path")
+    wf.connect(
+        brain_mask.node,
+        brain_mask.out,
+        regressors,
+        "inputspec.functional_brain_mask_file_path",
+    )
 
     if strat_pool.check_rpool(f"desc-brain_{space}"):
         node, out = strat_pool.get_data(f"desc-brain_{space}")
@@ -2738,12 +2754,13 @@ def nuisance_regressors_generation(
     node, out = strat_pool.get_data("TR")
     wf.connect(node, out, regressors, "inputspec.tr")
 
-    outputs = {
-        "desc-confounds_timeseries": (regressors, "outputspec.regressors_file_path"),
-        "censor-indices": (regressors, "outputspec.censor_indices"),
-    }
+    outputs["desc-confounds_timeseries"] = (
+        regressors,
+        "outputspec.regressors_file_path",
+    )
+    outputs["censor-indices"] = (regressors, "outputspec.censor_indices")
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
