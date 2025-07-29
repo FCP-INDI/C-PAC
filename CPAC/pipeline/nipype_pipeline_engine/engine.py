@@ -54,7 +54,7 @@ from copy import deepcopy
 from inspect import Parameter, Signature, signature
 import os
 import re
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar, Optional, TYPE_CHECKING
 
 from numpy import prod
 from traits.api import List as TraitListObject
@@ -75,6 +75,10 @@ from nipype.utils.filemanip import fname_presuffix
 from nipype.utils.functions import getsource
 
 from CPAC.utils.monitoring import getLogger, WFLOGGER
+
+if TYPE_CHECKING:
+    from CPAC.pipeline.engine import ResourcePool
+
 
 # set global default mem_gb
 DEFAULT_MEM_GB = 2.0
@@ -761,6 +765,18 @@ class Workflow(pe.Workflow):
                 fp.close()
         else:
             WFLOGGER.info(dotstr)
+
+    def connect_optional(
+        self,
+        source_resource_pool: "ResourcePool",
+        source_resource: str | list[str],
+        dest: pe.Node,
+        dest_input: str,
+    ) -> None:
+        """Connect optional inputs to a workflow."""
+        if source_resource_pool.check_rpool(source_resource):
+            node, out = source_resource_pool.get_data(source_resource)
+            self.connect(node, out, dest, dest_input)
 
 
 def get_data_size(filepath, mode="xyzt"):
