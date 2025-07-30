@@ -449,7 +449,7 @@ def calc_delta_te_and_asym_ratio(
     return deltaTE, ees_asym_ratio
 
 
-def gather_echo_times(echotime_1, echotime_2, echotime_3=None, echotime_4=None):
+def gather_echo_times(echotime_1, echotime_2=None, echotime_3=None, echotime_4=None):
     """Gather the echo times from the field map data."""
     echotime_list = [echotime_1, echotime_2, echotime_3, echotime_4]
     echotime_list = list(filter(lambda item: item is not None, echotime_list))
