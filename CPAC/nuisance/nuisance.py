@@ -2023,9 +2023,11 @@ def filtering_bold_and_regressors(
     config=["nuisance_corrections", "1-ICA-AROMA"],
     switch=["run"],
     inputs=[
-        "desc-preproc_bold",
-        "from-bold_to-T1w_mode-image_desc-linear_xfm",
-        "from-T1w_to-template_mode-image_xfm",
+        (
+            "desc-preproc_bold",
+            "from-bold_to-T1w_mode-image_desc-linear_xfm",
+            "from-T1w_to-template_mode-image_xfm",
+        ),
     ],
     outputs=["desc-preproc_bold", "desc-cleaned_bold"],
 )
