@@ -449,7 +449,7 @@ def calc_delta_te_and_asym_ratio(
     return deltaTE, ees_asym_ratio
 
 
-def gather_echo_times(echotime_1, echotime_2=None, echotime_3=None, echotime_4=None):
+def gather_echo_times(echotime_1, echotime_2, echotime_3=None, echotime_4=None):
     """Gather the echo times from the field map data."""
     echotime_list = [echotime_1, echotime_2, echotime_3, echotime_4]
     echotime_list = list(filter(lambda item: item is not None, echotime_list))
@@ -693,23 +693,16 @@ def ingress_func_metadata(
                 "fmap_readout_ingress",
             )
 
-            if "phase" in key or "mag" in key:
+            # Only consider it "diff" if it's not a spin-echo or EPI-based fmap
+            if (
+                ("phase" in key or "phasediff" in key)
+                and not any(style in key.lower() for style in ["spin", "se", "epi"])
+            ):
                 diff = True
-
             if re.match("epi_[AP]{2}", orig_key):
                 blip = True
 
         if diff:
-            calc_delta_ratio = pe.Node(
-                Function(
-                    input_names=["effective_echo_spacing", "echo_times"],
-                    output_names=["deltaTE", "ees_asym_ratio"],
-                    function=calc_delta_te_and_asym_ratio,
-                    imports=["from typing import Optional"],
-                ),
-                name=f"diff_distcor_calc_delta{name_suffix}",
-            )
-
             gather_echoes = pe.Node(
                 Function(
                     input_names=[
@@ -733,7 +726,42 @@ def ingress_func_metadata(
                 except KeyError:
                     pass
 
+            calc_delta_ratio = pe.Node(
+                Function(
+                    input_names=["effective_echo_spacing", "echo_times"],
+                    output_names=["deltaTE", "ees_asym_ratio"],
+                    function=calc_delta_te_and_asym_ratio,
+                    imports=["from typing import Optional"],
+                ),
+                name=f"diff_distcor_calc_delta{name_suffix}",
+            )
+
             wf.connect(gather_echoes, "echotime_list", calc_delta_ratio, "echo_times")
+            
+            # Connect EffectiveEchoSpacing from functional metadata
+            rpool.set_data(
+                "effectiveEchoSpacing",
+                scan_params,
+                "effective_echo_spacing",
+                {},
+                "",
+                "func_metadata_ingress",
+            )
+            node, out_file = rpool.get("effectiveEchoSpacing")[
+                "['effectiveEchoSpacing:func_metadata_ingress']"
+            ]["data"]
+            wf.connect(node, out_file, calc_delta_ratio, "effective_echo_spacing")
+            rpool.set_data(
+                "deltaTE", calc_delta_ratio, "deltaTE", {}, "", "deltaTE_ingress"
+            )
+            rpool.set_data(
+                "ees-asym-ratio",
+                calc_delta_ratio,
+                "ees_asym_ratio",
+                {},
+                "",
+                "ees_asym_ratio_ingress",
+            )
 
     # Add in nodes to get parameters from configuration file
     # a node which checks if scan_parameters are present for each scan
@@ -805,31 +833,6 @@ def ingress_func_metadata(
         "pe-direction", scan_params, "pe_direction", {}, "", "func_metadata_ingress"
     )
 
-    if diff:
-        # Connect EffectiveEchoSpacing from functional metadata
-        rpool.set_data(
-            "effectiveEchoSpacing",
-            scan_params,
-            "effective_echo_spacing",
-            {},
-            "",
-            "func_metadata_ingress",
-        )
-        node, out_file = rpool.get("effectiveEchoSpacing")[
-            "['effectiveEchoSpacing:func_metadata_ingress']"
-        ]["data"]
-        wf.connect(node, out_file, calc_delta_ratio, "effective_echo_spacing")
-        rpool.set_data(
-            "deltaTE", calc_delta_ratio, "deltaTE", {}, "", "deltaTE_ingress"
-        )
-        rpool.set_data(
-            "ees-asym-ratio",
-            calc_delta_ratio,
-            "ees_asym_ratio",
-            {},
-            "",
-            "ees_asym_ratio_ingress",
-        )
 
     return wf, rpool, diff, blip, fmap_rp_list
 
