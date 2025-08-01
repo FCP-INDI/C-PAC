@@ -550,15 +550,15 @@ def match_epi_fmaps_function_node(name: str = "match_epi_fmaps"):
 
 
 def get_fmap_type(metadata):
-    """ Determine the type of field map from metadata. 
-    
+    """Determine the type of field map from metadata.
+
     reference: https://bids-specification.readthedocs.io/en/latest/modality-specific-files/magnetic-resonance-imaging-data.html#case-1-phase-difference-map-and-at-least-one-magnitude-image
 
     Parameters
     ----------
     metadata : dict or str
         Metadata dictionary or path to a JSON file containing metadata.
-    
+
     Returns
     -------
     str or None
@@ -568,10 +568,11 @@ def get_fmap_type(metadata):
         - "fieldmap" for field maps with units like Hz, rad/s, T, or Tesla
         - "epi" for EPI field maps with phase encoding direction
     """
-    
+
     if not isinstance(metadata, dict):
         if isinstance(metadata, str) and ".json" in metadata:
             import json
+
             try:
                 with open(metadata, "r", encoding="utf-8") as f:
                     metadata = json.load(f)
@@ -579,14 +580,14 @@ def get_fmap_type(metadata):
                 return None
         else:
             return None
-    
+
     # Check for required BIDS fields only
     match (
         "EchoTime1" in metadata,
-        "EchoTime2" in metadata, 
+        "EchoTime2" in metadata,
         "EchoTime" in metadata,
         "Units" in metadata,
-        "PhaseEncodingDirection" in metadata
+        "PhaseEncodingDirection" in metadata,
     ):
         case (True, True, _, _, _):
             # Case 1: Phase-difference map (REQUIRED: EchoTime1 AND EchoTime2)
@@ -606,7 +607,7 @@ def get_fmap_type(metadata):
                 return "epi"
         case _:
             return None
-    
+
     return None
 
 
@@ -706,7 +707,7 @@ def ingress_func_metadata(
     blip = False
     fmap_rp_list = []
     fmap_TE_list = []
-    
+
     if "fmap" in sub_dict:
         second = False
         for orig_key in sub_dict["fmap"]:
@@ -834,7 +835,9 @@ def ingress_func_metadata(
             # Set flags based on predictable patterns
             if re.match("epi_[AP]{2}", orig_key):
                 blip = True
-            elif any(pattern in key.lower() for pattern in ["phase", "phasediff", "fieldmap"]):
+            elif any(
+                pattern in key.lower() for pattern in ["phase", "phasediff", "fieldmap"]
+            ):
                 diff = True
 
         # Conservative approach: if we have any fieldmaps, prepare for diff processing
@@ -877,13 +880,13 @@ def ingress_func_metadata(
             )
 
             wf.connect(gather_echoes, "echotime_list", calc_delta_ratio, "echo_times")
-            
+
             # Connect EffectiveEchoSpacing from functional metadata
             node, out_file = rpool.get("effectiveEchoSpacing")[
                 "['effectiveEchoSpacing:func_metadata_ingress']"
             ]["data"]
             wf.connect(node, out_file, calc_delta_ratio, "effective_echo_spacing")
-            
+
             rpool.set_data(
                 "deltaTE", calc_delta_ratio, "deltaTE", {}, "", "deltaTE_ingress"
             )
