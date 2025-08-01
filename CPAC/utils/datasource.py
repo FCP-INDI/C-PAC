@@ -398,7 +398,12 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
     dwell_time = data_config_scan_params.get("DwellTime")
     pe_direction = data_config_scan_params.get("PhaseEncodingDirection")
     total_readout = data_config_scan_params.get("TotalReadoutTime")
+    if "EffectiveEchoSpacing" in data_config_scan_params:
+        effective_echo_spacing = data_config_scan_params.get("EffectiveEchoSpacing")
+    else:
+        effective_echo_spacing = None
 
+    fmap_type = get_fmap_type(data_config_scan_params)
     return (
         dwell_time,
         pe_direction,
@@ -406,6 +411,8 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
         echo_time,
         echo_time_one,
         echo_time_two,
+        effective_echo_spacing,
+        fmap_type,
     )
 
 
@@ -542,6 +549,67 @@ def match_epi_fmaps_function_node(name: str = "match_epi_fmaps"):
     )
 
 
+def get_fmap_type(metadata):
+    """ Determine the type of field map from metadata. 
+    
+    reference: https://bids-specification.readthedocs.io/en/latest/modality-specific-files/magnetic-resonance-imaging-data.html#case-1-phase-difference-map-and-at-least-one-magnitude-image
+
+    Parameters
+    ----------
+    metadata : dict or str
+        Metadata dictionary or path to a JSON file containing metadata.
+    
+    Returns
+    -------
+    str or None
+        Returns the type of field map as a string:
+        - "phasediff" for phase difference maps with two echo times
+        - "phase" for single echo phase maps
+        - "fieldmap" for field maps with units like Hz, rad/s, T, or Tesla
+        - "epi" for EPI field maps with phase encoding direction
+    """
+    
+    if not isinstance(metadata, dict):
+        if isinstance(metadata, str) and ".json" in metadata:
+            import json
+            try:
+                with open(metadata, "r", encoding="utf-8") as f:
+                    metadata = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                return None
+        else:
+            return None
+    
+    # Check for required BIDS fields only
+    match (
+        "EchoTime1" in metadata,
+        "EchoTime2" in metadata, 
+        "EchoTime" in metadata,
+        "Units" in metadata,
+        "PhaseEncodingDirection" in metadata
+    ):
+        case (True, True, _, _, _):
+            # Case 1: Phase-difference map (REQUIRED: EchoTime1 AND EchoTime2)
+            return "phasediff"
+        case (False, False, True, _, _):
+            # Case 2: Single phase map (REQUIRED: EchoTime, but NOT EchoTime1/2)
+            return "phase"
+        case (_, _, _, True, _):
+            # Case 3: Direct field mapping (REQUIRED: Units)
+            units = metadata["Units"].lower()
+            if units in ["hz", "rad/s", "t", "tesla", "hertz"]:
+                return "fieldmap"
+        case (_, _, _, _, True):
+            # Case 4: EPI field maps (REQUIRED: PhaseEncodingDirection)
+            pe_dir = metadata["PhaseEncodingDirection"]
+            if pe_dir in ["i", "i-", "j", "j-", "k", "k-"]:
+                return "epi"
+        case _:
+            return None
+    
+    return None
+
+
 def ingress_func_metadata(
     wf,
     cfg,
@@ -557,214 +625,7 @@ def ingress_func_metadata(
     for suffix_part in (unique_id, num_strat):
         if suffix_part is not None:
             name_suffix += f"_{suffix_part}"
-    # Grab field maps
-    diff = False
-    blip = False
-    fmap_rp_list = []
-    fmap_TE_list = []
-    if "fmap" in sub_dict:
-        second = False
-        for orig_key in sub_dict["fmap"]:
-            gather_fmap = create_fmap_datasource(
-                sub_dict["fmap"], f"fmap_gather_{orig_key}_{subject_id}"
-            )
-            gather_fmap.inputs.inputnode.set(
-                subject=subject_id,
-                creds_path=input_creds_path,
-                dl_dir=cfg.pipeline_setup["working_directory"]["path"],
-            )
-            gather_fmap.inputs.inputnode.scan = orig_key
 
-            key = orig_key
-            if "epi" in key and not second:
-                key = "epi-1"
-                second = True
-            elif "epi" in key and second:
-                key = "epi-2"
-
-            rpool.set_data(key, gather_fmap, "outputspec.rest", {}, "", "fmap_ingress")
-            rpool.set_data(
-                f"{key}-scan-params",
-                gather_fmap,
-                "outputspec.scan_params",
-                {},
-                "",
-                "fmap_params_ingress",
-            )
-
-            fmap_rp_list.append(key)
-
-            get_fmap_metadata_imports = ["import json"]
-            get_fmap_metadata = pe.Node(
-                Function(
-                    input_names=["data_config_scan_params"],
-                    output_names=[
-                        "dwell_time",
-                        "pe_direction",
-                        "total_readout",
-                        "echo_time",
-                        "echo_time_one",
-                        "echo_time_two",
-                    ],
-                    function=get_fmap_phasediff_metadata,
-                    imports=get_fmap_metadata_imports,
-                ),
-                name=f"{key}_get_metadata{name_suffix}",
-            )
-
-            wf.connect(
-                gather_fmap,
-                "outputspec.scan_params",
-                get_fmap_metadata,
-                "data_config_scan_params",
-            )
-
-            if "phase" in key:
-                # leave it open to all three options, in case there is a
-                # phasediff image with either a single EchoTime field (which
-                # usually matches one of the magnitude EchoTimes), OR
-                # a phasediff with an EchoTime1 and EchoTime2
-
-                # at least one of these rpool keys will have a None value,
-                # which will be sorted out in gather_echo_times below
-                rpool.set_data(
-                    f"{key}-TE",
-                    get_fmap_metadata,
-                    "echo_time",
-                    {},
-                    "",
-                    "fmap_TE_ingress",
-                )
-                fmap_TE_list.append(f"{key}-TE")
-
-                rpool.set_data(
-                    f"{key}-TE1",
-                    get_fmap_metadata,
-                    "echo_time_one",
-                    {},
-                    "",
-                    "fmap_TE1_ingress",
-                )
-                fmap_TE_list.append(f"{key}-TE1")
-
-                rpool.set_data(
-                    f"{key}-TE2",
-                    get_fmap_metadata,
-                    "echo_time_two",
-                    {},
-                    "",
-                    "fmap_TE2_ingress",
-                )
-                fmap_TE_list.append(f"{key}-TE2")
-
-            elif "magnitude" in key:
-                rpool.set_data(
-                    f"{key}-TE",
-                    get_fmap_metadata,
-                    "echo_time",
-                    {},
-                    "",
-                    "fmap_TE_ingress",
-                )
-                fmap_TE_list.append(f"{key}-TE")
-
-            rpool.set_data(
-                f"{key}-dwell",
-                get_fmap_metadata,
-                "dwell_time",
-                {},
-                "",
-                "fmap_dwell_ingress",
-            )
-            rpool.set_data(
-                f"{key}-pedir",
-                get_fmap_metadata,
-                "pe_direction",
-                {},
-                "",
-                "fmap_pedir_ingress",
-            )
-            rpool.set_data(
-                f"{key}-total-readout",
-                get_fmap_metadata,
-                "total_readout",
-                {},
-                "",
-                "fmap_readout_ingress",
-            )
-
-            # Only consider it "diff" if it's not a spin-echo or EPI-based fmap
-            if (
-                ("phase" in key or "phasediff" in key)
-                and not any(style in key.lower() for style in ["spin", "se", "epi"])
-            ):
-                diff = True
-            if re.match("epi_[AP]{2}", orig_key):
-                blip = True
-
-        if diff:
-            gather_echoes = pe.Node(
-                Function(
-                    input_names=[
-                        "echotime_1",
-                        "echotime_2",
-                        "echotime_3",
-                        "echotime_4",
-                    ],
-                    output_names=["echotime_list"],
-                    function=gather_echo_times,
-                ),
-                name="fugue_gather_echo_times",
-            )
-
-            for idx, fmap_file in enumerate(fmap_TE_list, start=1):
-                try:
-                    node, out_file = rpool.get(fmap_file)[
-                        f"['{fmap_file}:fmap_TE_ingress']"
-                    ]["data"]
-                    wf.connect(node, out_file, gather_echoes, f"echotime_{idx}")
-                except KeyError:
-                    pass
-
-            calc_delta_ratio = pe.Node(
-                Function(
-                    input_names=["effective_echo_spacing", "echo_times"],
-                    output_names=["deltaTE", "ees_asym_ratio"],
-                    function=calc_delta_te_and_asym_ratio,
-                    imports=["from typing import Optional"],
-                ),
-                name=f"diff_distcor_calc_delta{name_suffix}",
-            )
-
-            wf.connect(gather_echoes, "echotime_list", calc_delta_ratio, "echo_times")
-            
-            # Connect EffectiveEchoSpacing from functional metadata
-            rpool.set_data(
-                "effectiveEchoSpacing",
-                scan_params,
-                "effective_echo_spacing",
-                {},
-                "",
-                "func_metadata_ingress",
-            )
-            node, out_file = rpool.get("effectiveEchoSpacing")[
-                "['effectiveEchoSpacing:func_metadata_ingress']"
-            ]["data"]
-            wf.connect(node, out_file, calc_delta_ratio, "effective_echo_spacing")
-            rpool.set_data(
-                "deltaTE", calc_delta_ratio, "deltaTE", {}, "", "deltaTE_ingress"
-            )
-            rpool.set_data(
-                "ees-asym-ratio",
-                calc_delta_ratio,
-                "ees_asym_ratio",
-                {},
-                "",
-                "ees_asym_ratio_ingress",
-            )
-
-    # Add in nodes to get parameters from configuration file
-    # a node which checks if scan_parameters are present for each scan
     scan_params = pe.Node(
         Function(
             input_names=[
@@ -814,7 +675,6 @@ def ingress_func_metadata(
         selectrest_json.inputs.resource = "scan_parameters"
         wf.connect(node, out, selectrest_json, "scan")
         wf.connect(selectrest_json, "file_path", scan_params, "data_config_scan_params")
-
     else:
         # wire in the scan parameter workflow
         node, out = rpool.get("scan-params")["['scan-params:scan_params_ingress']"][
@@ -822,6 +682,7 @@ def ingress_func_metadata(
         ]
         wf.connect(node, out, scan_params, "data_config_scan_params")
 
+    # Set functional metadata in rpool
     rpool.set_data("TR", scan_params, "tr", {}, "", "func_metadata_ingress")
     rpool.set_data("tpattern", scan_params, "tpattern", {}, "", "func_metadata_ingress")
     rpool.set_data("template", scan_params, "template", {}, "", "func_metadata_ingress")
@@ -832,7 +693,208 @@ def ingress_func_metadata(
     rpool.set_data(
         "pe-direction", scan_params, "pe_direction", {}, "", "func_metadata_ingress"
     )
+    rpool.set_data(
+        "effectiveEchoSpacing",
+        scan_params,
+        "effective_echo_spacing",
+        {},
+        "",
+        "func_metadata_ingress",
+    )
 
+    diff = False
+    blip = False
+    fmap_rp_list = []
+    fmap_TE_list = []
+    
+    if "fmap" in sub_dict:
+        second = False
+        for orig_key in sub_dict["fmap"]:
+            gather_fmap = create_fmap_datasource(
+                sub_dict["fmap"], f"fmap_gather_{orig_key}_{subject_id}"
+            )
+            gather_fmap.inputs.inputnode.set(
+                subject=subject_id,
+                creds_path=input_creds_path,
+                dl_dir=cfg.pipeline_setup["working_directory"]["path"],
+            )
+            gather_fmap.inputs.inputnode.scan = orig_key
+
+            key = orig_key
+            if "epi" in key and not second:
+                key = "epi-1"
+                second = True
+            elif "epi" in key and second:
+                key = "epi-2"
+
+            rpool.set_data(key, gather_fmap, "outputspec.rest", {}, "", "fmap_ingress")
+            rpool.set_data(
+                f"{key}-scan-params",
+                gather_fmap,
+                "outputspec.scan_params",
+                {},
+                "",
+                "fmap_params_ingress",
+            )
+
+            fmap_rp_list.append(key)
+
+            get_fmap_metadata = pe.Node(
+                Function(
+                    input_names=["data_config_scan_params"],
+                    output_names=[
+                        "dwell_time",
+                        "pe_direction",
+                        "total_readout",
+                        "echo_time",
+                        "echo_time_one",
+                        "echo_time_two",
+                        "effective_echo_spacing",
+                        "fmap_type",
+                    ],
+                    function=get_fmap_phasediff_metadata,
+                    imports=["import json"],
+                ),
+                name=f"{key}_get_metadata{name_suffix}",
+            )
+
+            wf.connect(
+                gather_fmap,
+                "outputspec.scan_params",
+                get_fmap_metadata,
+                "data_config_scan_params",
+            )
+
+            # Store the fmap type output for later use
+            rpool.set_data(
+                f"{key}-fmap-type",
+                get_fmap_metadata,
+                "fmap_type",
+                {},
+                "",
+                "fmap_type_ingress",
+            )
+
+            # Set echo time data - let downstream processing filter based on type
+            rpool.set_data(
+                f"{key}-TE",
+                get_fmap_metadata,
+                "echo_time",
+                {},
+                "",
+                "fmap_TE_ingress",
+            )
+            fmap_TE_list.append(f"{key}-TE")
+
+            rpool.set_data(
+                f"{key}-TE1",
+                get_fmap_metadata,
+                "echo_time_one",
+                {},
+                "",
+                "fmap_TE1_ingress",
+            )
+            fmap_TE_list.append(f"{key}-TE1")
+
+            rpool.set_data(
+                f"{key}-TE2",
+                get_fmap_metadata,
+                "echo_time_two",
+                {},
+                "",
+                "fmap_TE2_ingress",
+            )
+            fmap_TE_list.append(f"{key}-TE2")
+
+            rpool.set_data(
+                f"{key}-dwell",
+                get_fmap_metadata,
+                "dwell_time",
+                {},
+                "",
+                "fmap_dwell_ingress",
+            )
+            rpool.set_data(
+                f"{key}-pedir",
+                get_fmap_metadata,
+                "pe_direction",
+                {},
+                "",
+                "fmap_pedir_ingress",
+            )
+            rpool.set_data(
+                f"{key}-total-readout",
+                get_fmap_metadata,
+                "total_readout",
+                {},
+                "",
+                "fmap_readout_ingress",
+            )
+
+            # Set flags based on predictable patterns
+            if re.match("epi_[AP]{2}", orig_key):
+                blip = True
+            elif any(pattern in key.lower() for pattern in ["phase", "phasediff", "fieldmap"]):
+                diff = True
+
+        # Conservative approach: if we have any fieldmaps, prepare for diff processing
+        if fmap_rp_list:
+            diff = True
+
+        if diff:
+            gather_echoes = pe.Node(
+                Function(
+                    input_names=[
+                        "echotime_1",
+                        "echotime_2",
+                        "echotime_3",
+                        "echotime_4",
+                    ],
+                    output_names=["echotime_list"],
+                    function=gather_echo_times,
+                ),
+                name="fugue_gather_echo_times",
+            )
+
+            for idx, fmap_file in enumerate(fmap_TE_list, start=1):
+                if idx <= 4:  # Limit to 4 inputs
+                    try:
+                        node, out_file = rpool.get(fmap_file)[
+                            f"['{fmap_file}:fmap_TE_ingress']"
+                        ]["data"]
+                        wf.connect(node, out_file, gather_echoes, f"echotime_{idx}")
+                    except KeyError:
+                        pass
+
+            calc_delta_ratio = pe.Node(
+                Function(
+                    input_names=["effective_echo_spacing", "echo_times"],
+                    output_names=["deltaTE", "ees_asym_ratio"],
+                    function=calc_delta_te_and_asym_ratio,
+                    imports=["from typing import Optional"],
+                ),
+                name=f"diff_distcor_calc_delta{name_suffix}",
+            )
+
+            wf.connect(gather_echoes, "echotime_list", calc_delta_ratio, "echo_times")
+            
+            # Connect EffectiveEchoSpacing from functional metadata
+            node, out_file = rpool.get("effectiveEchoSpacing")[
+                "['effectiveEchoSpacing:func_metadata_ingress']"
+            ]["data"]
+            wf.connect(node, out_file, calc_delta_ratio, "effective_echo_spacing")
+            
+            rpool.set_data(
+                "deltaTE", calc_delta_ratio, "deltaTE", {}, "", "deltaTE_ingress"
+            )
+            rpool.set_data(
+                "ees-asym-ratio",
+                calc_delta_ratio,
+                "ees_asym_ratio",
+                {},
+                "",
+                "ees_asym_ratio_ingress",
+            )
 
     return wf, rpool, diff, blip, fmap_rp_list
 

@@ -28,6 +28,7 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.utils.datasource import match_epi_fmaps, match_epi_fmaps_function_node
 from CPAC.utils.test_resources import setup_test_wf
 from CPAC.utils.utils import PE_DIRECTION
+from CPAC.utils.datasource import match_epi_fmaps, match_epi_fmaps_function_node, get_fmap_type
 
 
 @dataclass
@@ -381,3 +382,97 @@ def test_match_epi_fmaps(generate: bool, tmp_path: Path) -> None:
             path_outputs["nipype"][direction].name
             == path_outputs["direct"][direction].name
         )
+
+
+@pytest.mark.parametrize(
+    "metadata, expected_type",
+    [
+        # Case 1: Phase-difference map (phasediff) - REQUIRED: EchoTime1 and EchoTime2
+        ({"EchoTime1": 0.00600, "EchoTime2": 0.00746}, "phasediff"),
+        ({"EchoTime1": 0.004, "EchoTime2": 0.006}, "phasediff"),
+        
+        # Case 2: Single phase map (phase) - REQUIRED: EchoTime
+        ({"EchoTime": 0.00746}, "phase"),
+        ({"EchoTime": 0.004}, "phase"),
+        
+        # Case 3: Direct field mapping (fieldmap) - REQUIRED: Units
+        ({"Units": "rad/s"}, "fieldmap"),
+        ({"Units": "Hz"}, "fieldmap"),
+        ({"Units": "hz"}, "fieldmap"),
+        ({"Units": "T"}, "fieldmap"),
+        ({"Units": "Tesla"}, "fieldmap"),
+        ({"Units": "hertz"}, "fieldmap"),
+        
+        # Case 4: EPI field maps (epi) - REQUIRED: PhaseEncodingDirection
+        ({"PhaseEncodingDirection": "j-"}, "epi"),
+        ({"PhaseEncodingDirection": "j"}, "epi"),
+        ({"PhaseEncodingDirection": "i"}, "epi"),
+        ({"PhaseEncodingDirection": "i-"}, "epi"),
+        ({"PhaseEncodingDirection": "k"}, "epi"),
+        ({"PhaseEncodingDirection": "k-"}, "epi"),
+        
+        # Edge cases and invalid inputs
+        ({}, None),  # Empty metadata
+        ({"SomeOtherField": "value"}, None),  # Irrelevant metadata
+        ({"Units": "invalid_unit"}, None),  # Invalid units
+        ({"PhaseEncodingDirection": "invalid"}, None),  # Invalid PE direction
+        ({"EchoTime1": 0.006}, None),  # Only EchoTime1 without EchoTime2
+        ({"EchoTime2": 0.006}, None),  # Only EchoTime2 without EchoTime1
+        
+        # Priority testing - phasediff should take precedence
+        ({"EchoTime1": 0.006, "EchoTime2": 0.007, "EchoTime": 0.006}, "phasediff"),
+        ({"EchoTime1": 0.006, "EchoTime2": 0.007, "Units": "Hz"}, "phasediff"),
+        ({"EchoTime1": 0.006, "EchoTime2": 0.007, "PhaseEncodingDirection": "j-"}, "phasediff"),
+        
+        # Phase should take precedence over fieldmap and epi
+        ({"EchoTime": 0.006, "Units": "Hz"}, "phase"),
+        ({"EchoTime": 0.006, "PhaseEncodingDirection": "j-"}, "phase"),
+        
+        # Fieldmap should take precedence over epi
+        ({"Units": "Hz", "PhaseEncodingDirection": "j-"}, "fieldmap"),
+        
+        # Test with optional fields that might be present (but shouldn't affect detection)
+        ({"EchoTime1": 0.006, "EchoTime2": 0.007, "IntendedFor": "bids::sub-01/func/sub-01_task-motor_bold.nii.gz"}, "phasediff"),
+        ({"Units": "rad/s", "IntendedFor": "bids::sub-01/func/sub-01_task-motor_bold.nii.gz"}, "fieldmap"),
+        ({"PhaseEncodingDirection": "j-", "TotalReadoutTime": 0.095}, "epi"),
+    ]
+)
+def test_get_fmap_type_dict_input(metadata: dict, expected_type: str | None) -> None:
+    """Test `get_fmap_type` with dictionary input using only required BIDS fields."""
+    result = get_fmap_type(metadata)
+    assert result == expected_type
+
+
+def test_get_fmap_type_real_world_examples() -> None:
+    """Test `get_fmap_type` with realistic BIDS metadata examples (required fields only)."""
+    # Real-world phasediff example (only required fields)
+    phasediff_metadata = {
+        "EchoTime1": 0.00600,
+        "EchoTime2": 0.00746,
+        # Optional fields that might be present:
+        "IntendedFor": ["bids::sub-01/func/sub-01_task-motor_bold.nii.gz"]
+    }
+    assert get_fmap_type(phasediff_metadata) == "phasediff"
+    
+    # Real-world fieldmap example (only required fields)
+    fieldmap_metadata = {
+        "Units": "rad/s",
+        # Optional fields that might be present:
+        "IntendedFor": "bids::sub-01/func/sub-01_task-motor_bold.nii.gz"
+    }
+    assert get_fmap_type(fieldmap_metadata) == "fieldmap"
+    
+    # Real-world EPI example (only required fields)
+    epi_metadata = {
+        "PhaseEncodingDirection": "j-",
+        # Optional fields that might be present:
+        "TotalReadoutTime": 0.095,
+        "IntendedFor": "bids::sub-01/func/sub-01_task-motor_bold.nii.gz"
+    }
+    assert get_fmap_type(epi_metadata) == "epi"
+    
+    # Real-world phase example (only required fields)
+    phase_metadata = {
+        "EchoTime": 0.00746
+    }
+    assert get_fmap_type(phase_metadata) == "phase"
