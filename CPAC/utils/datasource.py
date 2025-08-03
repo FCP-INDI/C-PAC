@@ -379,7 +379,7 @@ def get_fmap_phasediff_metadata(data_config_scan_params):
     """Return the scan parameters for a field map phasediff scan."""
 
     from CPAC.utils.utils import get_fmap_type
-    
+
     if (
         not isinstance(data_config_scan_params, dict)
         and ".json" in data_config_scan_params
