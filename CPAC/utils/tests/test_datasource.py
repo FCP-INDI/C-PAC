@@ -25,13 +25,11 @@ from networkx.classes.digraph import DiGraph
 import pytest
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.utils.datasource import match_epi_fmaps, match_epi_fmaps_function_node
 from CPAC.utils.test_resources import setup_test_wf
-from CPAC.utils.utils import PE_DIRECTION
+from CPAC.utils.utils import PE_DIRECTION, get_fmap_type
 from CPAC.utils.datasource import (
     match_epi_fmaps,
     match_epi_fmaps_function_node,
-    get_fmap_type,
 )
 
 
