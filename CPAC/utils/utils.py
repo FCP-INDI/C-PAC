@@ -2657,3 +2657,65 @@ def flip_orientation_code(code):
     """Reverts an orientation code by flipping R↔L, A↔P, and I↔S."""
     flip_dict = {"R": "L", "L": "R", "A": "P", "P": "A", "I": "S", "S": "I"}
     return "".join(flip_dict[c] for c in code)
+
+
+def get_fmap_type(metadata):
+    """Determine the type of field map from metadata.
+
+    reference: https://bids-specification.readthedocs.io/en/latest/modality-specific-files/magnetic-resonance-imaging-data.html#case-1-phase-difference-map-and-at-least-one-magnitude-image
+
+    Parameters
+    ----------
+    metadata : dict or str
+        Metadata dictionary or path to a JSON file containing metadata.
+
+    Returns
+    -------
+    str or None
+        Returns the type of field map as a string:
+        - "phasediff" for phase difference maps with two echo times
+        - "phase" for single echo phase maps
+        - "fieldmap" for field maps with units like Hz, rad/s, T, or Tesla
+        - "epi" for EPI field maps with phase encoding direction
+    """
+
+    if not isinstance(metadata, dict):
+        if isinstance(metadata, str) and ".json" in metadata:
+            import json
+
+            try:
+                with open(metadata, "r", encoding="utf-8") as f:
+                    metadata = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                return None
+        else:
+            return None
+
+    # Check for required BIDS fields only
+    match (
+        "EchoTime1" in metadata,
+        "EchoTime2" in metadata,
+        "EchoTime" in metadata,
+        "Units" in metadata,
+        "PhaseEncodingDirection" in metadata,
+    ):
+        case (True, True, _, _, _):
+            # Case 1: Phase-difference map (REQUIRED: EchoTime1 AND EchoTime2)
+            return "phasediff"
+        case (False, False, True, _, _):
+            # Case 2: Single phase map (REQUIRED: EchoTime, but NOT EchoTime1/2)
+            return "phase"
+        case (_, _, _, True, _):
+            # Case 3: Direct field mapping (REQUIRED: Units)
+            units = metadata["Units"].lower()
+            if units in ["hz", "rad/s", "t", "tesla", "hertz"]:
+                return "fieldmap"
+        case (_, _, _, _, True):
+            # Case 4: EPI field maps (REQUIRED: PhaseEncodingDirection)
+            pe_dir = metadata["PhaseEncodingDirection"]
+            if pe_dir in ["i", "i-", "j", "j-", "k", "k-"]:
+                return "epi"
+        case _:
+            return None
+
+    return None
