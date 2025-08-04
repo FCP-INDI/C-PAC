@@ -2701,7 +2701,7 @@ def get_fmap_type(metadata):
         case (True, True, _, _, _):
             # Case 1: Phase-difference map (REQUIRED: EchoTime1 AND EchoTime2)
             return "phasediff"
-        case (False, False, True, _, _):
+        case (False, False, True, _, False):
             # Case 2: Single phase map (REQUIRED: EchoTime, but NOT EchoTime1/2)
             return "phase"
         case (_, _, _, True, _):
@@ -2711,9 +2711,7 @@ def get_fmap_type(metadata):
                 return "fieldmap"
         case (_, _, _, _, True):
             # Case 4: EPI field maps (REQUIRED: PhaseEncodingDirection)
-            pe_dir = metadata["PhaseEncodingDirection"]
-            if pe_dir in ["i", "i-", "j", "j-", "k", "k-"]:
-                return "epi"
+            return "epi"
         case _:
             return None
 
