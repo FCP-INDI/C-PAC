@@ -2796,24 +2796,34 @@ def get_fmap_build_info(metadata_dict):
         - 'needs_echo_times': bool
         - 'needs_phasediff_processing': bool
         - 'is_epi': bool
+
+    Raises
+    ------
+    ValueError
+        If metadata_dict is None or if fieldmap type cannot be determined
     """
     from CPAC.utils.utils import get_fmap_type
 
+    if not metadata_dict:
+        raise ValueError(
+            "Fieldmap metadata dictionary is required but was None. "
+            "Cannot determine fieldmap processing requirements without metadata."
+        )
+
+    fmap_type = get_fmap_type(metadata_dict)
+
+    if fmap_type is None:
+        raise ValueError(
+            f"Could not determine fieldmap type from metadata: {metadata_dict}. "
+            "Metadata must contain required BIDS fields for fieldmap type detection."
+        )
+
     build_info = {
-        "fmap_type": None,
+        "fmap_type": fmap_type,
         "needs_echo_times": False,
         "needs_phasediff_processing": False,
         "is_epi": False,
     }
-
-    if not metadata_dict:
-        # Conservative fallback - assume we might need processing
-        build_info["needs_echo_times"] = True
-        build_info["needs_phasediff_processing"] = True
-        return build_info
-
-    fmap_type = get_fmap_type(metadata_dict)
-    build_info["fmap_type"] = fmap_type
 
     match fmap_type:
         case "phase":
@@ -2831,9 +2841,10 @@ def get_fmap_build_info(metadata_dict):
         case "fieldmap":
             build_info["needs_phasediff_processing"] = True
 
-        case None:
-            # Conservative fallback
-            build_info["needs_echo_times"] = True
-            build_info["needs_phasediff_processing"] = True
+        case _:
+            raise ValueError(
+                f"Unsupported fieldmap type '{fmap_type}'. "
+                "Supported types are: 'phase', 'phasediff', 'epi', 'fieldmap'."
+            )
 
     return build_info
