@@ -377,7 +377,6 @@ def create_fmap_datasource(fmap_dct, wf_name="fmap_datasource"):
 
 def get_fmap_phasediff_metadata(data_config_scan_params):
     """Return the scan parameters for a field map phasediff scan."""
-
     from CPAC.utils.utils import get_fmap_type
 
     if (
@@ -563,6 +562,8 @@ def ingress_func_metadata(
     num_strat=None,
 ):
     """Ingress metadata for functional scans."""
+    from CPAC.utils.utils import get_fmap_build_info, get_fmap_metadata_at_build_time
+
     name_suffix = ""
     for suffix_part in (unique_id, num_strat):
         if suffix_part is not None:
@@ -624,7 +625,6 @@ def ingress_func_metadata(
         ]
         wf.connect(node, out, scan_params, "data_config_scan_params")
 
-    # Set functional metadata in rpool
     rpool.set_data("TR", scan_params, "tr", {}, "", "func_metadata_ingress")
     rpool.set_data("tpattern", scan_params, "tpattern", {}, "", "func_metadata_ingress")
     rpool.set_data("template", scan_params, "template", {}, "", "func_metadata_ingress")
@@ -652,6 +652,14 @@ def ingress_func_metadata(
     if "fmap" in sub_dict:
         second = False
         for orig_key in sub_dict["fmap"]:
+            fmap_metadata = get_fmap_metadata_at_build_time(
+                sub_dict,
+                orig_key,
+                input_creds_path,
+                cfg.pipeline_setup["working_directory"]["path"],
+            )
+            build_info = get_fmap_build_info(fmap_metadata)
+
             gather_fmap = create_fmap_datasource(
                 sub_dict["fmap"], f"fmap_gather_{orig_key}_{subject_id}"
             )
@@ -681,6 +689,10 @@ def ingress_func_metadata(
 
             fmap_rp_list.append(key)
 
+            get_fmap_metadata_imports = [
+                "import json",
+                "from CPAC.utils.utils import get_fmap_type",
+            ]
             get_fmap_metadata = pe.Node(
                 Function(
                     input_names=["data_config_scan_params"],
@@ -695,7 +707,7 @@ def ingress_func_metadata(
                         "fmap_type",
                     ],
                     function=get_fmap_phasediff_metadata,
-                    imports=["import json"],
+                    imports=get_fmap_metadata_imports,
                 ),
                 name=f"{key}_get_metadata{name_suffix}",
             )
@@ -707,7 +719,6 @@ def ingress_func_metadata(
                 "data_config_scan_params",
             )
 
-            # Store the fmap type output for later use
             rpool.set_data(
                 f"{key}-fmap-type",
                 get_fmap_metadata,
@@ -717,36 +728,42 @@ def ingress_func_metadata(
                 "fmap_type_ingress",
             )
 
-            # Set echo time data - let downstream processing filter based on type
-            rpool.set_data(
-                f"{key}-TE",
-                get_fmap_metadata,
-                "echo_time",
-                {},
-                "",
-                "fmap_TE_ingress",
-            )
-            fmap_TE_list.append(f"{key}-TE")
+            if build_info["needs_echo_times"]:
+                rpool.set_data(
+                    f"{key}-TE",
+                    get_fmap_metadata,
+                    "echo_time",
+                    {},
+                    "",
+                    "fmap_TE_ingress",
+                )
+                fmap_TE_list.append(f"{key}-TE")
 
-            rpool.set_data(
-                f"{key}-TE1",
-                get_fmap_metadata,
-                "echo_time_one",
-                {},
-                "",
-                "fmap_TE1_ingress",
-            )
-            fmap_TE_list.append(f"{key}-TE1")
+                rpool.set_data(
+                    f"{key}-TE1",
+                    get_fmap_metadata,
+                    "echo_time_one",
+                    {},
+                    "",
+                    "fmap_TE1_ingress",
+                )
+                fmap_TE_list.append(f"{key}-TE1")
 
-            rpool.set_data(
-                f"{key}-TE2",
-                get_fmap_metadata,
-                "echo_time_two",
-                {},
-                "",
-                "fmap_TE2_ingress",
-            )
-            fmap_TE_list.append(f"{key}-TE2")
+                rpool.set_data(
+                    f"{key}-TE2",
+                    get_fmap_metadata,
+                    "echo_time_two",
+                    {},
+                    "",
+                    "fmap_TE2_ingress",
+                )
+                fmap_TE_list.append(f"{key}-TE2")
+
+            if build_info["needs_phasediff_processing"]:
+                diff = True
+
+            if build_info["is_epi"] or re.match("epi_[AP]{2}", orig_key):
+                blip = True
 
             rpool.set_data(
                 f"{key}-dwell",
@@ -773,19 +790,8 @@ def ingress_func_metadata(
                 "fmap_readout_ingress",
             )
 
-            # Set flags based on predictable patterns
-            if re.match("epi_[AP]{2}", orig_key):
-                blip = True
-            elif any(
-                pattern in key.lower() for pattern in ["phase", "phasediff", "fieldmap"]
-            ):
-                diff = True
-
-        # Conservative approach: if we have any fieldmaps, prepare for diff processing
-        if fmap_rp_list:
-            diff = True
-
-        if diff:
+        # Set up phasediff processing workflow if needed
+        if diff and fmap_TE_list:
             gather_echoes = pe.Node(
                 Function(
                     input_names=[
@@ -800,15 +806,15 @@ def ingress_func_metadata(
                 name="fugue_gather_echo_times",
             )
 
-            for idx, fmap_file in enumerate(fmap_TE_list, start=1):
-                if idx <= 4:  # Limit to 4 inputs
-                    try:
-                        node, out_file = rpool.get(fmap_file)[
-                            f"['{fmap_file}:fmap_TE_ingress']"
-                        ]["data"]
-                        wf.connect(node, out_file, gather_echoes, f"echotime_{idx}")
-                    except KeyError:
-                        pass
+            # Connect available echo times
+            for idx, fmap_file in enumerate(fmap_TE_list[:4], start=1):
+                try:
+                    node, out_file = rpool.get(fmap_file)[
+                        f"['{fmap_file}:fmap_TE_ingress']"
+                    ]["data"]
+                    wf.connect(node, out_file, gather_echoes, f"echotime_{idx}")
+                except KeyError:
+                    pass
 
             calc_delta_ratio = pe.Node(
                 Function(
@@ -822,7 +828,6 @@ def ingress_func_metadata(
 
             wf.connect(gather_echoes, "echotime_list", calc_delta_ratio, "echo_times")
 
-            # Connect EffectiveEchoSpacing from functional metadata
             node, out_file = rpool.get("effectiveEchoSpacing")[
                 "['effectiveEchoSpacing:func_metadata_ingress']"
             ]["data"]

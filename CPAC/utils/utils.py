@@ -2678,7 +2678,6 @@ def get_fmap_type(metadata):
         - "fieldmap" for field maps with units like Hz, rad/s, T, or Tesla
         - "epi" for EPI field maps with phase encoding direction
     """
-
     if not isinstance(metadata, dict):
         if isinstance(metadata, str) and ".json" in metadata:
             import json
@@ -2719,3 +2718,122 @@ def get_fmap_type(metadata):
             return None
 
     return None
+
+
+def get_fmap_metadata_at_build_time(sub_dict, orig_key, input_creds_path, dl_dir):
+    """Extract fieldmap metadata during workflow build time.
+
+    Parameters
+    ----------
+    sub_dict : dict
+        Subject dictionary containing fieldmap information
+    orig_key : str
+        Original fieldmap key name
+    input_creds_path : str
+        Path to AWS credentials
+    dl_dir : str
+        Download directory path
+
+    Returns
+    -------
+    dict
+        Dictionary containing fieldmap metadata, or None if unavailable
+    """
+    import json
+    import os
+
+    try:
+        # Check if scan_parameters exists for this fieldmap
+        if orig_key not in sub_dict["fmap"]:
+            return None
+
+        if "scan_parameters" not in sub_dict["fmap"][orig_key]:
+            return None
+
+        scan_params_path = sub_dict["fmap"][orig_key]["scan_parameters"]
+
+        # Handle dictionary metadata (direct dict)
+        if isinstance(scan_params_path, dict):
+            return scan_params_path
+
+        # Handle file path metadata
+        if isinstance(scan_params_path, str):
+            local_path = scan_params_path
+
+            # Handle S3 paths
+            if scan_params_path.startswith("s3://"):
+                try:
+                    local_path = check_for_s3(
+                        scan_params_path, input_creds_path, dl_dir
+                    )
+                except Exception:
+                    return None
+
+            # Load JSON file
+            if local_path.endswith(".json") and os.path.exists(local_path):
+                with open(local_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+
+    except (FileNotFoundError, json.JSONDecodeError, KeyError, Exception):
+        pass
+
+    return None
+
+
+def get_fmap_build_info(metadata_dict):
+    """Determine fieldmap processing requirements at build time.
+
+    Parameters
+    ----------
+    metadata_dict : dict or None
+        Fieldmap metadata dictionary
+
+    Returns
+    -------
+    dict
+        Dictionary with keys:
+        - 'fmap_type': str or None
+        - 'needs_echo_times': bool
+        - 'needs_phasediff_processing': bool
+        - 'is_epi': bool
+    """
+    from CPAC.utils.utils import get_fmap_type
+
+    build_info = {
+        "fmap_type": None,
+        "needs_echo_times": False,
+        "needs_phasediff_processing": False,
+        "is_epi": False,
+    }
+
+    if not metadata_dict:
+        # Conservative fallback - assume we might need processing
+        build_info["needs_echo_times"] = True
+        build_info["needs_phasediff_processing"] = True
+        return build_info
+
+    fmap_type = get_fmap_type(metadata_dict)
+    build_info["fmap_type"] = fmap_type
+
+    match fmap_type:
+        case "phase":
+            build_info["needs_echo_times"] = True
+            build_info["needs_phasediff_processing"] = True
+
+        case "phasediff":
+            build_info["needs_echo_times"] = True
+            build_info["needs_phasediff_processing"] = True
+
+        case "epi":
+            build_info["needs_echo_times"] = True
+            build_info["is_epi"] = True
+
+        case "fieldmap":
+            build_info["needs_phasediff_processing"] = True
+
+        case None:
+            # Conservative fallback
+            build_info["needs_echo_times"] = True
+            build_info["needs_phasediff_processing"] = True
+
+    return build_info
