@@ -2709,6 +2709,7 @@ def get_fmap_type(metadata):
             units = metadata["Units"].lower()
             if units in ["hz", "rad/s", "t", "tesla", "hertz"]:
                 return "fieldmap"
+            return None
         case (_, _, _, _, True):
             # Case 4: EPI field maps (REQUIRED: PhaseEncodingDirection)
             return "epi"
