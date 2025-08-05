@@ -2804,8 +2804,10 @@ def get_fmap_build_info(metadata_dict: Optional[dict]) -> FmapBuildInfo:
     fmap_type = get_fmap_type(metadata_dict)
 
     if fmap_type is None:
-        msg = (f"Could not determine fieldmap type from metadata: {metadata_dict}. "
-               "Metadata must contain required BIDS fields for fieldmap type detection.")
+        msg = (
+            f"Could not determine fieldmap type from metadata: {metadata_dict}. "
+            "Metadata must contain required BIDS fields for fieldmap type detection."
+        )
         raise ValueError(msg)
 
     build_info = {
