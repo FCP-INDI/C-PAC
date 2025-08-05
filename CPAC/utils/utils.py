@@ -2662,7 +2662,7 @@ def flip_orientation_code(code):
 def get_fmap_type(metadata):
     """Determine the type of field map from metadata.
 
-    reference: https://bids-specification.readthedocs.io/en/latest/modality-specific-files/magnetic-resonance-imaging-data.html#case-1-phase-difference-map-and-at-least-one-magnitude-image
+    reference: https://bids-specification.readthedocs.io/en/v1.10.0/modality-specific-files/magnetic-resonance-imaging-data.html#case-1-phase-difference-map-and-at-least-one-magnitude-image
 
     Parameters
     ----------
