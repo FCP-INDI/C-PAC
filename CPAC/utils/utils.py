@@ -25,7 +25,7 @@ import json
 import numbers
 import os
 import pickle
-from typing import Any, Literal, Optional, overload
+from typing import Any, Literal, Optional, overload, TypedDict
 
 import numpy as np
 from voluptuous.error import Invalid
@@ -2777,6 +2777,15 @@ def get_fmap_metadata_at_build_time(sub_dict, orig_key, input_creds_path, dl_dir
         pass
 
     return None
+
+
+class FmapBuildInfo(TypedDict):
+    """Fieldmap metadata."""
+
+    fmap_type: Optional[str]
+    needs_echo_times: bool
+    needs_phasediff_processing: bool
+    is_epi: bool
 
 
 @Function.sig_imports(
