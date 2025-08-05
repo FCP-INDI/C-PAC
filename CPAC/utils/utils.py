@@ -2778,22 +2778,15 @@ def get_fmap_metadata_at_build_time(sub_dict, orig_key, input_creds_path, dl_dir
     return None
 
 
-def get_fmap_build_info(metadata_dict):
+@Function.sig_imports(["from typing import Optional",
+                       "from CPAC.utils.utils import FmapBuildInfo"])
+def get_fmap_build_info(metadata_dict: Optional[dict]) -> FmapBuildInfo:
     """Determine fieldmap processing requirements at build time.
 
     Parameters
     ----------
-    metadata_dict : dict or None
+    metadata_dict
         Fieldmap metadata dictionary
-
-    Returns
-    -------
-    dict
-        Dictionary with keys:
-        - 'fmap_type': str or None
-        - 'needs_echo_times': bool
-        - 'needs_phasediff_processing': bool
-        - 'is_epi': bool
 
     Raises
     ------
