@@ -849,6 +849,10 @@ class ResourcePool:
                     new_strats[pipe_idx].rpool["json"]["subjson"][data_type].update(
                         copy.deepcopy(resource_strat_dct["json"])
                     )
+        if debug:
+            verbose_logger = getLogger("CPAC.engine")
+            _k = list(new_strats.keys())
+            verbose_logger.debug("new_strats: (%s) %s\n", len(_k), _k)
         return new_strats
 
     def derivative_xfm(self, wf, label, connection, json_info, pipe_idx, pipe_x):
