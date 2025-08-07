@@ -1,15 +1,12 @@
 import os
+from unittest.mock import Mock, patch
 
 from nose.tools import *
 import numpy as np
 import nibabel as nib
 
 from .. import anat_preproc
-from unittest.mock import Mock, patch
-from ..anat_preproc import (
-    brain_mask_freesurfer_fsl_loose,
-    brain_mask_freesurfer_fsl_tight,
-)
+from ..anat_preproc import brain_mask_freesurfer
 
 
 class TestAnatPreproc:
@@ -279,7 +276,6 @@ class TestAnatPreproc:
 @patch("CPAC.anat_preproc.anat_preproc.freesurfer_fsl_brain_connector")
 def test_brain_mask_freesurfer_fsl_loose(mock_connector):
     """Test that brain_mask_freesurfer_fsl_loose correctly renames output key."""
-
     mock_wf = Mock()
     mock_cfg = Mock()
     mock_strat_pool = Mock()
@@ -292,7 +288,7 @@ def test_brain_mask_freesurfer_fsl_loose(mock_connector):
 
     mock_connector.return_value = (mock_wf, mock_outputs)
 
-    result_wf, result_outputs = brain_mask_freesurfer_fsl_loose(
+    result_wf, result_outputs = brain_mask_freesurfer(
         mock_wf, mock_cfg, mock_strat_pool, pipe_num
     )
 
@@ -313,7 +309,6 @@ def test_brain_mask_freesurfer_fsl_loose(mock_connector):
 @patch("CPAC.anat_preproc.anat_preproc.freesurfer_fsl_brain_connector")
 def test_brain_mask_freesurfer_fsl_tight(mock_connector):
     """Test that brain_mask_freesurfer_fsl_tight correctly renames output key."""
-
     mock_wf = Mock()
     mock_cfg = Mock()
     mock_strat_pool = Mock()
@@ -326,7 +321,7 @@ def test_brain_mask_freesurfer_fsl_tight(mock_connector):
 
     mock_connector.return_value = (mock_wf, mock_outputs)
 
-    result_wf, result_outputs = brain_mask_freesurfer_fsl_tight(
+    result_wf, result_outputs = brain_mask_freesurfer(
         mock_wf, mock_cfg, mock_strat_pool, pipe_num
     )
 
