@@ -597,7 +597,7 @@ class ResourcePool:
             return flat_prov
         return None
 
-    def get_strats(self, resources, debug=False):
+    def get_strats(self, resources, debug: bool | str = False):
         # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
         # TODO: (and it doesn't have to be)
 
@@ -852,7 +852,10 @@ class ResourcePool:
         if debug:
             verbose_logger = getLogger("CPAC.engine")
             _k = list(new_strats.keys())
-            verbose_logger.debug("new_strats: (%s) %s\n", len(_k), _k)
+            if isinstance(debug, str):
+                verbose_logger.debug("new_strats: (%s, %s) %s\n", debug, len(_k), _k)
+            else:
+                verbose_logger.debug("new_strats: (%s) %s\n", len(_k), _k)
         return new_strats
 
     def derivative_xfm(self, wf, label, connection, json_info, pipe_idx, pipe_x):
@@ -1712,7 +1715,7 @@ class NodeBlock:
                 for (
                     pipe_idx,
                     strat_pool,  # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
-                ) in rpool.get_strats(inputs, debug).items():
+                ) in rpool.get_strats(inputs, name if debug else False).items():
                     # keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
                     fork = False in switch
                     for opt in opts:  # it's a dictionary of ResourcePools called strat_pools, except those sub-ResourcePools only have one level! no pipe_idx strat keys.
