@@ -1993,6 +1993,11 @@ def brain_mask_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs={"space-T1w_desc-acpcbrain_mask": {}},
 )
 def brain_mask_acpc_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
+    if opt != strat_pool.get_json("space-T1w_desc-brain_mask").get(
+        "CpacVariant", {}
+    ).get("space-T1w_mask", opt):
+        # https://tenor.com/baIhQ.gif
+        return wf, {}
     assert isinstance(brain_mask_acpc_freesurfer.outputs, dict)
     outputs = wf_outputs = {}
     key = "space-T1w_desc-brain_mask"

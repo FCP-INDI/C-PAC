@@ -42,8 +42,10 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.pipeline.nodeblock import NodeBlockFunction
 from CPAC.pipeline.utils import (
+    CrossedVariantsError,
     MOVEMENT_FILTER_KEYS,
     name_fork,
+    short_circuit_crossed_variants,
     source_set,
 )
 from CPAC.registration.registration import transform_derivative
@@ -703,6 +705,7 @@ class ResourcePool:
             if debug:
                 verbose_logger = getLogger("CPAC.engine")
                 verbose_logger.debug("len(strat_list_list): %s\n", len(strat_list_list))
+
             for strat_list in strat_list_list:
                 json_dct = {}
                 for strat in strat_list:
@@ -1716,6 +1719,13 @@ class NodeBlock:
                     pipe_idx,
                     strat_pool,  # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
                 ) in rpool.get_strats(inputs, name if debug else False).items():
+                    try:
+                        short_circuit_crossed_variants(strat_pool, inputs)
+                    except CrossedVariantsError as e:
+                        if cfg.pipeline_setup["Debugging"]["verbose"]:
+                            verbose_logger = getLogger("CPAC.engine")
+                            verbose_logger.debug(e)
+                        continue
                     # keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
                     fork = False in switch
                     for opt in opts:  # it's a dictionary of ResourcePools called strat_pools, except those sub-ResourcePools only have one level! no pipe_idx strat keys.

@@ -25,9 +25,14 @@ from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
 
 if TYPE_CHECKING:
+    from CPAC.pipeline.engine import ResourcePool
     from CPAC.pipeline.nodeblock import POOL_RESOURCE_MAPPING
 
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
+
+
+class CrossedVariantsError(Exception):
+    """Exception raised when crossed variants are found in the inputs."""
 
 
 def get_shell() -> str:
@@ -240,3 +245,41 @@ def _update_resource_idx(resource_idx, out_dct, key, value):
         resource_idx = insert_entity(resource_idx, key, value)
         out_dct["filename"] = insert_entity(out_dct["filename"], key, value)
     return resource_idx, out_dct
+
+
+def find_variants(
+    pool: "ResourcePool", keys: list | str | tuple
+) -> dict[str, dict[str, set[str]]]:
+    """Find variants in the ResourcePool for the given keys."""
+    outputs = {}
+    if isinstance(keys, str):
+        try:
+            return {keys: pool.get_json(keys)["CpacVariant"]}
+        except:
+            return {}
+    for key in keys:
+        outputs = {**outputs, **find_variants(pool, key)}
+    return outputs
+
+
+def short_circuit_crossed_variants(
+    pool: "ResourcePool", inputs: list | str | tuple
+) -> None:
+    """Short-circuit the strategy if crossed variants are found.
+
+    .. image:: https://media1.tenor.com/m/S93jWPGv52gAAAAd/dont-cross-the-streams-egon.gif
+      :width: 48
+      :alt: Don't cross the streams
+    """
+    _variants = find_variants(pool, inputs)
+    variants = {}
+    for variant in _variants.values():
+        for k, v in variant.items():
+            if k not in variants:
+                variants[k] = set(v)
+            else:
+                variants[k] = {*variants[k], *v}
+    crossed_variants = {k: v for k, v in variants.items() if len(v) > 1}
+    if crossed_variants:
+        msg = f"Crossed variants found: {crossed_variants}"
+        raise CrossedVariantsError(msg)
