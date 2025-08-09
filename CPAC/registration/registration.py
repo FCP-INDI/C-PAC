@@ -3191,10 +3191,6 @@ def mask_sbref(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def coregistration_prep_vol(wf, cfg, strat_pool, pipe_num, opt=None):
     """Create single-band reference for coreg by selecting a functional volume."""
-    from CPAC.pipeline.utils import short_circuit_crossed_variants
-
-    short_circuit_crossed_variants(strat_pool, strat_pool.rpool.keys())
-
     get_func_volume = pe.Node(interface=afni.Calc(), name=f"get_func_volume_{pipe_num}")
 
     get_func_volume.inputs.set(
@@ -3333,10 +3329,6 @@ def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
     """Coregister BOLD to T1w."""
-    from CPAC.pipeline.utils import short_circuit_crossed_variants
-
-    short_circuit_crossed_variants(strat_pool, strat_pool.rpool.keys())
-
     diff_complete = False
     if strat_pool.check_rpool("despiked-fieldmap") and strat_pool.check_rpool(
         "fieldmap-mask"

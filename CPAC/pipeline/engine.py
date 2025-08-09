@@ -852,14 +852,24 @@ class ResourcePool:
                     new_strats[pipe_idx].rpool["json"]["subjson"][data_type].update(
                         copy.deepcopy(resource_strat_dct["json"])
                     )
+        return_strats: dict[str, ResourcePool] = {}
+        for pipe_idx, strat_pool in new_strats.items():
+            try:
+                short_circuit_crossed_variants(strat_pool, resources)
+                return_strats[pipe_idx] = strat_pool
+            except CrossedVariantsError:
+                if debug:
+                    verbose_logger = getLogger("CPAC.engine")
+                    verbose_logger.debug("Dropped crossed variants strat: %s", pipe_idx)
+                continue
         if debug:
             verbose_logger = getLogger("CPAC.engine")
-            _k = list(new_strats.keys())
+            _k = list(return_strats.keys())
             if isinstance(debug, str):
-                verbose_logger.debug("new_strats: (%s, %s) %s\n", debug, len(_k), _k)
+                verbose_logger.debug("return_strats: (%s, %s) %s\n", debug, len(_k), _k)
             else:
-                verbose_logger.debug("new_strats: (%s) %s\n", len(_k), _k)
-        return new_strats
+                verbose_logger.debug("return_strats: (%s) %s\n", len(_k), _k)
+        return return_strats
 
     def derivative_xfm(self, wf, label, connection, json_info, pipe_idx, pipe_x):
         if label in self.xfm:
@@ -1719,13 +1729,6 @@ class NodeBlock:
                     pipe_idx,
                     strat_pool,  # strat_pool is a ResourcePool like {'desc-preproc_T1w': { 'json': info, 'data': (node, out) }, 'desc-brain_mask': etc.}
                 ) in rpool.get_strats(inputs, name if debug else False).items():
-                    try:
-                        short_circuit_crossed_variants(strat_pool, inputs)
-                    except CrossedVariantsError as e:
-                        if cfg.pipeline_setup["Debugging"]["verbose"]:
-                            verbose_logger = getLogger("CPAC.engine")
-                            verbose_logger.debug(e)
-                        continue
                     # keep in mind rpool.get_strats(inputs) = {pipe_idx1: {'desc-preproc_T1w': etc.}, pipe_idx2: {..} }
                     fork = False in switch
                     for opt in opts:  # it's a dictionary of ResourcePools called strat_pools, except those sub-ResourcePools only have one level! no pipe_idx strat keys.
