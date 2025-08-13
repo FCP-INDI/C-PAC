@@ -43,6 +43,7 @@ from CPAC.pipeline.check_outputs import ExpectedOutputs
 from CPAC.pipeline.nodeblock import NodeBlockFunction
 from CPAC.pipeline.utils import (
     CrossedVariantsError,
+    find_variants,
     MOVEMENT_FILTER_KEYS,
     name_fork,
     short_circuit_crossed_variants,
@@ -860,7 +861,10 @@ class ResourcePool:
             except CrossedVariantsError:
                 if debug:
                     verbose_logger = getLogger("CPAC.engine")
-                    verbose_logger.debug("Dropped crossed variants strat: %s", pipe_idx)
+                    verbose_logger.debug(
+                        "Dropped crossed variants strat: %s",
+                        find_variants(strat_pool, resources),
+                    )
                 continue
         if debug:
             verbose_logger = getLogger("CPAC.engine")
@@ -1634,6 +1638,11 @@ class NodeBlock:
                         opts.append(option_val)
             else:  # AND, if there are multiple option-val's (in a list) in the docstring, it gets iterated below in 'for opt in option' etc. AND THAT'S WHEN YOU HAVE TO DELINEATE WITHIN THE NODE BLOCK CODE!!!
                 opts = [None]
+            if debug:
+                verbose_logger = getLogger("CPAC.engine")
+                verbose_logger.debug(
+                    f"[connect_block] opts resolved for {name}: {opts}"
+                )
             all_opts += opts
 
         sidecar_additions = {

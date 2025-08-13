@@ -289,7 +289,7 @@ class TestAnatPreproc:  # noqa
 
 @pytest.mark.parametrize("opt", ["FreeSurfer-BET-Loose", "FreeSurfer-BET-Tight"])
 @pytest.mark.parametrize("t1w", ["desc-restore_T1w", "desc-preproc_T1w"])
-def test_brain_mask_freesurfer_fsl_real(opt: str, t1w: str):
+def test_brain_mask_freesurfer_fsl(opt: str, t1w: str):
     """Test that brain_mask_freesurfer_fsl correctly generates output key using real code."""
     # Create minimal mocks for required workflow/config/strat_pool, but do not patch freesurfer_fsl_brain_connector
 

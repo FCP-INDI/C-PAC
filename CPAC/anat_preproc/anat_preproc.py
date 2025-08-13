@@ -695,13 +695,15 @@ def afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     wf.connect(anat_skullstrip, "out_file", anat_brain_mask, "in_file_a")
 
+    outputs = {}
+
     if strat_pool.check_rpool("desc-preproc_T1w"):
         outputs = {"space-T1w_desc-brain_mask": (anat_brain_mask, "out_file")}
 
     elif strat_pool.check_rpool("desc-preproc_T2w"):
         outputs = {"space-T2w_desc-brain_mask": (anat_brain_mask, "out_file")}
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
@@ -1392,9 +1394,8 @@ def mask_T2(wf_name="mask_T2"):
 )
 def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
     if opt not in anatomical_init.option_val:
-        raise ValueError(
-            f"\n[!] Error: Invalid option for deoblique: {opt}. \nExpected one of {anatomical_init.option_val}"
-        )
+        msg = f"\n[!] Error: Invalid option for deoblique: {opt}. \nExpected one of {anatomical_init.option_val}"
+        raise ValueError(msg)
 
     if opt == "warp":
         anat_deoblique = pe.Node(
@@ -2004,6 +2005,7 @@ def brain_mask_acpc_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
     functions = {
         "FreeSurfer-ABCD": freesurfer_abcd_brain_connector,
         "FreeSurfer-Brainmask": freesurfer_brain_connector,
+        "FreeSurfer-BET-Loose": freesurfer_fsl_brain_connector,
         "FreeSurfer-BET-Tight": freesurfer_fsl_brain_connector,
     }
     if opt in ["FreeSurfer-BET-Loose", "FreeSurfer-BET-Tight"]:

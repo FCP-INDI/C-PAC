@@ -3311,7 +3311,7 @@ def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
         ),
         (
             "desc-preproc_T1w",
-            ["desc-restore-brain_T1w", "desc-preproc_T1w"],
+            "desc-restore-brain_T1w",
             "desc-preproc_T2w",
             "desc-preproc_T2w",
             "T2w",
