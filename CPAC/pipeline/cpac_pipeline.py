@@ -1291,6 +1291,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
             mask_sbref,
         ]
 
+    # Template space functional mask
+    if cfg.functional_preproc["template_space_func_masking"]["run"]:
+        if not rpool.check_rpool("space-template_desc-bold_mask"):
+            pipeline_blocks += [
+                bold_mask_anatomical_resampled,
+            ]
+
         # Distortion/Susceptibility Correction
         distcor_blocks = []
         if "fmap" in sub_dict:
@@ -1472,17 +1479,12 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
             warp_deriv_mask_to_EPItemplate,
         ]
 
-    # Template space functional masking
+    # Apply mask in template space
     if cfg.functional_preproc["template_space_func_masking"]["run"]:
-        if not rpool.check_rpool("space-template_desc-bold_mask"):
-            pipeline_blocks += [
-                bold_mask_anatomical_resampled,
-            ]
-
         pipeline_blocks += [
             template_space_bold_masking,
         ]
-
+        
     # Template-space nuisance regression
     nuisance_template = (
         cfg["nuisance_corrections", "2-nuisance_regression", "space"] == "template"

@@ -2901,6 +2901,7 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     inputs=[
         (
             "desc-restore-brain_T1w",
+            "desc-head_T1w",
             ["desc-preproc_T1w", "space-longitudinal_desc-brain_T1w"],
             ["desc-restore_T1w", "desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
             ["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
@@ -3081,7 +3082,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         wf.connect(node, out, match_fovs_T1w, "reference")
         wf.connect(node, out, fsl_apply_warp_t1_to_template, "ref_file")
 
-        node, out = strat_pool.get_data(["desc-restore_T1w", "desc-preproc_T1w"])
+        node, out = strat_pool.get_data(["desc-restore_T1w", "desc-head_T1w"])
         wf.connect(node, out, match_fovs_T1w, "in_file")
         wf.connect(match_fovs_T1w, "out_file", fsl_apply_warp_t1_to_template, "in_file")
 
@@ -4169,7 +4170,8 @@ def warp_timeseries_to_T1template_deriv(wf, cfg, strat_pool, pipe_num, opt=None)
         "from-bold_to-template_mode-image_xfm",
         "fsl-blip-warp",
         "desc-preproc_T1w",
-        "space-template_res-bold_desc-brain_T1w",
+        "desc-head_T1w",
+        "space-template_res-bold_desc-head_T1w",
         "space-template_desc-bold_mask",
         "T1w-brain-template-funcreg",
         "T1w-template-funcreg",
@@ -4199,7 +4201,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     convert_func_to_anat_linear_warp.inputs.out_relwarp = True
     convert_func_to_anat_linear_warp.inputs.relwarp = True
 
-    node, out = strat_pool.get_data("desc-preproc_T1w")
+    node, out = strat_pool.get_data("desc-head_T1w")
     wf.connect(node, out, convert_func_to_anat_linear_warp, "reference")
 
     if strat_pool.check_rpool("fsl-blip-warp"):
@@ -4231,24 +4233,9 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("from-T1w_to-template_mode-image_xfm")
     wf.connect(node, out, convert_func_to_standard_warp, "warp2")
 
-    from CPAC.func_preproc.func_preproc import (
-        anat_brain_mask_to_bold_res,
-        anat_brain_to_bold_res,
-    )
-
-    anat_brain_to_func_res = anat_brain_to_bold_res(wf, cfg, pipe_num)
-
-    node, out = strat_pool.get_data("space-template_desc-preproc_T1w")
+    node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
     wf.connect(
-        node, out, anat_brain_to_func_res, "inputspec.space-template_desc-preproc_T1w"
-    )
-
-    node, out = strat_pool.get_data("T1w-template-funcreg")
-    wf.connect(node, out, anat_brain_to_func_res, "inputspec.T1w-template-funcreg")
-
-    wf.connect(
-        anat_brain_to_func_res,
-        "outputspec.space-template_res-bold_desc-brain_T1w",
+        node, out,
         convert_func_to_standard_warp,
         "reference",
     )
@@ -4314,11 +4301,9 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     convert_registration_warp.inputs.out_relwarp = True
     convert_registration_warp.inputs.relwarp = True
 
+    node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
     wf.connect(
-        anat_brain_to_func_res,
-        "outputspec.space-template_res-bold_desc-brain_T1w",
-        convert_registration_warp,
-        "reference",
+        node, out, convert_registration_warp, "reference",
     )
 
     wf.connect(
@@ -4356,11 +4341,9 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         convert_registration_warp, "out_file", applywarp_func_to_standard, "field_file"
     )
 
+    node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
     wf.connect(
-        anat_brain_to_func_res,
-        "outputspec.space-template_res-bold_desc-brain_T1w",
-        applywarp_func_to_standard,
-        "ref_file",
+        node, out, applywarp_func_to_standard, "ref_file",
     )
 
     # applywarp --rel --interp=nn --in=${WD}/prevols/vol${vnum}_mask.nii.gz --warp=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum}_all_warp.nii.gz --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --out=${WD}/postvols/vol${vnum}_mask.nii.gz
@@ -4384,11 +4367,9 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         "field_file",
     )
 
+    node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
     wf.connect(
-        anat_brain_to_func_res,
-        "outputspec.space-template_res-bold_desc-brain_T1w",
-        applywarp_func_mask_to_standard,
-        "ref_file",
+        node, out, applywarp_func_mask_to_standard, "ref_file",
     )
 
     ### Loop ends! ###
@@ -4436,11 +4417,9 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     convert_dc_warp.inputs.out_relwarp = True
     convert_dc_warp.inputs.relwarp = True
 
+    node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
     wf.connect(
-        anat_brain_to_func_res,
-        "outputspec.space-template_res-bold_desc-brain_T1w",
-        convert_dc_warp,
-        "reference",
+        node, out, convert_dc_warp, "reference",
     )
 
     wf.connect(multiply_func_roi_by_zero, "out_file", convert_dc_warp, "warp1")
@@ -4458,11 +4437,9 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("motion-basefile")
     wf.connect(node, out, applywarp_scout, "in_file")
 
+    node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
     wf.connect(
-        anat_brain_to_func_res,
-        "outputspec.space-template_res-bold_desc-brain_T1w",
-        applywarp_scout,
-        "ref_file",
+        node, out, applywarp_scout, "ref_file",
     )
 
     wf.connect(convert_dc_warp, "out_file", applywarp_scout, "field_file")
@@ -4471,30 +4448,9 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     # fslmaths ${InputfMRI} -mas ${BrainMask} -mas ${InputfMRI}_mask -thr 0 -ing 10000 ${OutputfMRI} -odt float
     merge_func_mask = pe.Node(util.Merge(2), name=f"merge_func_mask_{pipe_num}")
 
-    anat_brain_mask_to_func_res = anat_brain_mask_to_bold_res(
-        wf_name="anat_brain_mask_to_bold_res", cfg=cfg, pipe_num=pipe_num
-    )
-
-    node, out = strat_pool.get_data("space-template_desc-brain_mask")
+    node, out = strat_pool.get_data("space-template_desc-bold_mask")
     wf.connect(
-        node,
-        out,
-        anat_brain_mask_to_func_res,
-        "inputspec.space-template_desc-brain_mask",
-    )
-
-    wf.connect(
-        anat_brain_to_func_res,
-        "outputspec.space-template_res-bold_desc-brain_T1w",
-        anat_brain_mask_to_func_res,
-        "inputspec.space-template_desc-preproc_T1w",
-    )
-
-    wf.connect(
-        anat_brain_mask_to_func_res,
-        "outputspec.space-template_desc-bold_mask",
-        merge_func_mask,
-        "in1",
+        node, out, merge_func_mask, "in1",
     )
 
     wf.connect(find_min_mask, "out_file", merge_func_mask, "in2")
