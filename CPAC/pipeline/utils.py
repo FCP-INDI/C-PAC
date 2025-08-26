@@ -255,7 +255,7 @@ def find_variants(
     if isinstance(keys, str):
         try:
             return {keys: pool.get_json(keys)["CpacVariant"]}
-        except:
+        except LookupError:
             return {}
     for key in keys:
         outputs = {**outputs, **find_variants(pool, key)}
@@ -272,14 +272,22 @@ def short_circuit_crossed_variants(
       :alt: Don't cross the streams
     """
     _variants = find_variants(pool, inputs)
-    variants = {}
-    for variant in _variants.values():
-        for k, v in variant.items():
-            if k not in variants:
-                variants[k] = set(v)
-            else:
-                variants[k] = {*variants[k], *v}
-    crossed_variants = {k: v for k, v in variants.items() if len(v) > 1}
+    # collect all variant dicts
+    variant_dicts = list(_variants.values())
+    if not variant_dicts:
+        return
+
+    # only keep keys that exist in all variant dicts
+    common_keys = set.intersection(*(set(v.keys()) for v in variant_dicts))
+
+    crossed_variants = {}
+    for key in common_keys:
+        values = set()
+        for variant in variant_dicts:
+            values.update(variant.get(key, []))
+        if len(values) > 1:
+            crossed_variants[key] = values
+
     if crossed_variants:
         msg = f"Crossed variants found: {crossed_variants}"
         raise CrossedVariantsError(msg)

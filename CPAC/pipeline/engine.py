@@ -24,7 +24,7 @@ from itertools import chain
 import json
 import os
 import re
-from typing import Literal, Optional
+from typing import Callable, Generator, Literal, Optional
 import warnings
 
 import pandas as pd
@@ -604,8 +604,6 @@ class ResourcePool:
         # TODO: NOTE: NOT COMPATIBLE WITH SUB-RPOOL/STRAT_POOLS
         # TODO: (and it doesn't have to be)
 
-        import itertools
-
         linked_resources = []
         resource_list = []
         if debug:
@@ -686,7 +684,7 @@ class ResourcePool:
         # TODO: and the actual resource is encoded in the tag: of the last item, every time!
         # keying the strategies to the resources, inverting it
         if len_inputs > 1:
-            strats = itertools.product(*total_pool)
+            strats = self.linked_product(total_pool, linked_resources, self.get_json)
 
             # we now currently have "strats", the combined permutations of all the strategies, as a list of tuples, each tuple combining one version of input each, being one of the permutations.
             # OF ALL THE DIFFERENT INPUTS. and they are tagged by their fetched inputs with {name}:{strat}.
@@ -1482,6 +1480,128 @@ class ResourcePool:
         """
         return NodeData(self, resource, **kwargs)
 
+    @staticmethod
+    def _normalize_variant_dict(json_obj: dict) -> dict[str, Optional[str]]:
+        """
+        Return {variant_key: primary_value or None}.
+
+        - list items are concatentated
+        - "NO-..." entries normalize to None
+        """
+        out = {}
+        for k, v in json_obj.get("CpacVariant", {}).items():
+            assert isinstance(v, (list, str))
+            primary = "-".join(v) if isinstance(v, list) else v
+            out[k] = (
+                None
+                if (isinstance(primary, str) and primary.startswith("NO-"))
+                else primary
+            )
+        return out
+
+    def _is_consistent(
+        self,
+        strat_list: list,
+        linked_resources: list | tuple,
+        json_lookup: Callable[[str, str | list[str]], dict],
+        debug: bool = False,
+    ) -> bool:
+        """
+        Ensure consistency for linked_resources in strat_list.
+
+        Rules:
+        - Sub-keys only compared if they exist in multiple resources in the same linked group.
+        - Missing sub-keys or NO-... values are compatible with anything.
+        - Lists are compared ignoring order.
+        - Debug prints a summary table per linked group.
+        """
+        if not linked_resources:
+            return True
+
+        # Build JSON for each prov
+        prov_json = {}
+        for prov in strat_list:
+            resource, strat_idx = self.generate_prov_string(prov)
+            prov_json[resource] = self._normalize_variant_dict(
+                json_lookup(resource, strat_idx)
+            )
+
+        for linked_group in linked_resources:
+            # Keep only resources present in strat_list
+            variants_map = {r: prov_json[r] for r in linked_group if r in prov_json}
+            if len(variants_map) < 2:
+                continue  # nothing to compare yet
+
+            # Determine which sub-keys are shared across multiple resources
+            subkey_counts = {}
+            for subdict in variants_map.values():
+                for k in subdict.keys():
+                    subkey_counts[k] = subkey_counts.get(k, 0) + 1
+            shared_subkeys = {k for k, count in subkey_counts.items() if count > 1}
+
+            # Pairwise comparison only for shared sub-keys
+            resources = list(variants_map.keys())
+            for i in range(len(resources)):
+                res_a = resources[i]
+                subdict_a = variants_map[res_a]
+                for j in range(i + 1, len(resources)):
+                    res_b = resources[j]
+                    subdict_b = variants_map[res_b]
+
+                    for subkey in shared_subkeys:
+                        val_a = subdict_a.get(subkey)
+                        val_b = subdict_b.get(subkey)
+
+                        # Skip if missing or NO-...
+                        skip_a = (
+                            val_a is None
+                            or (
+                                isinstance(val_a, list)
+                                and all(str(v).startswith("NO-") for v in val_a)
+                            )
+                            or (isinstance(val_a, str) and val_a.startswith("NO-"))
+                        )
+                        skip_b = (
+                            val_b is None
+                            or (
+                                isinstance(val_b, list)
+                                and all(str(v).startswith("NO-") for v in val_b)
+                            )
+                            or (isinstance(val_b, str) and val_b.startswith("NO-"))
+                        )
+                        if skip_a or skip_b:
+                            continue
+
+                        # Normalize lists
+                        val_a_norm = sorted(val_a) if isinstance(val_a, list) else val_a
+                        val_b_norm = sorted(val_b) if isinstance(val_b, list) else val_b
+
+                        if val_a_norm != val_b_norm:
+                            return False
+        return True
+
+    def linked_product(
+        self,
+        resource_pools: "list[ResourcePool]",
+        linked_resources: list[str],
+        json_lookup: Callable[[str, str | list[str]], dict],
+    ) -> Generator:
+        """
+        Generate only consistent combinations of cpac_prov values across pools.
+        """
+
+        def backtrack(idx, current):
+            if idx == len(resource_pools):
+                yield list(current)
+                return
+            for prov in resource_pools[idx]:
+                current.append(prov)
+                if self._is_consistent(current, linked_resources, json_lookup):
+                    yield from backtrack(idx + 1, current)
+                current.pop()
+
+        yield from backtrack(0, [])
+
 
 class NodeBlock:
     def __init__(self, node_block_functions, debug=False):
@@ -1582,7 +1702,10 @@ class NodeBlock:
                 raise KeyError(msg) from ke
         return cfg_dct
 
-    def connect_block(self, wf, cfg, rpool):
+    def connect_block(
+        self, wf: pe.Workflow, cfg: Configuration, rpool: ResourcePool
+    ) -> pe.Workflow:
+        """Connect NodeBlock to a Workflow given a Configuration and ResourcePool."""
         debug = cfg.pipeline_setup["Debugging"]["verbose"]
         all_opts = []
         for name, block_dct in self.node_blocks.items():
@@ -1641,7 +1764,7 @@ class NodeBlock:
             if debug:
                 verbose_logger = getLogger("CPAC.engine")
                 verbose_logger.debug(
-                    f"[connect_block] opts resolved for {name}: {opts}"
+                    "[connect_block] opts resolved for %s: %s", name, opts
                 )
             all_opts += opts
 
@@ -1759,6 +1882,13 @@ class NodeBlock:
                             strat_pool.copy_resource(input_name, interface[0])
                             replaced_inputs.append(interface[0])
                         try:
+                            if debug:
+                                verbose_logger = getLogger("CPAC.engine")
+                                verbose_logger.debug(
+                                    "Before block '%s', strat_pool contains: %s",
+                                    block_function.__name__,
+                                    list(strat_pool.rpool.keys()),
+                                )
                             wf, outs = block_function(wf, cfg, strat_pool, pipe_x, opt)
                         except IOError as e:  # duplicate node
                             WFLOGGER.warning(e)
@@ -2472,7 +2602,7 @@ def func_outdir_ingress(
 
 
 def set_iterables(scan, mask_paths=None, ts_paths=None):
-    # match scan with filepath to get filepath
+    """Match scan with filepath to get filepath."""
     mask_path = [path for path in mask_paths if scan in path]
     ts_path = [path for path in ts_paths if scan in path]
 
