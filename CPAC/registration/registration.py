@@ -22,6 +22,7 @@ from typing import Literal, Optional, TYPE_CHECKING
 from voluptuous import RequiredFieldInvalid
 from nipype.interfaces import afni, ants, c3, fsl, utility as util
 from nipype.interfaces.afni import utils as afni_utils
+from pathlib import Path 
 
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.func_preproc.func_preproc import fsl_afni_subworkflow
@@ -4194,6 +4195,21 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     https://github.com/DCAN-Labs/DCAN-HCP/blob/a8d495a/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh#L548
     convertwarp --relout --rel -m ${WD}/fMRI2str.mat --ref=${T1wImage} --out=${WD}/fMRI2str.nii.gz
     """
+    # Identity matrix node needed for matching FOV
+    identity_node = pe.Node(
+        Function(
+            imports=["from pathlib import Path", "import numpy as np"],
+            input_names=["workdir"],
+            output_names=["identity_file"],
+            function=lambda workdir: (
+                np.savetxt(Path(workdir) / "identity.mat", np.eye(4), fmt="%.6f") or
+                str(Path(workdir) / "identity.mat")
+            )
+        ),
+        name=f"create_identity_matrix_{pipe_num}"
+    )
+    identity_node.inputs.workdir = str(Path.cwd())
+        
     convert_func_to_anat_linear_warp = pe.Node(
         interface=fsl.ConvertWarp(), name=f"convert_func_to_anat_linear_warp_{pipe_num}"
     )
@@ -4204,15 +4220,12 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("desc-head_T1w")
     wf.connect(node, out, convert_func_to_anat_linear_warp, "reference")
 
-    if strat_pool.check_rpool("fsl-blip-warp"):
-        node, out = strat_pool.get_data("from-bold_to-T1w_mode-image_desc-linear_xfm")
-        wf.connect(node, out, convert_func_to_anat_linear_warp, "postmat")
+    node, out = strat_pool.get_data("from-bold_to-T1w_mode-image_desc-linear_xfm")
+    wf.connect(node, out, convert_func_to_anat_linear_warp, "premat")
 
+    if strat_pool.check_rpool("fsl-blip-warp"):
         node, out = strat_pool.get_data("fsl-blip-warp")
         wf.connect(node, out, convert_func_to_anat_linear_warp, "warp1")
-    else:
-        node, out = strat_pool.get_data("from-bold_to-T1w_mode-image_desc-linear_xfm")
-        wf.connect(node, out, convert_func_to_anat_linear_warp, "premat")
 
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/1d90814/fMRIVolume/scripts/OneStepResampling.sh#L140
     # convertwarp --relout --rel --warp1=${fMRIToStructuralInput} --warp2=${StructuralToStandard} --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --out=${OutputTransform}
@@ -4253,15 +4266,6 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     node, out = strat_pool.get_data("desc-reorient_bold")
     wf.connect(node, out, extract_func_roi, "in_file")
 
-    # fslmaths "$fMRIFolder"/"$NameOffMRI"_gdc_warp -mul 0 "$fMRIFolder"/"$NameOffMRI"_gdc_warp
-    multiply_func_roi_by_zero = pe.Node(
-        interface=fsl.maths.MathsCommand(), name=f"multiply_func_roi_by_zero_{pipe_num}"
-    )
-
-    multiply_func_roi_by_zero.inputs.args = "-mul 0"
-
-    wf.connect(extract_func_roi, "roi_file", multiply_func_roi_by_zero, "in_file")
-
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/1d90814/fMRIVolume/scripts/OneStepResampling.sh#L168-L193
     # fslsplit ${InputfMRI} ${WD}/prevols/vol -t
     split_func = pe.Node(interface=fsl.Split(), name=f"split_func_{pipe_num}")
@@ -4272,6 +4276,16 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, split_func, "in_file")
 
     ### Loop starts! ###
+    # Match FOV func_to_standard
+    match_fov_func = pe.MapNode(
+        interface=fsl.FLIRT(apply_xfm=True, interp="spline"), name=f"match_fov_func_{pipe_num}", iterfield=["in_file"]
+    )
+    wf.connect(identity_node, "identity_file", match_fov_func, "in_matrix_file")
+    wf.connect(split_func, "out_files", match_fov_func, "in_file")
+
+    node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
+    wf.connect(node, out, match_fov_func, "reference")
+
     # convertwarp --relout --rel --ref=${WD}/prevols/vol${vnum}.nii.gz --warp1=${GradientDistortionField} --postmat=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum} --out=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum}_gdc_warp.nii.gz
     convert_motion_distortion_warp = pe.MapNode(
         interface=fsl.ConvertWarp(),
@@ -4282,14 +4296,14 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     convert_motion_distortion_warp.inputs.out_relwarp = True
     convert_motion_distortion_warp.inputs.relwarp = True
 
-    wf.connect(
-        multiply_func_roi_by_zero, "out_file", convert_motion_distortion_warp, "warp1"
-    )
-
-    wf.connect(split_func, "out_files", convert_motion_distortion_warp, "reference")
+    wf.connect(match_fov_func, "out_file", convert_motion_distortion_warp, "reference")
 
     node, out = strat_pool.get_data("coordinate-transformation")
     wf.connect(node, out, convert_motion_distortion_warp, "postmat")
+
+    if strat_pool.check_rpool("gradient-distortion-field"):
+        node, out = strat_pool.get_data("gradient-distortion-field")
+        wf.connect(node, out, convert_motion_distortion_warp, "warp1")
 
     # convertwarp --relout --rel --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --warp1=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum}_gdc_warp.nii.gz --warp2=${OutputTransform} --out=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum}_all_warp.nii.gz
     convert_registration_warp = pe.MapNode(
@@ -4314,17 +4328,6 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         convert_func_to_standard_warp, "out_file", convert_registration_warp, "warp2"
     )
 
-    # fslmaths ${WD}/prevols/vol${vnum}.nii.gz -mul 0 -add 1 ${WD}/prevols/vol${vnum}_mask.nii.gz
-    generate_vol_mask = pe.MapNode(
-        interface=fsl.maths.MathsCommand(),
-        name=f"generate_mask_{pipe_num}",
-        iterfield=["in_file"],
-    )
-
-    generate_vol_mask.inputs.args = "-mul 0 -add 1"
-
-    wf.connect(split_func, "out_files", generate_vol_mask, "in_file")
-
     # applywarp --rel --interp=spline --in=${WD}/prevols/vol${vnum}.nii.gz --warp=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum}_all_warp.nii.gz --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --out=${WD}/postvols/vol${vnum}.nii.gz
     applywarp_func_to_standard = pe.MapNode(
         interface=fsl.ApplyWarp(),
@@ -4332,10 +4335,9 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         iterfield=["in_file", "field_file"],
     )
 
-    applywarp_func_to_standard.inputs.relwarp = True
     applywarp_func_to_standard.inputs.interp = "spline"
 
-    wf.connect(split_func, "out_files", applywarp_func_to_standard, "in_file")
+    wf.connect(match_fov_func, "out_file", applywarp_func_to_standard, "in_file")
 
     wf.connect(
         convert_registration_warp, "out_file", applywarp_func_to_standard, "field_file"
@@ -4353,11 +4355,11 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         iterfield=["in_file", "field_file"],
     )
 
-    applywarp_func_mask_to_standard.inputs.relwarp = True
     applywarp_func_mask_to_standard.inputs.interp = "nn"
 
+    node, out = strat_pool.get_data("space-template_desc-bold_mask")
     wf.connect(
-        generate_vol_mask, "out_file", applywarp_func_mask_to_standard, "in_file"
+        node, out, applywarp_func_mask_to_standard, "in_file"
     )
 
     wf.connect(
@@ -4408,41 +4410,35 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(merge_func_mask_to_standard, "merged_file", find_min_mask, "in_file")
 
-    # Combine transformations: gradient non-linearity distortion + fMRI_dc to standard
-    # convertwarp --relout --rel --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --warp1=${GradientDistortionField} --warp2=${OutputTransform} --out=${WD}/Scout_gdc_MNI_warp.nii.gz
-    convert_dc_warp = pe.Node(
-        interface=fsl.ConvertWarp(), name=f"convert_dc_warp_{pipe_num}"
+    # Match FOV scout_to_standard
+    match_fov_scout_to_standard = pe.MapNode(
+        interface=fsl.FLIRT(apply_xfm=True, interp="spline"), name=f"match_fov_scout_to_standard_{pipe_num}", iterfield=["in_file"]
     )
-
-    convert_dc_warp.inputs.out_relwarp = True
-    convert_dc_warp.inputs.relwarp = True
+    wf.connect(identity_node, "identity_file", match_fov_scout_to_standard, "in_matrix_file")
+    node, out = strat_pool.get_data("motion-basefile")
+    wf.connect(node, out, match_fov_scout_to_standard, "in_file")
 
     node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
     wf.connect(
-        node, out, convert_dc_warp, "reference",
+        node, out, match_fov_scout_to_standard, "reference"
     )
-
-    wf.connect(multiply_func_roi_by_zero, "out_file", convert_dc_warp, "warp1")
-
-    wf.connect(convert_func_to_standard_warp, "out_file", convert_dc_warp, "warp2")
 
     # applywarp --rel --interp=spline --in=${ScoutInput} -w ${WD}/Scout_gdc_MNI_warp.nii.gz -r ${WD}/${T1wImageFile}.${FinalfMRIResolution} -o ${ScoutOutput}
     applywarp_scout = pe.Node(
         interface=fsl.ApplyWarp(), name=f"applywarp_scout_input_{pipe_num}"
     )
 
-    applywarp_scout.inputs.relwarp = True
     applywarp_scout.inputs.interp = "spline"
 
-    node, out = strat_pool.get_data("motion-basefile")
-    wf.connect(node, out, applywarp_scout, "in_file")
+    wf.connect(match_fov_scout_to_standard, "out_file", applywarp_scout, "in_file")
 
     node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
     wf.connect(
         node, out, applywarp_scout, "ref_file",
     )
 
-    wf.connect(convert_dc_warp, "out_file", applywarp_scout, "field_file")
+    # warp field is just fMRI->standard (skip GDC)
+    wf.connect(convert_func_to_standard_warp, "out_file", applywarp_scout, "field_file")
 
     # https://github.com/DCAN-Labs/DCAN-HCP/blob/1214767/fMRIVolume/scripts/IntensityNormalization.sh#L124-L127
     # fslmaths ${InputfMRI} -mas ${BrainMask} -mas ${InputfMRI}_mask -thr 0 -ing 10000 ${OutputfMRI} -odt float
@@ -5597,3 +5593,37 @@ def _warp_return(
     if apply_xfm is None:
         return wf, {}
     return wf, outputs
+
+
+def create_identity_matrix(workdir):
+    """Create an identity matrix for FLIRT."""
+    identity_file = Path(workdir) / "identity.mat"
+    np.savetxt(identity_file, np.eye(4), fmt="%.6f")
+    return str(identity_file)
+
+def build_match_fov_wf(name, workdir, pipe_num):
+    """
+    Workflow to match Field-of-View for T1w or functional images
+    using an identity matrix.
+    """
+    wf = Workflow(name=name)
+    
+    identity_node = Node(
+        Function(
+            input_names=["workdir"],
+            output_names=["identity_file"],
+            function=create_identity_matrix
+        ),
+        name=f"create_identity_matrix_{pipe_num}"
+    )
+    identity_node.inputs.workdir = workdir
+
+    match_fov_node = MapNode(
+        interface=fsl.FLIRT(apply_xfm=True, interp="spline"),
+        name=f"match_fov_{pipe_num}",
+        iterfield=["in_file"]
+    )
+    
+    wf.connect(identity_node, "identity_file", match_fov_node, "in_matrix_file")
+
+    return wf, match_fov_node
