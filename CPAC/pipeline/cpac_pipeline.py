@@ -1484,7 +1484,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
         pipeline_blocks += [
             template_space_bold_masking,
         ]
-        
+
     # Template-space nuisance regression
     nuisance_template = (
         cfg["nuisance_corrections", "2-nuisance_regression", "space"] == "template"

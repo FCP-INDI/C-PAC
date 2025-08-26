@@ -1926,9 +1926,7 @@ def template_space_bold_masking(
     func_apply_mask.inputs.expr = "a*b"
     func_apply_mask.inputs.outputtype = "NIFTI_GZ"
 
-    node_head_bold, out_head_bold = strat_pool.get_data(
-        "space-template_desc-head_bold"
-    )
+    node_head_bold, out_head_bold = strat_pool.get_data("space-template_desc-head_bold")
     wf.connect(node_head_bold, out_head_bold, func_apply_mask, "in_file_a")
 
     node, out = strat_pool.get_data("space-template_desc-bold_mask")

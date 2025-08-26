@@ -22,7 +22,7 @@ from typing import Literal, Optional, TYPE_CHECKING
 from voluptuous import RequiredFieldInvalid
 from nipype.interfaces import afni, ants, c3, fsl, utility as util
 from nipype.interfaces.afni import utils as afni_utils
-from pathlib import Path 
+from pathlib import Path
 
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.func_preproc.func_preproc import fsl_afni_subworkflow
@@ -4202,14 +4202,14 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
             input_names=["workdir"],
             output_names=["identity_file"],
             function=lambda workdir: (
-                np.savetxt(Path(workdir) / "identity.mat", np.eye(4), fmt="%.6f") or
-                str(Path(workdir) / "identity.mat")
-            )
+                np.savetxt(Path(workdir) / "identity.mat", np.eye(4), fmt="%.6f")
+                or str(Path(workdir) / "identity.mat")
+            ),
         ),
-        name=f"create_identity_matrix_{pipe_num}"
+        name=f"create_identity_matrix_{pipe_num}",
     )
     identity_node.inputs.workdir = str(Path.cwd())
-        
+
     convert_func_to_anat_linear_warp = pe.Node(
         interface=fsl.ConvertWarp(), name=f"convert_func_to_anat_linear_warp_{pipe_num}"
     )
@@ -4248,7 +4248,8 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
     wf.connect(
-        node, out,
+        node,
+        out,
         convert_func_to_standard_warp,
         "reference",
     )
@@ -4278,7 +4279,9 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     ### Loop starts! ###
     # Match FOV func_to_standard
     match_fov_func = pe.MapNode(
-        interface=fsl.FLIRT(apply_xfm=True, interp="spline"), name=f"match_fov_func_{pipe_num}", iterfield=["in_file"]
+        interface=fsl.FLIRT(apply_xfm=True, interp="spline"),
+        name=f"match_fov_func_{pipe_num}",
+        iterfield=["in_file"],
     )
     wf.connect(identity_node, "identity_file", match_fov_func, "in_matrix_file")
     wf.connect(split_func, "out_files", match_fov_func, "in_file")
@@ -4317,7 +4320,10 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
     wf.connect(
-        node, out, convert_registration_warp, "reference",
+        node,
+        out,
+        convert_registration_warp,
+        "reference",
     )
 
     wf.connect(
@@ -4345,7 +4351,10 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
     wf.connect(
-        node, out, applywarp_func_to_standard, "ref_file",
+        node,
+        out,
+        applywarp_func_to_standard,
+        "ref_file",
     )
 
     # applywarp --rel --interp=nn --in=${WD}/prevols/vol${vnum}_mask.nii.gz --warp=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum}_all_warp.nii.gz --ref=${WD}/${T1wImageFile}.${FinalfMRIResolution} --out=${WD}/postvols/vol${vnum}_mask.nii.gz
@@ -4358,9 +4367,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     applywarp_func_mask_to_standard.inputs.interp = "nn"
 
     node, out = strat_pool.get_data("space-template_desc-bold_mask")
-    wf.connect(
-        node, out, applywarp_func_mask_to_standard, "in_file"
-    )
+    wf.connect(node, out, applywarp_func_mask_to_standard, "in_file")
 
     wf.connect(
         convert_registration_warp,
@@ -4371,7 +4378,10 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
     wf.connect(
-        node, out, applywarp_func_mask_to_standard, "ref_file",
+        node,
+        out,
+        applywarp_func_mask_to_standard,
+        "ref_file",
     )
 
     ### Loop ends! ###
@@ -4412,16 +4422,18 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     # Match FOV scout_to_standard
     match_fov_scout_to_standard = pe.MapNode(
-        interface=fsl.FLIRT(apply_xfm=True, interp="spline"), name=f"match_fov_scout_to_standard_{pipe_num}", iterfield=["in_file"]
+        interface=fsl.FLIRT(apply_xfm=True, interp="spline"),
+        name=f"match_fov_scout_to_standard_{pipe_num}",
+        iterfield=["in_file"],
     )
-    wf.connect(identity_node, "identity_file", match_fov_scout_to_standard, "in_matrix_file")
+    wf.connect(
+        identity_node, "identity_file", match_fov_scout_to_standard, "in_matrix_file"
+    )
     node, out = strat_pool.get_data("motion-basefile")
     wf.connect(node, out, match_fov_scout_to_standard, "in_file")
 
     node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
-    wf.connect(
-        node, out, match_fov_scout_to_standard, "reference"
-    )
+    wf.connect(node, out, match_fov_scout_to_standard, "reference")
 
     # applywarp --rel --interp=spline --in=${ScoutInput} -w ${WD}/Scout_gdc_MNI_warp.nii.gz -r ${WD}/${T1wImageFile}.${FinalfMRIResolution} -o ${ScoutOutput}
     applywarp_scout = pe.Node(
@@ -4434,7 +4446,10 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
     wf.connect(
-        node, out, applywarp_scout, "ref_file",
+        node,
+        out,
+        applywarp_scout,
+        "ref_file",
     )
 
     # warp field is just fMRI->standard (skip GDC)
@@ -4446,7 +4461,10 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     node, out = strat_pool.get_data("space-template_desc-bold_mask")
     wf.connect(
-        node, out, merge_func_mask, "in1",
+        node,
+        out,
+        merge_func_mask,
+        "in1",
     )
 
     wf.connect(find_min_mask, "out_file", merge_func_mask, "in2")
@@ -5601,29 +5619,30 @@ def create_identity_matrix(workdir):
     np.savetxt(identity_file, np.eye(4), fmt="%.6f")
     return str(identity_file)
 
+
 def build_match_fov_wf(name, workdir, pipe_num):
     """
     Workflow to match Field-of-View for T1w or functional images
     using an identity matrix.
     """
     wf = Workflow(name=name)
-    
+
     identity_node = Node(
         Function(
             input_names=["workdir"],
             output_names=["identity_file"],
-            function=create_identity_matrix
+            function=create_identity_matrix,
         ),
-        name=f"create_identity_matrix_{pipe_num}"
+        name=f"create_identity_matrix_{pipe_num}",
     )
     identity_node.inputs.workdir = workdir
 
     match_fov_node = MapNode(
         interface=fsl.FLIRT(apply_xfm=True, interp="spline"),
         name=f"match_fov_{pipe_num}",
-        iterfield=["in_file"]
+        iterfield=["in_file"],
     )
-    
+
     wf.connect(identity_node, "identity_file", match_fov_node, "in_matrix_file")
 
     return wf, match_fov_node
