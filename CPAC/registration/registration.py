@@ -22,7 +22,6 @@ from typing import Literal, Optional, TYPE_CHECKING
 from voluptuous import RequiredFieldInvalid
 from nipype.interfaces import afni, ants, c3, fsl, utility as util
 from nipype.interfaces.afni import utils as afni_utils
-from pathlib import Path
 
 from CPAC.anat_preproc.lesion_preproc import create_lesion_preproc
 from CPAC.func_preproc.func_preproc import fsl_afni_subworkflow
@@ -3068,7 +3067,9 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         wf.connect(merge_inv_xfms_to_list, "out", merge_inv_xfms, "in_files")
 
         # Match FOVs using flirt -in infile -ref MNI152_T1_1mm_resample.nii.gz -out my_T1w_resampled.nii.gz -applyxfm -usesqform
-        match_fovs_T1w = pe.Node(interface=fsl.FLIRT(), name=f"match_fovs_T1w_{pipe_num}")
+        match_fovs_T1w = pe.Node(
+            interface=fsl.FLIRT(), name=f"match_fovs_T1w_{pipe_num}"
+        )
         match_fovs_T1w.inputs.apply_xfm = True
         match_fovs_T1w.inputs.uses_qform = True
 
@@ -3091,7 +3092,9 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
             merge_xfms, "merged_file", fsl_apply_warp_t1_to_template, "field_file"
         )
 
-        match_fovs_T1w_brain = pe.Node(interface=fsl.FLIRT(), name=f"match_fovs_T1w_brain_{pipe_num}")
+        match_fovs_T1w_brain = pe.Node(
+            interface=fsl.FLIRT(), name=f"match_fovs_T1w_brain_{pipe_num}"
+        )
         match_fovs_T1w_brain.inputs.apply_xfm = True
         match_fovs_T1w_brain.inputs.uses_qform = True
 
@@ -3105,7 +3108,12 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         # TODO connect T1wRestoreBrain, check T1wRestoreBrain quality
         node, out = strat_pool.get_data(["desc-restore-brain_T1w", "desc-preproc_T1w"])
         wf.connect(node, out, match_fovs_T1w_brain, "in_file")
-        wf.connect(match_fovs_T1w_brain, "out_file", fsl_apply_warp_t1_brain_to_template, "in_file")
+        wf.connect(
+            match_fovs_T1w_brain,
+            "out_file",
+            fsl_apply_warp_t1_brain_to_template,
+            "in_file",
+        )
 
         node, out = strat_pool.get_data("T1w-brain-template")
         wf.connect(node, out, match_fovs_T1w_brain, "reference")
@@ -3115,7 +3123,9 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
             merge_xfms, "merged_file", fsl_apply_warp_t1_brain_to_template, "field_file"
         )
 
-        match_fovs_T1w_brain_mask = pe.Node(interface=fsl.FLIRT(), name=f"match_fovs_T1w_brain_mask_{pipe_num}")
+        match_fovs_T1w_brain_mask = pe.Node(
+            interface=fsl.FLIRT(), name=f"match_fovs_T1w_brain_mask_{pipe_num}"
+        )
         match_fovs_T1w_brain_mask.inputs.apply_xfm = True
         match_fovs_T1w_brain_mask.inputs.uses_qform = True
 
@@ -3128,7 +3138,12 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
 
         node, out = strat_pool.get_data("space-T1w_desc-brain_mask")
         wf.connect(node, out, match_fovs_T1w_brain_mask, "in_file")
-        wf.connect(match_fovs_T1w_brain_mask, "out_file", fsl_apply_warp_t1_brain_mask_to_template, "in_file")
+        wf.connect(
+            match_fovs_T1w_brain_mask,
+            "out_file",
+            fsl_apply_warp_t1_brain_mask_to_template,
+            "in_file",
+        )
 
         node, out = strat_pool.get_data("T1w-brain-template-mask")
         wf.connect(node, out, match_fovs_T1w_brain_mask, "reference")
@@ -3335,6 +3350,7 @@ def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
         (
             "desc-preproc_T1w",
             ["desc-restore-brain_T1w", "desc-preproc_T1w"],
+            ["desc-restore_T1w", "desc-head_T1w"],
             "desc-preproc_T2w",
             "desc-preproc_T2w",
             "T2w",
@@ -3405,7 +3421,18 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data("sbref")
         wf.connect(node, out, func_to_anat, "inputspec.func")
 
-        node, out = strat_pool.get_data(["desc-restore-brain_T1w", "desc-preproc_T1w"])
+        if (
+            cfg.registration_workflows["functional_registration"]["coregistration"][
+                "reference"
+            ]
+            == "whole-head"
+        ):
+            node, out = strat_pool.get_data(["desc-restore_T1w", "desc-head_T1w"])
+        else:
+            node, out = strat_pool.get_data(
+                ["desc-restore-brain_T1w", "desc-preproc_T1w"]
+            )
+
         wf.connect(node, out, func_to_anat, "inputspec.anat")
 
     if diff_complete:
@@ -3466,8 +3493,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
 
         if (
             cfg.registration_workflows["functional_registration"]["coregistration"][
-                "boundary_based_registration"
-            ]["reference"]
+                "reference"
+            ]
             == "whole-head"
         ):
             node, out = strat_pool.get_data("desc-head_T1w")
@@ -3475,8 +3502,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
 
         elif (
             cfg.registration_workflows["functional_registration"]["coregistration"][
-                "boundary_based_registration"
-            ]["reference"]
+                "reference"
+            ]
             == "brain"
         ):
             node, out = strat_pool.get_data("desc-preproc_T1w")
@@ -4195,21 +4222,6 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     https://github.com/DCAN-Labs/DCAN-HCP/blob/a8d495a/fMRIVolume/scripts/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh#L548
     convertwarp --relout --rel -m ${WD}/fMRI2str.mat --ref=${T1wImage} --out=${WD}/fMRI2str.nii.gz
     """
-    # Identity matrix node needed for matching FOV
-    identity_node = pe.Node(
-        Function(
-            imports=["from pathlib import Path", "import numpy as np"],
-            input_names=["workdir"],
-            output_names=["identity_file"],
-            function=lambda workdir: (
-                np.savetxt(Path(workdir) / "identity.mat", np.eye(4), fmt="%.6f")
-                or str(Path(workdir) / "identity.mat")
-            ),
-        ),
-        name=f"create_identity_matrix_{pipe_num}",
-    )
-    identity_node.inputs.workdir = str(Path.cwd())
-
     convert_func_to_anat_linear_warp = pe.Node(
         interface=fsl.ConvertWarp(), name=f"convert_func_to_anat_linear_warp_{pipe_num}"
     )
@@ -4277,18 +4289,6 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     wf.connect(node, out, split_func, "in_file")
 
     ### Loop starts! ###
-    # Match FOV func_to_standard
-    match_fov_func = pe.MapNode(
-        interface=fsl.FLIRT(apply_xfm=True, interp="spline"),
-        name=f"match_fov_func_{pipe_num}",
-        iterfield=["in_file"],
-    )
-    wf.connect(identity_node, "identity_file", match_fov_func, "in_matrix_file")
-    wf.connect(split_func, "out_files", match_fov_func, "in_file")
-
-    node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
-    wf.connect(node, out, match_fov_func, "reference")
-
     # convertwarp --relout --rel --ref=${WD}/prevols/vol${vnum}.nii.gz --warp1=${GradientDistortionField} --postmat=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum} --out=${MotionMatrixFolder}/${MotionMatrixPrefix}${vnum}_gdc_warp.nii.gz
     convert_motion_distortion_warp = pe.MapNode(
         interface=fsl.ConvertWarp(),
@@ -4299,7 +4299,7 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
     convert_motion_distortion_warp.inputs.out_relwarp = True
     convert_motion_distortion_warp.inputs.relwarp = True
 
-    wf.connect(match_fov_func, "out_file", convert_motion_distortion_warp, "reference")
+    wf.connect(split_func, "out_files", convert_motion_distortion_warp, "reference")
 
     node, out = strat_pool.get_data("coordinate-transformation")
     wf.connect(node, out, convert_motion_distortion_warp, "postmat")
@@ -4341,9 +4341,10 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         iterfield=["in_file", "field_file"],
     )
 
+    applywarp_func_to_standard.inputs.relwarp = True
     applywarp_func_to_standard.inputs.interp = "spline"
 
-    wf.connect(match_fov_func, "out_file", applywarp_func_to_standard, "in_file")
+    wf.connect(split_func, "out_files", applywarp_func_to_standard, "in_file")
 
     wf.connect(
         convert_registration_warp, "out_file", applywarp_func_to_standard, "field_file"
@@ -4364,9 +4365,10 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
         iterfield=["in_file", "field_file"],
     )
 
+    applywarp_func_mask_to_standard.inputs.relwarp = True
     applywarp_func_mask_to_standard.inputs.interp = "nn"
 
-    node, out = strat_pool.get_data("space-template_desc-bold_mask")
+    node, out = strat_pool.get_data("space-template_desc-brain_mask")
     wf.connect(node, out, applywarp_func_mask_to_standard, "in_file")
 
     wf.connect(
@@ -4420,29 +4422,16 @@ def warp_timeseries_to_T1template_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(merge_func_mask_to_standard, "merged_file", find_min_mask, "in_file")
 
-    # Match FOV scout_to_standard
-    match_fov_scout_to_standard = pe.MapNode(
-        interface=fsl.FLIRT(apply_xfm=True, interp="spline"),
-        name=f"match_fov_scout_to_standard_{pipe_num}",
-        iterfield=["in_file"],
-    )
-    wf.connect(
-        identity_node, "identity_file", match_fov_scout_to_standard, "in_matrix_file"
-    )
-    node, out = strat_pool.get_data("motion-basefile")
-    wf.connect(node, out, match_fov_scout_to_standard, "in_file")
-
-    node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
-    wf.connect(node, out, match_fov_scout_to_standard, "reference")
-
     # applywarp --rel --interp=spline --in=${ScoutInput} -w ${WD}/Scout_gdc_MNI_warp.nii.gz -r ${WD}/${T1wImageFile}.${FinalfMRIResolution} -o ${ScoutOutput}
     applywarp_scout = pe.Node(
         interface=fsl.ApplyWarp(), name=f"applywarp_scout_input_{pipe_num}"
     )
 
+    applywarp_scout.inputs.relwarp = True
     applywarp_scout.inputs.interp = "spline"
 
-    wf.connect(match_fov_scout_to_standard, "out_file", applywarp_scout, "in_file")
+    node, out = strat_pool.get_data("motion-basefile")
+    wf.connect(node, out, applywarp_scout, "in_file")
 
     node, out = strat_pool.get_data("space-template_res-bold_desc-head_T1w")
     wf.connect(
@@ -5611,38 +5600,3 @@ def _warp_return(
     if apply_xfm is None:
         return wf, {}
     return wf, outputs
-
-
-def create_identity_matrix(workdir):
-    """Create an identity matrix for FLIRT."""
-    identity_file = Path(workdir) / "identity.mat"
-    np.savetxt(identity_file, np.eye(4), fmt="%.6f")
-    return str(identity_file)
-
-
-def build_match_fov_wf(name, workdir, pipe_num):
-    """
-    Workflow to match Field-of-View for T1w or functional images
-    using an identity matrix.
-    """
-    wf = Workflow(name=name)
-
-    identity_node = Node(
-        Function(
-            input_names=["workdir"],
-            output_names=["identity_file"],
-            function=create_identity_matrix,
-        ),
-        name=f"create_identity_matrix_{pipe_num}",
-    )
-    identity_node.inputs.workdir = workdir
-
-    match_fov_node = MapNode(
-        interface=fsl.FLIRT(apply_xfm=True, interp="spline"),
-        name=f"match_fov_{pipe_num}",
-        iterfield=["in_file"],
-    )
-
-    wf.connect(identity_node, "identity_file", match_fov_node, "in_matrix_file")
-
-    return wf, match_fov_node

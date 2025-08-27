@@ -251,15 +251,14 @@ registration_workflows:
         # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
         input: [fmriprep_reference]
 
+      # options: 'whole-head' or 'brain'
+      reference: brain
+
       boundary_based_registration:
 
         # this is a fork point
         #   run: [On, Off] - this will run both and fork the pipeline
         run: [On]
-
-        # reference for boundary based registration
-        # options: 'whole-head' or 'brain'
-        reference: brain
 
         # choose which FAST map to generate BBR WM mask
         # options: 'probability_map', 'partial_volume_map'

@@ -775,9 +775,6 @@ registration_workflows:
 
       run: On
 
-      # Choose FSL or ABCD as coregistration method
-      using: FSL
-
       # Choose coregistration interpolation
       interpolation: trilinear
 
@@ -811,6 +808,9 @@ registration_workflows:
         # Mask the sbref created by coregistration input prep nodeblocks above before registration
         mask_sbref: On
 
+      # options: 'whole-head' or 'brain'
+      reference: whole-head
+
       boundary_based_registration:
         # this is a fork point
         #   run: [On, Off] - this will run both and fork the pipeline
@@ -819,10 +819,6 @@ registration_workflows:
         # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.
         bbr_schedule: $FSLDIR/etc/flirtsch/bbr.sch
-
-        # reference for boundary based registration
-        # options: 'whole-head' or 'brain'
-        reference: whole-head
 
         # choose which FAST map to generate BBR WM mask
         # options: 'probability_map', 'partial_volume_map'

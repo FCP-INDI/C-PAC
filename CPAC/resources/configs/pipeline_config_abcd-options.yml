@@ -217,13 +217,14 @@ registration_workflows:
         # Mask the sbref created by coregistration input prep nodeblocks above before registration
         mask_sbref: Off
 
+      # options: 'whole-head' or 'brain'
+      reference: whole-head
+
       # Choose coregistration interpolation
       interpolation: spline
 
       # Choose coregistration degree of freedom
       dof: 12
-
-
 
     func_registration_to_template:
 
