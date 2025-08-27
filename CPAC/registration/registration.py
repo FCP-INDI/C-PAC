@@ -711,6 +711,12 @@ def create_register_func_to_anat(
         inputspec.interp : string
             Type of interpolation to use
             ('trilinear' or 'nearestneighbour' or 'sinc')
+        inputspec.ref_weight : string (nifti file)
+            Reference weight image for registration
+        inputspec.fieldmap : string (nifti file)
+            Field map image for registration
+        inputspec.fieldmapmask : string (nifti file)
+            Field map mask image for registration
 
     Workflow Outputs::
 
@@ -723,7 +729,15 @@ def create_register_func_to_anat(
 
     inputspec = pe.Node(
         util.IdentityInterface(
-            fields=["func", "anat", "dof", "interp", "fieldmap", "fieldmapmask"]
+            fields=[
+                "func",
+                "anat",
+                "dof",
+                "interp",
+                "fieldmap",
+                "fieldmapmask",
+                "ref_weight",
+            ]
         ),
         name="inputspec",
     )
@@ -754,6 +768,15 @@ def create_register_func_to_anat(
     linear_reg.inputs.dof = config.registration_workflows["functional_registration"][
         "coregistration"
     ]["dof"]
+
+    if (
+        config.registration_workflows["functional_registration"]["coregistration"][
+            "reference"
+        ]
+        == "whole_head"
+    ):
+        register_func_to_anat.connect(inputspec, "ref_weight", linear_reg, "ref_weight")
+
     if (
         config.registration_workflows["functional_registration"]["coregistration"][
             "arguments"
@@ -3349,6 +3372,7 @@ def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
         ),
         (
             "desc-preproc_T1w",
+            "space-T1w_desc-brain_mask",
             ["desc-restore-brain_T1w", "desc-preproc_T1w"],
             ["desc-restore_T1w", "desc-head_T1w"],
             "desc-preproc_T2w",
@@ -3428,12 +3452,15 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
             == "whole-head"
         ):
             node, out = strat_pool.get_data(["desc-restore_T1w", "desc-head_T1w"])
+            wf.connect(node, out, func_to_anat, "inputspec.anat")
+
+            node, out = strat_pool.get_data("space-T1w_desc-brain_mask")
+            wf.connect(node, out, func_to_anat, "inputspec.ref_weight")
         else:
             node, out = strat_pool.get_data(
                 ["desc-restore-brain_T1w", "desc-preproc_T1w"]
             )
-
-        wf.connect(node, out, func_to_anat, "inputspec.anat")
+            wf.connect(node, out, func_to_anat, "inputspec.anat")
 
     if diff_complete:
         node, out = strat_pool.get_data("effectiveEchoSpacing")
