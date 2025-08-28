@@ -773,7 +773,7 @@ def create_register_func_to_anat(
         config.registration_workflows["functional_registration"]["coregistration"][
             "reference"
         ]
-        == "whole_head"
+        == "whole-head"
     ):
         register_func_to_anat.connect(inputspec, "ref_weight", linear_reg, "ref_weight")
 
