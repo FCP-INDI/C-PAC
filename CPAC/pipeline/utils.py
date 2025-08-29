@@ -249,7 +249,7 @@ def _update_resource_idx(resource_idx, out_dct, key, value):
 
 def find_variants(
     pool: "ResourcePool", keys: list | str | tuple
-) -> dict[str, dict[str, set[str]]]:
+) -> dict[str, dict[str, list[str] | set[str] | str]]:
     """Find variants in the ResourcePool for the given keys."""
     outputs = {}
     if isinstance(keys, str):
@@ -276,6 +276,9 @@ def short_circuit_crossed_variants(
     variant_dicts = list(_variants.values())
     if not variant_dicts:
         return
+    for dct in variant_dicts:
+        for k, v in dct.items():
+            dct[k] = [pool._concatenate_list_items(v)]
 
     # only keep keys that exist in all variant dicts
     common_keys = set.intersection(*(set(v.keys()) for v in variant_dicts))
@@ -285,7 +288,7 @@ def short_circuit_crossed_variants(
         values = set()
         for variant in variant_dicts:
             values.update(variant.get(key, []))
-        if len(values) > 1:
+        if any(len(set(variant.get(key, []))) > 1 for variant in variant_dicts):
             crossed_variants[key] = values
 
     if crossed_variants:

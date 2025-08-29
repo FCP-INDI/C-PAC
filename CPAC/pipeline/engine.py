@@ -1481,7 +1481,14 @@ class ResourcePool:
         return NodeData(self, resource, **kwargs)
 
     @staticmethod
-    def _normalize_variant_dict(json_obj: dict) -> dict[str, Optional[str]]:
+    def _concatenate_list_items(list_values: list[str] | str) -> str:
+        """Sort and concatenate list values."""
+        if isinstance(list_values, list):
+            list_values.sort()
+            list_values = "-".join(list_values)
+        return list_values
+
+    def _normalize_variant_dict(self, json_obj: dict) -> dict[str, Optional[str]]:
         """
         Return {variant_key: primary_value or None}.
 
@@ -1489,9 +1496,8 @@ class ResourcePool:
         - "NO-..." entries normalize to None
         """
         out = {}
-        for k, v in json_obj.get("CpacVariant", {}).items():
-            assert isinstance(v, (list, str))
-            primary = "-".join(v) if isinstance(v, list) else v
+        for k, _v in json_obj.get("CpacVariant", {}).items():
+            primary = self._concatenate_list_items(_v)
             out[k] = (
                 None
                 if (isinstance(primary, str) and primary.startswith("NO-"))

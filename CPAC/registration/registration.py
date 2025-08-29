@@ -4057,8 +4057,7 @@ def warp_timeseries_to_T1template(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs = {
         "space-template_desc-preproc_bold": (apply_xfm, "outputspec.output_image")
     }
-
-    return (wf, outputs)
+    return wf, outputs
 
 
 @nodeblock(
