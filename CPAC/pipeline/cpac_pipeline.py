@@ -1392,6 +1392,7 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
     target_space_nuis = cfg.nuisance_corrections["2-nuisance_regression"]["space"]
     target_space_alff = cfg.amplitude_low_frequency_fluctuation["target_space"]
     target_space_reho = cfg.regional_homogeneity["target_space"]
+
     if apply_func_warp["T1"]:
         ts_to_T1template_block = [
             apply_phasediff_to_timeseries_separately,
