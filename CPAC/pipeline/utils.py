@@ -254,7 +254,12 @@ def find_variants(
     outputs = {}
     if isinstance(keys, str):
         try:
-            return {keys: pool.get_json(keys)["CpacVariant"]}
+            return {
+                keys: {
+                    _k: {str(_v)}
+                    for _k, _v in pool.get_json(keys)["CpacVariant"].items()
+                }
+            }
         except LookupError:
             return {}
     for key in keys:
