@@ -3145,6 +3145,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
 
         # TODO connect T1wRestoreBrain, check T1wRestoreBrain quality
         node, out = strat_pool.get_data(["desc-restore-brain_T1w", "desc-preproc_T1w"])
+
         wf.connect(
             node, out, fsl_apply_warp_t1_brain_to_template, "in_file"
         )
@@ -3164,6 +3165,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         fsl_apply_warp_t1_brain_mask_to_template.inputs.interp = "nn"
 
         node, out = strat_pool.get_data("space-T1w_desc-brain_mask")
+
         wf.connect(
             node, out, fsl_apply_warp_t1_brain_mask_to_template, "in_file"
         )
