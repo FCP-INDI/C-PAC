@@ -3116,7 +3116,9 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
             merge_xfms, "merged_file", fsl_apply_warp_t1_to_template, "field_file"
         )
 
-        concat_match_fov = pe.Node(interface=fsl.ConvertWarp(), name=f"concat_match_fov_{pipe_num}")
+        concat_match_fov = pe.Node(
+            interface=fsl.ConvertWarp(), name=f"concat_match_fov_{pipe_num}"
+        )
         concat_match_fov.inputs.relwarp = True
 
         wf.connect(match_fovs_T1w, "out_matrix_file", concat_match_fov, "premat")
@@ -3126,8 +3128,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
 
         # Node to concatenate the inverse warp with the FOV matrix
         concat_match_fov_inv = pe.Node(
-            interface=fsl.ConvertWarp(),
-            name=f"concat_match_fov_inv_{pipe_num}"
+            interface=fsl.ConvertWarp(), name=f"concat_match_fov_inv_{pipe_num}"
         )
         concat_match_fov_inv.inputs.relwarp = True
 
@@ -3146,15 +3147,16 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         # TODO connect T1wRestoreBrain, check T1wRestoreBrain quality
         node, out = strat_pool.get_data(["desc-restore-brain_T1w", "desc-preproc_T1w"])
 
-        wf.connect(
-            node, out, fsl_apply_warp_t1_brain_to_template, "in_file"
-        )
+        wf.connect(node, out, fsl_apply_warp_t1_brain_to_template, "in_file")
 
         node, out = strat_pool.get_data("T1w-brain-template")
         wf.connect(node, out, fsl_apply_warp_t1_brain_to_template, "ref_file")
 
         wf.connect(
-            concat_match_fov, "out_file", fsl_apply_warp_t1_brain_to_template, "field_file"
+            concat_match_fov,
+            "out_file",
+            fsl_apply_warp_t1_brain_to_template,
+            "field_file",
         )
 
         fsl_apply_warp_t1_brain_mask_to_template = pe.Node(
@@ -3166,9 +3168,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
 
         node, out = strat_pool.get_data("space-T1w_desc-brain_mask")
 
-        wf.connect(
-            node, out, fsl_apply_warp_t1_brain_mask_to_template, "in_file"
-        )
+        wf.connect(node, out, fsl_apply_warp_t1_brain_mask_to_template, "in_file")
 
         node, out = strat_pool.get_data("T1w-brain-template-mask")
         wf.connect(node, out, fsl_apply_warp_t1_brain_mask_to_template, "ref_file")
