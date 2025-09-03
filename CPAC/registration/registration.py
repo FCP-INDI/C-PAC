@@ -4039,9 +4039,14 @@ def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def warp_T1mask_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Warp T1 mask to template."""
-
-    if cfg.registration_workflows["anatomical_registration"]["overwrite_transform"] and cfg.registration_workflows["anatomical_registration"]["overwrite_transform"]["using"] == 'FSL':
-        reg_tool = 'fsl'
+    if (
+        cfg.registration_workflows["anatomical_registration"]["overwrite_transform"]
+        and cfg.registration_workflows["anatomical_registration"][
+            "overwrite_transform"
+        ]["using"]
+        == "FSL"
+    ):
+        reg_tool = "fsl"
     else:
         reg_tool = strat_pool.reg_tool("from-T1w_to-template_mode-image_xfm")
 
