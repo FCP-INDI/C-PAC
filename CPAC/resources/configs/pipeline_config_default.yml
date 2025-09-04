@@ -808,13 +808,14 @@ registration_workflows:
         # Mask the sbref created by coregistration input prep nodeblocks above before registration
         mask_sbref: On
 
-      # options: 'whole-head' or 'brain'
-      reference: whole-head
-
       boundary_based_registration:
         # this is a fork point
         #   run: [On, Off] - this will run both and fork the pipeline
         run: [On]
+
+        # reference for boundary based registration
+        # options: 'whole-head' or 'brain'
+        reference: whole-head
 
         # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.

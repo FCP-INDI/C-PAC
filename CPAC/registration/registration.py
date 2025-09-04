@@ -771,14 +771,6 @@ def create_register_func_to_anat(
 
     if (
         config.registration_workflows["functional_registration"]["coregistration"][
-            "reference"
-        ]
-        == "whole-head"
-    ):
-        register_func_to_anat.connect(inputspec, "ref_weight", linear_reg, "ref_weight")
-
-    if (
-        config.registration_workflows["functional_registration"]["coregistration"][
             "arguments"
         ]
         is not None
@@ -3116,9 +3108,7 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
             merge_xfms, "merged_file", fsl_apply_warp_t1_to_template, "field_file"
         )
 
-        concat_match_fov = pe.Node(
-            interface=fsl.ConvertWarp(), name=f"concat_match_fov_{pipe_num}"
-        )
+        concat_match_fov = pe.Node(interface=fsl.ConvertWarp(), name=f"concat_match_fov_{pipe_num}")
         concat_match_fov.inputs.relwarp = True
 
         wf.connect(match_fovs_T1w, "out_matrix_file", concat_match_fov, "premat")
@@ -3128,7 +3118,8 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
 
         # Node to concatenate the inverse warp with the FOV matrix
         concat_match_fov_inv = pe.Node(
-            interface=fsl.ConvertWarp(), name=f"concat_match_fov_inv_{pipe_num}"
+            interface=fsl.ConvertWarp(),
+            name=f"concat_match_fov_inv_{pipe_num}"
         )
         concat_match_fov_inv.inputs.relwarp = True
 
@@ -3147,16 +3138,15 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         # TODO connect T1wRestoreBrain, check T1wRestoreBrain quality
         node, out = strat_pool.get_data(["desc-restore-brain_T1w", "desc-preproc_T1w"])
 
-        wf.connect(node, out, fsl_apply_warp_t1_brain_to_template, "in_file")
+        wf.connect(
+            node, out, fsl_apply_warp_t1_brain_to_template, "in_file"
+        )
 
         node, out = strat_pool.get_data("T1w-brain-template")
         wf.connect(node, out, fsl_apply_warp_t1_brain_to_template, "ref_file")
 
         wf.connect(
-            concat_match_fov,
-            "out_file",
-            fsl_apply_warp_t1_brain_to_template,
-            "field_file",
+            concat_match_fov, "out_file", fsl_apply_warp_t1_brain_to_template, "field_file"
         )
 
         fsl_apply_warp_t1_brain_mask_to_template = pe.Node(
@@ -3168,7 +3158,9 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
 
         node, out = strat_pool.get_data("space-T1w_desc-brain_mask")
 
-        wf.connect(node, out, fsl_apply_warp_t1_brain_mask_to_template, "in_file")
+        wf.connect(
+            node, out, fsl_apply_warp_t1_brain_mask_to_template, "in_file"
+        )
 
         node, out = strat_pool.get_data("T1w-brain-template-mask")
         wf.connect(node, out, fsl_apply_warp_t1_brain_mask_to_template, "ref_file")
@@ -3446,22 +3438,10 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
         node, out = strat_pool.get_data("sbref")
         wf.connect(node, out, func_to_anat, "inputspec.func")
 
-        if (
-            cfg.registration_workflows["functional_registration"]["coregistration"][
-                "reference"
-            ]
-            == "whole-head"
-        ):
-            node, out = strat_pool.get_data(["desc-restore_T1w", "desc-head_T1w"])
-            wf.connect(node, out, func_to_anat, "inputspec.anat")
-
-            node, out = strat_pool.get_data("space-T1w_desc-brain_mask")
-            wf.connect(node, out, func_to_anat, "inputspec.ref_weight")
-        else:
-            node, out = strat_pool.get_data(
-                ["desc-restore-brain_T1w", "desc-preproc_T1w"]
-            )
-            wf.connect(node, out, func_to_anat, "inputspec.anat")
+        node, out = strat_pool.get_data(
+            ["desc-restore-brain_T1w", "desc-preproc_T1w"]
+        )
+        wf.connect(node, out, func_to_anat, "inputspec.anat")
 
     if diff_complete:
         node, out = strat_pool.get_data("effectiveEchoSpacing")
@@ -3521,8 +3501,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
 
         if (
             cfg.registration_workflows["functional_registration"]["coregistration"][
-                "reference"
-            ]
+                "boundary_based_registration"
+            ]["reference"]
             == "whole-head"
         ):
             node, out = strat_pool.get_data("desc-head_T1w")
@@ -3530,8 +3510,8 @@ def coregistration(wf, cfg, strat_pool, pipe_num, opt=None):
 
         elif (
             cfg.registration_workflows["functional_registration"]["coregistration"][
-                "reference"
-            ]
+                "boundary_based_registration"
+            ]["reference"]
             == "brain"
         ):
             node, out = strat_pool.get_data("desc-preproc_T1w")
@@ -4039,14 +4019,9 @@ def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def warp_T1mask_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Warp T1 mask to template."""
-    if (
-        cfg.registration_workflows["anatomical_registration"]["overwrite_transform"]
-        and cfg.registration_workflows["anatomical_registration"][
-            "overwrite_transform"
-        ]["using"]
-        == "FSL"
-    ):
-        reg_tool = "fsl"
+
+    if cfg.registration_workflows["anatomical_registration"]["overwrite_transform"] and cfg.registration_workflows["anatomical_registration"]["overwrite_transform"]["using"] == 'FSL':
+        reg_tool = 'fsl'
     else:
         reg_tool = strat_pool.reg_tool("from-T1w_to-template_mode-image_xfm")
 
