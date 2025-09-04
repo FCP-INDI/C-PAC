@@ -2906,6 +2906,8 @@ def register_ANTs_EPI_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
             ["desc-preproc_T1w", "desc-reorient_T1w", "T1w"],
             "space-T1w_desc-brain_mask",
             "T1w-template",
+            "T1w-brain-template",
+            "T1w-brain-template-mask",
             "from-T1w_to-template_mode-image_xfm",
             "from-template_to-T1w_mode-image_xfm",
             "space-template_desc-brain_T1w",
@@ -3063,6 +3065,13 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
 
         wf.connect(merge_inv_xfms_to_list, "out", merge_inv_xfms, "in_files")
 
+        # Match FOVs using flirt -in infile -ref MNI152_T1_1mm_resample.nii.gz -out my_T1w_resampled.nii.gz -applyxfm -usesqform
+        match_fovs_T1w = pe.Node(
+            interface=fsl.FLIRT(), name=f"match_fovs_T1w_{pipe_num}"
+        )
+        match_fovs_T1w.inputs.apply_xfm = True
+        match_fovs_T1w.inputs.uses_qform = True
+
         # applywarp --rel --interp=spline -i ${T1wRestore} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImageRestore}
         fsl_apply_warp_t1_to_template = pe.Node(
             interface=fsl.ApplyWarp(), name=f"FSL-ABCD_T1_to_template_{pipe_num}"
@@ -3070,15 +3079,23 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         fsl_apply_warp_t1_to_template.inputs.relwarp = True
         fsl_apply_warp_t1_to_template.inputs.interp = "spline"
 
-        node, out = strat_pool.get_data(["desc-restore_T1w", "desc-preproc_T1w"])
-        wf.connect(node, out, fsl_apply_warp_t1_to_template, "in_file")
-
         node, out = strat_pool.get_data("T1w-template")
+        wf.connect(node, out, match_fovs_T1w, "reference")
         wf.connect(node, out, fsl_apply_warp_t1_to_template, "ref_file")
+
+        node, out = strat_pool.get_data(["desc-restore_T1w", "desc-preproc_T1w"])
+        wf.connect(node, out, match_fovs_T1w, "in_file")
+        wf.connect(match_fovs_T1w, "out_file", fsl_apply_warp_t1_to_template, "in_file")
 
         wf.connect(
             merge_xfms, "merged_file", fsl_apply_warp_t1_to_template, "field_file"
         )
+
+        match_fovs_T1w_brain = pe.Node(
+            interface=fsl.FLIRT(), name=f"match_fovs_T1w_brain_{pipe_num}"
+        )
+        match_fovs_T1w_brain.inputs.apply_xfm = True
+        match_fovs_T1w_brain.inputs.uses_qform = True
 
         # applywarp --rel --interp=nn -i ${T1wRestoreBrain} -r ${Reference} -w ${OutputTransform} -o ${OutputT1wImageRestoreBrain}
         fsl_apply_warp_t1_brain_to_template = pe.Node(
@@ -3088,15 +3105,28 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         fsl_apply_warp_t1_brain_to_template.inputs.interp = "nn"
 
         # TODO connect T1wRestoreBrain, check T1wRestoreBrain quality
-        node, out = strat_pool.get_data("desc-preproc_T1w")
-        wf.connect(node, out, fsl_apply_warp_t1_brain_to_template, "in_file")
+        node, out = strat_pool.get_data(["desc-restore-brain_T1w", "desc-preproc_T1w"])
+        wf.connect(node, out, match_fovs_T1w_brain, "in_file")
+        wf.connect(
+            match_fovs_T1w_brain,
+            "out_file",
+            fsl_apply_warp_t1_brain_to_template,
+            "in_file",
+        )
 
-        node, out = strat_pool.get_data("T1w-template")
+        node, out = strat_pool.get_data("T1w-brain-template")
+        wf.connect(node, out, match_fovs_T1w_brain, "reference")
         wf.connect(node, out, fsl_apply_warp_t1_brain_to_template, "ref_file")
 
         wf.connect(
             merge_xfms, "merged_file", fsl_apply_warp_t1_brain_to_template, "field_file"
         )
+
+        match_fovs_T1w_brain_mask = pe.Node(
+            interface=fsl.FLIRT(), name=f"match_fovs_T1w_brain_mask_{pipe_num}"
+        )
+        match_fovs_T1w_brain_mask.inputs.apply_xfm = True
+        match_fovs_T1w_brain_mask.inputs.uses_qform = True
 
         fsl_apply_warp_t1_brain_mask_to_template = pe.Node(
             interface=fsl.ApplyWarp(),
@@ -3106,9 +3136,16 @@ def overwrite_transform_anat_to_template(wf, cfg, strat_pool, pipe_num, opt=None
         fsl_apply_warp_t1_brain_mask_to_template.inputs.interp = "nn"
 
         node, out = strat_pool.get_data("space-T1w_desc-brain_mask")
-        wf.connect(node, out, fsl_apply_warp_t1_brain_mask_to_template, "in_file")
+        wf.connect(node, out, match_fovs_T1w_brain_mask, "in_file")
+        wf.connect(
+            match_fovs_T1w_brain_mask,
+            "out_file",
+            fsl_apply_warp_t1_brain_mask_to_template,
+            "in_file",
+        )
 
-        node, out = strat_pool.get_data("T1w-template")
+        node, out = strat_pool.get_data("T1w-brain-template-mask")
+        wf.connect(node, out, match_fovs_T1w_brain_mask, "reference")
         wf.connect(node, out, fsl_apply_warp_t1_brain_mask_to_template, "ref_file")
 
         wf.connect(
