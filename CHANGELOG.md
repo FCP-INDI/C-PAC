@@ -57,7 +57,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed broken support for native-space masking.
   - Introduced a new `template_space_func_masking` section in the pipeline config for template-space-only methods.
   - Moved `Anatomical_Resampled` masking method from `func_masking` to the `template_space_func_masking`.
-- Moved `reference` in the bbreg config out to the whole co-registration block in all configs.
 - Turned `On` boundary_based_registration for abcd-options preconfig.
 - Refactored `transform_timeseries_to_T1template_abcd` nodeblock removing unnecessary nodes, changing `desc-preproc_T1w` inputs as reference to `desc-head_T1w`.
 - Appended `T1w to Template` FOV match transform to the XFM.
