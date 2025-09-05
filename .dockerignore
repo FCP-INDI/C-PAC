@@ -4,5 +4,6 @@ cpac_runs
 .env*
 .git
 .github
+!.github/CODEOWNERS
 !.github/scripts
 *.tar.gz
