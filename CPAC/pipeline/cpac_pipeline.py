@@ -1313,14 +1313,13 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
 
         pipeline_blocks += stack_motion_blocks(func_blocks, cfg, rpool)
 
-    
     # Template space functional mask
     if cfg.functional_preproc["template_space_func_masking"]["run"]:
         if not rpool.check_rpool("space-template_desc-bold_mask"):
             pipeline_blocks += [
                 bold_mask_anatomical_resampled,
             ]
-            
+
     # BOLD to T1 coregistration
     if cfg.registration_workflows["functional_registration"]["coregistration"][
         "run"
