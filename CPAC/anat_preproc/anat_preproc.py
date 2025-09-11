@@ -1323,7 +1323,27 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     wf.connect(combine_mask, "out_file", binarize_combined_mask, "in_file")
 
-    return wf, {"space-T1w_desc-brain_mask": (binarize_combined_mask, "out_file")}
+    # CCS brain mask is in FS space, transfer it back to native T1 space 
+    match_fov_ccs_brain_mask = pe.Node(
+        interface=fsl.FLIRT(), name=f"match_fov_CCS_brain_mask_{node_id}"
+    )
+    match_fov_ccs_brain_mask.inputs.apply_xfm = True
+    match_fov_ccs_brain_mask.inputs.uses_qform = True
+    match_fov_ccs_brain_mask.inputs.interp = "nearestneighbour"
+
+    node, out = strat_pool.get_data("pipeline-fs_raw-average")
+    convert_fs_T1_to_nifti = pe.Node(
+        Function(
+            input_names=["in_file"], output_names=["out_file"], function=mri_convert
+        ),
+        name=f"convert_fs_T1_to_nifti_for_ccs_{node_id}",
+    )
+    wf.connect(node, out, convert_fs_T1_to_nifti, "in_file")
+    wf.connect(convert_fs_T1_to_nifti, "out_file", match_fov_ccs_brain_mask, "reference")
+
+    wf.connect(binarize_combined_mask, "out_file", match_fov_ccs_brain_mask, "in_file")
+
+    return wf, {"space-T1w_desc-brain_mask": (match_fov_ccs_brain_mask, "out_file")}
 
 
 def mask_T2(wf_name="mask_T2"):
