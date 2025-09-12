@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functionality to convert `space-T1w_desc-loose_brain_mask` and `space-T1w_desc-tight_brain_mask` into generic brain mask `space-T1w_desc-brain_mask` to use in brain extraction nodeblock downstream.
 - `desc-ABCDpreproc_T1w` to the outputs
 - `bc` to `lite` container images.
+- validation node to match the pixdim4 of CPAC processed bold outputs with the original raw bold sources.
 
 ### Changed
 
