@@ -56,7 +56,7 @@ def get_cpac_gitversion() -> str | None:
     import subprocess
 
     with as_file(files("CPAC")) as _cpac:
-        gitpath = _cpac.parent
+        gitpath = _cpac
 
     gitpathgit = gitpath / ".git"
     if not gitpathgit.exists():
