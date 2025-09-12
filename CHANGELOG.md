@@ -32,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Switch `sink_native_transforms` under `registration_workflows` to output all `.mat` files in ANTs and FSL Transforms.
 - `deoblique` field in pipeline config with `warp` and `refit` options to apply `3dWarp` or `3drefit` during data initialization.
 - `organism` configuration option.
+- Functionality to convert `space-T1w_desc-loose_brain_mask` and `space-T1w_desc-tight_brain_mask` into generic brain mask `space-T1w_desc-brain_mask` to use in brain extraction nodeblock downstream.
+- `desc-ABCDpreproc_T1w` to the outputs
+- `bc` to `lite` container images.
 
 ### Changed
 
@@ -55,6 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Introduced a new `template_space_func_masking` section in the pipeline config for template-space-only methods.
   - Moved `Anatomical_Resampled` masking method from `func_masking` to the `template_space_func_masking`.
   - Upgraded resource retrieval to `importlib.resources`.
+- Turned `On` boundary_based_registration for abcd-options preconfig.
+- Refactored `transform_timeseries_to_T1template_abcd` nodeblock removing unnecessary nodes, changing `desc-preproc_T1w` inputs as reference to `desc-head_T1w`.
+- Appended `T1w to Template` FOV match transform to the XFM.
 
 ### Upgraded
 
@@ -70,6 +76,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Lingering calls to `cpac_outputs.csv` (was changed to `cpac_outputs.tsv` in v1.8.1).
 - A bug in the `freesurfer_abcd_preproc` nodeblock where the `Template` image was incorrectly used as `reference` during the `inverse_warp` step. Replacing it with the subject-specific `T1w` image resolved the issue of the `desc-restoreBrain_T1w` being chipped off.
 - A bug in `ideal_bandpass` where the frequency mask was incorrectly applied, which caused filter to fail in certain cases.
+- `Freesufer-ABCD` brain masking strategy to create mask as per the original DCAN script.
+- A bug where `$ANTSPATH` was unset in C-PAC with FreeSurfer images.
 
 ### Upgraded dependencies
 

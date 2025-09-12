@@ -52,6 +52,8 @@ COPY --from=fsl /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
 COPY --from=fsl /usr/bin /usr/bin
 COPY --from=fsl /usr/local/bin /usr/local/bin
 COPY --from=fsl /usr/share/fsl /usr/share/fsl
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y bc
 
 # Installing C-PAC dependencies
 COPY requirements.txt /opt/requirements.txt

@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2023  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -16,13 +16,15 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Functional preprocessing."""
 
+from typing import TYPE_CHECKING
+
 # pylint: disable=ungrouped-imports,wrong-import-order,wrong-import-position
 from nipype.interfaces import afni, ants, fsl, utility as util
 from nipype.interfaces.afni import preprocess, utils as afni_utils
 
 from CPAC.func_preproc.utils import get_num_slices, interpolate_slice_timing, nullify
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.nodeblock import nodeblock, NODEBLOCK_RETURN, POOL_RESOURCE_DICT
 from CPAC.utils.interfaces import Function
 from CPAC.utils.interfaces.ants import (
     AI,  # niworkflows
@@ -30,6 +32,10 @@ from CPAC.utils.interfaces.ants import (
     SetDirectionByMatrix,
 )
 from CPAC.utils.utils import add_afni_prefix, afni_3dwarp
+
+if TYPE_CHECKING:
+    from CPAC.pipeline.engine import ResourcePool
+    from CPAC.utils.configuration import Configuration
 
 
 def collect_arguments(*args):
@@ -1553,12 +1559,12 @@ def anat_brain_to_bold_res(wf_name, cfg, pipe_num):
 
     inputNode = pe.Node(
         util.IdentityInterface(
-            fields=["T1w-template-funcreg", "space-template_desc-preproc_T1w"]
+            fields=["T1w-template-funcreg", "space-template_desc-head_T1w"]
         ),
         name="inputspec",
     )
     outputNode = pe.Node(
-        util.IdentityInterface(fields=["space-template_res-bold_desc-brain_T1w"]),
+        util.IdentityInterface(fields=["space-template_res-bold_desc-head_T1w"]),
         name="outputspec",
     )
 
@@ -1573,7 +1579,7 @@ def anat_brain_to_bold_res(wf_name, cfg, pipe_num):
     ]["registration"]["FSL-FNIRT"]["identity_matrix"]
 
     wf.connect(
-        inputNode, "space-template_desc-preproc_T1w", anat_brain_to_func_res, "in_file"
+        inputNode, "space-template_desc-head_T1w", anat_brain_to_func_res, "in_file"
     )
     wf.connect(inputNode, "T1w-template-funcreg", anat_brain_to_func_res, "ref_file")
 
@@ -1581,7 +1587,7 @@ def anat_brain_to_bold_res(wf_name, cfg, pipe_num):
         anat_brain_to_func_res,
         "out_file",
         outputNode,
-        "space-template_res-bold_desc-brain_T1w",
+        "space-template_res-bold_desc-head_T1w",
     )
     return wf
 
@@ -1592,7 +1598,7 @@ def anat_brain_mask_to_bold_res(wf_name, cfg, pipe_num):
     wf = pe.Workflow(name=f"{wf_name}_{pipe_num}")
     inputNode = pe.Node(
         util.IdentityInterface(
-            fields=["space-template_desc-brain_mask", "space-template_desc-preproc_T1w"]
+            fields=["space-template_desc-brain_mask", "space-template_desc-head_T1w"]
         ),
         name="inputspec",
     )
@@ -1619,7 +1625,7 @@ def anat_brain_mask_to_bold_res(wf_name, cfg, pipe_num):
     )
     wf.connect(
         inputNode,
-        "space-template_desc-preproc_T1w",
+        "space-template_desc-head_T1w",
         anat_brain_mask_to_func_res,
         "ref_file",
     )
@@ -1643,11 +1649,11 @@ def anat_brain_mask_to_bold_res(wf_name, cfg, pipe_num):
     option_val="Anatomical_Resampled",
     inputs=[
         "T1w-template-funcreg",
-        "space-template_desc-preproc_T1w",
+        "space-template_desc-head_T1w",
         "space-template_desc-brain_mask",
     ],
     outputs=[
-        "space-template_res-bold_desc-brain_T1w",
+        "space-template_res-bold_desc-head_T1w",
         "space-template_desc-bold_mask",
     ],
 )
@@ -1660,9 +1666,9 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
         wf_name="anat_brain_to_bold_res", cfg=cfg, pipe_num=pipe_num
     )
 
-    node, out = strat_pool.get_data("space-template_desc-preproc_T1w")
+    node, out = strat_pool.get_data("space-template_desc-head_T1w")
     wf.connect(
-        node, out, anat_brain_to_func_res, "inputspec.space-template_desc-preproc_T1w"
+        node, out, anat_brain_to_func_res, "inputspec.space-template_desc-head_T1w"
     )
 
     node, out = strat_pool.get_data("T1w-template-funcreg")
@@ -1684,15 +1690,15 @@ def bold_mask_anatomical_resampled(wf, cfg, strat_pool, pipe_num, opt=None):
 
     wf.connect(
         anat_brain_to_func_res,
-        "outputspec.space-template_res-bold_desc-brain_T1w",
+        "outputspec.space-template_res-bold_desc-head_T1w",
         anat_brain_mask_to_func_res,
-        "inputspec.space-template_desc-preproc_T1w",
+        "inputspec.space-template_desc-head_T1w",
     )
 
     outputs = {
-        "space-template_res-bold_desc-brain_T1w": (
+        "space-template_res-bold_desc-head_T1w": (
             anat_brain_to_func_res,
-            "outputspec.space-template_res-bold_desc-brain_T1w",
+            "outputspec.space-template_res-bold_desc-head_T1w",
         ),
         "space-template_desc-bold_mask": (
             anat_brain_mask_to_func_res,
@@ -1890,7 +1896,9 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
         ["functional_preproc", "run"],
         ["functional_preproc", "template_space_func_masking", "run"],
     ],
-    inputs=[("space-template_desc-preproc_bold", "space-template_desc-bold_mask")],
+    inputs=[
+        ("space-template_desc-head_bold", "space-template_desc-bold_mask"),
+    ],
     outputs={
         "space-template_desc-preproc_bold": {
             "Description": "The skull-stripped BOLD time-series.",
@@ -1900,13 +1908,15 @@ def bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
             "Description": "The skull-stripped BOLD time-series.",
             "SkullStripped": True,
         },
-        "space-template_desc-head_bold": {
-            "Description": "The non skull-stripped BOLD time-series.",
-            "SkullStripped": False,
-        },
     },
 )
-def template_space_bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
+def template_space_bold_masking(
+    wf: pe.Workflow,
+    cfg: "Configuration",
+    strat_pool: "ResourcePool",
+    pipe_num: int,
+    opt: None = None,
+) -> NODEBLOCK_RETURN:
     """Mask the bold in template space."""
     func_apply_mask = pe.Node(
         interface=afni_utils.Calc(),
@@ -1916,21 +1926,18 @@ def template_space_bold_masking(wf, cfg, strat_pool, pipe_num, opt=None):
     func_apply_mask.inputs.expr = "a*b"
     func_apply_mask.inputs.outputtype = "NIFTI_GZ"
 
-    node_head_bold, out_head_bold = strat_pool.get_data(
-        "space-template_desc-preproc_bold"
-    )
+    node_head_bold, out_head_bold = strat_pool.get_data("space-template_desc-head_bold")
     wf.connect(node_head_bold, out_head_bold, func_apply_mask, "in_file_a")
 
     node, out = strat_pool.get_data("space-template_desc-bold_mask")
     wf.connect(node, out, func_apply_mask, "in_file_b")
 
-    outputs = {
+    outputs: POOL_RESOURCE_DICT = {
         "space-template_desc-preproc_bold": (func_apply_mask, "out_file"),
         "space-template_desc-brain_bold": (func_apply_mask, "out_file"),
-        "space-template_desc-head_bold": (node_head_bold, out_head_bold),
     }
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 @nodeblock(

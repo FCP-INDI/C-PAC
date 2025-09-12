@@ -845,10 +845,10 @@ latest_schema = Schema(
                     },
                     "boundary_based_registration": {
                         "run": forkable,
+                        "reference": In({"whole-head", "brain"}),
                         "bbr_schedule": str,
                         "bbr_wm_map": In({"probability_map", "partial_volume_map"}),
                         "bbr_wm_mask_args": str,
-                        "reference": In({"whole-head", "brain"}),
                     },
                 },
                 "EPI_registration": {
