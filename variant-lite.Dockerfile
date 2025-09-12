@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM ghcr.io/fcp-indi/c-pac/stage-base:lite-v
+FROM ghcr.io/fcp-indi/c-pac/stage-base:lite-v1.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev1
 LABEL org.opencontainers.image.description="Full C-PAC image without FreeSurfer"
 LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
 USER root
@@ -43,7 +43,7 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
     && apt-get autoremove -y \
     && ldconfig \
     && chmod 777 / \
-    && chmod 777 $(ls / | grep -v sys | grep -v proc)
+    && chmod 777 $(ls / | grep -v1.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev1 sys | grep -v1.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev1 proc)
 ENV PYTHONUSERBASE=/home/c-pac_user/.local
 ENV PATH=$PATH:/home/c-pac_user/.local/bin \
     PYTHONPATH=$PYTHONPATH:$PYTHONUSERBASE/lib/python3.10/site-packages \
