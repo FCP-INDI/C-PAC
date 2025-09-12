@@ -55,7 +55,7 @@ def get_cpac_gitversion() -> str | None:
     from pathlib import Path
     import subprocess
 
-    gitpath = Path(__file__).parent.resolve()
+    gitpath = Path(__file__).resolve()
 
     gitpathgit = gitpath / ".git"
     if not gitpathgit.exists():
