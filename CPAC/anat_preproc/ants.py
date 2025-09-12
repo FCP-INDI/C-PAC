@@ -295,12 +295,22 @@ def init_brain_extraction_wf(  # noqa: PLR0913
         init_aff.inputs.search_grid = (40, (0, 40, 40))
 
     # Set up spatial normalization
-    settings_file = (f'antsBrainExtraction_{normalization_quality}.json' if use_laplacian else f'antsBrainExtractionNoLaplacian_{normalization_quality}.json')
-    norm = pe.Node(Registration(from_file=str(files('CPAC.anat_preproc').joinpath('data').joinpath(settings_file))),
-        name='norm',
+    settings_file = (
+        f"antsBrainExtraction_{normalization_quality}.json"
+        if use_laplacian
+        else f"antsBrainExtractionNoLaplacian_{normalization_quality}.json"
+    )
+    norm = pe.Node(
+        Registration(
+            from_file=str(
+                files("CPAC.anat_preproc").joinpath("data").joinpath(settings_file)
+            )
+        ),
+        name="norm",
         n_procs=omp_nthreads,
         mem_gb=1.7,
-        mem_x=(1233286593342025 / 151115727451828646838272, 'moving_image'))
+        mem_x=(1233286593342025 / 151115727451828646838272, "moving_image"),
+    )
     norm.inputs.float = use_float
     fixed_mask_trait = "fixed_image_mask"
     if _ants_version and parseversion(_ants_version) >= Version("2.2.0"):
