@@ -68,6 +68,7 @@ def get_cpac_gitversion() -> str | None:
             "git describe --always", shell=True, cwd=gitpath, stdout=subprocess.PIPE
         ).communicate()
     except Exception:
+        ver = "0.0.0.dev"
         pass
     else:
         ver = o.decode().strip().split("-")[-1]
