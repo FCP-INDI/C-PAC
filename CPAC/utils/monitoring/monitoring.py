@@ -1,9 +1,31 @@
+# Copyright (C) 2018-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Monitoring utilities for C-PAC."""
+
+from datetime import datetime, timedelta, timezone
 import glob
 import json
 import math
 import os
 import socketserver
+import struct
 import threading
+from typing import Any, Optional, overload, TypeAlias
+from zoneinfo import available_timezones, ZoneInfo
 
 import networkx as nx
 from traits.trait_base import Undefined
@@ -13,8 +35,260 @@ from CPAC.pipeline import nipype_pipeline_engine as pe
 from .custom_logging import getLogger
 
 
-# Log initial information from all the nodes
+def _safe_none_diff(
+    self: "DatetimeWithSafeNone | _NoTime", other: "DatetimeWithSafeNone | _NoTime"
+) -> datetime | timedelta:
+    """Subtract between a datetime or timedelta or None."""
+    if isinstance(self, _NoTime):
+        return timedelta(0)
+    if isinstance(other, DatetimeWithSafeNone):
+        if isinstance(other, _NoTime):
+            return timedelta(0)
+        return self - other
+    if isinstance(other, (datetime, timedelta)):
+        return self._dt - other
+    msg = f"Cannot subtract {type(other)} from {type(self)}"
+    raise NotImplementedError(msg)
+
+
+class _NoTime:
+    """A wrapper for None values that can be used in place of a datetime object."""
+
+    def __bool__(self) -> bool:
+        """Return False for _NoTime."""
+        return False
+
+    def __int__(self) -> int:
+        """Return 0 for _NoTime."""
+        return 0
+
+    def __repr__(self) -> str:
+        """Return 'NoTime' for _NoTime."""
+        return "NoTime"
+
+    def __str__(self) -> str:
+        """Return 'NoTime' for _NoTime."""
+        return "NoTime"
+
+    def __sub__(self, other: "DatetimeWithSafeNone | _NoTime") -> datetime | timedelta:
+        """Subtract between None and a datetime or timedelta or None."""
+        return _safe_none_diff(self, other)
+
+    def isoformat(self) -> str:
+        """Return an ISO 8601-like string of 0s for display."""
+        return "0000-00-00"
+
+
+NoTime = _NoTime()
+"""A singleton None that can be used in place of a datetime object."""
+
+
+class DatetimeWithSafeNone(datetime, _NoTime):
+    """Time class that can be None or a time value.
+
+    Examples
+    --------
+    >>> from datetime import datetime
+    >>> DatetimeWithSafeNone(datetime(2025, 6, 18, 21, 6, 43, 730004)).isoformat()
+    '2025-06-18T21:06:43.730004'
+    >>> DatetimeWithSafeNone("2025-06-18T21:06:43.730004").isoformat()
+    '2025-06-18T21:06:43.730004'
+    >>> DatetimeWithSafeNone(b"\\x07\\xe9\\x06\\x12\\x10\\x18\\x1c\\x88\\x6d\\x01").isoformat()
+    '2025-06-18T16:24:28.028040+00:00'
+    >>> DatetimeWithSafeNone(b'\\x07\\xe9\\x06\\x12\\x10\\x18\\x1c\\x88m\\x00').isoformat()
+    '2025-06-18T16:24:28.028040'
+    >>> DatetimeWithSafeNone(DatetimeWithSafeNone("2025-06-18")).isoformat()
+    '2025-06-18T00:00:00'
+    >>> DatetimeWithSafeNone(None)
+    NoTime
+    >>> DatetimeWithSafeNone(None).isoformat()
+    '0000-00-00'
+    """
+
+    @overload
+    def __new__(
+        cls,
+        year: "OptionalDatetime",
+        month: None = None,
+        day: None = None,
+        hour: None = None,
+        minute: None = None,
+        second: None = None,
+        microsecond: None = None,
+        tzinfo: None = None,
+        *,
+        fold: None = None,
+    ) -> "DatetimeWithSafeNone | _NoTime": ...
+    @overload
+    def __new__(
+        cls,
+        year: int,
+        month: Optional[int] = None,
+        day: Optional[int] = None,
+        hour: int = 0,
+        minute: int = 0,
+        second: int = 0,
+        microsecond: int = 0,
+        tzinfo: Optional[timezone | ZoneInfo] = None,
+        *,
+        fold: int = 0,
+    ) -> "DatetimeWithSafeNone": ...
+
+    def __new__(
+        cls,
+        year: "int | OptionalDatetime",
+        month: Optional[int] = None,
+        day: Optional[int] = None,
+        hour: Optional[int] = 0,
+        minute: Optional[int] = 0,
+        second: Optional[int] = 0,
+        microsecond: Optional[int] = 0,
+        tzinfo: Optional[timezone | ZoneInfo] = None,
+        *,
+        fold: Optional[int] = 0,
+    ) -> "DatetimeWithSafeNone | _NoTime":
+        """Create a new instance of the class."""
+        if (
+            isinstance(year, int)
+            and isinstance(month, int)
+            and isinstance(day, int)
+            and isinstance(hour, int)
+            and isinstance(minute, int)
+            and isinstance(second, int)
+            and isinstance(microsecond, int)
+            and isinstance(fold, int)
+        ):
+            return datetime.__new__(
+                cls,
+                year,
+                month,
+                day,
+                hour,
+                minute,
+                second,
+                microsecond,
+                tzinfo,
+                fold=fold,
+            )
+        else:
+            dt = year
+        if dt is None:
+            return NoTime
+        if isinstance(dt, datetime):
+            return datetime.__new__(
+                cls,
+                dt.year,
+                dt.month,
+                dt.day,
+                dt.hour,
+                dt.minute,
+                dt.second,
+                dt.microsecond,
+                dt.tzinfo,
+            )
+        if isinstance(dt, bytes):
+            try:
+                tzflag: Optional[int]
+                year, month, day, hour, minute, second = struct.unpack(">H5B", dt[:7])
+                microsecond, tzflag = struct.unpack("<HB", dt[7:])
+                match tzflag:
+                    case 1:
+                        tzinfo = timezone.utc
+                    case 2:  # pragma: no cover
+                        try:
+                            tzinfo = ZoneInfo(
+                                next(
+                                    zone
+                                    for zone in available_timezones()
+                                    if "localtime" in zone
+                                )
+                            )
+                        except StopIteration:
+                            tzinfo = None
+                    case 0 | _:
+                        tzinfo = None
+                if (
+                    isinstance(year, int)
+                    and isinstance(month, int)
+                    and isinstance(day, int)
+                    and isinstance(hour, int)
+                    and isinstance(minute, int)
+                    and isinstance(second, int)
+                    and isinstance(microsecond, int)
+                ):
+                    return datetime.__new__(
+                        cls, year, month, day, hour, minute, second, microsecond, tzinfo
+                    )
+                else:
+                    msg = f"Unexpected type: {[type(part) for part in [year, month, day, hour, minute, second, microsecond]]}"
+                    raise TypeError(msg)
+            except UnicodeDecodeError:
+                error = f"Cannot decode bytes to string: {dt!r}"
+                raise TypeError(error)
+        if isinstance(dt, str):
+            try:
+                return DatetimeWithSafeNone(datetime.fromisoformat(dt))
+            except (ValueError, TypeError):
+                error = f"Invalid ISO-format datetime string: {dt}"
+        else:
+            error = f"Cannot convert {type(dt)} to datetime"
+        raise TypeError(error)
+
+    def __bool__(self) -> bool:
+        """Return True if not NoTime."""
+        return self is not NoTime
+
+    def __sub__(self, other: "DatetimeWithSafeNone | _NoTime") -> datetime | timedelta:  # type: ignore[reportIncompatibleMethodOverride]
+        """Subtract between a datetime or timedelta or None."""
+        return _safe_none_diff(self, other)
+
+    def __repr__(self) -> str:
+        """Return the string representation of the datetime or NoTime."""
+        if self:
+            return datetime.__repr__(self)
+        return "NoTime"
+
+    def __str__(self) -> str:
+        """Return the string representation of the datetime or NoTime."""
+        return super().__str__()
+
+    @staticmethod
+    def sync_tz(
+        one: "DatetimeWithSafeNone", two: "DatetimeWithSafeNone"
+    ) -> tuple[datetime, datetime]:
+        """Add timezone to other if one datetime is aware and other isn't ."""
+        if one.tzinfo is None and two.tzinfo is not None:
+            return one.replace(tzinfo=two.tzinfo), two
+        if one.tzinfo is not None and two.tzinfo is None:
+            return one, two.replace(tzinfo=one.tzinfo)
+        return one, two
+
+
+class DatetimeJSONEncoder(json.JSONEncoder):
+    """JSON encoder that handles DatetimeWithSafeNone instances."""
+
+    def default(self, o: Any) -> str:
+        """Convert datetime objects to ISO format."""
+        if isinstance(o, datetime):
+            return o.isoformat()
+        if o is None or o is NoTime:
+            return ""
+        return super().default(o)
+
+
+def json_dumps(obj: Any, **kwargs) -> str:
+    """Convert an object to a JSON string."""
+    return json.dumps(obj, cls=DatetimeJSONEncoder, **kwargs)
+
+
+OptionalDatetime: TypeAlias = Optional[
+    datetime | str | bytes | DatetimeWithSafeNone | _NoTime
+]
+"""Type alias for a datetime, ISO-format string or None."""
+
+
 def recurse_nodes(workflow, prefix=""):
+    """Log initial information from all the nodes."""
     for node in nx.topological_sort(workflow._graph):
         if isinstance(node, pe.Workflow):
             for subnode in recurse_nodes(node, prefix + workflow.name + "."):
@@ -29,7 +303,7 @@ def recurse_nodes(workflow, prefix=""):
 def log_nodes_initial(workflow):
     logger = getLogger("callback")
     for node in recurse_nodes(workflow):
-        logger.debug(json.dumps(node))
+        logger.debug(json_dumps(node))
 
 
 def log_nodes_cb(node, status):
@@ -111,8 +385,8 @@ def log_nodes_cb(node, status):
     status_dict = {
         "id": str(node),
         "hash": node.inputs.get_hashval()[1],
-        "start": getattr(runtime, "startTime", None),
-        "finish": getattr(runtime, "endTime", None),
+        "start": DatetimeWithSafeNone(getattr(runtime, "startTime", None)),
+        "finish": DatetimeWithSafeNone(getattr(runtime, "endTime", None)),
         "runtime_threads": runtime_threads,
         "runtime_memory_gb": getattr(runtime, "mem_peak_gb", "N/A"),
         "estimated_memory_gb": node.mem_gb,
@@ -122,10 +396,12 @@ def log_nodes_cb(node, status):
     if hasattr(node, "input_data_shape") and node.input_data_shape is not Undefined:
         status_dict["input_data_shape"] = node.input_data_shape
 
-    if status_dict["start"] is None or status_dict["finish"] is None:
+    if any(
+        not isinstance(status_dict[label], datetime) for label in ["start", "finish"]
+    ):
         status_dict["error"] = True
 
-    logger.debug(json.dumps(status_dict))
+    logger.debug(json_dumps(status_dict))
 
 
 log_nodes_cb.__doc__ = f"""{_nipype_log_nodes_cb.__doc__}
@@ -155,7 +431,7 @@ class LoggingRequestHandler(socketserver.BaseRequestHandler):
 
             with open(callback_file, "rb") as lf:
                 for l in lf.readlines():  # noqa: E741
-                    l = l.strip()  # noqa: E741
+                    l = l.strip()  # noqa: E741,PLW2901
                     try:
                         node = json.loads(l)
                         if node["id"] not in tree[subject]:
@@ -182,7 +458,7 @@ class LoggingRequestHandler(socketserver.BaseRequestHandler):
                 tree = {s: t for s, t in tree.items() if t}
 
         headers = "HTTP/1.1 200 OK\nConnection: close\n\n"
-        self.request.sendall(headers + json.dumps(tree) + "\n")
+        self.request.sendall(headers + json_dumps(tree) + "\n")
 
 
 class LoggingHTTPServer(socketserver.ThreadingTCPServer, object):

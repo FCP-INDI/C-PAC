@@ -130,7 +130,7 @@ def test_registration_lesion():
 
     anat_preproc.inputs.inputspec.anat = anat_file
 
-    lesion_preproc = create_lesion_preproc(wf_name="lesion_preproc")
+    lesion_preproc = create_lesion_preproc(cfg, wf_name="lesion_preproc")
 
     lesion_preproc.inputs.inputspec.lesion = lesion_file
 

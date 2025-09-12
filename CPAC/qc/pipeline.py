@@ -1,3 +1,21 @@
+# Copyright (C) 2018-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""C-PAC quality control pipeline."""
+
 import pkg_resources as p
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
@@ -156,7 +174,7 @@ def qc_brain_extraction(wf, cfg, strat_pool, pipe_num, opt=None):
 
 
 @nodeblock(
-    name="qc_brain_extraction",
+    name="qc_T1w_standard",
     config=["pipeline_setup", "output_directory", "quality_control"],
     switch=["generate_quality_control_images"],
     inputs=["space-template_desc-preproc_T1w", "T1w-brain-template"],

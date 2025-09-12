@@ -1,15 +1,33 @@
+# Copyright (C) 2018-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Tests of CPAC utility functions."""
 
+from datetime import datetime, timedelta
 import multiprocessing
 from unittest import mock
 
 from _pytest.logging import LogCaptureFixture
 import pytest
 
-from CPAC.func_preproc import get_motion_ref
-from CPAC.pipeline.nodeblock import NodeBlockFunction
+from CPAC.func_preproc.func_motion import get_motion_ref
+from CPAC.pipeline.nodeblock import NodeBlockFunction, POOL_RESOURCE_MAPPING
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.monitoring.custom_logging import log_subprocess
+from CPAC.utils.monitoring.monitoring import DatetimeWithSafeNone, OptionalDatetime
 from CPAC.utils.tests import old_functions
 from CPAC.utils.utils import (
     check_config_resources,
@@ -157,6 +175,7 @@ def test_NodeBlock_option_SSOT():  # pylint: disable=invalid-name
     with pytest.raises(ValueError) as value_error:
         get_motion_ref(None, None, None, None, opt="chaos")
     error_message = str(value_error.value).rstrip()
+    assert get_motion_ref.option_val
     for opt in get_motion_ref.option_val:
         assert f"'{opt}'" in error_message
     assert error_message.endswith("Tool input: 'chaos'")
@@ -168,3 +187,56 @@ def test_system_deps():
     Raises an exception if dependencies are not met.
     """
     check_system_deps(*([True] * 4))
+
+
+def check_expected_keys(
+    sink_native_transforms: bool, outputs: POOL_RESOURCE_MAPPING, expected_keys: set
+) -> None:
+    """Check if expected keys are present in outputs based on sink_native_transforms."""
+    if sink_native_transforms:
+        assert expected_keys.issubset(
+            outputs.keys()
+        ), f"Expected outputs {expected_keys} not found in {outputs.keys()}"
+    else:
+        assert not expected_keys.intersection(
+            outputs.keys()
+        ), f"Outputs {expected_keys} should not be present when sink_native_transforms is Off"
+
+
+@pytest.mark.parametrize(
+    "t1",
+    [
+        datetime.now(),
+        datetime.now().astimezone(),
+        datetime.isoformat(datetime.now()),
+        None,
+    ],
+)
+@pytest.mark.parametrize(
+    "t2",
+    [
+        datetime.now(),
+        datetime.now().astimezone(),
+        datetime.isoformat(datetime.now()),
+        None,
+    ],
+)
+def test_datetime_with_safe_none(t1: OptionalDatetime, t2: OptionalDatetime):
+    """Test DatetimeWithSafeNone class works with datetime and None."""
+    originals = t1, t2
+    t1 = DatetimeWithSafeNone(t1)
+    t2 = DatetimeWithSafeNone(t2)
+    if t1 and t2:
+        _tzinfos = [getattr(_, "tzinfo", None) for _ in originals]
+        if (
+            all(isinstance(_, datetime) for _ in originals)
+            and any(_tzinfos)
+            and not all(_tzinfos)
+        ):
+            with pytest.raises(TypeError):
+                originals[1] - originals[0]  # type: ignore[reportOperatorIssue]
+            _t1, _t2 = DatetimeWithSafeNone.sync_tz(*originals)  # type: ignore[reportArgumentType]
+            assert isinstance(_t2 - _t1, timedelta)
+        assert isinstance(t2 - t1, timedelta)
+    else:
+        assert t2 - t1 == timedelta(0)

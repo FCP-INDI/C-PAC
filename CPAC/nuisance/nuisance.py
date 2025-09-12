@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,6 +14,8 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Nusiance regression."""
+
 import os
 from typing import Literal
 
@@ -29,6 +31,7 @@ from CPAC.aroma.aroma import create_aroma
 from CPAC.nuisance.utils import (
     find_offending_time_points,
     generate_summarize_tissue_mask,
+    load_censor_tsv,
     temporal_variance_mask,
 )
 from CPAC.nuisance.utils.compcor import (
@@ -37,8 +40,8 @@ from CPAC.nuisance.utils.compcor import (
     TR_string_to_float,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.pipeline.engine import ResourcePool
-from CPAC.pipeline.nodeblock import nodeblock
+from CPAC.pipeline.engine import NodeData, ResourcePool
+from CPAC.pipeline.nodeblock import nodeblock, NODEBLOCK_RETURN, POOL_RESOURCE_DICT
 from CPAC.registration.registration import (
     apply_transform,
     warp_timeseries_to_EPItemplate,
@@ -50,7 +53,6 @@ from CPAC.utils.datasource import check_for_s3
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.interfaces.pc import PC
 from CPAC.utils.monitoring import IFLOGGER
-from CPAC.utils.utils import check_prov_for_regtool
 from .bandpass import afni_1dBandpass, bandpass_voxels
 
 
@@ -75,8 +77,8 @@ def choose_nuisance_blocks(cfg, rpool, generate_only=False):
     ]
     apply_transform_using = to_template_cfg["apply_transform"]["using"]
     input_interface = {
-        "default": ("desc-preproc_bold", ["desc-preproc_bold", "bold"]),
-        "abcd": ("desc-preproc_bold", "bold"),
+        "default": ("desc-preproc_bold", ["desc-preproc_bold", "desc-reorient_bold"]),
+        "abcd": ("desc-preproc_bold", "desc-reorient_bold"),
         "single_step_resampling_from_stc": ("desc-preproc_bold", "desc-stc_bold"),
     }.get(apply_transform_using)
     if input_interface is not None:
@@ -302,7 +304,7 @@ def gather_nuisance(
             raise ValueError(msg)
 
         try:
-            regressors = np.loadtxt(regressor_file)
+            regressors = load_censor_tsv(regressor_file, regressor_length)
         except (OSError, TypeError, UnicodeDecodeError, ValueError) as error:
             msg = f"Could not read regressor {regressor_type} from {regressor_file}."
             raise OSError(msg) from error
@@ -382,7 +384,7 @@ def gather_nuisance(
     if custom_file_paths:
         for custom_file_path in custom_file_paths:
             try:
-                custom_regressor = np.loadtxt(custom_file_path)
+                custom_regressor = load_censor_tsv(custom_file_path, regressor_length)
             except:
                 msg = "Could not read regressor {0} from {1}.".format(
                     "Custom", custom_file_path
@@ -421,7 +423,7 @@ def gather_nuisance(
             censor_volumes = np.ones((regressor_length,), dtype=int)
         else:
             try:
-                censor_volumes = np.loadtxt(regressor_file)
+                censor_volumes = load_censor_tsv(regressor_file, regressor_length)
             except:
                 msg = (
                     f"Could not read regressor {regressor_type} from {regressor_file}."
@@ -494,6 +496,104 @@ def gather_nuisance(
         np.savetxt(ofd, nuisance_regressors.T, fmt="%.18f", delimiter="\t")
 
     return output_file_path, censor_indices
+
+
+def offending_timepoints_connector(
+    nuisance_selectors, name="offending_timepoints_connector"
+):
+    inputspec = pe.Node(
+        util.IdentityInterface(
+            fields=[
+                "fd_j_file_path",
+                "fd_p_file_path",
+                "dvars_file_path",
+            ]
+        ),
+        name="inputspec",
+    )
+
+    wf = pe.Workflow(name=name)
+
+    outputspec = pe.Node(
+        util.IdentityInterface(fields=["out_file"]),
+        name="outputspec",
+    )
+
+    censor_selector = nuisance_selectors.get("Censor")
+
+    find_censors = pe.Node(
+        Function(
+            input_names=[
+                "fd_j_file_path",
+                "fd_j_threshold",
+                "fd_p_file_path",
+                "fd_p_threshold",
+                "dvars_file_path",
+                "dvars_threshold",
+                "number_of_previous_trs_to_censor",
+                "number_of_subsequent_trs_to_censor",
+            ],
+            output_names=["out_file"],
+            function=find_offending_time_points,
+            as_module=True,
+        ),
+        name="find_offending_time_points",
+    )
+
+    if not censor_selector.get("thresholds"):
+        msg = "Censoring requested, but thresh_metric not provided."
+        raise ValueError(msg)
+
+    for threshold in censor_selector["thresholds"]:
+        if "type" not in threshold or threshold["type"] not in [
+            "DVARS",
+            "FD_J",
+            "FD_P",
+        ]:
+            msg = "Censoring requested, but with invalid threshold type."
+            raise ValueError(msg)
+
+        if "value" not in threshold:
+            msg = "Censoring requested, but threshold not provided."
+            raise ValueError(msg)
+
+        if threshold["type"] == "FD_J":
+            find_censors.inputs.fd_j_threshold = threshold["value"]
+            wf.connect(inputspec, "fd_j_file_path", find_censors, "fd_j_file_path")
+
+        if threshold["type"] == "FD_P":
+            find_censors.inputs.fd_p_threshold = threshold["value"]
+            wf.connect(inputspec, "fd_p_file_path", find_censors, "fd_p_file_path")
+
+        if threshold["type"] == "DVARS":
+            find_censors.inputs.dvars_threshold = threshold["value"]
+            wf.connect(inputspec, "dvars_file_path", find_censors, "dvars_file_path")
+
+    if (
+        censor_selector.get("number_of_previous_trs_to_censor")
+        and censor_selector["method"] != "SpikeRegression"
+    ):
+        find_censors.inputs.number_of_previous_trs_to_censor = censor_selector[
+            "number_of_previous_trs_to_censor"
+        ]
+
+    else:
+        find_censors.inputs.number_of_previous_trs_to_censor = 0
+
+    if (
+        censor_selector.get("number_of_subsequent_trs_to_censor")
+        and censor_selector["method"] != "SpikeRegression"
+    ):
+        find_censors.inputs.number_of_subsequent_trs_to_censor = censor_selector[
+            "number_of_subsequent_trs_to_censor"
+        ]
+
+    else:
+        find_censors.inputs.number_of_subsequent_trs_to_censor = 0
+
+    wf.connect(find_censors, "out_file", outputspec, "out_file")
+
+    return wf
 
 
 def create_regressor_workflow(
@@ -1547,6 +1647,38 @@ def create_regressor_workflow(
         "functional_file_path",
     )
 
+    if nuisance_selectors.get("Censor"):
+        if nuisance_selectors["Censor"]["method"] == "SpikeRegression":
+            offending_timepoints_connector_wf = offending_timepoints_connector(
+                nuisance_selectors
+            )
+            nuisance_wf.connect(
+                [
+                    (
+                        inputspec,
+                        offending_timepoints_connector_wf,
+                        [("fd_j_file_path", "inputspec.fd_j_file_path")],
+                    ),
+                    (
+                        inputspec,
+                        offending_timepoints_connector_wf,
+                        [("fd_p_file_path", "inputspec.fd_p_file_path")],
+                    ),
+                    (
+                        inputspec,
+                        offending_timepoints_connector_wf,
+                        [("dvars_file_path", "inputspec.dvars_file_path")],
+                    ),
+                ]
+            )
+
+            nuisance_wf.connect(
+                offending_timepoints_connector_wf,
+                "outputspec.out_file",
+                build_nuisance_regressors,
+                "censor_file_path",
+            )
+
     build_nuisance_regressors.inputs.selector = nuisance_selectors
 
     # Check for any regressors to combine into files
@@ -1656,93 +1788,28 @@ def create_nuisance_regression_workflow(nuisance_selectors, name="nuisance_regre
     nuisance_wf = pe.Workflow(name=name)
 
     if nuisance_selectors.get("Censor"):
-        censor_methods = ["Kill", "Zero", "Interpolate", "SpikeRegression"]
-
-        censor_selector = nuisance_selectors.get("Censor")
-        if censor_selector.get("method") not in censor_methods:
-            msg = (
-                "Improper censoring method specified ({0}), "
-                "should be one of {1}.".format(
-                    censor_selector.get("method"), censor_methods
-                )
-            )
-            raise ValueError(msg)
-
-        find_censors = pe.Node(
-            Function(
-                input_names=[
-                    "fd_j_file_path",
-                    "fd_j_threshold",
-                    "fd_p_file_path",
-                    "fd_p_threshold",
-                    "dvars_file_path",
-                    "dvars_threshold",
-                    "number_of_previous_trs_to_censor",
-                    "number_of_subsequent_trs_to_censor",
-                ],
-                output_names=["out_file"],
-                function=find_offending_time_points,
-                as_module=True,
-            ),
-            name="find_offending_time_points",
+        offending_timepoints_connector_wf = offending_timepoints_connector(
+            nuisance_selectors
         )
-
-        if not censor_selector.get("thresholds"):
-            msg = "Censoring requested, but thresh_metric not provided."
-            raise ValueError(msg)
-
-        for threshold in censor_selector["thresholds"]:
-            if "type" not in threshold or threshold["type"] not in [
-                "DVARS",
-                "FD_J",
-                "FD_P",
-            ]:
-                msg = "Censoring requested, but with invalid threshold type."
-                raise ValueError(msg)
-
-            if "value" not in threshold:
-                msg = "Censoring requested, but threshold not provided."
-                raise ValueError(msg)
-
-            if threshold["type"] == "FD_J":
-                find_censors.inputs.fd_j_threshold = threshold["value"]
-                nuisance_wf.connect(
-                    inputspec, "fd_j_file_path", find_censors, "fd_j_file_path"
-                )
-
-            if threshold["type"] == "FD_P":
-                find_censors.inputs.fd_p_threshold = threshold["value"]
-                nuisance_wf.connect(
-                    inputspec, "fd_p_file_path", find_censors, "fd_p_file_path"
-                )
-
-            if threshold["type"] == "DVARS":
-                find_censors.inputs.dvars_threshold = threshold["value"]
-                nuisance_wf.connect(
-                    inputspec, "dvars_file_path", find_censors, "dvars_file_path"
-                )
-
-        if (
-            censor_selector.get("number_of_previous_trs_to_censor")
-            and censor_selector["method"] != "SpikeRegression"
-        ):
-            find_censors.inputs.number_of_previous_trs_to_censor = censor_selector[
-                "number_of_previous_trs_to_censor"
+        nuisance_wf.connect(
+            [
+                (
+                    inputspec,
+                    offending_timepoints_connector_wf,
+                    [("fd_j_file_path", "inputspec.fd_j_file_path")],
+                ),
+                (
+                    inputspec,
+                    offending_timepoints_connector_wf,
+                    [("fd_p_file_path", "inputspec.fd_p_file_path")],
+                ),
+                (
+                    inputspec,
+                    offending_timepoints_connector_wf,
+                    [("dvars_file_path", "inputspec.dvars_file_path")],
+                ),
             ]
-
-        else:
-            find_censors.inputs.number_of_previous_trs_to_censor = 0
-
-        if (
-            censor_selector.get("number_of_subsequent_trs_to_censor")
-            and censor_selector["method"] != "SpikeRegression"
-        ):
-            find_censors.inputs.number_of_subsequent_trs_to_censor = censor_selector[
-                "number_of_subsequent_trs_to_censor"
-            ]
-
-        else:
-            find_censors.inputs.number_of_subsequent_trs_to_censor = 0
+        )
 
     # Use 3dTproject to perform nuisance variable regression
     nuisance_regression = pe.Node(
@@ -1757,17 +1824,19 @@ def create_nuisance_regression_workflow(nuisance_selectors, name="nuisance_regre
     nuisance_regression.inputs.norm = False
 
     if nuisance_selectors.get("Censor"):
-        if nuisance_selectors["Censor"]["method"] == "SpikeRegression":
-            nuisance_wf.connect(find_censors, "out_file", nuisance_regression, "censor")
-        else:
-            if nuisance_selectors["Censor"]["method"] == "Interpolate":
-                nuisance_regression.inputs.cenmode = "NTRP"
-            else:
-                nuisance_regression.inputs.cenmode = nuisance_selectors["Censor"][
-                    "method"
-                ].upper()
+        if nuisance_selectors["Censor"]["method"] != "SpikeRegression":
+            nuisance_regression.inputs.cenmode = (
+                "NTRP"
+                if nuisance_selectors["Censor"]["method"] == "Interpolate"
+                else nuisance_selectors["Censor"]["method"].upper()
+            )
 
-            nuisance_wf.connect(find_censors, "out_file", nuisance_regression, "censor")
+            nuisance_wf.connect(
+                offending_timepoints_connector_wf,
+                "outputspec.out_file",
+                nuisance_regression,
+                "censor",
+            )
 
     if nuisance_selectors.get("PolyOrt"):
         if not nuisance_selectors["PolyOrt"].get("degree"):
@@ -1811,9 +1880,59 @@ def create_nuisance_regression_workflow(nuisance_selectors, name="nuisance_regre
     return nuisance_wf
 
 
+def _default_frequency_filter(
+    filtering_wf: pe.Workflow,
+    bandpass_selector: dict,
+    inputspec: pe.Node,
+    outputspec: pe.Node,
+) -> pe.Node:
+    """Return a frequency filter node."""
+    frequency_filter = pe.Node(
+        Function(
+            input_names=[
+                "realigned_file",
+                "regressor_file",
+                "bandpass_freqs",
+                "sample_period",
+            ],
+            output_names=["bandpassed_file", "regressor_file"],
+            function=bandpass_voxels,
+            as_module=True,
+        ),
+        name="frequency_filter",
+        mem_gb=0.5,
+        mem_x=(3811976743057169 / 151115727451828646838272, "realigned_file"),
+    )
+    frequency_filter.inputs.bandpass_freqs = [
+        bandpass_selector.get("bottom_frequency"),
+        bandpass_selector.get("top_frequency"),
+    ]
+    filtering_wf.connect(
+        [
+            (
+                inputspec,
+                frequency_filter,
+                [
+                    ("functional_file_path", "realigned_file"),
+                    ("regressors_file_path", "regressor_file"),
+                ],
+            ),
+            (
+                frequency_filter,
+                outputspec,
+                [
+                    ("bandpassed_file", "residual_file_path"),
+                    ("regressor_file", "residual_regressor"),
+                ],
+            ),
+        ]
+    )
+    return frequency_filter
+
+
 def filtering_bold_and_regressors(
     nuisance_selectors, name="filtering_bold_and_regressors"
-):
+) -> pe.Workflow:
     inputspec = pe.Node(
         util.IdentityInterface(
             fields=[
@@ -1826,6 +1945,7 @@ def filtering_bold_and_regressors(
         ),
         name="inputspec",
     )
+    inputspec.inputs.nuisance_selectors = nuisance_selectors
 
     outputspec = pe.Node(
         util.IdentityInterface(fields=["residual_file_path", "residual_regressor"]),
@@ -1841,42 +1961,8 @@ def filtering_bold_and_regressors(
         bandpass_method = "default"
 
     if bandpass_method == "default":
-        frequency_filter = pe.Node(
-            Function(
-                input_names=[
-                    "realigned_file",
-                    "regressor_file",
-                    "bandpass_freqs",
-                    "sample_period",
-                ],
-                output_names=["bandpassed_file", "regressor_file"],
-                function=bandpass_voxels,
-                as_module=True,
-            ),
-            name="frequency_filter",
-            mem_gb=0.5,
-            mem_x=(3811976743057169 / 151115727451828646838272, "realigned_file"),
-        )
-
-        frequency_filter.inputs.bandpass_freqs = [
-            bandpass_selector.get("bottom_frequency"),
-            bandpass_selector.get("top_frequency"),
-        ]
-
-        filtering_wf.connect(
-            inputspec, "functional_file_path", frequency_filter, "realigned_file"
-        )
-
-        filtering_wf.connect(
-            inputspec, "regressors_file_path", frequency_filter, "regressor_file"
-        )
-
-        filtering_wf.connect(
-            frequency_filter, "bandpassed_file", outputspec, "residual_file_path"
-        )
-
-        filtering_wf.connect(
-            frequency_filter, "regressor_file", outputspec, "residual_regressor"
+        frequency_filter = _default_frequency_filter(
+            filtering_wf, bandpass_selector, inputspec, outputspec
         )
 
     elif bandpass_method == "AFNI":
@@ -1944,8 +2030,7 @@ def filtering_bold_and_regressors(
     outputs=["desc-preproc_bold", "desc-cleaned_bold"],
 )
 def ICA_AROMA_FSLreg(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance("from-T1w_to-template_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-T1w_to-template_mode-image_xfm")
 
     if reg_tool != "fsl":
         return (wf, None)
@@ -1991,8 +2076,7 @@ def ICA_AROMA_FSLreg(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-preproc_bold", "desc-cleaned_bold"],
 )
 def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance("from-bold_to-template_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-bold_to-template_mode-image_xfm")
 
     if reg_tool != "ants":
         return (wf, None)
@@ -2062,8 +2146,7 @@ def ICA_AROMA_ANTsreg(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-preproc_bold", "desc-cleaned_bold"],
 )
 def ICA_AROMA_FSLEPIreg(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance("from-bold_to-EPItemplate_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-bold_to-EPItemplate_mode-image_xfm")
 
     if reg_tool != "fsl":
         return (wf, None)
@@ -2115,8 +2198,7 @@ def ICA_AROMA_FSLEPIreg(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["desc-preproc_bold", "desc-cleaned_bold"],
 )
 def ICA_AROMA_ANTsEPIreg(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance("from-bold_to-EPItemplate_mode-image_xfm")
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-bold_to-EPItemplate_mode-image_xfm")
 
     if reg_tool != "ants":
         return (wf, None)
@@ -2375,8 +2457,15 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
     inputs=[
         (
             "desc-preproc_bold",
-            "space-bold_desc-brain_mask",
+            "desc-reorient_bold",
+            "sbref",
+            [
+                "space-bold_desc-brain_mask",
+                "space-template_desc-bold_mask",
+                "space-template_desc-brain_mask",
+            ],
             "from-bold_to-T1w_mode-image_desc-linear_xfm",
+            "from-template_to-bold_mode-image_xfm",
             "desc-movementParameters_motion",
             "framewise-displacement-jenkinson",
             "framewise-displacement-power",
@@ -2404,7 +2493,13 @@ def nuisance_regressors_generation_EPItemplate(wf, cfg, strat_pool, pipe_num, op
         "lateral-ventricles-mask",
         "TR",
     ],
-    outputs=["desc-confounds_timeseries", "censor-indices"],
+    outputs={
+        "desc-confounds_timeseries": {},
+        "censor-indices": {},
+        "space-bold_desc-brain_mask": {
+            "Description": "Binary brain mask of the BOLD functional time-series, transformed from template space."
+        },
+    },
 )
 def nuisance_regressors_generation_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
     return nuisance_regressors_generation(wf, cfg, strat_pool, pipe_num, opt, "T1w")
@@ -2417,44 +2512,41 @@ def nuisance_regressors_generation(
     pipe_num: int,
     opt: dict,
     space: Literal["T1w", "bold"],
-) -> tuple[Workflow, dict]:
-    """Generate nuisance regressors.
+) -> NODEBLOCK_RETURN:
+    """Generate nuisance regressors."""
+    from CPAC.nuisance.utils.xfm import transform_bold_mask_to_native
 
-    Parameters
-    ----------
-    wf : ~nipype.pipeline.engine.workflows.Workflow
-
-    cfg : ~CPAC.utils.configuration.Configuration
-
-    strat_pool : ~CPAC.pipeline.engine.ResourcePool
-
-    pipe_num : int
-
-    opt : dict
-
-    space : str
-        T1w or bold
-
-    Returns
-    -------
-    wf : nipype.pipeline.engine.workflows.Workflow
-
-    outputs : dict
-    """
     prefixes = [f"space-{space}_"] * 2
     reg_tool = None
+    outputs: POOL_RESOURCE_DICT = {}
+
+    brain_mask = (
+        strat_pool.node_data("space-bold_desc-brain_mask")
+        if strat_pool.check_rpool("space-bold_desc-brain_mask")
+        else NodeData()
+    )
     if space == "T1w":
         prefixes[0] = ""
         if strat_pool.check_rpool("from-template_to-T1w_mode-image_desc-linear_xfm"):
-            xfm_prov = strat_pool.get_cpac_provenance(
+            reg_tool = strat_pool.reg_tool(
                 "from-template_to-T1w_mode-image_desc-linear_xfm"
             )
-            reg_tool = check_prov_for_regtool(xfm_prov)
+            if brain_mask.node is NotImplemented:
+                if reg_tool and strat_pool.check_rpool(
+                    ["space-template_desc-bold_mask", "space-template_desc-brain_mask"]
+                ):
+                    outputs["space-bold_desc-brain_mask"] = (
+                        transform_bold_mask_to_native(
+                            wf, strat_pool, cfg, pipe_num, reg_tool
+                        )
+                    )
+                    brain_mask.node, brain_mask.out = outputs[
+                        "space-bold_desc-brain_mask"
+                    ]
     elif space == "bold":
-        xfm_prov = strat_pool.get_cpac_provenance(
+        reg_tool = strat_pool.reg_tool(
             "from-EPItemplate_to-bold_mode-image_desc-linear_xfm"
         )
-        reg_tool = check_prov_for_regtool(xfm_prov)
     if reg_tool is not None:
         use_ants = reg_tool == "ants"
     else:
@@ -2495,8 +2587,12 @@ def nuisance_regressors_generation(
     node, out = strat_pool.get_data("desc-preproc_bold")
     wf.connect(node, out, regressors, "inputspec.functional_file_path")
 
-    node, out = strat_pool.get_data("space-bold_desc-brain_mask")
-    wf.connect(node, out, regressors, "inputspec.functional_brain_mask_file_path")
+    wf.connect(
+        brain_mask.node,
+        brain_mask.out,
+        regressors,
+        "inputspec.functional_brain_mask_file_path",
+    )
 
     if strat_pool.check_rpool(f"desc-brain_{space}"):
         node, out = strat_pool.get_data(f"desc-brain_{space}")
@@ -2658,12 +2754,13 @@ def nuisance_regressors_generation(
     node, out = strat_pool.get_data("TR")
     wf.connect(node, out, regressors, "inputspec.tr")
 
-    outputs = {
-        "desc-confounds_timeseries": (regressors, "outputspec.regressors_file_path"),
-        "censor-indices": (regressors, "outputspec.censor_indices"),
-    }
+    outputs["desc-confounds_timeseries"] = (
+        regressors,
+        "outputspec.regressors_file_path",
+    )
+    outputs["censor-indices"] = (regressors, "outputspec.censor_indices")
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
@@ -2768,7 +2865,6 @@ def nuisance_regression(wf, cfg, strat_pool, pipe_num, opt, space, res=None):
         filt = filtering_bold_and_regressors(
             opt, name=f"filtering_bold_and_regressors_{name_suff}"
         )
-        filt.inputs.inputspec.nuisance_selectors = opt
 
         node, out = strat_pool.get_data(
             ["desc-confounds_timeseries", "parsed_regressors"]

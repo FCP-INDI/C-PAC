@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2020-2024  C-PAC Developers
+# Copyright (C) 2020-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -44,7 +44,7 @@ from CPAC.utils.datasource import (
 from CPAC.utils.interfaces.datasink import DataSink
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.strategy import Strategy
-from CPAC.utils.utils import check_config_resources, check_prov_for_regtool
+from CPAC.utils.utils import check_config_resources
 
 
 @nodeblock(
@@ -254,10 +254,7 @@ def mask_longitudinal_T1w_brain(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=["space-template_desc-brain_T1w"],
 )
 def warp_longitudinal_T1w_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance(
-        "from-longitudinal_to-template_mode-image_xfm"
-    )
-    reg_tool = check_prov_for_regtool(xfm_prov)
+    reg_tool = strat_pool.reg_tool("from-longitudinal_to-template_mode-image_xfm")
 
     num_cpus = cfg.pipeline_setup["system_config"]["max_cores_per_participant"]
 
@@ -325,10 +322,9 @@ def warp_longitudinal_T1w_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     ],
 )
 def warp_longitudinal_seg_to_T1w(wf, cfg, strat_pool, pipe_num, opt=None):
-    xfm_prov = strat_pool.get_cpac_provenance(
+    reg_tool = strat_pool.reg_tool(
         "from-longitudinal_to-T1w_mode-image_desc-linear_xfm"
     )
-    reg_tool = check_prov_for_regtool(xfm_prov)
 
     num_cpus = cfg.pipeline_setup["system_config"]["max_cores_per_participant"]
 
@@ -1204,6 +1200,7 @@ def func_longitudinal_template_wf(subject_id, strat_list, config):
         resampled_template.inputs.template = template
         resampled_template.inputs.template_name = template_name
         resampled_template.inputs.tag = tag
+        resampled_template.inputs.orientation = config["desired_orientation"]
 
         strat_init.update_resource_pool(
             {template_name: (resampled_template, "resampled_template")}

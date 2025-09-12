@@ -928,7 +928,7 @@ def run_surface(
             [
                 "space-template_desc-head_T1w",
                 "space-template_desc-brain_T1w",
-                "space-template_desc-T1w_mask",
+                "space-template_desc-brain_mask",
             ],
             [
                 "from-T1w_to-template_mode-image_xfm",
@@ -1202,7 +1202,7 @@ def surface_postproc(wf, cfg, strat_pool, pipe_num, opt=None):
     space_temp = [
         "space-template_desc-head_T1w",
         "space-template_desc-brain_T1w",
-        "space-template_desc-T1w_mask",
+        "space-template_desc-brain_mask",
     ]
     atlas_xfm = [
         "from-T1w_to-template_mode-image_xfm",

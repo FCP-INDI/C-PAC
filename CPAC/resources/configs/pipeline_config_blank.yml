@@ -11,6 +11,12 @@ pipeline_setup:
   # Name for this pipeline configuration - useful for identification.
   # This string will be sanitized and used in filepaths
   pipeline_name: cpac-blank-template
+
+  # Human, non-human primate, or rodent data?
+  organism: human
+
+  # Desired orientation for the output data. "RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"
+  desired_orientation: RPI
   output_directory:
 
     # Quality control outputs
@@ -205,6 +211,12 @@ surface_analysis:
   abcd_prefreesurfer_prep:
     run: Off
 
+    # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+    ref_mask_res-2: $FSLDIR/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
+
+    # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
+    T1w_template_res-2: $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz
+
   # Will run Freesurfer for surface-based analysis. Will output traditional Freesurfer derivatives.
   # If you wish to employ Freesurfer outputs for brain masking or tissue segmentation in the voxel-based pipeline,
   # select those 'Freesurfer-' labeled options further below in anatomical_preproc.
@@ -242,6 +254,12 @@ surface_analysis:
 
 anatomical_preproc:
   run: Off
+
+  # [warp] - Deoblique the input image using AFNI 3dWarp. Changes header and the image data.
+  # [refit] - Clear the header of the input image using AFNI 3drefit. Changes only the header.
+  # applies for both T1w and T2w images
+  deoblique: ["refit"]
+
   acpc_alignment:
     T1w_brain_ACPC_template:
 
@@ -410,6 +428,9 @@ anatomical_preproc:
       # niworkflows-ants registration mask (can be optional)
       regmask_path: /ants_template/oasis/T_template0_BrainCerebellumRegistrationMask.nii.gz
 
+  restore_t1w_intensity:
+    run: Off
+
   run_t2: Off
 
   # Bias field correction based on square root of T1w * T2w
@@ -558,6 +579,9 @@ segmentation:
       WM_label: [2, 41]
 
 registration_workflows:
+
+  # sink native transform files to the output directory
+  sink_native_transforms: Off
   anatomical_registration:
     run: Off
     registration:
@@ -575,12 +599,6 @@ registration_workflows:
         # Template to be used during registration.
         # It is for monkey pipeline specifically.
         FNIRT_T1w_template:
-
-        # Reference mask with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        ref_mask_res-2: $FSLDIR/data/standard/MNI152_T1_2mm_brain_mask_dil.nii.gz
-
-        # Template with 2mm resolution to be used during FNIRT-based brain extraction in ABCD-options pipeline.
-        T1w_template_res-2: $FSLDIR/data/standard/MNI152_T1_2mm.nii.gz
 
         # Configuration file to be used by FSL to set FNIRT parameters.
         # It is not necessary to change this path unless you intend to use custom FNIRT parameters or a non-standard template.
@@ -702,9 +720,6 @@ registration_workflows:
       run: Off
       func_input_prep:
 
-        # Choose whether to use functional brain or skull as the input to functional-to-anatomical registration
-        reg_with_skull: Off
-
         # Choose whether to use the mean of the functional/EPI as the input to functional-to-anatomical registration or one of the volumes from the functional 4D timeseries that you choose.
         # input: ['Mean_Functional', 'Selected_Functional_Volume', 'fmriprep_reference']
         input: [Mean_Functional]
@@ -719,6 +734,9 @@ registration_workflows:
           # Only for when 'Use as Functional-to-Anatomical Registration Input' is set to 'Selected Functional Volume'.
           #Input the index of which volume from the functional 4D timeseries input file you wish to use as the input for functional-to-anatomical registration.
           func_reg_input_volume: 0
+
+        # Mask the sbref created by coregistration input prep nodeblocks above before registration
+        mask_sbref: On
 
       boundary_based_registration:
 
@@ -740,16 +758,6 @@ registration_workflows:
         # Standard FSL 5.0 Scheduler used for Boundary Based Registration.
         # It is not necessary to change this path unless you intend to use non-standard MNI registration.
         bbr_schedule: $FSLDIR/etc/flirtsch/bbr.sch
-
-      # reference: 'brain' or 'restore-brain'
-      # In ABCD-options pipeline, 'restore-brain' is used as coregistration reference
-      reference: brain
-
-      # Choose FSL or ABCD as coregistration method
-      using: FSL
-
-      # Choose brain or whole-head as coregistration input
-      input: brain
 
       # Choose coregistration interpolation
       interpolation: trilinear
@@ -954,6 +962,10 @@ functional_preproc:
     # Convert raw data from LPI to RPI
     run: On
 
+    # [warp] - Deoblique the input image using AFNI 3dWarp. Changes header and the image data. Applies interpolation to the slice-timing metadata.
+    # [refit] - Clear the header of the input image using AFNI 3drefit. Changes only the header.
+    deoblique: ["refit"]
+
   slice_timing_correction:
 
     # Interpolate voxel time courses so they are sampled at the same time points.
@@ -970,14 +982,6 @@ functional_preproc:
 
   motion_estimates_and_correction:
     run: Off
-    motion_estimates:
-
-      # calculate motion statistics BEFORE slice-timing correction
-      calculate_motion_first: Off
-
-      # calculate motion statistics AFTER motion correction
-      calculate_motion_after: On
-
     motion_correction:
 
       # using: ['3dvolreg', 'mcflirt']
@@ -1140,11 +1144,10 @@ functional_preproc:
     # Apply functional mask in native space
     apply_func_mask_in_native_space: On
 
-    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'Anatomical_Resampled', 'CCS_Anatomical_Refined']
+    # using: ['AFNI', 'FSL', 'FSL_AFNI', 'Anatomical_Refined', 'Anatomical_Based', 'CCS_Anatomical_Refined']
     # FSL_AFNI: fMRIPrep-style BOLD mask. Ref: https://github.com/nipreps/niworkflows/blob/a221f612/niworkflows/func/util.py#L246-L514
     # Anatomical_Refined: 1. binarize anat mask, in case it is not a binary mask. 2. fill holes of anat mask 3. init_bold_mask : input raw func → dilate init func brain mask 4. refined_bold_mask : input motion corrected func → dilate anatomical mask 5. get final func mask
     # Anatomical_Based: Generate the BOLD mask by basing it off of the anatomical brain mask. Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline.
-    # Anatomical_Resampled: Resample anatomical brain mask in standard space to get BOLD brain mask in standard space. Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline. ("Create fMRI resolution standard space files for T1w image, wmparc, and brain mask […] don't use FLIRT to do spline interpolation with -applyisoxfm for the 2mm and 1mm cases because it doesn't know the peculiarities of the MNI template FOVs")
     # CCS_Anatomical_Refined: Generate the BOLD mask by basing it off of the anatomical brain. Adapted from the BOLD mask method from the CCS pipeline.
     # this is a fork point
     using: [AFNI]
@@ -1152,6 +1155,11 @@ functional_preproc:
 
       # Choose whether or not to dilate the anatomical mask if you choose 'Anatomical_Refined' as the functional masking option. It will dilate one voxel if enabled.
       anatomical_mask_dilation: Off
+
+  template_space_func_masking:
+    run: Off
+      # Anatomical_Resampled: Resample anatomical brain mask in standard space to get BOLD brain mask in standard space. Adapted from DCAN Lab's BOLD mask method from the ABCD pipeline. ("Create fMRI resolution standard space files for T1w image, wmparc, and brain mask […] don't use FLIRT to do spline interpolation with -applyisoxfm for the 2mm and 1mm cases because it doesn't know the peculiarities of the MNI template FOVs")
+    using: [Anatomical_Resampled]
 
   generate_func_mean:
 

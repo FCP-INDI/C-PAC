@@ -1,0 +1,8 @@
+- site: site-1
+  subject_id: 01
+  unique_id: 02
+  derivatives_dir: /fprep/sub-0151
+- site: site-1
+  subject_id: !!str 02
+  unique_id: 02
+  derivatives_dir: /fprep/sub-0151

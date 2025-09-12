@@ -15,14 +15,14 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 FROM ghcr.io/fcp-indi/c-pac/stage-base:standard-v1.8.8.dev1
-LABEL org.opencontainers.image.description "Full C-PAC image"
-LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+LABEL org.opencontainers.image.description="Full C-PAC image"
+LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
 USER root
 
 # install C-PAC
 COPY dev/circleci_data/pipe-test_ci.yml /cpac_resources/pipe-test_ci.yml
 COPY . /code
-RUN pip cache purge && pip install -e "/code[graphviz]"
+RUN pip cache purge && pip install backports.tarfile && pip install -e "/code[graphviz]"
 # set up runscript
 COPY dev/docker_data /code/docker_data
 RUN rm -Rf /code/docker_data/checksum && \
@@ -45,7 +45,8 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache/* \
     && chmod 777 $(ls / | grep -v sys | grep -v proc)
 ENV PYTHONUSERBASE=/home/c-pac_user/.local
 ENV PATH=$PATH:/home/c-pac_user/.local/bin \
-    PYTHONPATH=$PYTHONPATH:$PYTHONUSERBASE/lib/python3.10/site-packages
+    PYTHONPATH=$PYTHONPATH:$PYTHONUSERBASE/lib/python3.10/site-packages \
+    _SHELL=/bin/bash
 
 # set user
 WORKDIR /home/c-pac_user

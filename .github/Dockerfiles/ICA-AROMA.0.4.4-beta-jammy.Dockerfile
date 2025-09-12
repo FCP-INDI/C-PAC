@@ -24,6 +24,6 @@ USER c-pac_user
 
 # Only keep what we need
 FROM scratch
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+LABEL org.opencontainers.image.description="NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 ICA-AROMA 0.4.4-beta stage"
 COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/

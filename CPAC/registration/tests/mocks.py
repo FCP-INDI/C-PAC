@@ -151,6 +151,7 @@ def configuration_strategy_mock(method="FSL"):
         resampled_template.inputs.template = template
         resampled_template.inputs.template_name = template_name
         resampled_template.inputs.tag = tag
+        resampled_template.inputs.orientation = "RPI"
 
         strat.update_resource_pool(
             {template_name: (resampled_template, "resampled_template")}

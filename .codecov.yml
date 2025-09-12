@@ -1,0 +1,21 @@
+codecov:
+  branch: main
+
+comment:
+  layout: "diff, files"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  hide_project_coverage: false
+
+coverage:
+  precision: 1
+  range: "50..90"
+  round: nearest
+  status:
+    project:
+      default:   # default is the status check's name, not default settings
+        only_pulls: false
+        target: auto
+        threshold: "5"

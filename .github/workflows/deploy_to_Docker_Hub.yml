@@ -1,5 +1,14 @@
 name: Deploy to Docker Hub
 
+permissions:
+  checks: write
+  contents: read
+  deployments: write
+  issues: write
+  packages: write
+  pull-requests: write
+  statuses: write
+
 on:
   workflow_call:
     inputs:
@@ -18,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}

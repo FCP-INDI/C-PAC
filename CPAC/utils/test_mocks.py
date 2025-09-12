@@ -1,4 +1,24 @@
+# Copyright (C) 2019-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Mock configuration and strategy for testing purposes."""
+
 import os
+from pathlib import Path
+from typing import Literal
 
 from nipype.interfaces import utility as util
 
@@ -9,16 +29,20 @@ from CPAC.utils.interfaces.function import Function
 from CPAC.utils.strategy import Strategy
 
 
-def file_node(path, file_node_num=0):
+def file_node(
+    path: Path | str, file_node_num: int = 0, name: str = "file_node"
+) -> tuple[pe.Node, Literal["file"]]:
+    """Create a file node with the given path and name."""
     input_node = pe.Node(
         util.IdentityInterface(fields=["file"]),
-        name=f"file_node_{file_node_num}",
+        name=f"{name}_{file_node_num}",
     )
-    input_node.inputs.file = path
+    input_node.inputs.file = str(path)
     return input_node, "file"
 
 
 def configuration_strategy_mock(method="FSL"):
+    """Mock configuration and strategy for testing."""
     fsldir = os.environ.get("FSLDIR")
     # mock the config dictionary
     c = Configuration(
@@ -235,6 +259,7 @@ def configuration_strategy_mock(method="FSL"):
         resampled_template.inputs.template = template
         resampled_template.inputs.template_name = template_name
         resampled_template.inputs.tag = tag
+        resampled_template.inputs.orientation = "RPI"
 
         strat.update_resource_pool(
             {template_name: (resampled_template, "resampled_template")}

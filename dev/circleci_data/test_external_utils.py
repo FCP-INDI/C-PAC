@@ -31,8 +31,6 @@ DATA_DIR = os.path.join(CPAC_DIR, "dev", "circleci_data")
 
 from CPAC.__main__ import utils as CPAC_main_utils  # noqa: E402
 
-# pylint: disable=wrong-import-position
-
 
 def _click_backport(command, key):
     """Switch back to underscores for older versions of click."""
@@ -93,18 +91,11 @@ def test_build_data_config(caplog, cli_runner, multiword_connector):
     _delete_test_yaml(test_yaml)
 
 
-def test_new_settings_template(caplog, cli_runner):
+def test_new_settings_template(bids_examples: Path, caplog, cli_runner):
     """Test CLI ``utils new-settings-template``."""
     caplog.set_level(INFO)
-    os.chdir(CPAC_DIR)
-
-    example_dir = os.path.join(CPAC_DIR, "bids-examples")
-    if not os.path.exists(example_dir):
-        from git import Repo
-
-        Repo.clone_from(
-            "https://github.com/bids-standard/bids-examples.git", example_dir
-        )
+    assert bids_examples.exists()
+    os.chdir(bids_examples)
 
     result = cli_runner.invoke(
         CPAC_main_utils.commands[

@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -25,6 +25,7 @@ import shutil
 import sys
 import time
 from time import strftime
+from typing import TYPE_CHECKING
 
 import yaml
 import nipype
@@ -83,12 +84,7 @@ from CPAC.distortion_correction.distortion_correction import (
     distcor_phasediff_fsl_fugue,
 )
 from CPAC.func_preproc import (
-    calc_motion_stats,
-    func_motion_correct,
-    func_motion_correct_only,
-    func_motion_estimates,
-    get_motion_ref,
-    motion_estimate_filter,
+    stack_motion_blocks,
 )
 from CPAC.func_preproc.func_preproc import (
     bold_mask_afni,
@@ -107,6 +103,7 @@ from CPAC.func_preproc.func_preproc import (
     func_scaling,
     func_slice_time,
     func_truncate,
+    template_space_bold_masking,
 )
 from CPAC.network_centrality.pipeline import network_centrality
 from CPAC.nuisance.nuisance import (
@@ -148,6 +145,7 @@ from CPAC.registration.registration import (
     coregistration_prep_vol,
     create_func_to_T1template_symmetric_xfm,
     create_func_to_T1template_xfm,
+    mask_sbref,
     overwrite_transform_anat_to_template,
     register_ANTs_anat_to_template,
     register_ANTs_EPI_to_template,
@@ -214,6 +212,9 @@ from CPAC.utils.utils import (
 from CPAC.utils.versioning import REQUIREMENTS
 from CPAC.utils.workflow_serialization import cpac_flowdump_serializer
 from CPAC.vmhc.vmhc import smooth_func_vmhc, vmhc, warp_timeseries_to_sym_template
+
+if TYPE_CHECKING:
+    from CPAC.pipeline.nodeblock import NodeBlockFunction
 
 faulthandler.enable()
 
@@ -1259,35 +1260,35 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
 
     # Functional Preprocessing, including motion correction and BOLD masking
     if cfg.functional_preproc["run"]:
-        func_init_blocks = [func_reorient, func_scaling, func_truncate]
-        func_preproc_blocks = [func_despike, func_slice_time]
+        func_blocks: dict[str, list[NodeBlockFunction | list[NodeBlockFunction]]] = {}
+        func_blocks["init"] = [func_reorient, func_scaling, func_truncate]
+        func_blocks["preproc"] = [func_despike, func_slice_time]
 
         if not rpool.check_rpool("desc-mean_bold"):
-            func_preproc_blocks.append(func_mean)
+            func_blocks["preproc"].append(func_mean)
 
-        func_mask_blocks = []
+        func_blocks["mask"] = []
         if not rpool.check_rpool("space-bold_desc-brain_mask"):
-            func_mask_blocks = [
+            func_blocks["mask"] = [
                 [
                     bold_mask_afni,
                     bold_mask_fsl,
                     bold_mask_fsl_afni,
                     bold_mask_anatomical_refined,
                     bold_mask_anatomical_based,
-                    bold_mask_anatomical_resampled,
                     bold_mask_ccs,
                 ],
                 bold_masking,
             ]
 
-        func_prep_blocks = [
-            calc_motion_stats,
+        func_blocks["prep"] = [
             func_normalize,
             [
                 coregistration_prep_vol,
                 coregistration_prep_mean,
                 coregistration_prep_fmriprep,
             ],
+            mask_sbref,
         ]
 
         # Distortion/Susceptibility Correction
@@ -1308,49 +1309,16 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
         if distcor_blocks:
             if len(distcor_blocks) > 1:
                 distcor_blocks = [distcor_blocks]
-            func_prep_blocks += distcor_blocks
+            func_blocks["prep"] += distcor_blocks
 
-        func_motion_blocks = []
-        if not rpool.check_rpool("desc-movementParameters_motion"):
-            if cfg["functional_preproc"]["motion_estimates_and_correction"][
-                "motion_estimates"
-            ]["calculate_motion_first"]:
-                func_motion_blocks = [
-                    get_motion_ref,
-                    func_motion_estimates,
-                    motion_estimate_filter,
-                ]
-                func_blocks = (
-                    func_init_blocks
-                    + func_motion_blocks
-                    + func_preproc_blocks
-                    + [func_motion_correct_only]
-                    + func_mask_blocks
-                    + func_prep_blocks
-                )
-            else:
-                func_motion_blocks = [
-                    get_motion_ref,
-                    func_motion_correct,
-                    motion_estimate_filter,
-                ]
-                func_blocks = (
-                    func_init_blocks
-                    + func_preproc_blocks
-                    + func_motion_blocks
-                    + func_mask_blocks
-                    + func_prep_blocks
-                )
-        else:
-            func_blocks = (
-                func_init_blocks
-                + func_preproc_blocks
-                + func_motion_blocks
-                + func_mask_blocks
-                + func_prep_blocks
-            )
+        pipeline_blocks += stack_motion_blocks(func_blocks, cfg, rpool)
 
-        pipeline_blocks += func_blocks
+    # Template space functional mask
+    if cfg.functional_preproc["template_space_func_masking"]["run"]:
+        if not rpool.check_rpool("space-template_desc-bold_mask"):
+            pipeline_blocks += [
+                bold_mask_anatomical_resampled,
+            ]
 
     # BOLD to T1 coregistration
     if cfg.registration_workflows["functional_registration"]["coregistration"][
@@ -1509,6 +1477,12 @@ def build_workflow(subject_id, sub_dict, cfg, pipeline_name=None):
         pipeline_blocks += [
             warp_bold_mask_to_EPItemplate,
             warp_deriv_mask_to_EPItemplate,
+        ]
+
+    # Apply mask in template space
+    if cfg.functional_preproc["template_space_func_masking"]["run"]:
+        pipeline_blocks += [
+            template_space_bold_masking,
         ]
 
     # Template-space nuisance regression

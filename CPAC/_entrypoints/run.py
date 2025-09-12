@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2018-2024  C-PAC Developers
+# Copyright (C) 2018-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -454,6 +454,14 @@ def run_main():
         action="store_true",
     )
 
+    parser.add_argument(
+        "--freesurfer_dir",
+        "--freesurfer-dir",
+        help="Specify path to pre-computed FreeSurfer outputs "
+        "to pull into C-PAC run",
+        default=False,
+    )
+
     # get the command line arguments
     args = parser.parse_args(
         sys.argv[1 : (sys.argv.index("--") if "--" in sys.argv else len(sys.argv))]
@@ -721,16 +729,6 @@ def run_main():
                 args.fail_fast
             )
 
-        if c["pipeline_setup"]["output_directory"]["quality_control"][
-            "generate_xcpqc_files"
-        ]:
-            c["functional_preproc"]["motion_estimates_and_correction"][
-                "motion_estimates"
-            ]["calculate_motion_first"] = True
-            c["functional_preproc"]["motion_estimates_and_correction"][
-                "motion_estimates"
-            ]["calculate_motion_after"] = True
-
         if args.participant_label:
             WFLOGGER.info(
                 "#### Running C-PAC for %s", ", ".join(args.participant_label)
@@ -742,6 +740,9 @@ def run_main():
             "Number of participants to run in parallel: %s",
             c["pipeline_setup", "system_config", "num_participants_at_once"],
         )
+
+        if args.freesurfer_dir:
+            c["pipeline_setup"]["freesurfer_dir"] = args.freesurfer_dir
 
         if not args.data_config_file:
             WFLOGGER.info("Input directory: %s", bids_dir)
@@ -783,9 +784,8 @@ def run_main():
             sub_list = load_cpac_data_config(
                 args.data_config_file, args.participant_label, args.aws_input_creds
             )
-        list(sub_list)
         sub_list = sub_list_filter_by_labels(
-            sub_list, {"T1w": args.T1w_label, "bold": args.bold_label}
+            list(sub_list), {"T1w": args.T1w_label, "bold": args.bold_label}
         )
 
         # C-PAC only handles single anatomical images (for now)

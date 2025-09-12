@@ -235,3 +235,27 @@ def notch_filter_motion(
     np.savetxt(filtered_motion_params, filtered_params.T, fmt="%f")
 
     return (filtered_motion_params, filter_design, filter_plot)
+
+
+def interpolate_slice_timing(
+    timing_file, target_slices, out_file="adjusted_slice_timing.txt"
+):
+    import os
+
+    import numpy as np
+
+    slice_timings = np.loadtxt(timing_file)
+    interpolated = np.interp(
+        np.linspace(0, len(slice_timings) - 1, target_slices),
+        np.arange(len(slice_timings)),
+        slice_timings,
+    )
+    np.savetxt(out_file, interpolated)
+    return os.path.abspath(out_file)
+
+
+def get_num_slices(nifti_file):
+    import nibabel as nib
+
+    img = nib.load(nifti_file)
+    return img.shape[2]  # Z dimension (slices)

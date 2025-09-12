@@ -163,10 +163,10 @@ desc-preproc_T1w	T1w	T1w	anat	NIfTI
 desc-reorient_T1w	T1w	T1w	anat	NIfTI				Yes	
 desc-restore_T1w	T1w	T1w	anat	NIfTI					
 desc-restore-brain_T1w	T1w	T1w	anat	NIfTI					
+desc-ABCDpreproc_T1w	T1w	T1w	anat	NIfTI					
 space-template_desc-brain_T1w	T1w	template	anat	NIfTI				Yes	
 space-template_desc-preproc_T1w	T1w	template	anat	NIfTI					
 space-template_desc-head_T1w	T1w	template	anat	NIfTI					
-space-template_desc-T1w_mask	mask	template	anat	NIfTI					
 space-template_desc-Mean_timeseries	timeseries		func	1D					
 desc-MeanSCA_timeseries	timeseries		func	1D					
 desc-SpatReg_timeseries	timeseries		func	1D					
@@ -210,6 +210,37 @@ from-template_to-longitudinal_mode-image_xfm	xfm		anat	NIfTI
 from-template_to-T1w_mode-image_desc-linear_xfm	xfm		anat	NIfTI					
 from-template_to-T1w_mode-image_desc-nonlinear_xfm	xfm		anat	NIfTI					
 from-template_to-T1w_mode-image_xfm	xfm		anat	NIfTI					
+from-T1w_to-template_mode-image_desc-flirt_xfm	xfm		anat	MAT					
+from-T1w_to-symtemplate_mode-image_desc-flirt_xfm	xfm		anat	MAT					
+from-longitudinal_to-template_mode-image_desc-flirt_xfm	xfm		anat	MAT					
+from-template_to-T1w_mode-image_desc-flirt_xfm	xfm		anat	MAT					
+from-symtemplate_to-T1w_mode-image_desc-flirt_xfm	xfm		anat	MAT					
+from-template_to-longitudinal_mode-image_desc-flirt_xfm	xfm		anat	MAT					
+from-longitudinal_to-symtemplate_mode-image_desc-flirt_xfm	xfm		anat	MAT					
+from-symtemplate_to-longitudinal_mode-image_desc-flirt_xfm	xfm		anat	MAT					
+from-T1w_to-template_mode-image_desc-initial_xfm	xfm		anat	MAT					
+from-T1w_to-template_mode-image_desc-rigid_xfm	xfm		anat	MAT					
+from-T1w_to-template_mode-image_desc-affine_xfm	xfm		anat	MAT					
+from-T1w_to-longitudinal_mode-image_desc-initial_xfm	xfm		anat	MAT					
+from-T1w_to-longitudinal_mode-image_desc-rigid_xfm	xfm		anat	MAT					
+from-T1w_to-longitudinal_mode-image_desc-affine_xfm	xfm		anat	MAT					
+from-T1w_to-symtemplate_mode-image_desc-initial_xfm	xfm		anat	MAT					
+from-T1w_to-symtemplate_mode-image_desc-rigid_xfm	xfm		anat	MAT					
+from-T1w_to-symtemplate_mode-image_desc-affine_xfm	xfm		anat	MAT					
+from-longitudinal_to-template_mode-image_desc-initial_xfm	xfm		anat	MAT					
+from-longitudinal_to-template_mode-image_desc-rigid_xfm	xfm		anat	MAT					
+from-longitudinal_to-template_mode-image_desc-affine_xfm	xfm		anat	MAT					
+from-longitudinal_to-symtemplate_mode-image_desc-initial_xfm	xfm		anat	MAT					
+from-longitudinal_to-symtemplate_mode-image_desc-rigid_xfm	xfm		anat	MAT					
+from-longitudinal_to-symtemplate_mode-image_desc-affine_xfm	xfm		anat	MAT					
+from-longitudinal_to-T1w_mode-image_desc-initial_xfm	xfm		anat	MAT					
+from-longitudinal_to-T1w_mode-image_desc-rigid_xfm	xfm		anat	MAT					
+from-longitudinal_to-T1w_mode-image_desc-affine_xfm	xfm		anat	MAT					
+from-bold_to-EPItemplate_mode-image_desc-initial_xfm	xfm		func	MAT					
+from-bold_to-EPItemplate_mode-image_desc-rigid_xfm	xfm		func	MAT					
+from-bold_to-EPItemplate_mode-image_desc-affine_xfm	xfm		func	MAT					
+from-bold_to-EPItemplate_mode-image_desc-flirt_xfm	xfm		func	MAT					
+from-EPItemplate_to-bold_mode-image_desc-flirt_xfm	xfm		func	MAT					
 space-template_label-CSF_mask	mask	template	anat	NIfTI					
 space-template_label-WM_mask	mask	template	anat	NIfTI					
 space-template_label-GM_mask	mask	template	anat	NIfTI					

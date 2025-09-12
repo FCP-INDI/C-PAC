@@ -26,9 +26,9 @@ RUN apt-get update \
 
 # use neurodebian runtime as parent image
 FROM neurodebian:jammy-non-free
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+LABEL org.opencontainers.image.description="NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Ubuntu Jammy base image"
-LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
 ARG BIDS_VALIDATOR_VERSION=1.14.6 \
     DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/New_York \

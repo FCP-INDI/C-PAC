@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2024  C-PAC Developers
+# Copyright (C) 2012-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -73,7 +73,7 @@ def get_last_prov_entry(prov):
     return prov[-1]
 
 
-def check_prov_for_regtool(prov):
+def check_prov_for_regtool(prov) -> Optional[Literal["ants", "fsl"]]:
     """Check provenance for registration tool."""
     last_entry = get_last_prov_entry(prov)
     last_node = last_entry.split(":")[1]
@@ -98,22 +98,6 @@ def check_prov_for_regtool(prov):
             if "FSL" in node_name:
                 return "fsl"
             return None
-    return None
-
-
-def check_prov_for_motion_tool(prov):
-    """Check provenance for motion correction tool."""
-    last_entry = get_last_prov_entry(prov)
-    last_node = last_entry.split(":")[1]
-    if "3dvolreg" in last_node.lower():
-        return "3dvolreg"
-    if "mcflirt" in last_node.lower():
-        return "mcflirt"
-    # check entire prov
-    if "3dvolreg" in str(prov):
-        return "3dvolreg"
-    if "mcflirt" in str(prov):
-        return "mcflirt"
     return None
 
 
@@ -525,6 +509,9 @@ class ScanParameters:
             msg = f"Missing value for {val_to_check} for participant {self.subject}."
             raise ValueError(msg)
 
+        if isinstance(ret_val, bytes):
+            ret_val = ret_val.decode("utf-8")
+
         return ret_val
 
     @overload
@@ -631,6 +618,8 @@ class ScanParameters:
                 f" ≅ '{matched_keys[1]}'."
             )
         if convert_to:
+            if isinstance(raw_value, bytes):
+                raw_value = raw_value.decode("utf-8")
             try:
                 value = convert_to(raw_value)
             except (TypeError, ValueError):
@@ -955,6 +944,47 @@ def add_afni_prefix(tpattern):
     if ".txt" in tpattern:
         tpattern = f"@{tpattern}"
     return tpattern
+
+
+def afni_3dwarp(in_file, out_file=None, deoblique=False):
+    """
+    Run AFNI's 3dWarp command with optional deobliquing.
+
+    Parameters
+    ----------
+    in_file : str
+        Path to the input NIfTI file.
+    out_file : str or None
+        Path for the output file. If None, a name will be generated in the current directory.
+    deoblique : bool
+        If True, adds the '-deoblique' flag to the 3dWarp command.
+
+    Returns
+    -------
+    out_file : str
+        Path to the output file.
+    """
+    import os
+    import subprocess
+
+    if not out_file:
+        base = os.path.basename(in_file)
+        base = base.replace(".nii.gz", "").replace(".nii", "")
+        suffix = "_deoblique" if deoblique else "_warped"
+        out_file = os.path.abspath(f"{base}{suffix}.nii.gz")
+
+    cmd = ["3dWarp"]
+    if deoblique:
+        cmd.append("-deoblique")
+    cmd += ["-prefix", out_file, in_file]
+
+    try:
+        subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        msg = f"3dWarp failed with error:\n{e.output.decode()}"
+        raise RuntimeError(msg)
+
+    return out_file
 
 
 def write_to_log(workflow, log_dir, index, inputs, scan_id):
@@ -1605,16 +1635,6 @@ def _changes_1_8_0_to_1_8_1(config_dict: dict) -> dict:
         del config_dict["functional_preproc"]["motion_estimates_and_correction"][
             "calculate_motion_first"
         ]
-        config_dict = set_nested_value(
-            config_dict,
-            [
-                "functional_preproc",
-                "motion_estimates_and_correction",
-                "motion_estimates",
-                "calculate_motion_first",
-            ],
-            calculate_motion_first,
-        )
 
     return config_dict
 
@@ -2631,3 +2651,9 @@ def _replace_in_value_list(current_value, replacement_tuple):
         for v in current_value
         if bool(v) and v not in {"None", "Off", ""}
     ]
+
+
+def flip_orientation_code(code):
+    """Reverts an orientation code by flipping R↔L, A↔P, and I↔S."""
+    flip_dict = {"R": "L", "L": "R", "A": "P", "P": "A", "I": "S", "S": "I"}
+    return "".join(flip_dict[c] for c in code)

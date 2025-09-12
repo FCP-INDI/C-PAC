@@ -18,9 +18,9 @@ RUN mkdir -p /fsl_data/atlases/HarvardOxford fsl_data/standard/tissuepriors \
     && chmod -R ugo+r /fsl_data/atlases
 
 FROM scratch
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+LABEL org.opencontainers.image.description="NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 FSL data"
-LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
 
 COPY --from=FSL /fsl_data/standard fsl_data/standard
 COPY --from=FSL /fsl_data/atlases fsl_data/atlases

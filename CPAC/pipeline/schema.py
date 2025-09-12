@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2024  C-PAC Developers
+# Copyright (C) 2022-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -18,9 +18,18 @@
 """Validation schema for C-PAC pipeline configurations."""
 
 # pylint: disable=too-many-lines
+from dataclasses import dataclass
 from itertools import chain, permutations
 import re
 from subprocess import CalledProcessError
+from typing import (
+    Any as AnyType,
+    Literal,
+    Optional as OptionalType,
+    TypeAlias,
+    TypedDict,
+)
+import warnings
 
 import numpy as np
 from pathvalidate import sanitize_filename
@@ -46,9 +55,11 @@ from voluptuous import (
     Schema,
     Title,
 )
+from voluptuous.schema_builder import Schemable, UNDEFINED
 
 from CPAC.utils.datatypes import ItemFromList, ListFromItem
 from CPAC.utils.docs import DOCS_URL_PREFIX
+from CPAC.utils.monitoring import UTLOGGER
 from CPAC.utils.utils import YAML_BOOLS
 
 # 1 or more digits, optional decimal, 'e', optional '-', 1 or more digits
@@ -61,6 +72,71 @@ SCIENTIFIC_NOTATION_STR_REGEX = r"^([0-9]+(\.[0-9]*)*(e)-{0,1}[0-9]+)*$"
 RESOLUTION_REGEX = r"^[0-9]+(\.[0-9]*){0,1}[a-z]*(x[0-9]+(\.[0-9]*){0,1}[a-z]*)*$"
 
 Number = Any(float, int, All(str, Match(SCIENTIFIC_NOTATION_STR_REGEX)))
+Organism: TypeAlias = Literal[
+    "human",
+    "non-human primate",
+    "rodent",
+]
+ORGANISMS: list[Organism] = ["human", "non-human primate", "rodent"]
+
+
+def deprecated_option(option: Schemable, version: str, message: str) -> None:
+    """Mark an option as deprecated.
+
+    Parameters
+    ----------
+    option
+        The deprecated option.
+    version
+        The version in which the option was deprecated.
+    message
+        A message explaining the deprecation.
+    """
+    UTLOGGER.warning(
+        f"Option '{option}' is deprecated as of version {version}: {message}"
+    )
+    warnings.warn(
+        f"Option '{option}' is deprecated as of version {version}: {message}",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+
+@dataclass
+class DeprecatedOption:
+    """A version and message for a deprecated option."""
+
+    version: str
+    message: str
+
+
+class Deprecated(Optional):
+    """Mark an option as deprecated.
+
+    This class is used to mark options that are deprecated in the schema.
+    It inherits from `Optional` to allow the option to be omitted.
+    """
+
+    def __init__(
+        self,
+        schema: Schemable,
+        version: str,
+        msg: str = "This option is deprecated and will be removed in a future release.",
+        default: AnyType = UNDEFINED,
+        description: AnyType | None = None,
+    ) -> None:
+        """Initialize the Deprecated option."""
+        super().__init__(schema, msg, default, description)
+        setattr(self, "deprecated", DeprecatedOption(version, msg))
+
+    def __call__(self, v: AnyType) -> AnyType:
+        """Call the Deprecated option."""
+        if v is not None:
+            info = getattr(self, "deprecated", None)
+            if info:
+                deprecated_option(self._schema, info.version, info.message)
+            return super().__call__(v)
+        return v
 
 
 def str_to_bool1_1(x):  # pylint: disable=invalid-name
@@ -102,8 +178,10 @@ def str_to_bool1_1(x):  # pylint: disable=invalid-name
 
 bool1_1 = All(str_to_bool1_1, bool)
 forkable = All(Coerce(ListFromItem), [bool1_1], Length(max=2))
+MotionCorrection: TypeAlias = Literal["3dvolreg", "mcflirt"]
 valid_options = {
     "acpc": {"target": ["brain", "whole-head"]},
+    "deoblique": ["warp", "refit"],
     "brain_extraction": {
         "using": [
             "3dSkullStrip",
@@ -266,6 +344,21 @@ ANTs_parameters = [
         dict,  # TODO: specify other valid ANTs parameters
     )
 ]
+
+
+class MotionEstimateFilter(TypedDict):
+    """Type for motion estimate filter."""
+
+    filter_type: Literal["notch", "lowpass"]
+    filter_order: int
+    breathing_rate_min: OptionalType[float]
+    breathing_rate_max: OptionalType[float]
+    center_frequency: OptionalType[float]
+    filter_bandwidth: OptionalType[float]
+    lowpass_cutoff: OptionalType[float]
+    Name: OptionalType[str]
+
+
 motion_estimate_filter = Any(
     {  # notch filter with breathing_rate_* set
         Required("filter_type"): "notch",
@@ -423,6 +516,10 @@ latest_schema = Schema(
         "skip env check": Maybe(bool),  # flag for skipping an environment check
         "pipeline_setup": {
             "pipeline_name": All(str, Length(min=1), sanitize),
+            "organism": In(ORGANISMS),
+            "desired_orientation": In(
+                {"RPI", "LPI", "RAI", "LAI", "RAS", "LAS", "RPS", "LPS"}
+            ),
             "output_directory": {
                 "path": str,
                 "source_outputs_dir": Maybe(str),
@@ -507,6 +604,7 @@ latest_schema = Schema(
             "Debugging": {
                 "verbose": bool1_1,
             },
+            "freesurfer_dir": str,
             "outdir_ingress": {
                 "run": bool1_1,
                 "Template": Maybe(str),
@@ -515,6 +613,7 @@ latest_schema = Schema(
         "anatomical_preproc": {
             "run": bool1_1,
             "run_t2": bool1_1,
+            "deoblique": [In(valid_options["deoblique"])],
             "non_local_means_filtering": {
                 "run": forkable,
                 "noise_model": Maybe(str),
@@ -635,6 +734,9 @@ latest_schema = Schema(
                 },
                 "FreeSurfer-BET": {"T1w_brain_template_mask_ccs": Maybe(str)},
             },
+            "restore_t1w_intensity": {
+                "run": bool1_1,
+            },
         },
         "segmentation": {
             "run": bool1_1,
@@ -685,6 +787,7 @@ latest_schema = Schema(
             },
         },
         "registration_workflows": {
+            "sink_native_transforms": bool1_1,
             "anatomical_registration": {
                 "run": bool1_1,
                 "resolution_for_anat": All(str, Match(RESOLUTION_REGEX)),
@@ -709,8 +812,6 @@ latest_schema = Schema(
                         "interpolation": In({"trilinear", "sinc", "spline"}),
                         "identity_matrix": Maybe(str),
                         "ref_mask": Maybe(str),
-                        "ref_mask_res-2": Maybe(str),
-                        "T1w_template_res-2": Maybe(str),
                     },
                 },
                 "overwrite_transform": {
@@ -721,15 +822,12 @@ latest_schema = Schema(
             "functional_registration": {
                 "coregistration": {
                     "run": bool1_1,
-                    "reference": In({"brain", "restore-brain"}),
                     "interpolation": In({"trilinear", "sinc", "spline"}),
                     "using": str,
-                    "input": str,
                     "cost": str,
                     "dof": int,
                     "arguments": Maybe(str),
                     "func_input_prep": {
-                        "reg_with_skull": bool1_1,
                         "input": [
                             In(
                                 {
@@ -740,14 +838,17 @@ latest_schema = Schema(
                             )
                         ],
                         "Mean Functional": {"n4_correct_func": bool1_1},
-                        "Selected Functional Volume": {"func_reg_input_volume": int},
+                        "Selected Functional Volume": {
+                            "func_reg_input_volume": int,
+                        },
+                        "mask_sbref": bool1_1,
                     },
                     "boundary_based_registration": {
                         "run": forkable,
+                        "reference": In({"whole-head", "brain"}),
                         "bbr_schedule": str,
                         "bbr_wm_map": In({"probability_map", "partial_volume_map"}),
                         "bbr_wm_mask_args": str,
-                        "reference": In({"whole-head", "brain"}),
                     },
                 },
                 "EPI_registration": {
@@ -813,6 +914,8 @@ latest_schema = Schema(
         "surface_analysis": {
             "abcd_prefreesurfer_prep": {
                 "run": bool1_1,
+                "ref_mask_res-2": Maybe(str),
+                "T1w_template_res-2": Maybe(str),
             },
             "freesurfer": {
                 "run_reconall": bool1_1,
@@ -870,6 +973,7 @@ latest_schema = Schema(
             },
             "update_header": {
                 "run": bool1_1,
+                "deoblique": [In(valid_options["deoblique"])],
             },
             "scaling": {"run": bool1_1, "scaling_factor": Number},
             "despiking": {"run": forkable, "space": In({"native", "template"})},
@@ -880,7 +984,11 @@ latest_schema = Schema(
             },
             "motion_estimates_and_correction": {
                 "run": bool1_1,
-                "motion_estimates": {
+                Deprecated(
+                    "motion_estimates",
+                    version="v1.8.8",
+                    msg="The option to choose whether to calculate motion estimates before or after slice-timing correction was removed in v1.8.8 and will have no effect. This configuration option will be removed in a future release.",
+                ): {
                     "calculate_motion_first": bool1_1,
                     "calculate_motion_after": bool1_1,
                 },
@@ -953,7 +1061,6 @@ latest_schema = Schema(
                             "FSL_AFNI",
                             "Anatomical_Refined",
                             "Anatomical_Based",
-                            "Anatomical_Resampled",
                             "CCS_Anatomical_Refined",
                         ]
                     )
@@ -1004,6 +1111,10 @@ latest_schema = Schema(
                 },
                 "apply_func_mask_in_native_space": bool1_1,
             },
+            "template_space_func_masking": {
+                "run": bool1_1,
+                "using": [In({"Anatomical_Resampled"})],
+            },
             "generate_func_mean": {
                 "run": bool1_1,
             },
@@ -1033,7 +1144,14 @@ latest_schema = Schema(
                             {
                                 "Name": Required(str),
                                 "Censor": {
-                                    "method": str,
+                                    "method": In(
+                                        [
+                                            "Kill",
+                                            "Zero",
+                                            "Interpolate",
+                                            "SpikeRegression",
+                                        ]
+                                    ),
                                     "thresholds": [
                                         {
                                             "type": str,
@@ -1253,20 +1371,12 @@ latest_schema = Schema(
 )
 
 
-def schema(config_dict):
+def schema(config_dict: dict) -> dict:
     """Validate a participant-analysis pipeline configuration.
 
     Validate against the latest validation schema by first applying backwards-
     compatibility patches, then applying Voluptuous validation, then handling complex
     configuration interaction checks before returning validated config_dict.
-
-    Parameters
-    ----------
-    config_dict : dict
-
-    Returns
-    -------
-    dict
     """
     from CPAC.utils.utils import _changes_1_8_0_to_1_8_1
 
@@ -1385,6 +1495,25 @@ def schema(config_dict):
                 " Try turning one option off.\n "
             )
             raise ExclusiveInvalid(msg)
+
+        overwrite = partially_validated["registration_workflows"][
+            "anatomical_registration"
+        ]["overwrite_transform"]
+
+        if (
+            overwrite["run"]
+            and "ANTS"
+            not in partially_validated["registration_workflows"][
+                "anatomical_registration"
+            ]["registration"]["using"]
+        ):
+            msg = (
+                "[!] Overwrite transform method is the same as the anatomical "
+                "registration method! No need to overwrite transform with the same "
+                "registration method. Please turn it off or use a different "
+                "registration method."
+            )
+            raise ExclusiveInvalid(msg)
     except KeyError:
         pass
     try:
@@ -1418,4 +1547,4 @@ def schema(config_dict):
     return partially_validated
 
 
-schema.schema = latest_schema.schema
+schema.schema = latest_schema.schema  # type: ignore[reportFunctionMemberAccess]

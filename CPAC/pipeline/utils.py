@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2024  C-PAC Developers
+# Copyright (C) 2021-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -19,6 +19,7 @@
 from itertools import chain
 import os
 import subprocess
+from typing import Optional, TYPE_CHECKING
 
 import nibabel as nib
 
@@ -26,7 +27,24 @@ from CPAC.func_preproc.func_motion import motion_estimate_filter
 from CPAC.utils.bids_utils import insert_entity
 from CPAC.utils.monitoring import IFLOGGER
 
+if TYPE_CHECKING:
+    from CPAC.pipeline.nodeblock import POOL_RESOURCE_MAPPING
+
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
+
+
+def get_shell() -> str:
+    """Return the path to default shell."""
+    shell: Optional[str] = subprocess.getoutput(
+        f"which $(ps -p {os.getppid()} -o comm=)"
+    )
+    if not shell:
+        try:
+            shell = os.environ["_SHELL"]
+        except KeyError:
+            msg = "Shell command not found."
+            raise EnvironmentError(msg)
+    return shell
 
 
 def find_pixdim4(file_path):
@@ -221,7 +239,9 @@ def name_fork(resource_idx, cfg, json_info, out_dct):
     return resource_idx, out_dct
 
 
-def present_outputs(outputs: dict, keys: list) -> dict:
+def present_outputs(
+    outputs: "POOL_RESOURCE_MAPPING", keys: list[str]
+) -> "POOL_RESOURCE_MAPPING":
     """
     Return the subset of ``outputs`` including only that are present in ``keys``.
 
@@ -234,12 +254,6 @@ def present_outputs(outputs: dict, keys: list) -> dict:
     provided ``outputs`` dictionary, eliminating the need for multiple
     NodeBlocks that differ only by configuration options and relevant
     output keys.
-
-    Parameters
-    ----------
-    outputs : dict
-
-    keys : list of str
 
     Returns
     -------

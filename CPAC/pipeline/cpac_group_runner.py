@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2024  C-PAC Developers
+# Copyright (C) 2022-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -143,31 +143,12 @@ def gather_nifti_globs(pipeline_output_folder, resource_list, pull_func=False):
     import glob
     import os
 
-    import pandas as pd
-    import pkg_resources as p
+    from CPAC.utils.outputs import group_derivatives
 
     exts = ".nii"
     nifti_globs = []
 
-    keys_tsv = p.resource_filename("CPAC", "resources/cpac_outputs.tsv")
-    try:
-        keys = pd.read_csv(keys_tsv, delimiter="\t")
-    except Exception as e:
-        err = (
-            "\n[!] Could not access or read the cpac_outputs.tsv "
-            f"resource file:\n{keys_tsv}\n\nError details {e}\n"
-        )
-        raise Exception(err)
-
-    derivative_list = list(keys[keys["Sub-Directory"] == "func"]["Resource"])
-    derivative_list = derivative_list + list(
-        keys[keys["Sub-Directory"] == "anat"]["Resource"]
-    )
-
-    if pull_func:
-        derivative_list = derivative_list + list(
-            keys[keys["Space"] == "functional"]["Resource"]
-        )
+    derivative_list = group_derivatives(pull_func)
 
     if len(resource_list) == 0:
         err = "\n\n[!] No derivatives selected!\n\n"
@@ -361,33 +342,14 @@ def create_output_dict_list(
     """Create a dictionary of output filepaths and their associated information."""
     import os
 
-    import pandas as pd
-    import pkg_resources as p
-
     if len(resource_list) == 0:
         err = "\n\n[!] No derivatives selected!\n\n"
         raise Exception(err)
 
     if derivatives is None:
-        keys_tsv = p.resource_filename("CPAC", "resources/cpac_outputs.tsv")
-        try:
-            keys = pd.read_csv(keys_tsv, delimiter="\t")
-        except Exception as e:
-            err = (
-                "\n[!] Could not access or read the cpac_outputs.csv "
-                f"resource file:\n{keys_tsv}\n\nError details {e}\n"
-            )
-            raise Exception(err)
+        from CPAC.utils.outputs import group_derivatives
 
-        derivatives = list(keys[keys["Sub-Directory"] == "func"]["Resource"])
-        derivatives = derivatives + list(
-            keys[keys["Sub-Directory"] == "anat"]["Resource"]
-        )
-
-        if pull_func:
-            derivatives = derivatives + list(
-                keys[keys["Space"] == "functional"]["Resource"]
-            )
+        derivatives = group_derivatives(pull_func)
 
     # remove any extra /'s
     pipeline_output_folder = pipeline_output_folder.rstrip("/")
@@ -752,18 +714,10 @@ def prep_feat_inputs(group_config_file: str) -> dict:
     import os
 
     import pandas as pd
-    import pkg_resources as p
 
-    keys_tsv = p.resource_filename("CPAC", "resources/cpac_outputs.tsv")
-    try:
-        keys = pd.read_csv(keys_tsv, delimiter="\t")
-    except Exception as e:
-        err = (
-            "\n[!] Could not access or read the cpac_outputs.tsv "
-            f"resource file:\n{keys_tsv}\n\nError details {e}\n"
-        )
-        raise Exception(err)
+    from CPAC.utils.outputs import Outputs
 
+    keys = Outputs.reference
     derivatives = list(
         keys[keys["Derivative"] == "yes"][keys["Space"] == "template"][
             keys["Values"] == "z-score"

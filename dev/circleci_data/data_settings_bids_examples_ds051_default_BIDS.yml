@@ -15,7 +15,7 @@ dataFormat: BIDS
 # BIDS Data Format only.
 #
 # This should be the path to the overarching directory containing the entire dataset.
-bidsBaseDir: ./bids-examples/ds051
+bidsBaseDir: ./ds051
 
 
 # File Path Template for Anatomical Files
@@ -49,7 +49,7 @@ awsCredentialsFile: None
 
 
 # Directory where CPAC should place data configuration files.
-outputSubjectListLocation: ./dev/circleci_data
+outputSubjectListLocation: /code/dev/circleci_data
 
 
 # A label to be appended to the generated participant list files.

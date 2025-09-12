@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Copyright (C) 2017-2022  C-PAC Developers
+# Copyright (C) 2017-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -16,6 +16,8 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Distortion correction in C-PAC."""
+
 import os
 import subprocess
 
@@ -34,7 +36,7 @@ from CPAC.distortion_correction.utils import (
 from CPAC.pipeline import nipype_pipeline_engine as pe
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.utils import function
-from CPAC.utils.datasource import match_epi_fmaps
+from CPAC.utils.datasource import match_epi_fmaps_function_node
 from CPAC.utils.interfaces.function import Function
 
 
@@ -404,23 +406,7 @@ def distcor_blip_afni_qwarp(wf, cfg, strat_pool, pipe_num, opt=None):
            3dQWarp. The output of this can then proceed to
            func_preproc.
     """
-    match_epi_imports = ["import json"]
-    match_epi_fmaps_node = pe.Node(
-        Function(
-            input_names=[
-                "bold_pedir",
-                "epi_fmap_one",
-                "epi_fmap_params_one",
-                "epi_fmap_two",
-                "epi_fmap_params_two",
-            ],
-            output_names=["opposite_pe_epi", "same_pe_epi"],
-            function=match_epi_fmaps,
-            imports=match_epi_imports,
-            as_module=True,
-        ),
-        name=f"match_epi_fmaps_{pipe_num}",
-    )
+    match_epi_fmaps_node = match_epi_fmaps_function_node(f"match_epi_fmaps_{pipe_num}")
 
     node, out = strat_pool.get_data("epi-1")
     wf.connect(node, out, match_epi_fmaps_node, "epi_fmap_one")
@@ -663,7 +649,7 @@ def distcor_blip_fsl_topup(wf, cfg, strat_pool, pipe_num, opt=None):
         "import os",
         "import subprocess",
         "import numpy as np",
-        "import nibabel",
+        "import nibabel as nib",
         "import sys",
     ]
     phase_encoding = pe.Node(

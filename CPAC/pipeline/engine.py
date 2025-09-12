@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2024  C-PAC Developers
+# Copyright (C) 2021-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,19 +14,25 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""C-PAC pipeline engine."""
+
 import ast
 import copy
 import hashlib
+from importlib.resources import files
 from itertools import chain
 import json
 import os
 import re
-from typing import Optional
+from typing import Literal, Optional
 import warnings
 
+import pandas as pd
 from nipype import config, logging
+from nipype.interfaces import afni
 from nipype.interfaces.utility import Rename
 
+from CPAC.anat_preproc.utils import mri_convert_reorient
 from CPAC.image_utils.spatial_smoothing import spatial_smoothing
 from CPAC.image_utils.statistical_transforms import (
     fisher_z_score_standardize,
@@ -64,6 +70,7 @@ from CPAC.utils.outputs import Outputs
 from CPAC.utils.utils import (
     check_prov_for_regtool,
     create_id_string,
+    flip_orientation_code,
     get_last_prov_entry,
     read_json,
     write_output_json,
@@ -303,7 +310,7 @@ class ResourcePool:
             "ingress_regressors."
         )
         _nr = cfg["nuisance_corrections", "2-nuisance_regression"]
-        if not hasattr(self, "timeseries"):
+        if not hasattr(self, "desc-confounds_timeseries"):
             if _nr["Regressors"]:
                 self.regressors = {reg["Name"]: reg for reg in _nr["Regressors"]}
             else:
@@ -418,10 +425,12 @@ class ResourcePool:
             if report_fetched:
                 return (None, None)
             return None
+        from CPAC.pipeline.resource_inventory import where_to_find
+
         msg = (
             "\n\n[!] C-PAC says: None of the listed resources are in "
-            f"the resource pool:\n\n  {resource}\n\nOptions:\n- You "
-            "can enable a node block earlier in the pipeline which "
+            f"the resource pool:\n\n  {where_to_find(resource)}\n\nOptions:\n"
+            "- You can enable a node block earlier in the pipeline which "
             "produces these resources. Check the 'outputs:' field in "
             "a node block's documentation.\n- You can directly "
             "provide this required data by pulling it from another "
@@ -456,7 +465,9 @@ class ResourcePool:
         try:
             self.rpool[new_name] = self.rpool[resource]
         except KeyError:
-            msg = f"[!] {resource} not in the resource pool."
+            from CPAC.pipeline.resource_inventory import where_to_find
+
+            msg = f"[!] Not in the resource pool:\n{where_to_find(resource)}"
             raise Exception(msg)
 
     def update_resource(self, resource, new_name):
@@ -499,6 +510,34 @@ class ResourcePool:
                     continue
         json_data = self.get_json(resource, strat)
         return json_data["CpacProvenance"]
+
+    def motion_tool(self, resource: str, strat=None) -> Literal["3dvolreg", "mcflirt"]:
+        """Check provenance for motion correction tool."""
+        for tool in ["3dvolreg", "mcflirt"]:
+            if self.check_rpool(f"motion-correct-{tool}"):
+                return tool
+        prov = self.get_cpac_provenance(resource, strat)
+        last_entry = get_last_prov_entry(prov)
+        last_node = last_entry.split(":")[1]
+        if "3dvolreg" in last_node.lower():
+            return "3dvolreg"
+        if "mcflirt" in last_node.lower():
+            return "mcflirt"
+        # check entire prov
+        if "3dvolreg" in str(prov):
+            return "3dvolreg"
+        if "mcflirt" in str(prov):
+            return "mcflirt"
+        msg = (
+            "\n[!] Developer info: the motion correction "
+            f"tool for {resource} is not in the "
+            "CpacProvenance.\n"
+        )
+        raise LookupError(msg)
+
+    def reg_tool(self, resource, strat=None) -> Optional[Literal["ants", "fsl"]]:
+        """Check provenance for registration tool."""
+        return check_prov_for_regtool(self.get_cpac_provenance(resource, strat))
 
     @staticmethod
     def generate_prov_string(prov):
@@ -628,11 +667,13 @@ class ResourcePool:
             total_pool.append(sub_pool)
 
         if not total_pool:
+            from CPAC.pipeline.resource_inventory import where_to_find
+
             raise LookupError(
                 "\n\n[!] C-PAC says: None of the listed "
                 "resources in the node block being connected "
                 "exist in the resource pool.\n\nResources:\n"
-                "%s\n\n" % resource_list
+                "%s\n\n" % where_to_find(resource_list)
             )
 
         # TODO: right now total_pool is:
@@ -1007,6 +1048,19 @@ class ResourcePool:
             for label_con_tpl in post_labels:
                 label = label_con_tpl[0]
                 connection = (label_con_tpl[1], label_con_tpl[2])
+                if "desc-" not in label:
+                    if "space-template" in label:
+                        new_label = label.replace(
+                            "space-template", "space-template_desc-zstd"
+                        )
+                    else:
+                        new_label = f"desc-zstd_{label}"
+                else:
+                    for tag in label.split("_"):
+                        if "desc-" in tag:
+                            newtag = f"{tag}-zstd"
+                            new_label = label.replace(tag, newtag)
+                            break
                 if label in Outputs.to_zstd:
                     zstd = z_score_standardize(f"{label}_zstd_{pipe_x}", input_type)
 
@@ -1014,20 +1068,6 @@ class ResourcePool:
 
                     node, out = self.get_data(mask, pipe_idx=mask_idx)
                     wf.connect(node, out, zstd, "inputspec.mask")
-
-                    if "desc-" not in label:
-                        if "space-template" in label:
-                            new_label = label.replace(
-                                "space-template", "space-template_desc-zstd"
-                            )
-                        else:
-                            new_label = f"desc-zstd_{label}"
-                    else:
-                        for tag in label.split("_"):
-                            if "desc-" in tag:
-                                newtag = f"{tag}-zstd"
-                                new_label = label.replace(tag, newtag)
-                                break
 
                     post_labels.append((new_label, zstd, "outputspec.out_file"))
 
@@ -1188,7 +1228,7 @@ class ResourcePool:
                 key
                 for json_info in all_jsons
                 for key in json_info.get("CpacVariant", {}).keys()
-                if key not in (*MOVEMENT_FILTER_KEYS, "regressors")
+                if key not in (*MOVEMENT_FILTER_KEYS, "timeseries")
             }
             if "bold" in unlabelled:
                 all_bolds = list(
@@ -1357,6 +1397,9 @@ class ResourcePool:
                 wf.connect(id_string, "out_filename", nii_name, "format_string")
 
                 node, out = self.rpool[resource][pipe_idx]["data"]
+                if not node:
+                    msg = f"Resource {resource} not found in resource pool."
+                    raise FileNotFoundError(msg)
                 try:
                     wf.connect(node, out, nii_name, "in_file")
                 except OSError as os_error:
@@ -1376,7 +1419,6 @@ class ResourcePool:
                 write_json.inputs.json_data = json_info
 
                 wf.connect(id_string, "out_filename", write_json, "filename")
-
                 ds = pe.Node(DataSink(), name=f"sinker_{resource_idx}_{pipe_x}")
                 ds.inputs.parameterization = False
                 ds.inputs.base_directory = out_dct["out_dir"]
@@ -1431,7 +1473,6 @@ class ResourcePool:
                     )
                 else:
                     wf.connect(nii_name, "out_file", ds, f'{out_dct["subdir"]}.@data')
-
                 wf.connect(write_json, "json_file", ds, f'{out_dct["subdir"]}.@json')
         outputs_logger.info(expected_outputs)
 
@@ -2052,7 +2093,6 @@ def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
         "pipeline-fs_hemi-R_desc-surfaceMap_volume": "surf/rh.volume",
         "pipeline-fs_hemi-L_desc-surfaceMesh_white": "surf/lh.white",
         "pipeline-fs_hemi-R_desc-surfaceMesh_white": "surf/rh.white",
-        "pipeline-fs_xfm": "mri/transforms/talairach.lta",
     }
 
     for key, outfile in recon_outs.items():
@@ -2065,9 +2105,30 @@ def ingress_freesurfer(wf, rpool, cfg, data_paths, unique_id, part_id, ses_id):
                 creds_path=data_paths["creds_path"],
                 dl_dir=cfg.pipeline_setup["working_directory"]["path"],
             )
-            rpool.set_data(
-                key, fs_ingress, "outputspec.data", {}, "", f"fs_{key}_ingress"
-            )
+            # reorient *.mgz
+            if outfile.endswith(".mgz"):
+                reorient_mgz = pe.Node(
+                    Function(
+                        input_names=["in_file", "orientation", "out_file"],
+                        output_names=["out_file"],
+                        function=mri_convert_reorient,
+                    ),
+                    name=f"reorient_mgz_{key}",
+                )
+                # Flip orientation before reorient because mri_convert's orientation is opposite that of AFNI
+                reorient_mgz.inputs.orientation = flip_orientation_code(
+                    cfg.pipeline_setup["desired_orientation"]
+                )
+                reorient_mgz.inputs.out_file = None
+                wf.connect(fs_ingress, "outputspec.data", reorient_mgz, "in_file")
+
+                rpool.set_data(
+                    key, reorient_mgz, "out_file", {}, "", f"fs_{key}_ingress"
+                )
+            else:
+                rpool.set_data(
+                    key, fs_ingress, "outputspec.data", {}, "", f"fs_{key}_ingress"
+                )
         else:
             warnings.warn(
                 str(LookupError(f"\n[!] Path does not exist for {fullpath}.\n"))
@@ -2440,15 +2501,18 @@ def strip_template(data_label, dir_path, filename):
     return data_label, json
 
 
-def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
+def template_dataframe() -> pd.DataFrame:
+    """Return the template dataframe."""
+    template_csv = files("CPAC").joinpath("resources/cpac_templates.csv")
+    return pd.read_csv(str(template_csv), keep_default_na=False)
+
+
+def ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path=None):
     # ingress config file paths
     # TODO: may want to change the resource keys for each to include one level up in the YAML as well
 
-    import pandas as pd
-    import pkg_resources as p
-
-    template_csv = p.resource_filename("CPAC", "resources/cpac_templates.csv")
-    template_df = pd.read_csv(template_csv, keep_default_na=False)
+    template_df = template_dataframe()
+    desired_orientation = cfg.pipeline_setup["desired_orientation"]
 
     for row in template_df.itertuples():
         key = row.Key
@@ -2505,7 +2569,13 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
 
             resampled_template = pe.Node(
                 Function(
-                    input_names=["resolution", "template", "template_name", "tag"],
+                    input_names=[
+                        "orientation",
+                        "resolution",
+                        "template",
+                        "template_name",
+                        "tag",
+                    ],
                     output_names=["resampled_template"],
                     function=resolve_resolution,
                     as_module=True,
@@ -2513,24 +2583,15 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 name="resampled_" + key,
             )
 
+            resampled_template.inputs.orientation = desired_orientation
             resampled_template.inputs.resolution = resolution
             resampled_template.inputs.template = val
             resampled_template.inputs.template_name = key
             resampled_template.inputs.tag = tag
 
-            # the set_data below is set up a little differently, because we are
-            # injecting and also over-writing already-existing entries
-            # other alternative would have been to ingress into the
-            # resampled_template node from the already existing entries, but we
-            # didn't do that here
-            rpool.set_data(
-                key,
-                resampled_template,
-                "resampled_template",
-                json_info,
-                "",
-                "template_resample",
-            )  # pipe_idx (after the blank json {}) should be the previous strat that you want deleted! because you're not connecting this the regular way, you have to do it manually
+            node = resampled_template
+            output = "resampled_template"
+            node_name = "template_resample"
 
         elif val:
             config_ingress = create_general_datasource(f"gather_{key}")
@@ -2540,14 +2601,33 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
                 creds_path=creds_path,
                 dl_dir=cfg.pipeline_setup["working_directory"]["path"],
             )
-            rpool.set_data(
-                key,
-                config_ingress,
-                "outputspec.data",
-                json_info,
-                "",
-                f"{key}_config_ingress",
-            )
+            node = config_ingress
+            output = "outputspec.data"
+            node_name = f"{key}_config_ingress"
+
+            if val.endswith(".nii" or ".nii.gz"):
+                check_reorient = pe.Node(
+                    interface=afni.Resample(),
+                    name=f"reorient_{key}",
+                )
+
+                check_reorient.inputs.orientation = desired_orientation
+                check_reorient.inputs.outputtype = "NIFTI_GZ"
+
+                wf.connect(node, output, check_reorient, "in_file")
+                node = check_reorient
+                output = "out_file"
+                node_name = f"{key}_reorient"
+
+        rpool.set_data(
+            key,
+            node,
+            output,
+            json_info,
+            "",
+            node_name,
+        )
+
     # templates, resampling from config
     """
     template_keys = [
@@ -2633,8 +2713,7 @@ def ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path=None):
         )
         cfg.set_nested(cfg, key, node)
     """
-
-    return rpool
+    return wf, rpool
 
 
 def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
@@ -2705,7 +2784,7 @@ def initiate_rpool(wf, cfg, data_paths=None, part_id=None):
                 )
 
     # grab any file paths from the pipeline config YAML
-    rpool = ingress_pipeconfig_paths(cfg, rpool, unique_id, creds_path)
+    wf, rpool = ingress_pipeconfig_paths(wf, cfg, rpool, unique_id, creds_path)
 
     # output files with 4 different scans
 

@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2024  C-PAC Developers
+# Copyright (C) 2022-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -84,7 +84,12 @@ def main(**extra_args):
         extras_require={"graphviz": ["pygraphviz"]},
         configuration=configuration,
         scripts=glob("scripts/*"),
-        entry_points={"console_scripts": ["cpac = CPAC.__main__:main"]},
+        entry_points={
+            "console_scripts": [
+                "cpac = CPAC.__main__:main",
+                "resource_inventory = CPAC.pipeline.resource_inventory:main",
+            ]
+        },
         package_data={
             "CPAC": [
                 "test_data/*",

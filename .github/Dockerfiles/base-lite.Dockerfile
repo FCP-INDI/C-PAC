@@ -1,4 +1,4 @@
-# Copyright (C) 2023  C-PAC Developers
+# Copyright (C) 2023-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,17 +14,17 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-FROM ghcr.io/fcp-indi/c-pac/afni:23.3.09-jammy as AFNI
-FROM ghcr.io/fcp-indi/c-pac/ants:2.4.3-jammy as ANTs
-FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-jammy as c3d
-FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-jammy as connectome-workbench
-FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.5-jammy as FSL
-FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.4-beta-jammy as ICA-AROMA
+FROM ghcr.io/fcp-indi/c-pac/afni:23.3.09-jammy AS afni
+FROM ghcr.io/fcp-indi/c-pac/ants:2.4.3-jammy AS ants
+FROM ghcr.io/fcp-indi/c-pac/c3d:1.0.0-jammy AS c3d
+FROM ghcr.io/fcp-indi/c-pac/connectome-workbench:1.5.0.neurodebian-jammy AS connectome-workbench
+FROM ghcr.io/fcp-indi/c-pac/fsl:6.0.6.5-jammy AS fsl
+FROM ghcr.io/fcp-indi/c-pac/ica-aroma:0.4.4-beta-jammy AS ica-aroma
 
 FROM ghcr.io/fcp-indi/c-pac/ubuntu:jammy-non-free
-LABEL org.opencontainers.image.description "NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
-Standard software dependencies for C-PAC standard and lite images"
-LABEL org.opencontainers.image.source https://github.com/FCP-INDI/C-PAC
+LABEL org.opencontainers.image.description="NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
+    Standard software dependencies for C-PAC standard and lite images"
+LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
 USER root
 
 # Installing connectome-workbench
@@ -47,19 +47,21 @@ ENV FSLTCLSH=$FSLDIR/bin/fsltclsh \
     PATH=${FSLDIR}/bin:$PATH \
     TZ=America/New_York \
     USER=c-pac_user
-COPY --from=FSL /lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
-COPY --from=FSL /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
-COPY --from=FSL /usr/bin /usr/bin
-COPY --from=FSL /usr/local/bin /usr/local/bin
-COPY --from=FSL /usr/share/fsl /usr/share/fsl
+COPY --from=fsl /lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
+COPY --from=fsl /usr/lib/x86_64-linux-gnu /usr/lib/x86_64-linux-gnu
+COPY --from=fsl /usr/bin /usr/bin
+COPY --from=fsl /usr/local/bin /usr/local/bin
+COPY --from=fsl /usr/share/fsl /usr/share/fsl
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y bc
 
 # Installing C-PAC dependencies
 COPY requirements.txt /opt/requirements.txt
 RUN mamba install git -y \
-  && pip install -r /opt/requirements.txt \
-  && rm -rf /opt/requirements.txt \
-  && yes | mamba clean --all \
-  && rm -rf /usr/share/fsl/6.0/pkgs/cache/*
+    && pip install -r /opt/requirements.txt \
+    && rm -rf /opt/requirements.txt \
+    && yes | mamba clean --all \
+    && rm -rf /usr/share/fsl/6.0/pkgs/cache/*
 
 # Installing and setting up c3d
 COPY --from=c3d /opt/c3d/ opt/c3d/
@@ -67,10 +69,10 @@ ENV C3DPATH /opt/c3d
 ENV PATH $C3DPATH/bin:$PATH
 
 # Installing AFNI
-COPY --from=AFNI /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
-COPY --from=AFNI /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
-COPY --from=AFNI /lib64/ld* /lib64/
-COPY --from=AFNI /opt/afni/ /opt/afni/
+COPY --from=afni /lib/x86_64-linux-gnu/ld* /lib/x86_64-linux-gnu/
+COPY --from=afni /lib/x86_64-linux-gnu/lib*so* /lib/x86_64-linux-gnu/
+COPY --from=afni /lib64/ld* /lib64/
+COPY --from=afni /opt/afni/ /opt/afni/
 # set up AFNI
 ENV PATH=/opt/afni:$PATH
 
@@ -79,11 +81,11 @@ ENV LANG="en_US.UTF-8" \
     LC_ALL="en_US.UTF-8" \
     ANTSPATH=/usr/lib/ants/bin \
     PATH=/usr/lib/ants/bin:$PATH
-COPY --from=ANTs /usr/lib/ants/ /usr/lib/ants/
-COPY --from=ANTs /ants_template/ /ants_template/
+COPY --from=ants /usr/lib/ants/ /usr/lib/ants/
+COPY --from=ants /ants_template/ /ants_template/
 
 # Installing ICA-AROMA
-COPY --from=ICA-AROMA /opt/ICA-AROMA/ /opt/ICA-AROMA/
+COPY --from=ica-aroma /opt/ICA-AROMA/ /opt/ICA-AROMA/
 ENV PATH=/opt/ICA-AROMA:$PATH
 
 # link libraries & clean up
