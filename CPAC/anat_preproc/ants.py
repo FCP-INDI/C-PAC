@@ -43,7 +43,7 @@ We are temporarily maintaining our own copy for more granular control.
 """
 
 from collections import OrderedDict
-from importlib.resources import as_file, files
+from importlib.resources import files
 from logging import getLogger
 from typing import Literal
 
