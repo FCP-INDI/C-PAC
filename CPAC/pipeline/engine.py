@@ -48,6 +48,7 @@ from CPAC.pipeline.utils import (
     name_fork,
     short_circuit_crossed_variants,
     source_set,
+    validate_outputs,
 )
 from CPAC.registration.registration import transform_derivative
 from CPAC.resources.templates.lookup_table import lookup_identifier
@@ -1463,7 +1464,37 @@ class ResourcePool:
                         subdir=out_dct["subdir"],
                     ),
                 )
-                wf.connect(nii_name, "out_file", ds, f'{out_dct["subdir"]}.@data')
+                if resource.endswith("_bold"):
+                    # Node to validate TR (and other scan parameters)
+                    validate_bold_header = pe.Node(
+                        Function(
+                            input_names=["input_bold", "RawSource_bold"],
+                            output_names=["output_bold"],
+                            function=validate_outputs,
+                            imports=[
+                                "from CPAC.pipeline.utils import find_pixdim4, update_pixdim4"
+                            ],
+                        ),
+                        name=f"validate_bold_header_{resource_idx}_{pipe_x}",
+                    )
+                    raw_source, raw_out = self.get_data("bold")
+                    wf.connect(
+                        [
+                            (nii_name, validate_bold_header, [(out, "input_bold")]),
+                            (
+                                raw_source,
+                                validate_bold_header,
+                                [(raw_out, "RawSource_bold")],
+                            ),
+                            (
+                                validate_bold_header,
+                                ds,
+                                [("output_bold", f'{out_dct["subdir"]}.@data')],
+                            ),
+                        ]
+                    )
+                else:
+                    wf.connect(nii_name, "out_file", ds, f'{out_dct["subdir"]}.@data')
                 wf.connect(write_json, "json_file", ds, f'{out_dct["subdir"]}.@json')
         outputs_logger.info(expected_outputs)
 
