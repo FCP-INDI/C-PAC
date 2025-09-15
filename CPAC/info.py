@@ -52,13 +52,18 @@ _version_extra = "dev1"
 
 def get_cpac_gitversion() -> str | None:
     """CPAC version as reported by the last commit in git."""
-    from pathlib import Path
+    from importlib.resources import as_file, files
     import subprocess
 
-    gitpath = Path(__file__).parent.resolve()
-
-    gitpathgit = gitpath / ".git"
-    if not gitpathgit.exists():
+    with as_file(files("CPAC")) as _cpac:
+        gitpath = _cpac
+    gitpathgit = None
+    for _cpacpath in [gitpath, *gitpath.parents]:
+        git_dir = _cpacpath / ".git"
+        if git_dir.exists():
+            gitpathgit = git_dir
+            break
+    if not gitpathgit:
         return None
 
     ver = None
