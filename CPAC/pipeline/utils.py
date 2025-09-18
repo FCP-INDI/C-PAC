@@ -28,9 +28,14 @@ from CPAC.utils.bids_utils import insert_entity
 from CPAC.utils.monitoring import IFLOGGER
 
 if TYPE_CHECKING:
+    from CPAC.pipeline.engine import ResourcePool
     from CPAC.pipeline.nodeblock import POOL_RESOURCE_MAPPING
 
 MOVEMENT_FILTER_KEYS = motion_estimate_filter.outputs
+
+
+class CrossedVariantsError(Exception):
+    """Exception raised when crossed variants are found in the inputs."""
 
 
 def get_shell() -> str:
@@ -368,3 +373,54 @@ def _update_resource_idx(resource_idx, out_dct, key, value):
         resource_idx = insert_entity(resource_idx, key, value)
         out_dct["filename"] = insert_entity(out_dct["filename"], key, value)
     return resource_idx, out_dct
+
+
+def find_variants(
+    pool: "ResourcePool", keys: list | str | tuple
+) -> dict[str, dict[str, set[str]]]:
+    """Find variants in the ResourcePool for the given keys."""
+    outputs = {}
+    if isinstance(keys, str):
+        try:
+            return {
+                keys: {
+                    _k: {str(_v)}
+                    for _k, _v in pool.get_json(keys)["CpacVariant"].items()
+                }
+            }
+        except LookupError:
+            return {}
+    for key in keys:
+        outputs = {**outputs, **find_variants(pool, key)}
+    return outputs
+
+
+def short_circuit_crossed_variants(
+    pool: "ResourcePool", inputs: list | str | tuple
+) -> None:
+    """Short-circuit the strategy if crossed variants are found.
+
+    .. image:: https://media1.tenor.com/m/S93jWPGv52gAAAAd/dont-cross-the-streams-egon.gif
+      :width: 48
+      :alt: Don't cross the streams
+    """
+    _variants = find_variants(pool, inputs)
+    # collect all variant dicts
+    variant_dicts = list(_variants.values())
+    if not variant_dicts:
+        return
+
+    # only keep keys that exist in all variant dicts
+    common_keys = set.intersection(*(set(v.keys()) for v in variant_dicts))
+
+    crossed_variants = {}
+    for key in common_keys:
+        values = set()
+        for variant in variant_dicts:
+            values.update(variant.get(key, []))
+        if len(values) > 1:
+            crossed_variants[key] = values
+
+    if crossed_variants:
+        msg = f"Crossed variants found: {crossed_variants}"
+        raise CrossedVariantsError(msg)
