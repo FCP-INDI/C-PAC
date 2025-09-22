@@ -55,7 +55,7 @@ from voluptuous import (
     Schema,
     Title,
 )
-from voluptuous.schema_builder import Schema, UNDEFINED
+from voluptuous.schema_builder import Schemable, UNDEFINED
 
 from CPAC.utils.datatypes import ItemFromList, ListFromItem
 from CPAC.utils.docs import DOCS_URL_PREFIX
@@ -80,7 +80,7 @@ Organism: TypeAlias = Literal[
 ORGANISMS: list[Organism] = ["human", "non-human primate", "rodent"]
 
 
-def deprecated_option(option: Schema, version: str, message: str) -> None:
+def deprecated_option(option: Schemable, version: str, message: str) -> None:
     """Mark an option as deprecated.
 
     Parameters
@@ -119,7 +119,7 @@ class Deprecated(Optional):
 
     def __init__(
         self,
-        schema: Schema,
+        schema: Schemable,
         version: str,
         msg: str = "This option is deprecated and will be removed in a future release.",
         default: AnyType = UNDEFINED,
