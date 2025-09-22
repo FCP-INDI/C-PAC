@@ -20,14 +20,23 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 from typing import Any, Literal, TypeAlias
+from unittest.mock import mock_open, patch
 
 from networkx.classes.digraph import DiGraph
 import pytest
 
 from CPAC.pipeline import nipype_pipeline_engine as pe
-from CPAC.utils.datasource import match_epi_fmaps, match_epi_fmaps_function_node
+from CPAC.utils.datasource import (
+    match_epi_fmaps,
+    match_epi_fmaps_function_node,
+)
 from CPAC.utils.test_resources import setup_test_wf
-from CPAC.utils.utils import PE_DIRECTION
+from CPAC.utils.utils import (
+    get_fmap_build_info,
+    get_fmap_metadata_at_build_time,
+    get_fmap_type,
+    PE_DIRECTION,
+)
 
 
 @dataclass
@@ -381,3 +390,313 @@ def test_match_epi_fmaps(generate: bool, tmp_path: Path) -> None:
             path_outputs["nipype"][direction].name
             == path_outputs["direct"][direction].name
         )
+
+
+@pytest.mark.parametrize(
+    "metadata, expected_type",
+    [
+        # Case 1: Phase-difference map (phasediff) - REQUIRED: EchoTime1 and EchoTime2
+        ({"EchoTime1": 0.00600, "EchoTime2": 0.00746}, "phasediff"),
+        ({"EchoTime1": 0.004, "EchoTime2": 0.006}, "phasediff"),
+        # Case 2: Single phase map (phase) - REQUIRED: EchoTime, but NOT PhaseEncodingDirection
+        ({"EchoTime": 0.00746}, "phase"),
+        ({"EchoTime": 0.004}, "phase"),
+        # Case 3: EPI field maps (epi) - REQUIRED: PhaseEncodingDirection
+        ({"PhaseEncodingDirection": "j-"}, "epi"),
+        ({"PhaseEncodingDirection": "j"}, "epi"),
+        ({"PhaseEncodingDirection": "i"}, "epi"),
+        ({"PhaseEncodingDirection": "i-"}, "epi"),
+        ({"PhaseEncodingDirection": "k"}, "epi"),
+        ({"PhaseEncodingDirection": "k-"}, "epi"),
+        # Edge cases and invalid inputs
+        ({}, None),  # Empty metadata
+        # Priority testing - phasediff should take precedence over everything
+        ({"EchoTime1": 0.006, "EchoTime2": 0.007, "EchoTime": 0.006}, "phasediff"),
+        (
+            {"EchoTime1": 0.006, "EchoTime2": 0.007, "PhaseEncodingDirection": "j-"},
+            "phasediff",
+        ),
+        # EPI should take precedence when PhaseEncodingDirection is present (even with EchoTime)
+        ({"EchoTime": 0.006, "PhaseEncodingDirection": "j-"}, "epi"),
+        # Test with optional fields that might be present (but shouldn't affect detection)
+        (
+            {
+                "EchoTime1": 0.006,
+                "EchoTime2": 0.007,
+                "IntendedFor": "bids::sub-01/func/sub-01_task-motor_bold.nii.gz",
+            },
+            "phasediff",
+        ),
+        ({"PhaseEncodingDirection": "j-", "TotalReadoutTime": 0.095}, "epi"),
+        ({"EchoTime": 0.006, "TotalReadoutTime": 0.095}, "phase"),
+        # Test invalid PhaseEncodingDirection values (should return epi for valid values)
+        (
+            {"PhaseEncodingDirection": "invalid"},
+            "epi",
+        ),  # Current implementation returns epi for any PE direction
+        (
+            {"PhaseEncodingDirection": "AP"},
+            "epi",
+        ),  # Current implementation returns epi for any PE direction
+        (
+            {"PhaseEncodingDirection": "PA"},
+            "epi",
+        ),  # Current implementation returns epi for any PE direction
+        (
+            {"PhaseEncodingDirection": ""},
+            "epi",
+        ),  # Current implementation returns epi for any PE direction
+        # Test fieldmap type (currently implemented and working)
+        ({"Units": "rad/s"}, "fieldmap"),
+        ({"Units": "Hz"}, "fieldmap"),
+        ({"Units": "hz"}, "fieldmap"),
+        ({"Units": "T"}, "fieldmap"),
+        ({"Units": "Tesla"}, "fieldmap"),
+        ({"Units": "hertz"}, "fieldmap"),
+        # Mixed cases with Units - fieldmap takes precedence in current implementation
+        (
+            {"Units": "Hz", "PhaseEncodingDirection": "j-"},
+            "fieldmap",
+        ),  # fieldmap takes precedence
+        (
+            {"EchoTime": 0.006, "Units": "Hz"},
+            "phase",
+        ),  # Phase takes precedence over fieldmap
+        # Test with bytes values (common in real data) - current implementation handles these
+        (
+            {"PhaseEncodingDirection": b"j-"},
+            "epi",
+        ),  # Current implementation returns epi for bytes
+        # Test case sensitivity - current implementation handles these
+        (
+            {"PhaseEncodingDirection": "J-"},
+            "epi",
+        ),  # Current implementation returns epi regardless of case
+    ],
+)
+def test_get_fmap_type_dict_input(metadata: dict, expected_type: str | None) -> None:
+    """Test `get_fmap_type` with dictionary input using only required BIDS fields."""
+    result = get_fmap_type(metadata)
+    assert result == expected_type
+
+
+def test_get_fmap_type_real_world_examples() -> None:
+    """Test `get_fmap_type` with realistic BIDS metadata examples (required fields only)."""
+    # Real-world phasediff example (only required fields)
+    phasediff_metadata = {
+        "EchoTime1": 0.00600,
+        "EchoTime2": 0.00746,
+        # Optional fields that might be present:
+        "IntendedFor": ["bids::sub-01/func/sub-01_task-motor_bold.nii.gz"],
+    }
+    assert get_fmap_type(phasediff_metadata) == "phasediff"
+
+    # Real-world fieldmap example (only required fields)
+    fieldmap_metadata = {
+        "Units": "rad/s",
+        # Optional fields that might be present:
+        "IntendedFor": "bids::sub-01/func/sub-01_task-motor_bold.nii.gz",
+    }
+    assert get_fmap_type(fieldmap_metadata) == "fieldmap"
+
+    # Real-world EPI example (only required fields)
+    epi_metadata = {
+        "PhaseEncodingDirection": "j-",
+        # Optional fields that might be present:
+        "TotalReadoutTime": 0.095,
+        "IntendedFor": "bids::sub-01/func/sub-01_task-motor_bold.nii.gz",
+    }
+    assert get_fmap_type(epi_metadata) == "epi"
+
+    # Real-world phase example (only required fields)
+    phase_metadata = {"EchoTime": 0.00746}
+    assert get_fmap_type(phase_metadata) == "phase"
+
+
+class TestGetFmapMetadataAtBuildTime:
+    """Test get_fmap_metadata_at_build_time function."""
+
+    def test_missing_fmap_key(self):
+        """Test when fieldmap key doesn't exist in sub_dict."""
+        sub_dict = {"fmap": {"other_key": {}}}
+        result = get_fmap_metadata_at_build_time(sub_dict, "missing_key", "", "")
+        assert result is None
+
+    def test_missing_scan_parameters(self):
+        """Test when scan_parameters field is missing."""
+        sub_dict = {"fmap": {"test_key": {"scan": "path/to/scan.nii.gz"}}}
+        result = get_fmap_metadata_at_build_time(sub_dict, "test_key", "", "")
+        assert result is None
+
+    def test_direct_dict_metadata(self):
+        """Test when metadata is provided as a direct dictionary."""
+        metadata = {"EchoTime1": 0.006, "EchoTime2": 0.007}
+        sub_dict = {"fmap": {"test_key": {"scan_parameters": metadata}}}
+        result = get_fmap_metadata_at_build_time(sub_dict, "test_key", "", "")
+        assert result == metadata
+
+    @patch("builtins.open", new_callable=mock_open, read_data='{"EchoTime": 0.006}')
+    @patch("os.path.exists", return_value=True)
+    def test_json_file_metadata(self, mock_exists, mock_file):
+        """Test loading metadata from JSON file."""
+        sub_dict = {"fmap": {"test_key": {"scan_parameters": "/path/to/metadata.json"}}}
+        result = get_fmap_metadata_at_build_time(sub_dict, "test_key", "", "")
+        assert result == {"EchoTime": 0.006}
+        mock_file.assert_called_once_with(
+            "/path/to/metadata.json", "r", encoding="utf-8"
+        )
+
+    @patch("os.path.exists", return_value=False)
+    def test_nonexistent_file(self, mock_exists):
+        """Test when JSON file doesn't exist."""
+        sub_dict = {"fmap": {"test_key": {"scan_parameters": "/nonexistent/file.json"}}}
+        result = get_fmap_metadata_at_build_time(sub_dict, "test_key", "", "")
+        assert result is None
+
+    @patch("builtins.open", side_effect=json.JSONDecodeError("Invalid JSON", "", 0))
+    @patch("os.path.exists", return_value=True)
+    def test_invalid_json(self, mock_exists, mock_file):
+        """Test when JSON file contains invalid JSON."""
+        sub_dict = {"fmap": {"test_key": {"scan_parameters": "/path/to/invalid.json"}}}
+        result = get_fmap_metadata_at_build_time(sub_dict, "test_key", "", "")
+        assert result is None
+
+    def test_non_json_file(self):
+        """Test when file path doesn't end with .json."""
+        sub_dict = {"fmap": {"test_key": {"scan_parameters": "/path/to/file.txt"}}}
+        result = get_fmap_metadata_at_build_time(sub_dict, "test_key", "", "")
+        assert result is None
+
+    def test_exception_handling(self):
+        """Test general exception handling."""
+        sub_dict = {"fmap": {"test_key": {"scan_parameters": 123}}}  # Invalid type
+        result = get_fmap_metadata_at_build_time(sub_dict, "test_key", "", "")
+        assert result is None
+
+
+class TestGetFmapBuildInfo:
+    """Test get_fmap_build_info function."""
+
+    def test_none_metadata_raises_error(self):
+        """Test that None metadata raises ValueError."""
+        with pytest.raises(
+            ValueError, match="Fieldmap metadata dictionary is required"
+        ):
+            get_fmap_build_info(None)
+
+    def test_empty_metadata_raises_error(self):
+        """Test that empty metadata raises ValueError."""
+        with pytest.raises(
+            ValueError, match="Fieldmap metadata dictionary is required"
+        ):
+            get_fmap_build_info({})
+
+    def test_unknown_fmap_type_raises_error(self):
+        """Test that unknown fieldmap type raises ValueError."""
+        metadata = {"SomeUnknownField": "value"}
+        with pytest.raises(ValueError, match="Could not determine fieldmap type"):
+            get_fmap_build_info(metadata)
+
+    def test_phase_fieldmap_info(self):
+        """Test phase fieldmap build info."""
+        metadata = {"EchoTime": 0.006}
+        result = get_fmap_build_info(metadata)
+        expected = {
+            "fmap_type": "phase",
+            "needs_echo_times": True,
+            "needs_phasediff_processing": True,
+            "is_epi": False,
+        }
+        assert result == expected
+
+    def test_phasediff_fieldmap_info(self):
+        """Test phasediff fieldmap build info."""
+        metadata = {"EchoTime1": 0.006, "EchoTime2": 0.007}
+        result = get_fmap_build_info(metadata)
+        expected = {
+            "fmap_type": "phasediff",
+            "needs_echo_times": True,
+            "needs_phasediff_processing": True,
+            "is_epi": False,
+        }
+        assert result == expected
+
+    def test_epi_fieldmap_info(self):
+        """Test EPI fieldmap build info."""
+        metadata = {"PhaseEncodingDirection": "j-"}
+        result = get_fmap_build_info(metadata)
+        expected = {
+            "fmap_type": "epi",
+            "needs_echo_times": True,
+            "needs_phasediff_processing": False,
+            "is_epi": True,
+        }
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "metadata,expected_fmap_type",
+        [
+            ({"EchoTime": 0.006}, "phase"),
+            ({"EchoTime1": 0.006, "EchoTime2": 0.007}, "phasediff"),
+            ({"PhaseEncodingDirection": "j-"}, "epi"),
+        ],
+    )
+    def test_various_fieldmap_types(self, metadata, expected_fmap_type):
+        """Test that various fieldmap types are correctly identified."""
+        result = get_fmap_build_info(metadata)
+        assert result["fmap_type"] == expected_fmap_type
+
+    def test_real_world_metadata_examples(self):
+        """Test with realistic metadata examples from the existing tests."""
+        # Use some of the test data from the existing test_get_fmap_type tests
+
+        # Phasediff example
+        phasediff_metadata = {
+            "EchoTime1": 0.00600,
+            "EchoTime2": 0.00746,
+            "IntendedFor": ["bids::sub-01/func/sub-01_task-motor_bold.nii.gz"],
+        }
+        result = get_fmap_build_info(phasediff_metadata)
+        assert result["fmap_type"] == "phasediff"
+        assert result["needs_echo_times"] is True
+        assert result["needs_phasediff_processing"] is True
+        assert result["is_epi"] is False
+
+        # EPI example
+        epi_metadata = {
+            "PhaseEncodingDirection": "j-",
+            "TotalReadoutTime": 0.095,
+            "IntendedFor": "bids::sub-01/func/sub-01_task-motor_bold.nii.gz",
+        }
+        result = get_fmap_build_info(epi_metadata)
+        assert result["fmap_type"] == "epi"
+        assert result["needs_echo_times"] is True
+        assert result["needs_phasediff_processing"] is False
+        assert result["is_epi"] is True
+
+    def test_phase_fieldmap_with_extra_fields(self):
+        """Test phase fieldmap with additional optional fields."""
+        metadata = {
+            "EchoTime": 0.006,
+            "IntendedFor": "bids::sub-01/func/sub-01_task-motor_bold.nii.gz",
+            "B0FieldIdentifier": "my_fieldmap",
+        }
+        result = get_fmap_build_info(metadata)
+        assert result["fmap_type"] == "phase"
+        assert result["needs_echo_times"] is True
+        assert result["needs_phasediff_processing"] is True
+        assert result["is_epi"] is False
+
+    def test_phasediff_fieldmap_with_extra_fields(self):
+        """Test phasediff fieldmap with additional optional fields."""
+        metadata = {
+            "EchoTime1": 0.006,
+            "EchoTime2": 0.007,
+            "IntendedFor": ["bids::sub-01/func/sub-01_task-motor_bold.nii.gz"],
+            "B0FieldIdentifier": "my_phasediff",
+        }
+        result = get_fmap_build_info(metadata)
+        assert result["fmap_type"] == "phasediff"
+        assert result["needs_echo_times"] is True
+        assert result["needs_phasediff_processing"] is True
+        assert result["is_epi"] is False

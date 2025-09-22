@@ -3366,7 +3366,7 @@ def coregistration_prep_fmriprep(wf, cfg, strat_pool, pipe_num, opt=None):
         (
             "desc-preproc_T1w",
             "space-T1w_desc-brain_mask",
-            ["desc-restore-brain_T1w", "desc-preproc_T1w"],
+            "desc-restore-brain_T1w",
             ["desc-restore_T1w", "desc-head_T1w"],
             "desc-preproc_T2w",
             "desc-preproc_T2w",
@@ -4017,7 +4017,6 @@ def warp_wholeheadT1_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
 )
 def warp_T1mask_to_template(wf, cfg, strat_pool, pipe_num, opt=None):
     """Warp T1 mask to template."""
-
     if (
         cfg.registration_workflows["anatomical_registration"]["overwrite_transform"]
         and cfg.registration_workflows["anatomical_registration"][

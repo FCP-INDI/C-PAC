@@ -28,7 +28,6 @@ from CPAC.anat_preproc.utils import (
     fsl_aff_to_rigid,
     fslmaths_command,
     mri_convert,
-    normalize_wmparc,
     pad,
     VolumeRemoveIslands,
     wb_command,
@@ -696,13 +695,15 @@ def afni_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     wf.connect(anat_skullstrip, "out_file", anat_brain_mask, "in_file_a")
 
+    outputs = {}
+
     if strat_pool.check_rpool("desc-preproc_T1w"):
         outputs = {"space-T1w_desc-brain_mask": (anat_brain_mask, "out_file")}
 
     elif strat_pool.check_rpool("desc-preproc_T2w"):
         outputs = {"space-T2w_desc-brain_mask": (anat_brain_mask, "out_file")}
 
-    return (wf, outputs)
+    return wf, outputs
 
 
 def fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
@@ -1322,22 +1323,29 @@ def freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt):
 
     wf.connect(combine_mask, "out_file", binarize_combined_mask, "in_file")
 
-    if opt == "FreeSurfer-BET-Tight":
-        outputs = {
-            "space-T1w_desc-tight_brain_mask": (
-                binarize_combined_mask,
-                "out_file",
-            )
-        }
-    elif opt == "FreeSurfer-BET-Loose":
-        outputs = {
-            "space-T1w_desc-loose_brain_mask": (
-                binarize_combined_mask,
-                "out_file",
-            )
-        }
+    # CCS brain mask is in FS space, transfer it back to native T1 space
+    match_fov_ccs_brain_mask = pe.Node(
+        interface=fsl.FLIRT(), name=f"match_fov_CCS_brain_mask_{node_id}"
+    )
+    match_fov_ccs_brain_mask.inputs.apply_xfm = True
+    match_fov_ccs_brain_mask.inputs.uses_qform = True
+    match_fov_ccs_brain_mask.inputs.interp = "nearestneighbour"
 
-    return (wf, outputs)
+    node, out = strat_pool.get_data("pipeline-fs_raw-average")
+    convert_fs_T1_to_nifti = pe.Node(
+        Function(
+            input_names=["in_file"], output_names=["out_file"], function=mri_convert
+        ),
+        name=f"convert_fs_T1_to_nifti_for_ccs_{node_id}",
+    )
+    wf.connect(node, out, convert_fs_T1_to_nifti, "in_file")
+    wf.connect(
+        convert_fs_T1_to_nifti, "out_file", match_fov_ccs_brain_mask, "reference"
+    )
+
+    wf.connect(binarize_combined_mask, "out_file", match_fov_ccs_brain_mask, "in_file")
+
+    return wf, {"space-T1w_desc-brain_mask": (match_fov_ccs_brain_mask, "out_file")}
 
 
 def mask_T2(wf_name="mask_T2"):
@@ -1408,9 +1416,8 @@ def mask_T2(wf_name="mask_T2"):
 )
 def anatomical_init(wf, cfg, strat_pool, pipe_num, opt=None):
     if opt not in anatomical_init.option_val:
-        raise ValueError(
-            f"\n[!] Error: Invalid option for deoblique: {opt}. \nExpected one of {anatomical_init.option_val}"
-        )
+        msg = f"\n[!] Error: Invalid option for deoblique: {opt}. \nExpected one of {anatomical_init.option_val}"
+        raise ValueError(msg)
 
     if opt == "warp":
         anat_deoblique = pe.Node(
@@ -1500,7 +1507,7 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
         (
             "desc-head_T1w",
             "desc-preproc_T1w",
-            ["space-T1w_desc-brain_mask", "space-T1w_desc-brain_mask"],
+            "space-T1w_desc-brain_mask",
         ),
         "T1w-ACPC-template",
         "T1w-brain-ACPC-template",
@@ -1508,7 +1515,7 @@ def acpc_align_head(wf, cfg, strat_pool, pipe_num, opt=None):
     outputs=[
         "desc-head_T1w",
         "desc-preproc_T1w",
-        ["space-T1w_desc-brain_mask", "space-T1w_desc-brain_mask"],
+        "space-T1w_desc-brain_mask",
         "from-T1w_to-ACPC_mode-image_desc-aff2rig_xfm",
     ],
 )
@@ -1939,18 +1946,44 @@ def brain_mask_acpc_unet(wf, cfg, strat_pool, pipe_num, opt=None):
         ["anatomical_preproc", "run"],
     ],
     option_key=["anatomical_preproc", "brain_extraction", "using"],
-    option_val="FreeSurfer-Brainmask",
-    inputs=[
-        "pipeline-fs_raw-average",
-        "pipeline-fs_brainmask",
-        "freesurfer-subject-dir",
+    option_val=[
+        "FreeSurfer-ABCD",
+        "FreeSurfer-BET-Loose",
+        "FreeSurfer-BET-Tight",
+        "FreeSurfer-Brainmask",
     ],
-    outputs=["space-T1w_desc-brain_mask"],
+    inputs=[
+        (
+            ["desc-restore_T1w", "desc-preproc_T1w"],
+            "space-T1w_desc-brain_mask",
+            "pipeline-fs_T1",
+            "pipeline-fs_wmparc",
+            "pipeline-fs_raw-average",
+            "pipeline-fs_brainmask",
+            "freesurfer-subject-dir",
+        ),
+        "T1w-brain-template-mask-ccs",
+        "T1w-ACPC-template",
+    ],
+    outputs={"space-T1w_desc-brain_mask": {}},
 )
 def brain_mask_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
-    wf, outputs = freesurfer_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
-
-    return (wf, outputs)
+    assert isinstance(brain_mask_freesurfer.outputs, dict)
+    brain_mask_freesurfer.outputs["space-T1w_desc-brain_mask"] = {
+        "Description": f"Brain mask extracted using {opt} method",
+        "Method": opt,
+    }
+    match opt:
+        case "FreeSurfer-ABCD":
+            return freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
+        case "FreeSurfer-BET-Loose" | "FreeSurfer-BET-Tight":
+            brain_mask_freesurfer.outputs["space-T1w_desc-brain_mask"]["Threshold"] = (
+                opt.rsplit("-")[-1].lower()
+            )
+            return freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
+        case "FreeSurfer-Brainmask":
+            return freesurfer_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
+    return wf, {}
 
 
 @nodeblock(
@@ -1960,190 +1993,55 @@ def brain_mask_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
         ["anatomical_preproc", "run"],
     ],
     option_key=["anatomical_preproc", "brain_extraction", "using"],
-    option_val="FreeSurfer-Brainmask",
-    inputs=[
-        "space-T1w_desc-brain_mask",
-        "pipeline-fs_raw-average",
-        "freesurfer-subject-dir",
+    option_val=[
+        "FreeSurfer-ABCD",
+        "FreeSurfer-Brainmask",
+        "FreeSurfer-BET-Loose",
+        "FreeSurfer-BET-Tight",
     ],
-    outputs=["space-T1w_desc-acpcbrain_mask"],
+    inputs=[
+        (
+            ["desc-restore_T1w", "desc-preproc_T1w"],
+            "space-T1w_desc-brain_mask",
+            "space-T1w_desc-acpcbrain_mask",
+            "pipeline-fs_brainmask",
+            "pipeline-fs_raw-average",
+            "pipeline-fs_T1",
+            "pipeline-fs_wmparc",
+            "freesurfer-subject-dir",
+        ),
+        "T1w-ACPC-template",
+        "T1w-brain-template-mask-ccs",
+    ],
+    outputs={"space-T1w_desc-acpcbrain_mask": {}},
 )
 def brain_mask_acpc_freesurfer(wf, cfg, strat_pool, pipe_num, opt=None):
-    wf, wf_outputs = freesurfer_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
-
-    outputs = {"space-T1w_desc-acpcbrain_mask": wf_outputs["space-T1w_desc-brain_mask"]}
-
-    return (wf, outputs)
-
-
-@nodeblock(
-    name="brain_mask_freesurfer_abcd",
-    switch=[
-        ["anatomical_preproc", "brain_extraction", "run"],
-        ["anatomical_preproc", "run"],
-    ],
-    option_key=["anatomical_preproc", "brain_extraction", "using"],
-    option_val="FreeSurfer-ABCD",
-    inputs=[
-        ["desc-restore_T1w", "desc-preproc_T1w"],
-        "pipeline-fs_wmparc",
-        "pipeline-fs_raw-average",
-        "freesurfer-subject-dir",
-    ],
-    outputs=["space-T1w_desc-brain_mask"],
-)
-def brain_mask_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
-    wf, outputs = freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
-
-    return (wf, outputs)
-
-
-@nodeblock(
-    name="brain_mask_freesurfer_fsl_tight",
-    switch=[
-        ["anatomical_preproc", "brain_extraction", "run"],
-        ["anatomical_preproc", "run"],
-    ],
-    option_key=["anatomical_preproc", "brain_extraction", "using"],
-    option_val="FreeSurfer-BET-Tight",
-    inputs=[
-        "pipeline-fs_brainmask",
-        "pipeline-fs_T1",
-        "pipeline-fs_raw-average",
-        "freesurfer-subject-dir",
-        "T1w-brain-template-mask-ccs",
-        "T1w-ACPC-template",
-    ],
-    outputs={
-        "space-T1w_desc-brain_mask": {
-            "Description": "Brain mask extracted using FreeSurfer-BET-Tight method",
-            "Method": "FreeSurfer-BET-Tight",
-            "Threshold": "tight",
-        }
-    },
-)
-def brain_mask_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None):
-    wf, outputs = freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
-
-    # Convert the tight brain mask to generic brain mask
-    outputs["space-T1w_desc-brain_mask"] = outputs.pop(
-        "space-T1w_desc-tight_brain_mask"
-    )
-    return (wf, outputs)
-
-
-@nodeblock(
-    name="brain_mask_acpc_freesurfer_abcd",
-    switch=[
-        ["anatomical_preproc", "brain_extraction", "run"],
-        ["anatomical_preproc", "run"],
-    ],
-    option_key=["anatomical_preproc", "brain_extraction", "using"],
-    option_val="FreeSurfer-ABCD",
-    inputs=[
-        ["desc-restore_T1w", "desc-preproc_T1w"],
-        "pipeline-fs_wmparc",
-        "pipeline-fs_raw-average",
-        "freesurfer-subject-dir",
-    ],
-    outputs=["space-T1w_desc-acpcbrain_mask"],
-)
-def brain_mask_acpc_freesurfer_abcd(wf, cfg, strat_pool, pipe_num, opt=None):
-    wf, wf_outputs = freesurfer_abcd_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
-
-    outputs = {"space-T1w_desc-acpcbrain_mask": wf_outputs["space-T1w_desc-brain_mask"]}
-
-    return (wf, outputs)
-
-
-@nodeblock(
-    name="brain_mask_freesurfer_fsl_loose",
-    switch=[
-        ["anatomical_preproc", "brain_extraction", "run"],
-        ["anatomical_preproc", "run"],
-    ],
-    option_key=["anatomical_preproc", "brain_extraction", "using"],
-    option_val="FreeSurfer-BET-Loose",
-    inputs=[
-        "pipeline-fs_brainmask",
-        "pipeline-fs_T1",
-        "pipeline-fs_raw-average",
-        "freesurfer-subject-dir",
-        "T1w-brain-template-mask-ccs",
-        "T1w-ACPC-template",
-    ],
-    outputs={
-        "space-T1w_desc-brain_mask": {
-            "Description": "Brain mask extracted using FreeSurfer-BET-Loose method",
-            "Method": "FreeSurfer-BET-Loose",
-            "Threshold": "loose",
-        }
-    },
-)
-def brain_mask_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None):
-    wf, outputs = freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
-
-    # Convert the loose brain mask to generic brain mask
-    outputs["space-T1w_desc-brain_mask"] = outputs.pop(
-        "space-T1w_desc-loose_brain_mask"
-    )
-    return (wf, outputs)
-
-
-@nodeblock(
-    name="brain_mask_acpc_freesurfer_fsl_tight",
-    switch=[
-        ["anatomical_preproc", "brain_extraction", "run"],
-        ["anatomical_preproc", "run"],
-    ],
-    option_key=["anatomical_preproc", "brain_extraction", "using"],
-    option_val="FreeSurfer-BET-Tight",
-    inputs=[
-        "pipeline-fs_brainmask",
-        "pipeline-fs_T1",
-        "T1w-brain-template-mask-ccs",
-        "T1w-ACPC-template",
-    ],
-    outputs=["space-T1w_desc-tight_acpcbrain_mask"],
-)
-def brain_mask_acpc_freesurfer_fsl_tight(wf, cfg, strat_pool, pipe_num, opt=None):
-    wf, wf_outputs = freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
-
-    outputs = {
-        "space-T1w_desc-tight_acpcbrain_mask": wf_outputs[
-            "space-T1w_desc-tight_brain_mask"
-        ]
+    if opt != strat_pool.get_json("space-T1w_desc-brain_mask").get(
+        "CpacVariant", {}
+    ).get("space-T1w_mask", opt):
+        # https://tenor.com/baIhQ.gif
+        return wf, {}
+    assert isinstance(brain_mask_acpc_freesurfer.outputs, dict)
+    outputs = wf_outputs = {}
+    key = "space-T1w_desc-brain_mask"
+    functions = {
+        "FreeSurfer-ABCD": freesurfer_abcd_brain_connector,
+        "FreeSurfer-Brainmask": freesurfer_brain_connector,
+        "FreeSurfer-BET-Loose": freesurfer_fsl_brain_connector,
+        "FreeSurfer-BET-Tight": freesurfer_fsl_brain_connector,
     }
+    if opt in ["FreeSurfer-BET-Loose", "FreeSurfer-BET-Tight"]:
+        brain_mask_acpc_freesurfer.outputs["space-T1w_desc-acpcbrain_mask"] = {
+            "Description": f"Brain mask extracted using {opt} method",
+            "Method": opt,
+            "Threshold": opt.rsplit("-")[-1].lower(),
+        }
+    if opt in functions:
+        wf, wf_outputs = functions[opt](wf, cfg, strat_pool, pipe_num, opt)
+    if key in wf_outputs:
+        outputs = {"space-T1w_desc-acpcbrain_mask": wf_outputs[key]}
 
-    return (wf, outputs)
-
-
-@nodeblock(
-    name="brain_mask_acpc_freesurfer_fsl_loose",
-    switch=[
-        ["anatomical_preproc", "brain_extraction", "run"],
-        ["anatomical_preproc", "run"],
-    ],
-    option_key=["anatomical_preproc", "brain_extraction", "using"],
-    option_val="FreeSurfer-BET-Loose",
-    inputs=[
-        "pipeline-fs_brainmask",
-        "pipeline-fs_T1",
-        "T1w-brain-template-mask-ccs",
-        "T1w-ACPC-template",
-    ],
-    outputs=["space-T1w_desc-loose_acpcbrain_mask"],
-)
-def brain_mask_acpc_freesurfer_fsl_loose(wf, cfg, strat_pool, pipe_num, opt=None):
-    wf, wf_outputs = freesurfer_fsl_brain_connector(wf, cfg, strat_pool, pipe_num, opt)
-
-    outputs = {
-        "space-T1w_desc-loose_acpcbrain_mask": wf_outputs[
-            "space-T1w_desc-loose_brain_mask"
-        ]
-    }
-
-    return (wf, outputs)
+    return wf, outputs
 
 
 @nodeblock(

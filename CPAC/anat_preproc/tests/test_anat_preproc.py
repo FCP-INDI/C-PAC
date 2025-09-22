@@ -1,34 +1,45 @@
+# Copyright (C) 2012-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Tests for anatomical preprocessing."""
+
 import os
 
-from nose.tools import *
 import numpy as np
+import pytest
 import nibabel as nib
 
-from .. import anat_preproc
-from unittest.mock import Mock, patch
-from ..anat_preproc import (
-    brain_mask_freesurfer_fsl_loose,
-    brain_mask_freesurfer_fsl_tight,
-)
+from CPAC.anat_preproc import anat_preproc
+from CPAC.anat_preproc.anat_preproc import brain_mask_freesurfer
+from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.engine import ResourcePool
+from CPAC.utils.configuration import Preconfiguration
+from CPAC.utils.test_init import create_dummy_node
+
+CFG = Preconfiguration("ccs-options")
 
 
-class TestAnatPreproc:
-    def __init__(self):
+@pytest.mark.skip(reason="This test needs refactoring.")
+class TestAnatPreproc:  # noqa
+    def setup_method(self) -> None:
         """
         Initialize and run the the anat_preproc workflow.
 
         Populate the node-name : node_output dictionary using the workflow object.
         This dictionary serves the outputs of each of the nodes in the workflow to all the tests that need them.
-
-        Parameters
-        ----------
-            self
-
-        Returns
-        -------
-            None
-
-
         """
         self.preproc = anat_preproc.create_anat_preproc()
         self.input_anat = os.path.abspath("$FSLDIR/data/standard/MNI152_T1_2mm.nii.gz")
@@ -276,69 +287,51 @@ class TestAnatPreproc:
             assert correlation[0, 1] >= 0.97
 
 
-@patch("CPAC.anat_preproc.anat_preproc.freesurfer_fsl_brain_connector")
-def test_brain_mask_freesurfer_fsl_loose(mock_connector):
-    """Test that brain_mask_freesurfer_fsl_loose correctly renames output key."""
+@pytest.mark.parametrize("opt", ["FreeSurfer-BET-Loose", "FreeSurfer-BET-Tight"])
+@pytest.mark.parametrize("t1w", ["desc-restore_T1w", "desc-preproc_T1w"])
+def test_brain_mask_freesurfer_fsl(opt: str, t1w: str):
+    """Test that brain_mask_freesurfer_fsl correctly generates output key using real code."""
+    # Create minimal mocks for required workflow/config/strat_pool, but do not patch freesurfer_fsl_brain_connector
 
-    mock_wf = Mock()
-    mock_cfg = Mock()
-    mock_strat_pool = Mock()
+    CFG["subject_id"] = opt
+
+    wf = pe.Workflow(name=opt)
+    pre_resources = [
+        t1w,
+        "space-T1w_desc-brain_mask",
+        "pipeline-fs_T1",
+        "pipeline-fs_wmparc",
+        "pipeline-fs_raw-average",
+        "pipeline-fs_brainmask",
+        "freesurfer-subject-dir",
+        "T1w-brain-template-mask-ccs",
+        "T1w-ACPC-template",
+    ]
+    before_this_test = create_dummy_node("created_before_this_test", pre_resources)
+    rpool = ResourcePool(name=f"{opt}_{opt}", cfg=CFG)
+    for resource in pre_resources:
+        rpool.set_data(
+            resource, before_this_test, resource, {}, "", before_this_test.name
+        )
+    rpool.gather_pipes(wf, CFG)
+    strat_pool = next(iter(rpool.get_strats(pre_resources).values()))
+
     pipe_num = 1
 
-    mock_outputs = {
-        "space-T1w_desc-loose_brain_mask": "brain_mask_data",
-        "other_output": "other_data",
-    }
-
-    mock_connector.return_value = (mock_wf, mock_outputs)
-
-    result_wf, result_outputs = brain_mask_freesurfer_fsl_loose(
-        mock_wf, mock_cfg, mock_strat_pool, pipe_num
+    result_wf, result_outputs = brain_mask_freesurfer(
+        wf, CFG, strat_pool, pipe_num, opt
     )
 
-    mock_connector.assert_called_once_with(
-        mock_wf, mock_cfg, mock_strat_pool, pipe_num, None
-    )
-
-    # Assert workflow returned unchanged
-    assert result_wf == mock_wf
-
-    # Assert output key was renamed correctly
-    assert "space-T1w_desc-brain_mask" in result_outputs
-    assert "space-T1w_desc-loose_brain_mask" not in result_outputs
-    assert result_outputs["space-T1w_desc-brain_mask"] == "brain_mask_data"
-    assert result_outputs["other_output"] == "other_data"
-
-
-@patch("CPAC.anat_preproc.anat_preproc.freesurfer_fsl_brain_connector")
-def test_brain_mask_freesurfer_fsl_tight(mock_connector):
-    """Test that brain_mask_freesurfer_fsl_tight correctly renames output key."""
-
-    mock_wf = Mock()
-    mock_cfg = Mock()
-    mock_strat_pool = Mock()
-    pipe_num = 1
-
-    mock_outputs = {
-        "space-T1w_desc-tight_brain_mask": "brain_mask_data",
-        "other_output": "other_data",
-    }
-
-    mock_connector.return_value = (mock_wf, mock_outputs)
-
-    result_wf, result_outputs = brain_mask_freesurfer_fsl_tight(
-        mock_wf, mock_cfg, mock_strat_pool, pipe_num
-    )
-
-    mock_connector.assert_called_once_with(
-        mock_wf, mock_cfg, mock_strat_pool, pipe_num, None
-    )
-
-    # Assert workflow returned unchanged
-    assert result_wf == mock_wf
-
-    # Assert output key was renamed correctly
-    assert "space-T1w_desc-brain_mask" in result_outputs
-    assert "space-T1w_desc-tight_brain_mask" not in result_outputs
-    assert result_outputs["space-T1w_desc-brain_mask"] == "brain_mask_data"
-    assert result_outputs["other_output"] == "other_data"
+    # The output key should always be present
+    assert any(
+        k.startswith("space-T1w_desc-brain_mask") for k in result_outputs
+    ), "Expected brain_mask key in outputs."
+    # Should not have loose/tight keys
+    assert not any(
+        "loose_brain_mask" in k for k in result_outputs
+    ), "Loose brain mask key should not be present."
+    assert not any(
+        "tight_brain_mask" in k for k in result_outputs
+    ), "Tight brain mask key should not be present."
+    # Should return the workflow unchanged
+    assert result_wf == wf

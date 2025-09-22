@@ -77,11 +77,12 @@ normCoverage : float
 from io import BufferedReader
 import os
 import re
+from typing import Any, Optional
 
 from bids.layout import parse_file_entities
 import numpy as np
 import pandas as pd
-import nibabel as nib
+from nibabel import load as nib_load  # type: ignore[reportPrivateImportUsage]
 from nipype.interfaces import afni, fsl
 
 from CPAC.generate_motion_statistics.generate_motion_statistics import (
@@ -89,6 +90,7 @@ from CPAC.generate_motion_statistics.generate_motion_statistics import (
     ImageTo1D,
 )
 from CPAC.pipeline import nipype_pipeline_engine as pe
+from CPAC.pipeline.engine import ResourcePool
 from CPAC.pipeline.nodeblock import nodeblock
 from CPAC.qc.qcmetrics import regisQ
 from CPAC.utils.interfaces.function import Function
@@ -101,40 +103,27 @@ motion_params = [
 ]
 
 
-def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
+def _connect_motion(
+    wf: pe.Workflow, strat_pool: ResourcePool, qc_file: pe.Node, pipe_num: int
+) -> pe.Workflow:
     """
     Connect the motion metrics to the workflow.
 
     Parameters
     ----------
-    wf : nipype.pipeline.engine.Workflow
+    wf
         The workflow to connect the motion metrics to.
 
-    nodes : dict
-        Dictionary of nodes already collected from the strategy pool.
-
-    strat_pool : CPAC.pipeline.engine.ResourcePool
+    strat_pool
         The current strategy pool.
 
-    qc_file : nipype.pipeline.engine.Node
+    qc_file
         A function node with the function ``generate_xcp_qc``.
-
-    pipe_num : int
-
-    Returns
-    -------
-    wf : nipype.pipeline.engine.Workflow
     """
     # pylint: disable=invalid-name, too-many-arguments
-    try:
-        nodes = {**nodes, "censor-indices": strat_pool.node_data("censor-indices")}
-        wf.connect(
-            nodes["censor-indices"].node,
-            nodes["censor-indices"].out,
-            qc_file,
-            "censor_indices",
-        )
-    except LookupError:
+    if strat_pool.check_rpool("censor-indices"):
+        wf.connect_optional(strat_pool, "censor-indices", qc_file, "censor_indices")
+    else:
         qc_file.inputs.censor_indices = []
     cal_DVARS = pe.Node(
         ImageTo1D(method="dvars"),
@@ -153,36 +142,24 @@ def _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num):
         name=f"cal_DVARS_strip_{pipe_num}",
     )
     motion_name = "desc-movementParametersUnfiltered_motion"
-    if motion_name not in nodes:
+    if not strat_pool.check_rpool(motion_name):
         motion_name = "desc-movementParameters_motion"
+    wf.connect_optional(strat_pool, "desc-preproc_bold", cal_DVARS, "in_file")
+    wf.connect_optional(strat_pool, "space-bold_desc-brain_mask", cal_DVARS, "mask")
+    wf.connect_optional(strat_pool, motion_name, qc_file, "movement_parameters")
+    for resource in motion_params:
+        if not resource.endswith("_motion"):
+            wf.connect_optional(
+                strat_pool, resource, qc_file, resource.replace("-", "_")
+            )
     wf.connect(
         [
-            (
-                nodes["desc-preproc_bold"].node,
-                cal_DVARS,
-                [(nodes["desc-preproc_bold"].out, "in_file")],
-            ),
-            (
-                nodes["space-bold_desc-brain_mask"].node,
-                cal_DVARS,
-                [(nodes["space-bold_desc-brain_mask"].out, "mask")],
-            ),
             (cal_DVARS, cal_DVARS_strip, [("out_file", "file_1D")]),
             (
                 cal_DVARS_strip,
                 qc_file,
                 [("out_file", "dvars_after_path"), ("out_matrix", "dvars_after")],
             ),
-            (
-                nodes[motion_name].node,
-                qc_file,
-                [(nodes[motion_name].out, "movement_parameters")],
-            ),
-            *[
-                (nodes[node].node, qc_file, [(nodes[node].out, node.replace("-", "_"))])
-                for node in motion_params
-                if not node.endswith("_motion") and node in nodes
-            ],
         ]
     )
     return wf
@@ -209,20 +186,20 @@ def generate_xcp_qc(  # noqa: PLR0913
     task: str,
     run: str | int,
     desc: str,
-    regressors: str,
-    bold2t1w_mask: str,
-    t1w_mask: str,
-    bold2template_mask: str,
-    template_mask: str,
-    original_func: str,
-    final_func: str,
-    movement_parameters: str,
-    dvars: str,
-    censor_indices: list[int],
-    framewise_displacement_jenkinson: str,
-    dvars_after: np.ndarray,
-    dvars_after_path: str,
-    template: str,
+    regressors: Optional[str],
+    bold2t1w_mask: Optional[str],
+    t1w_mask: Optional[str],
+    bold2template_mask: Optional[str],
+    template_mask: Optional[str],
+    original_func: Optional[str],
+    final_func: Optional[str],
+    movement_parameters: Optional[str],
+    dvars: Optional[str],
+    censor_indices: Optional[list[int]],
+    framewise_displacement_jenkinson: Optional[str],
+    dvars_after: Optional[np.ndarray],
+    dvars_after_path: Optional[str],
+    template: Optional[str],
 ) -> str:
     """
     Generate an RBC-style QC CSV.
@@ -292,90 +269,131 @@ def generate_xcp_qc(  # noqa: PLR0913
     str
         path to space-template_desc-xcp_quality TSV
     """
-    columns = (
-        "sub,ses,task,run,desc,regressors,space,meanFD,relMeansRMSMotion,"
-        "relMaxRMSMotion,meanDVInit,meanDVFinal,nVolCensored,nVolsRemoved,"
-        "motionDVCorrInit,motionDVCorrFinal,coregDice,coregJaccard,"
-        "coregCrossCorr,coregCoverage,normDice,normJaccard,normCrossCorr,"
-        "normCoverage".split(",")
-    )
-
     images = {
-        "original_func": nib.load(original_func),
-        "final_func": nib.load(final_func),
+        key: nib_load(image)
+        for key, image in [("original_func", original_func), ("final_func", final_func)]
+        if image
     }
+
+    qc_dict: dict[str, Any] = {}
+    """Quality control dictionary to be converted to a DataFrame."""
+
+    columns: list[str] = []
+    """Header for the quality control DataFrame."""
 
     # `sub` through `space`
-    from_bids = {
-        "sub": sub,
-        "ses": ses,
-        "task": task,
-        "run": run,
-        "desc": desc,
-        "regressors": regressors,
-        "space": os.path.basename(template).split(".", 1)[0].split("_", 1)[0],
+    from_bids: dict[str, Any] = {
+        _k: _v
+        for _k, _v in {
+            "sub": sub,
+            "ses": ses,
+            "task": task,
+            "run": run,
+            "desc": desc,
+            "regressors": regressors,
+            "space": os.path.basename(template).split(".", 1)[0].split("_", 1)[0]
+            if template
+            else None,
+        }.items()
+        if _v is not None
     }
-    if from_bids["space"].startswith("tpl-"):
-        from_bids["space"] = from_bids["space"][4:]
+    columns.extend(["sub", "ses", "task", "run", "desc", "regressors"])
+    if from_bids["space"] is not None:
+        if from_bids["space"].startswith("tpl-"):
+            from_bids["space"] = from_bids["space"][4:]
+        columns.append("space")
+    qc_dict = {**qc_dict, **from_bids}
 
-    # `nVolCensored` & `nVolsRemoved`
-    n_vols_censored = len(censor_indices) if censor_indices is not None else "unknown"
-    shape_params = {
-        "nVolCensored": n_vols_censored,
-        "nVolsRemoved": images["original_func"].shape[3]
-        - images["final_func"].shape[3],
-    }
+    if framewise_displacement_jenkinson is not None:
+        # `meanFD (Jenkinson)`
+        power_params = {"meanFD": np.mean(np.loadtxt(framewise_displacement_jenkinson))}
+        qc_dict = {**qc_dict, **power_params}
+        columns.append("meanFD")
 
-    if isinstance(final_func, BufferedReader):
-        final_func = final_func.name
-    qc_filepath = os.path.join(os.getcwd(), "xcpqc.tsv")
+    if movement_parameters is not None:
+        # `relMeansRMSMotion` & `relMaxRMSMotion`
+        mot = np.genfromtxt(movement_parameters).T
+        # Relative RMS of translation
+        rms = np.sqrt(mot[3] ** 2 + mot[4] ** 2 + mot[5] ** 2)
+        rms_params = {
+            "relMeansRMSMotion": [np.mean(rms)],
+            "relMaxRMSMotion": [np.max(rms)],
+        }
+        qc_dict = {**qc_dict, **rms_params}
+        columns.extend(list(rms_params.keys()))
 
-    desc_span = re.search(r"_desc-.*_", final_func)
-    if desc_span:
-        desc_span = desc_span.span()
-        final_func = "_".join([final_func[: desc_span[0]], final_func[desc_span[1] :]])
-    del desc_span
+    if dvars is not None:
+        # `meanDVInit` & `meanDVFinal`
+        meanDV = {"meanDVInit": np.mean(np.loadtxt(dvars))}
+        try:
+            meanDV["motionDVCorrInit"] = dvcorr(dvars, framewise_displacement_jenkinson)
+        except ValueError as value_error:
+            meanDV["motionDVCorrInit"] = f"ValueError({value_error!s})"
+        meanDV["meanDVFinal"] = np.mean(dvars_after)
+        try:
+            meanDV["motionDVCorrFinal"] = dvcorr(
+                dvars_after_path, framewise_displacement_jenkinson
+            )
+        except ValueError as value_error:
+            meanDV["motionDVCorrFinal"] = f"ValueError({value_error!s})"
+        qc_dict = {**qc_dict, **meanDV}
+        columns.extend(list(meanDV.keys()))
 
-    # `meanFD (Jenkinson)`
-    power_params = {"meanFD": np.mean(np.loadtxt(framewise_displacement_jenkinson))}
-
-    # `relMeansRMSMotion` & `relMaxRMSMotion`
-    mot = np.genfromtxt(movement_parameters).T
-    # Relative RMS of translation
-    rms = np.sqrt(mot[3] ** 2 + mot[4] ** 2 + mot[5] ** 2)
-    rms_params = {"relMeansRMSMotion": [np.mean(rms)], "relMaxRMSMotion": [np.max(rms)]}
-
-    # `meanDVInit` & `meanDVFinal`
-    meanDV = {"meanDVInit": np.mean(np.loadtxt(dvars))}
-    try:
-        meanDV["motionDVCorrInit"] = dvcorr(dvars, framewise_displacement_jenkinson)
-    except ValueError as value_error:
-        meanDV["motionDVCorrInit"] = f"ValueError({value_error!s})"
-    meanDV["meanDVFinal"] = np.mean(dvars_after)
-    try:
-        meanDV["motionDVCorrFinal"] = dvcorr(
-            dvars_after_path, framewise_displacement_jenkinson
+    if censor_indices is not None:
+        # `nVolCensored` & `nVolsRemoved`
+        n_vols_censored = (
+            len(censor_indices) if censor_indices is not None else "unknown"
         )
-    except ValueError as value_error:
-        meanDV["motionDVCorrFinal"] = f"ValueError({value_error!s})"
+        shape_params = {
+            "nVolCensored": n_vols_censored,
+            "nVolsRemoved": images["original_func"].shape[3]
+            - images["final_func"].shape[3],
+        }
+        qc_dict = {**qc_dict, **shape_params}
+        if "motionDVCorrFinal" in columns:
+            columns.insert(-2, "meanDVInit")
+            columns.insert(-2, "meanDVFinal")
+            columns.extend(["motionDVCorrInit", "motionDVCorrFinal"])
+        else:
+            columns.extend(list(shape_params.keys()))
 
-    # Overlap
-    overlap_params = regisQ(
-        bold2t1w_mask=bold2t1w_mask,
-        t1w_mask=t1w_mask,
-        bold2template_mask=bold2template_mask,
-        template_mask=template_mask,
-    )
+    if final_func is not None:
+        if isinstance(final_func, BufferedReader):
+            final_func = final_func.name
 
-    qc_dict = {
-        **from_bids,
-        **power_params,
-        **rms_params,
-        **shape_params,
-        **overlap_params,
-        **meanDV,
-    }
+        desc_span = re.search(r"_desc-.*_", final_func) if final_func else None
+        if desc_span:
+            desc_span = desc_span.span()
+            assert final_func is not None
+            final_func = "_".join(
+                [final_func[: desc_span[0]], final_func[desc_span[1] :]]
+            )
+        del desc_span
+
+    if all(
+        _var is not None
+        for _var in [bold2t1w_mask, t1w_mask, bold2template_mask, template_mask]
+    ):
+        # `coregDice`, `coregJaccard`, `coregCrossCorr`, `coregCoverage`
+        coreg_params = regisQ(
+            bold2t1w_mask=bold2t1w_mask,
+            t1w_mask=t1w_mask,
+            bold2template_mask=bold2template_mask,
+            template_mask=template_mask,
+        )
+        # Overlap
+        overlap_params = regisQ(
+            bold2t1w_mask=bold2t1w_mask,
+            t1w_mask=t1w_mask,
+            bold2template_mask=bold2template_mask,
+            template_mask=template_mask,
+        )
+        qc_dict = {**qc_dict, **coreg_params, **overlap_params}
+        columns.extend([*list(coreg_params.keys()), *list(overlap_params.keys())])
+
     df = pd.DataFrame(qc_dict, columns=columns)
+
+    qc_filepath = os.path.join(os.getcwd(), "xcpqc.tsv")
     df.to_csv(qc_filepath, sep="\t", index=False)
     return qc_filepath
 
@@ -543,31 +561,6 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         name=f"binarize_bold_to_T1w_mask_{pipe_num}",
         op_string="-bin ",
     )
-    nodes = {
-        key: strat_pool.node_data(key)
-        for key in [
-            "bold",
-            "desc-preproc_bold",
-            "max-displacement",
-            "scan",
-            "space-bold_desc-brain_mask",
-            "space-T1w_desc-brain_mask",
-            "space-T1w_sbref",
-            "space-template_desc-preproc_bold",
-            "subject",
-            *motion_params,
-        ]
-        if strat_pool.check_rpool(key)
-    }
-    nodes["bold2template_mask"] = strat_pool.node_data(
-        ["space-template_desc-bold_mask", "space-EPItemplate_desc-bold_mask"]
-    )
-    nodes["template_mask"] = strat_pool.node_data(
-        ["T1w-brain-template-mask", "EPI-template-mask"]
-    )
-    nodes["template"] = strat_pool.node_data(
-        ["T1w-brain-template-funcreg", "EPI-brain-template-funcreg"]
-    )
     resample_bold_mask_to_template = pe.Node(
         afni.Resample(),
         name=f"resample_bold_mask_to_anat_res_{pipe_num}",
@@ -575,44 +568,45 @@ def qc_xcp(wf, cfg, strat_pool, pipe_num, opt=None):
         mem_x=(0.0115, "in_file", "t"),
     )
     resample_bold_mask_to_template.inputs.outputtype = "NIFTI_GZ"
-    wf = _connect_motion(wf, nodes, strat_pool, qc_file, pipe_num=pipe_num)
+    wf: pe.Workflow = _connect_motion(wf, strat_pool, qc_file, pipe_num=pipe_num)
+    if not hasattr(wf, "connect_optional"):
+        setattr(wf, "connect_optional", pe.Workflow.connect_optional)
+
+    for key in ["subject", "scan"]:
+        wf.connect_optional(strat_pool, key, bids_info, key)
+    wf.connect_optional(strat_pool, "space-T1w_sbref", bold_to_T1w_mask, "in_file")
+    wf.connect_optional(strat_pool, "space-T1w_desc-brain_mask", qc_file, "t1w_mask")
+    wf.connect_optional(
+        strat_pool,
+        ["T1w-brain-template-mask", "EPI-template-mask"],
+        qc_file,
+        "template_mask",
+    )
+    wf.connect_optional(
+        strat_pool,
+        ["T1w-brain-template-mask", "EPI-template-mask"],
+        resample_bold_mask_to_template,
+        "master",
+    )
+    wf.connect_optional(strat_pool, "bold", qc_file, "original_func")
+    wf.connect_optional(
+        strat_pool, "space-template_desc-preproc_bold", qc_file, "final_func"
+    )
+    wf.connect_optional(
+        strat_pool,
+        ["T1w-brain-template-funcreg", "EPI-brain-template-funcreg"],
+        qc_file,
+        "template",
+    )
+    wf.connect_optional(
+        strat_pool,
+        ["space-template_desc-bold_mask", "space-EPItemplate_desc-bold_mask"],
+        resample_bold_mask_to_template,
+        "in_file",
+    )
     wf.connect(
         [
-            (nodes["subject"].node, bids_info, [(nodes["subject"].out, "subject")]),
-            (nodes["scan"].node, bids_info, [(nodes["scan"].out, "scan")]),
-            (
-                nodes["space-T1w_sbref"].node,
-                bold_to_T1w_mask,
-                [(nodes["space-T1w_sbref"].out, "in_file")],
-            ),
-            (
-                nodes["space-T1w_desc-brain_mask"].node,
-                qc_file,
-                [(nodes["space-T1w_desc-brain_mask"].out, "t1w_mask")],
-            ),
             (bold_to_T1w_mask, qc_file, [("out_file", "bold2t1w_mask")]),
-            (
-                nodes["template_mask"].node,
-                qc_file,
-                [(nodes["template_mask"].out, "template_mask")],
-            ),
-            (nodes["bold"].node, qc_file, [(nodes["bold"].out, "original_func")]),
-            (
-                nodes["space-template_desc-preproc_bold"].node,
-                qc_file,
-                [(nodes["space-template_desc-preproc_bold"].out, "final_func")],
-            ),
-            (nodes["template"].node, qc_file, [(nodes["template"].out, "template")]),
-            (
-                nodes["template_mask"].node,
-                resample_bold_mask_to_template,
-                [(nodes["template_mask"].out, "master")],
-            ),
-            (
-                nodes["bold2template_mask"].node,
-                resample_bold_mask_to_template,
-                [(nodes["bold2template_mask"].out, "in_file")],
-            ),
             (
                 resample_bold_mask_to_template,
                 qc_file,
