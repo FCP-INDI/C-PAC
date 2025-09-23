@@ -86,7 +86,9 @@ log_info "Fetching version"
 VERSION=$(python -c "import sys; sys.path.insert(0, '$REPO_ROOT/CPAC'); from info import __version__; print(__version__.split('+', 1)[0])")
 VERSION_FILE="$REPO_ROOT/version"
 if [[ -f "$VERSION_FILE" ]]; then
-    OLD_VERSION=$(<"$VERSION_FILE")
+    cd "$REPO_ROOT"
+    OLD_VERSION=$(git show "$(git log --pretty=format:'%h' -n 1 -- version | tail -n 1)":version)
+    cd "$START_DIR"
 else
     OLD_VERSION="<none>"
 fi
