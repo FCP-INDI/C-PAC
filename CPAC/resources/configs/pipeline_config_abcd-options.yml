@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 # CPAC Pipeline Configuration YAML file
-# Version 
+# Version 1.8.8.dev1
 #
 # http://fcp-indi.github.io for more info.
 #
@@ -217,20 +217,17 @@ registration_workflows:
         # Mask the sbref created by coregistration input prep nodeblocks above before registration
         mask_sbref: Off
 
-      # Choose coregistration interpolation
-      interpolation: spline
-
-      # Choose coregistration degree of freedom
-      dof: 12
       boundary_based_registration:
 
         # this is a fork point
         #   run: [On, Off] - this will run both and fork the pipeline
         run: [On]
 
-        # reference for boundary based registration
-        # options: 'whole-head' or 'brain'
-        reference: whole-head
+      # Choose coregistration interpolation
+      interpolation: spline
+
+      # Choose coregistration degree of freedom
+      dof: 12
 
     func_registration_to_template:
 
@@ -269,12 +266,6 @@ registration_workflows:
         # Interpolation method for writing out transformed functional images.
         # Possible values: Linear, BSpline, LanczosWindowedSinc
         interpolation: Linear
-    EPI_registration:
-
-      # directly register the mean functional to an EPI template
-      #   instead of applying the anatomical T1-to-template transform to the functional data that has been
-      #   coregistered to anatomical/T1 space
-      run: off
 
 functional_preproc:
   run: On

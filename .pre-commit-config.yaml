@@ -69,7 +69,7 @@ repos:
         name: Update Dockerfiles and version comments
         entry: .github/scripts/autoversioning.sh
         language: script
-        files: '.*Dockerfile$|.*\.yaml$|^CPAC/info\.py$'
+        files: '(^CPAC/info\.py$|.*Dockerfile$|.*\.ya?ml$)'
       - id: update-yaml-comments
         name: Update YAML comments
         entry: CPAC/utils/configuration/yaml_template.py
