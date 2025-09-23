@@ -105,7 +105,9 @@ fi
 # -------------------------------------------------------------------------
 log_info "Updating YAML config files"
 VERSION_EXPR="s/^(# [Vv]ersion ).*$/# Version ${VERSION}/g"
-for YAML_FILE in "$REPO_ROOT"/CPAC/resources/configs/*.yml; do
+for YAML_FILE in "$REPO_ROOT"/CPAC/resources/configs/{*.yml,*.yaml,test_configs/*.yml,test_configs/*.yaml}; do
+  [[ -e "$YAML_FILE" ]] || continue
+
   echo "Processing ${YAML_FILE}"
   echo "Applying regex: ${VERSION_EXPR}"
 
