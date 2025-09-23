@@ -52,22 +52,16 @@ _version_extra = "dev1"
 
 def get_cpac_gitversion() -> str | None:
     """CPAC version as reported by the last commit in git."""
-    from importlib.resources import as_file, files
+    from pathlib import Path
     import subprocess
 
-    with as_file(files("CPAC")) as _cpac:
-        gitpath = _cpac
-    gitpathgit = None
-    for _cpacpath in [gitpath, *gitpath.parents]:
-        git_dir = _cpacpath / ".git"
-        if git_dir.exists():
-            gitpathgit = git_dir
-            break
-    if not gitpathgit:
+    gitpath = Path(__file__).parent.resolve()
+
+    gitpathgit = gitpath / ".git"
+    if not gitpathgit.exists():
         return None
 
     ver = None
-
     try:
         o, _ = subprocess.Popen(
             "git describe --always", shell=True, cwd=gitpath, stdout=subprocess.PIPE
