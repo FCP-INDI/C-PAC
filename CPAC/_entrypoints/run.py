@@ -482,15 +482,10 @@ def run_main():
 
     elif args.analysis_level == "group":
         if not args.group_file or not os.path.exists(args.group_file):
-            import pkg_resources as p
+            from CPAC.resources.configs import CONFIGS_PATH
 
             WFLOGGER.warning("\nNo group analysis configuration file was supplied.\n")
-
-            args.group_file = p.resource_filename(
-                "CPAC",
-                os.path.join("resources", "configs", "group_config_template.yml"),
-            )
-
+            args.group_file = str(CONFIGS_PATH / "group_config_template.yml")
             output_group = os.path.join(output_dir, "group_config.yml")
 
             try:

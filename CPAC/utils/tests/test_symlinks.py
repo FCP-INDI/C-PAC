@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2024  C-PAC Developers
+# Copyright (C) 2019-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -14,35 +14,30 @@
 
 # You should have received a copy of the GNU Lesser General Public
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
-import os
-import tempfile
+"""Test symbolic links."""
 
-import pkg_resources as p
+from importlib.resources import as_file, files
+import tempfile
 
 from CPAC.utils.monitoring.custom_logging import getLogger
 from CPAC.utils.symlinks import create_symlinks
 
 logger = getLogger("CPAC.utils.tests")
 
-mocked_outputs = p.resource_filename(
-    "CPAC", os.path.join("utils", "tests", "test_symlinks-outputs.txt")
-)
-
 
 def test_symlinks():
     temp_dir = tempfile.mkdtemp(suffix="test_symlinks")
 
-    paths = []
-    with open(mocked_outputs, "r") as f:
-        for _path in f.readlines():
-            path = _path
-            path = path.strip()
-            if path:
-                paths += [path]
+    paths: list[str] = []
+    with as_file(files("CPAC").joinpath("utils/tests/test_symlinks-outputs.txt")) as _f:
+        with _f.open("r") as f:
+            for _path in f.readlines():
+                path = _path
+                path = path.strip()
+                if path:
+                    paths += [path]
 
-    create_symlinks(
-        temp_dir, "sym_links", "pipeline_benchmark-FNIRT", "1019436_1", paths
-    )
+    create_symlinks(temp_dir, "pipeline_benchmark-FNIRT", "1019436_1", paths)
 
     logger.info("Links created at %s", temp_dir)
 

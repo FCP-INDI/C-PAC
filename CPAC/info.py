@@ -29,7 +29,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Modifications Copyright (C) 2022-2023  C-PAC Developers
+# Modifications Copyright (C) 2022-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 """Metadata for building C-PAC.
@@ -50,22 +50,20 @@ _version_micro = 8
 _version_extra = "dev1"
 
 
-def get_cpac_gitversion():
-    """CPAC version as reported by the last commit in git.
-
-    Returns
-    -------
-    None or str
-
-        Version of C-PAC according to git.
-    """
-    import os
+def get_cpac_gitversion() -> str | None:
+    """CPAC version as reported by the last commit in git."""
+    from importlib.resources import as_file, files
     import subprocess
 
-    gitpath = os.path.realpath(os.path.join(os.path.dirname(__file__), os.path.pardir))
-
-    gitpathgit = os.path.join(gitpath, ".git")
-    if not os.path.exists(gitpathgit):
+    with as_file(files("CPAC")) as _cpac:
+        gitpath = _cpac
+    gitpathgit = None
+    for _cpacpath in [gitpath, *gitpath.parents]:
+        git_dir = _cpacpath / ".git"
+        if git_dir.exists():
+            gitpathgit = git_dir
+            break
+    if not gitpathgit:
         return None
 
     ver = None

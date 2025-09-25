@@ -20,7 +20,7 @@ import collections.abc
 from copy import deepcopy
 import fnmatch
 import gzip
-from itertools import repeat
+from importlib.resources import files
 import json
 import numbers
 import os
@@ -31,21 +31,16 @@ import numpy as np
 from voluptuous.error import Invalid
 import yaml
 
+from CPAC.resources import configs
 from CPAC.utils.configuration import Configuration
 from CPAC.utils.docs import deprecated
 from CPAC.utils.interfaces.function import Function
 from CPAC.utils.monitoring import FMLOGGER, WFLOGGER
 
-CONFIGS_DIR = os.path.abspath(
-    os.path.join(__file__, *repeat(os.path.pardir, 2), "resources/configs/")
-)
-with open(
-    os.path.join(CONFIGS_DIR, "1.7-1.8-nesting-mappings.yml"), "r", encoding="utf-8"
-) as _f:
+CONFIGS_DIR = files(configs)
+with (CONFIGS_DIR / "1.7-1.8-nesting-mappings.yml").open("r", encoding="utf-8") as _f:
     NESTED_CONFIG_MAPPING = yaml.safe_load(_f)
-with open(
-    os.path.join(CONFIGS_DIR, "1.7-1.8-deprecations.yml"), "r", encoding="utf-8"
-) as _f:
+with (CONFIGS_DIR / "1.7-1.8-deprecations.yml").open("r", encoding="utf-8") as _f:
     NESTED_CONFIG_DEPRECATIONS = yaml.safe_load(_f)
 PE_DIRECTION = Literal["i", "i-", "j", "j-", "k", "k-", ""]
 VALID_PATTERNS = [
@@ -1147,10 +1142,10 @@ def create_log(wf_name="log", scan_id=None):
 
 def find_files(directory, pattern):
     """Find files in directory."""
-    for root, dirs, files in os.walk(directory):
-        for basename in files:
+    for _root, _dirs, _files in os.walk(directory):
+        for basename in _files:
             if fnmatch.fnmatch(basename, pattern):
-                filename = os.path.join(root, basename)
+                filename = os.path.join(_root, basename)
                 yield filename
 
 
@@ -1444,8 +1439,8 @@ def repickle(directory):  # noqa: T20
     -------
     None
     """
-    for root, _, files in os.walk(directory, followlinks=True):
-        for fn in files:
+    for root, _, _files in os.walk(directory, followlinks=True):
+        for fn in _files:
             p = os.path.join(root, fn)
             if fn.endswith(".pkl"):
                 if _pickle2(p):

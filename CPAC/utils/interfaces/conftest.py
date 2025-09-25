@@ -35,18 +35,19 @@ Modified from https://github.com/nipy/nipype/blob/a17de8e/nipype/conftest.py
 """
 
 from contextlib import contextmanager
+from importlib.resources import as_file, files
 from os import chdir, getcwd
 from pathlib import Path
 from shutil import copytree, rmtree
 from tempfile import mkdtemp
 
 from pytest import fixture
-import nipype
 
-NIPYPE_DATADIR = Path(nipype.__file__).parent / "testing/data"
-TEMP_FOLDER = Path(mkdtemp())
-DATA_DIR = TEMP_FOLDER / "data"
-copytree(NIPYPE_DATADIR, DATA_DIR, symlinks=True)
+with as_file(files("nipype").joinpath("testing/data")) as data_path:
+    NIPYPE_DATADIR = data_path
+    TEMP_FOLDER = Path(mkdtemp())
+    DATA_DIR = TEMP_FOLDER / "data"
+    copytree(NIPYPE_DATADIR, DATA_DIR, symlinks=True)
 
 
 @contextmanager

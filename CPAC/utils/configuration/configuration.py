@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2024  C-PAC Developers
+# Copyright (C) 2022-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -22,9 +22,9 @@ from typing import Optional
 from warnings import warn
 
 from click import BadParameter
-import pkg_resources as p
 import yaml
 
+from CPAC.resources.configs import CONFIGS_PATH
 from .diff import dct_diff
 
 CONFIG_KEY_TYPE = str | list[str]
@@ -737,10 +737,7 @@ def preconfig_yaml(preconfig_name="default", load=False):
     if load:
         with open(preconfig_yaml(preconfig_name), "r", encoding="utf-8") as _f:
             return yaml.safe_load(_f)
-    return p.resource_filename(
-        "CPAC",
-        os.path.join("resources", "configs", f"pipeline_config_{preconfig_name}.yml"),
-    )
+    return str(CONFIGS_PATH / f"pipeline_config_{preconfig_name}.yml")
 
 
 class Preconfiguration(Configuration):

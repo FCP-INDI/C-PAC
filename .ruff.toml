@@ -20,7 +20,6 @@ external = ["T20"]  # Don't autoremove 'noqa` comments for these rules
 "nibabel" = "nib"
 "nipype.interfaces.io" = "nio"
 "networkx" = "nx"
-"pkg_resources" = "p"
 "CPAC.pipeline.nipype_pipeline_engine" = "pe"
 
 [lint.isort]

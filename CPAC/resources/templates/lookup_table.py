@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2024  C-PAC Developers
+# Copyright (C) 2022-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -19,7 +19,8 @@
 See `Standard template identifiers <https://bids-specification.readthedocs.io/en/stable/99-appendices/08-coordinate-systems.html#standard-template-identifiers>`_.
 """
 
-from os import environ, path as op
+from importlib.resources import files
+from os import environ
 from re import findall, search
 from typing import Optional
 
@@ -32,7 +33,7 @@ LOOKUP_TABLE = {
         str(row[2]) if row[2] else None,
     )
     for row in loadtxt(
-        op.join(op.dirname(__file__), "BIDS_identifiers.tsv"),
+        str(files("CPAC").joinpath("resources/templates/BIDS_identifiers.tsv")),
         dtype="str",
         delimiter="\t",
     )

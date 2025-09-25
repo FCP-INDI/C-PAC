@@ -35,10 +35,14 @@ def _docs_prefix() -> str:
     return DOCS_URL_PREFIX
 
 
-license_notice = f"""Copyright (C) 2022-2024 C-PAC Developers.
+def license_notice() -> str:
+    """Get the license notice for this version."""
+    return f"""Copyright (C) 2022-2024 C-PAC Developers.
 
 This program comes with ABSOLUTELY NO WARRANTY. This is free software,
 and you are welcome to redistribute it under certain conditions. For
 details, see {_docs_prefix()}/license or the COPYING and
 COPYING.LESSER files included in the source code."""
+
+
 __all__ = ["license_notice", "version", "__version__"]

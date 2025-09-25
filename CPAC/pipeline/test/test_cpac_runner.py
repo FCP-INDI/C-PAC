@@ -1,12 +1,30 @@
+# Copyright (C) 2021-2025  C-PAC Developers
+
+# This file is part of C-PAC.
+
+# C-PAC is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+
+# C-PAC is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+# License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
+"""Run C-PAC in a container."""
+
 import os
 from pathlib import Path
 
-import pkg_resources as p
 import pytest
 
 from CPAC.pipeline.cpac_pipeline import load_cpac_pipe_config
 from CPAC.pipeline.cpac_runner import run_T1w_longitudinal
 from CPAC.pipeline.utils import get_shell
+from CPAC.resources.configs import CONFIGS_PATH
 from CPAC.utils.bids_utils import create_cpac_data_config
 
 
@@ -21,7 +39,7 @@ def test_shell() -> None:
 @pytest.mark.skip(reason="not a pytest test")
 def test_run_T1w_longitudinal(bids_dir, cfg, test_dir, part_id):
     sub_data_list = create_cpac_data_config(
-        bids_dir, participant_label=part_id, skip_bids_validator=True
+        bids_dir, participant_labels=[part_id], skip_bids_validator=True
     )
     cfg = load_cpac_pipe_config(cfg)
 
@@ -31,12 +49,9 @@ def test_run_T1w_longitudinal(bids_dir, cfg, test_dir, part_id):
     run_T1w_longitudinal(sub_data_list, cfg)
 
 
-cfg = p.resource_filename(
-    "CPAC", os.path.join("resources", "configs", "pipeline_config_default.yml")
-)
-bids_dir = "/Users/steven.giavasis/data/neurodata_hnu"
-test_dir = "/test_dir"
-part_id = "0025427"
-
 if __name__ == "__main__":
+    bids_dir = "/Users/steven.giavasis/data/neurodata_hnu"
+    test_dir = "/test_dir"
+    part_id = "0025427"
+    cfg = str(CONFIGS_PATH / "pipeline_config_default.yml")
     test_run_T1w_longitudinal(bids_dir, cfg, test_dir, part_id)
