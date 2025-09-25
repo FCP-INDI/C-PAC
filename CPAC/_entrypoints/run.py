@@ -112,7 +112,7 @@ def resolve_aws_credential(source: Path | str) -> str:
 def run_main():
     """Run this function if not importing as a script."""
     parser = argparse.ArgumentParser(
-        description="C-PAC Pipeline Runner. " + license_notice
+        description="C-PAC Pipeline Runner. " + license_notice()
     )
     parser.add_argument(
         "bids_dir",
