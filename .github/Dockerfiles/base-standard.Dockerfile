@@ -16,7 +16,7 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 FROM ghcr.io/fcp-indi/c-pac/freesurfer:6.0.0-min.neurodocker-jammy AS freesurfer
 
-FROM ghcr.io/fcp-indi/c-pac/stage-base:lite-v1.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev1
+FROM ghcr.io/fcp-indi/c-pac/stage-base:lite-v1.8.8.dev1
 LABEL org.opencontainers.image.description="NOT INTENDED FOR USE OTHER THAN AS A STAGE IMAGE IN A MULTI-STAGE BUILD \
 Standard software dependencies for C-PAC standard images"
 LABEL org.opencontainers.image.source=https://github.com/FCP-INDI/C-PAC
@@ -56,7 +56,7 @@ RUN apt-get autoremove -y \
     && rm -rf results.txt \
     && ldconfig \
     && chmod 777 / /home/c-pac_user \
-    && chmod 777 $(ls / | grep -v1.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev1 sys | grep -v1.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev11.8.8.dev1 proc)
+    && chmod 777 $(ls / | grep -v sys | grep -v proc)
 
 # set user
 USER c-pac_user

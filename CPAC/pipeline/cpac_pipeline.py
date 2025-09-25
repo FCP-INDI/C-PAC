@@ -414,7 +414,7 @@ def run_workflow(
             )
             if c.pipeline_setup["system_config"]["random_seed"] is not None
             else "",
-            license_notice=CPAC.license_notice.replace("\n", "\n    "),
+            license_notice=CPAC.license_notice().replace("\n", "\n    "),
         ),
     )
     subject_info = {}
