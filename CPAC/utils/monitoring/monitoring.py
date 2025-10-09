@@ -84,7 +84,7 @@ NoTime = _NoTime()
 
 
 class DatetimeWithSafeNone(datetime, _NoTime):
-    """Time class that can be None or a time value.
+    r"""Time class that can be None or a time value.
 
     Examples
     --------
@@ -148,6 +148,7 @@ class DatetimeWithSafeNone(datetime, _NoTime):
         fold: Optional[int] = 0,
     ) -> "DatetimeWithSafeNone | _NoTime":
         """Create a new instance of the class."""
+        # First check if all arguments are provided as integers
         if (
             isinstance(year, int)
             and isinstance(month, int)
@@ -170,10 +171,13 @@ class DatetimeWithSafeNone(datetime, _NoTime):
                 tzinfo,
                 fold=fold,
             )
-        else:
-            dt = year
+
+        # Otherwise, year contains the datetime-like object
+        dt = year
+
         if dt is None:
             return NoTime
+
         if isinstance(dt, datetime):
             return datetime.__new__(
                 cls,
@@ -186,6 +190,7 @@ class DatetimeWithSafeNone(datetime, _NoTime):
                 dt.microsecond,
                 dt.tzinfo,
             )
+
         if isinstance(dt, bytes):
             try:
                 tzflag: Optional[int]
@@ -219,24 +224,76 @@ class DatetimeWithSafeNone(datetime, _NoTime):
                     return datetime.__new__(
                         cls, year, month, day, hour, minute, second, microsecond, tzinfo
                     )
-                else:
-                    msg = f"Unexpected type: {[type(part) for part in [year, month, day, hour, minute, second, microsecond]]}"
-                    raise TypeError(msg)
-            except UnicodeDecodeError:
-                error = f"Cannot decode bytes to string: {dt!r}"
+                msg = f"Unexpected type: {[type(part) for part in [year, month, day, hour, minute, second, microsecond]]}"
+                raise TypeError(msg)
+            except (struct.error, IndexError) as e:
+                error = f"Cannot unpack bytes to datetime: {dt!r} - {e}"
                 raise TypeError(error)
+
         if isinstance(dt, str):
             try:
                 return DatetimeWithSafeNone(datetime.fromisoformat(dt))
             except (ValueError, TypeError):
                 error = f"Invalid ISO-format datetime string: {dt}"
-        else:
-            error = f"Cannot convert {type(dt)} to datetime"
+                raise TypeError(error)
+
+        error = f"Cannot convert {type(dt)} to datetime"
         raise TypeError(error)
 
     def __bool__(self) -> bool:
         """Return True if not NoTime."""
         return self is not NoTime
+
+    def __eq__(self, other: object) -> bool:
+        """Compare DatetimeWithSafeNone instances with tzinfo-aware logic.
+
+        If only one side has tzinfo, consider them equal if all other components match.
+        """
+        if self is NoTime and other is NoTime:
+            return True
+        if self is NoTime or other is NoTime:
+            return False
+        if not isinstance(other, (datetime, DatetimeWithSafeNone)):
+            return False
+
+        # Compare all datetime components except tzinfo
+        components_match = (
+            self.year == other.year
+            and self.month == other.month
+            and self.day == other.day
+            and self.hour == other.hour
+            and self.minute == other.minute
+            and self.second == other.second
+            and self.microsecond == other.microsecond
+        )
+
+        if not components_match:
+            return False
+
+        # If components match, check tzinfo:
+        # - If either has None tzinfo, consider them equal
+        # - If both have tzinfo, they must match
+        if self.tzinfo is None or other.tzinfo is None:
+            return True
+
+        return self.tzinfo == other.tzinfo
+
+    def __hash__(self) -> int:
+        """Return hash based on datetime components, ignoring tzinfo."""
+        if self is NoTime:
+            return hash(NoTime)
+        # Hash based on datetime components only, not tzinfo
+        return hash(
+            (
+                self.year,
+                self.month,
+                self.day,
+                self.hour,
+                self.minute,
+                self.second,
+                self.microsecond,
+            )
+        )
 
     def __sub__(self, other: "DatetimeWithSafeNone | _NoTime") -> datetime | timedelta:  # type: ignore[reportIncompatibleMethodOverride]
         """Subtract between a datetime or timedelta or None."""
