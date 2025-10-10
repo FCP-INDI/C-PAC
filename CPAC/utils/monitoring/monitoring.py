@@ -93,9 +93,9 @@ class DatetimeWithSafeNone(datetime, _NoTime):
     '2025-06-18T21:06:43.730004'
     >>> DatetimeWithSafeNone("2025-06-18T21:06:43.730004").isoformat()
     '2025-06-18T21:06:43.730004'
-    >>> DatetimeWithSafeNone(b"\\x07\\xe9\\x06\\x12\\x10\\x18\\x1c\\x88\\x6d\\x01").isoformat()
+    >>> DatetimeWithSafeNone(b"\x07\xe9\x06\x12\x10\x18\x1c\x88\x6d\x01").isoformat()
     '2025-06-18T16:24:28.028040+00:00'
-    >>> DatetimeWithSafeNone(b'\\x07\\xe9\\x06\\x12\\x10\\x18\\x1c\\x88m\\x00').isoformat()
+    >>> DatetimeWithSafeNone(b'\x07\xe9\x06\x12\x10\x18\x1c\x88m\x00').isoformat()
     '2025-06-18T16:24:28.028040'
     >>> DatetimeWithSafeNone(DatetimeWithSafeNone("2025-06-18")).isoformat()
     '2025-06-18T00:00:00'
