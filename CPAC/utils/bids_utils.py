@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2024  C-PAC Developers
+# Copyright (C) 2016-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
