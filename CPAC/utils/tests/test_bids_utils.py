@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2024  C-PAC Developers
+# Copyright (C) 2021-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -19,6 +19,7 @@
 from importlib import resources
 import os
 from subprocess import run
+from typing import Optional
 
 import pytest
 import yaml
@@ -33,6 +34,7 @@ from CPAC.utils.bids_utils import (
     load_yaml_config,
     sub_list_filter_by_labels,
 )
+from CPAC.utils.datatypes import PHASE_ENCODING_DIRECTIONS
 from CPAC.utils.monitoring.custom_logging import getLogger
 
 logger = getLogger("CPAC.utils.tests")
@@ -194,3 +196,21 @@ def test_sub_list_filter_by_labels(t1w_label, bold_label, participant_label):
             )
     else:
         assert all(len(sub.get("func")) in [0, 5] for sub in sub_list)
+
+
+@pytest.mark.parametrize(
+    "bids_dir,participant_labels", [("dev/circleci_data/test_data", ["NDARAB348EWR"])]
+)
+def test_scan_parameter_type(
+    bids_dir: str, participant_labels: Optional[list[str]]
+) -> None:
+    """Test that scan parameter types are correctly interpreted."""
+    data_config = create_cpac_data_config(bids_dir, participant_labels)
+    assert len(data_config) == 1
+    if "fmap" in data_config[0]:
+        assert (
+            data_config[0]["fmap"]["epi_PA"]["scan_parameters"][
+                "PhaseEncodingDirection"
+            ]
+            in PHASE_ENCODING_DIRECTIONS
+        )

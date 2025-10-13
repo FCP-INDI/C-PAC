@@ -802,12 +802,10 @@ def bids_gen_cpac_sublist(
     return sublist
 
 
-def collect_bids_files_configs(bids_dir, aws_input_creds=""):
-    """
-    :param bids_dir:
-    :param aws_input_creds:
-    :return:
-    """
+def collect_bids_files_configs(
+    bids_dir: str, aws_input_creds: Optional[str] = ""
+) -> tuple[list[str], dict[str, Any]]:
+    """Collect NIfTI file paths and JSON configurations from a BIDS directory."""
     file_paths = []
     config_dict = {}
 
@@ -853,7 +851,7 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=""):
                         except Exception as e:
                             msg = (
                                 f"Error retrieving {s3_obj.key.replace(prefix, '')}"
-                                f" ({e.message})"
+                                f" ({getattr(e, 'message', str(e))})"
                             )
                             raise SpecifiedBotoCoreError(msg) from e
                     elif "nii" in str(s3_obj.key):
@@ -862,7 +860,7 @@ def collect_bids_files_configs(bids_dir, aws_input_creds=""):
                         )
 
     else:
-        for root, dirs, files in os.walk(bids_dir, topdown=False, followlinks=True):
+        for root, _dirs, files in os.walk(bids_dir, topdown=False, followlinks=True):
             if files:
                 for f in files:
                     for suf in suffixes:
@@ -1086,26 +1084,26 @@ def cl_strip_brackets(arg_list):
 
 
 def create_cpac_data_config(
-    bids_dir,
-    participant_labels=None,
-    aws_input_creds=None,
-    skip_bids_validator=False,
-    only_one_anat=True,
-):
+    bids_dir: str,
+    participant_labels: Optional[list[str]] = None,
+    aws_input_creds: Optional[str] = None,
+    skip_bids_validator: bool = False,
+    only_one_anat: bool = True,
+) -> list:
     """
     Create a C-PAC data config YAML file from a BIDS directory.
 
     Parameters
     ----------
-    bids_dir : str
+    bids_dir
 
-    participant_labels : list or None
+    participant_labels
 
     aws_input_creds
 
-    skip_bids_validator : bool
+    skip_bids_validator
 
-    only_one_anat : bool
+    only_one_anat
         The "anat" key for a subject expects a string value, but we
         can temporarily store a list instead by passing True here if
         we will be filtering that list down to a single string later
@@ -1129,8 +1127,10 @@ def create_cpac_data_config(
         ]
 
     if not file_paths:
-        UTLOGGER.error("Did not find data for %s", ", ".join(participant_labels))
-        sys.exit(1)
+        if participant_labels:
+            UTLOGGER.error("Did not find data for %s", ", ".join(participant_labels))
+        msg = f"Did not find data in {bids_dir}"
+        raise FileNotFoundError(msg)
 
     raise_error = not skip_bids_validator
 
@@ -1145,7 +1145,8 @@ def create_cpac_data_config(
 
     if not sub_list:
         UTLOGGER.error("Did not find data in %s", bids_dir)
-        sys.exit(1)
+        msg = f"Did not find data in {bids_dir}"
+        raise FileNotFoundError(msg)
 
     return sub_list
 

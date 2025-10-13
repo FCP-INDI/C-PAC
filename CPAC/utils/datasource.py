@@ -514,9 +514,14 @@ def match_epi_fmaps(
             with open(scan_params, "r") as f:
                 scan_params = json.load(f)
         if "PhaseEncodingDirection" in scan_params:
+            from CPAC.utils.datatypes import PHASE_ENCODING_DIRECTIONS
+
             epi_pedir: str | bytes = scan_params["PhaseEncodingDirection"]
             if isinstance(epi_pedir, bytes):
                 epi_pedir = epi_pedir.decode("utf-8")
+            assert (
+                epi_pedir in PHASE_ENCODING_DIRECTIONS
+            ), f"PhaseEncodingDirection {epi_pedir} not valid (should be one of {PHASE_ENCODING_DIRECTIONS})"
             if epi_pedir == bold_pedir:
                 same_pe_epi = epi_scan
             elif epi_pedir[0] == bold_pedir[0]:
