@@ -324,10 +324,8 @@ def bids_retrieve_params(bids_config_dict, f_dict, dbg=False):
 
     for k, v in params.items():
         if isinstance(v, str):
-            # Force all strings to be ASCII-compatible UTF-8
-            params[k] = v.encode("ascii", errors="ignore").decode(
-                "utf-8", errors="ignore"
-            )
+            # Force all strings to be ASCII-compatible UTF-8 (by removing all non-ASCII characters)
+            params[k] = v.encode("ascii", errors="ignore").decode("ascii")
 
     return params
 
