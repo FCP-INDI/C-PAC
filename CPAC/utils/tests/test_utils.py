@@ -16,7 +16,8 @@
 # License along with C-PAC. If not, see <https://www.gnu.org/licenses/>.
 """Tests of CPAC utility functions."""
 
-from datetime import datetime, timedelta
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 import multiprocessing
 from unittest import mock
 
@@ -240,3 +241,41 @@ def test_datetime_with_safe_none(t1: OptionalDatetime, t2: OptionalDatetime):
         assert isinstance(t2 - t1, timedelta)
     else:
         assert t2 - t1 == timedelta(0)
+
+
+def test_deepcopy_datetimewithsafenone_raises_error() -> None:
+    """Test bytestring TypeError during deepcopy operation."""
+    # Create a node dictionary similar to what's used in the Gantt chart generation
+    node = {
+        "id": "test_node",
+        "hash": "abc123",
+        "start": DatetimeWithSafeNone(
+            datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        ),
+        "finish": DatetimeWithSafeNone(
+            datetime(2024, 1, 1, 11, 30, 0, tzinfo=timezone.utc)
+        ),
+        "runtime_threads": 4,
+        "runtime_memory_gb": 2.5,
+        "estimated_memory_gb": 3.0,
+        "num_threads": 4,
+    }
+
+    # This should raise: TypeError: Cannot convert <class 'bytes'> to datetime
+    # with the original code because deepcopy pickles DatetimeWithSafeNone objects
+    # as bytes, and the __new__ method doesn't properly handle the pickle protocol
+    finish_node = deepcopy(node)
+
+    assert finish_node["start"] == node["start"]
+    assert finish_node["finish"] == node["finish"]
+
+
+def test_deepcopy_datetimewithsafenone_direct():
+    """Test deepcopy directly on DatetimeWithSafeNone instance."""
+    dt = DatetimeWithSafeNone(datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc))
+
+    # This triggers the pickle/unpickle cycle which passes bytes to __new__
+    dt_copy = deepcopy(dt)
+
+    assert dt_copy == dt
+    assert isinstance(dt_copy, DatetimeWithSafeNone)
