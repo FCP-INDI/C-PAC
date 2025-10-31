@@ -30,7 +30,7 @@
 
 #     Prior to release 0.12, Nipype was licensed under a BSD license.
 
-# Modifications Copyright (C) 2019-2024  C-PAC Developers
+# Modifications Copyright (C) 2019-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 """Interface that allow interaction with data.
@@ -139,6 +139,7 @@ class DataSink(NipypeDataSink):  # noqa: D101
         # Import packages
         try:
             import boto3
+            import boto3.session
             import botocore
         except ImportError:
             err_msg = "Boto3 package is not installed - install boto3 and try again."

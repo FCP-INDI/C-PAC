@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2024  C-PAC Developers
+# Copyright (C) 2021-2025  C-PAC Developers
 
 # This file is part of C-PAC.
 
@@ -17,9 +17,15 @@
 """Tests for bids_utils."""
 
 from importlib import resources
+from itertools import permutations
 import os
+from pathlib import Path
 from subprocess import run
+from warnings import warn
 
+import boto3
+from botocore import UNSIGNED
+from botocore.client import Config
 import pytest
 import yaml
 
@@ -33,6 +39,7 @@ from CPAC.utils.bids_utils import (
     load_yaml_config,
     sub_list_filter_by_labels,
 )
+from CPAC.utils.datatypes import PHASE_ENCODING_DIRECTIONS
 from CPAC.utils.monitoring.custom_logging import getLogger
 
 logger = getLogger("CPAC.utils.tests")
@@ -194,3 +201,68 @@ def test_sub_list_filter_by_labels(t1w_label, bold_label, participant_label):
             )
     else:
         assert all(len(sub.get("func")) in [0, 5] for sub in sub_list)
+
+
+@pytest.mark.parametrize("participant_labels", [["NDARAB348EWR"]])
+def test_scan_parameter_type(tmp_path: Path, participant_labels: list[str]) -> None:
+    """Test that scan parameter types are correctly interpreted."""
+    bids_dir = _gather_scan_parameter_test_data(tmp_path, participant_labels)
+    data_config = create_cpac_data_config(bids_dir, participant_labels)
+    assert len(data_config) == 1
+    if "fmap" in data_config[0]:
+        assert (
+            data_config[0]["fmap"]["epi_PA"]["scan_parameters"][
+                "PhaseEncodingDirection"
+            ]
+            in PHASE_ENCODING_DIRECTIONS
+        )
+
+
+def _gather_scan_parameter_test_data(
+    root_dir: Path, participant_labels: list[str]
+) -> str:
+    """Create a test BIDS dataset with structure for the given subject.
+
+    Downloads JSON files from S3 and creates empty placeholder files for imaging data.
+    """
+    s3_bucket = "fcp-indi"
+    bids_dir = root_dir / "data"
+    for _participant in participant_labels:
+        participant = (
+            f"sub-{_participant}"
+            if not _participant.startswith("sub-")
+            else _participant
+        )
+        s3_prefix = f"data/Projects/HBN/MRI/Site-CBIC/{participant}"
+        s3_client = boto3.client("s3", config=Config(signature_version=UNSIGNED))
+        files = {
+            "anat": [
+                f"{participant}_acq-HCP_run-01_T1w",
+            ],
+            "fmap": [
+                f"{participant}_dir-{direction}_acq-{acq}_epi"
+                for direction in [
+                    "".join(direction) for direction in permutations(["A", "P"], 2)
+                ]
+                for acq in ["dwi", "fMRI"]
+            ],
+            "func": [
+                f"{participant}_task-movieDM_bold",
+            ],
+        }
+        for modality, file_list in files.items():
+            modality_dir = bids_dir / participant / modality
+            modality_dir.mkdir(parents=True, exist_ok=True)
+            for file_base in file_list:
+                # Download JSON files from S3
+                json_file = modality_dir / f"{file_base}.json"
+                s3_key = f"{s3_prefix}/{modality}/{file_base}.json"
+                try:
+                    s3_client.download_file(s3_bucket, s3_key, str(json_file))
+                except Exception as e:
+                    # If download fails, create empty JSON
+                    warn("Failed to download %s: %s" % (s3_key, e))
+                    json_file.write_text("{}")
+                nii_file = modality_dir / f"{file_base}.nii.gz"
+                nii_file.touch()
+    return str(bids_dir)

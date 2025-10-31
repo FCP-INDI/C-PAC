@@ -68,3 +68,8 @@ class ListFromItem(list):
             else:
                 args = ([args[0]],)
         list.__init__(self, *args, **kwargs)
+
+
+PHASE_ENCODING_DIRECTIONS: list[str] = [
+    f"{i}{sign}" for i in ["i", "j", "k"] for sign in ["", "-"]
+]
